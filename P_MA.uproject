@@ -7,24 +7,24 @@
     {
       "Name": "P_MA",
       "Type": "Runtime",
-      "LoadingPhase": "Default"
+      "LoadingPhase": "Default",
+      "AdditionalDependencies": [
+        "Engine",
+        "GameplayAbilities"
+      ]
     }
   ],
   "Plugins": [
     {
       "Name": "ModelingToolsEditorMode",
-      "Enabled": true
+      "Enabled": true,
+      "TargetAllowList": [
+        "Editor"
+      ]
     },
     {
-      "Name": "VisualStudioTools",
-      "Enabled": true,
-      "SupportedTargetPlatforms": [
-        "Win64"
-      ]
+      "Name": "GameplayAbilities",
+      "Enabled": true
     }
-  ],
-  "TargetPlatforms": [],
-  "AdditionalRootDirectories": [],
-  "AdditionalPluginDirectories": [],
-  "EpicSampleNameHash": ""
+  ]
 }
