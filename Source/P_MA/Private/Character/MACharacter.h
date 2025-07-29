@@ -8,7 +8,7 @@
 #include "MACharacter.generated.h"
 
 UCLASS()
-class AMACharacter : public ACharacter
+class AMACharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
