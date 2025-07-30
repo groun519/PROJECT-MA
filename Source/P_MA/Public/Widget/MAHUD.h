@@ -5,7 +5,7 @@
 #include "MAHUD.generated.h"
 
 class UHealthBarWidget;
-class UMAAttackSlotWidget;
+class UMASkillSlotWidget;
 class UHorizontalBox;
 
 UCLASS()
@@ -26,7 +26,7 @@ protected:
     UHealthBarWidget* HealthBarWidget;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-    TSubclassOf<UMAAttackSlotWidget> AttackSlotWidgetClass;
+    TSubclassOf<UMASkillSlotWidget> SkillSlotWidgetClass;
 
     UPROPERTY(meta = (BindWidget))
     UHorizontalBox* HorizontalBox_SkillSlots;

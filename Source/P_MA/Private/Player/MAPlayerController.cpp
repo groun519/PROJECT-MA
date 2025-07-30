@@ -5,7 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
-#include "MAHUD.h"
+#include "Widget/MAHUD.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
