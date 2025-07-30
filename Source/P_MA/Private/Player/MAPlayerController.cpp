@@ -5,7 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Widgets/HUDWidget.h"
+#include "MAHUD.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
@@ -32,9 +32,10 @@ void AMAPlayerController::SpawnHUDWidget()
 {
 	if (!IsLocalPlayerController()) return;
 
-	HUDWidget = CreateWidget<UHUDWidget>(this, HUDWidgetClass);
+	HUDWidget = CreateWidget<UMAHUD>(this, HUDWidgetClass);
 	if (HUDWidget)
 	{
 		HUDWidget->AddToViewport();
 	}
 }
+
