@@ -1,13 +1,14 @@
-﻿#include "MAHUD.h"
-#include "HealthBarWidget.h"
-#include "MAAttackSlotWidget.h" 
-#include "MASkillSlotWidget.h" 
+﻿#include "Widget/MAHUD.h"
+#include "Widget/MASkillSlotWidget.h"
+#include "Widget/HealthBarWidget.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+
 
 void UMAHUD::NativeConstruct()
 {
     Super::NativeConstruct();
+
 
     if (HealthBarWidgetClass)
     {
@@ -19,7 +20,7 @@ void UMAHUD::NativeConstruct()
         }
     }
 
-    CreateSkillSlots(2); 
+    CreateSkillSlots(2);
 }
 
 void UMAHUD::UpdateHealth(float CurrentHealth, float MaxHealth)
@@ -32,22 +33,21 @@ void UMAHUD::UpdateHealth(float CurrentHealth, float MaxHealth)
 
 void UMAHUD::CreateSkillSlots(int32 NumSlots)
 {
-    if (!AttackSlotWidgetClass || !HorizontalBox_SkillSlots) return;
+    if (!SkillSlotWidgetClass || !HorizontalBox_SkillSlots) return;
 
     for (int32 i = 0; i < NumSlots; ++i)
     {
-        UMAAttackSlotWidget* NewSlot = CreateWidget<UMAAttackSlotWidget>(GetWorld(), AttackSlotWidgetClass);
-        if (!NewSlot)
-        {
-            UE_LOG(LogTemp, Error, TEXT("NewSlot is nullptr at index %d!"), i);
-            continue;
-        }
-
+        UMASkillSlotWidget* NewSlot = CreateWidget<UMASkillSlotWidget>(GetWorld(), SkillSlotWidgetClass);
+       
         FString KeyName = (i == 0) ? TEXT("Attack") : TEXT("Skill");
-        UE_LOG(LogTemp, Warning, TEXT("Calling SetHotkeyName(%s)"), *KeyName); 
         NewSlot->SetHotkeyName(KeyName);
 
-        HorizontalBox_SkillSlots->AddChildToHorizontalBox(NewSlot);
+        
+        UHorizontalBoxSlot* NewSlotSlot = HorizontalBox_SkillSlots->AddChildToHorizontalBox(NewSlot);
+        if (NewSlotSlot)
+        {
+            NewSlotSlot->SetPadding(FMargin(5.0f, 0.0f)); 
+            NewSlotSlot->SetHorizontalAlignment(HAlign_Left); 
+        }
     }
-
 }
