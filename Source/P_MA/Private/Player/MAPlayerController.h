@@ -27,8 +27,8 @@ private:
 	class AMAPlayerCharacter* MAPlayerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UHUDWidget> HUDWidgetClass;
+	TSubclassOf<class UMAHUD> HUDWidgetClass;
 
 	UPROPERTY()
-	class UHUDWidget* HUDWidget;
+	class UMAHUD* HUDWidget;
 };
