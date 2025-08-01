@@ -17,6 +17,11 @@ class AMAPlayerCharacter : public AMACharacter
 	GENERATED_BODY()
 
 public:
+	AMAPlayerCharacter();
+	virtual void PawnClientRestart() override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
 	class USpringArmComponent* CameraBoom;
 	
@@ -25,4 +30,22 @@ public:
 
 	FVector GetLookRitDir() const;
 	FVector GetMoveForwardDir() const;
+
+	/** Input **/
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* MoveInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* AttackInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* SkillInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputMappingContext* GameplayInputMappingContext;
+
+	void HandleMoveInput(const FInputActionValue& InputActionValue);
+	void HandleAttackInput(const FInputActionValue& InputActionValue);
+	void HandleSkillInput(const FInputActionValue& InputActionValue);
 };
