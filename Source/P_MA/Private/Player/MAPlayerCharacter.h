@@ -35,7 +35,6 @@ private:
 	FVector GetMoveRightDir() const;
 	
 	/** Input **/
-private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* MoveInputAction;
 	
@@ -52,5 +51,7 @@ private:
 	void HandleAttackInput(const FInputActionValue& InputActionValue);
 	void HandleSkillInput(const FInputActionValue& InputActionValue);
 
-	void UpdateLookAtMouse();
+	/** Cam **/
+	bool GetLookDirectionToMouse(FVector& OutDirection) const;
+	void UpdateCameraLead(const FVector& LookDirection) const;
 };

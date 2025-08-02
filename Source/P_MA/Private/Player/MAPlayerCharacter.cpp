@@ -15,6 +15,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->bUsePawnControlRotation = false;
+	CameraBoom->bInheritYaw = false;    
 
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -28,7 +29,12 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateLookAtMouse();
+	FVector LookDir;
+	if (GetLookDirectionToMouse(LookDir))
+	{
+		SetActorRotation(FRotator(0.f, LookDir.Rotation().Yaw, 0.f));
+		UpdateCameraLead(LookDir);
+	}
 }
 
 void AMAPlayerCharacter::PawnClientRestart()
@@ -38,6 +44,15 @@ void AMAPlayerCharacter::PawnClientRestart()
 	APlayerController* OwningPlayerController = GetController<APlayerController>();
 	if (OwningPlayerController)
 	{
+		OwningPlayerController->bShowMouseCursor = true;
+		OwningPlayerController->bEnableClickEvents = true;
+		OwningPlayerController->bEnableMouseOverEvents = true;
+
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 자유롭게
+		InputMode.SetHideCursorDuringCapture(false); // 클릭 중에도 마우스 보임
+		OwningPlayerController->SetInputMode(InputMode);
+		
 		UEnhancedInputLocalPlayerSubsystem* InputSubsystem = OwningPlayerController->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 		if (InputSubsystem)
 		{
@@ -95,40 +110,42 @@ void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionVa
 	
 }
 
-void AMAPlayerCharacter::UpdateLookAtMouse()
+bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return;
+	if (!PC) return false;
 
-	FVector WorldOrigin, WorldDirection;
-	if (PC->DeprojectMousePositionToWorld(WorldOrigin, WorldDirection))
-	{
-		// 라인트레이스로 바닥 클릭 지점 찾기
-		FVector TraceStart = WorldOrigin;
-		FVector TraceEnd = WorldOrigin + WorldDirection * 10000.f;
+	FVector WorldOrigin, WorldDir;
+	if (!PC->DeprojectMousePositionToWorld(WorldOrigin, WorldDir)) return false;
 
-		FHitResult Hit;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(this);
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
 
-		if (GetWorld()->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, Params))
-		{
-			FVector TargetLocation = Hit.Location;
-			FVector MyLocation = GetActorLocation();
+	if (!GetWorld()->LineTraceSingleByChannel(Hit, WorldOrigin, WorldOrigin + WorldDir * 10000.f, ECC_Visibility, Params))
+		return false;
 
-			// Z값 일치시켜서 수평 방향만 비교
-			TargetLocation.Z = MyLocation.Z;
+	FVector PlayerLoc = GetActorLocation();
+	FVector MouseLoc = FVector(Hit.Location.X, Hit.Location.Y, PlayerLoc.Z);
+	
+	FVector Dir = (MouseLoc - PlayerLoc).GetSafeNormal();
+	if (Dir.IsNearlyZero()) return false;
 
-			FVector Direction = (TargetLocation - MyLocation).GetSafeNormal();
-
-			if (!Direction.IsNearlyZero())
-			{
-				FRotator LookAtRotation = Direction.Rotation();
-				// Yaw만 회전 적용 (Pitch/Roll 제거)
-				SetActorRotation(FRotator(0.f, LookAtRotation.Yaw, 0.f));
-			}
-		}
-	}
+	OutDirection = Dir;
+	return true;
 }
+
+void AMAPlayerCharacter::UpdateCameraLead(const FVector& LookDirection) const
+{
+	if (!CameraBoom) return;
+	if (LookDirection.IsNearlyZero()) return;
+
+	FVector PlayerLoc = GetActorLocation();
+	FVector LeadOffset = LookDirection * 30.f;
+	FVector CamOffset = FVector(-100.f, -100.f, 0.f);
+
+	CameraBoom->SetWorldLocation(PlayerLoc + LeadOffset + CamOffset);
+}
+
 
 
