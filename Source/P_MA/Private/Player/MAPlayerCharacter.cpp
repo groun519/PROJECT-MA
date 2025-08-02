@@ -14,6 +14,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 {
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
 	CameraBoom->SetupAttachment(GetRootComponent());
+	CameraBoom->bUsePawnControlRotation = false;
 
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
