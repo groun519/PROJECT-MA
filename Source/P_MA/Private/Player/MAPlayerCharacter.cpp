@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -102,12 +103,26 @@ void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionVal
 
 void AMAPlayerCharacter::HandleAttackInput(const FInputActionValue& InputActionValue)
 {
+	const bool bPressed = InputActionValue.Get<bool>();
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
 	
+	if (bPressed)
+		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Attack));
+	else
+		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Attack));
 }
 
 void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionValue)
 {
+	const bool bPressed = InputActionValue.Get<bool>();
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
 	
+	if (bPressed)
+		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Skill));
+	else
+		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Skill));
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
