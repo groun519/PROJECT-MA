@@ -72,6 +72,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleMoveInput);
 		EnhancedInputComp->BindAction(AttackInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleAttackInput);
 		EnhancedInputComp->BindAction(SkillInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleSkillInput);
+		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
 	}
 }
 
@@ -94,6 +95,7 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
+	UE_LOG(LogTemp, Log, TEXT("moving!!!!"));
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
@@ -128,6 +130,7 @@ void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionVa
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
 	const bool bPressed = InputActionValue.Get<bool>();
+	UE_LOG(LogTemp, Log, TEXT("SPACE!!!!"));
 	if (!bPressed) return;
 }
 
@@ -168,6 +171,3 @@ void AMAPlayerCharacter::UpdateCameraLead(const FVector& LookDirection) const
 
 	CameraBoom->SetWorldLocation(PlayerLoc + LeadOffset + CamOffset);
 }
-
-
-
