@@ -125,6 +125,13 @@ void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionVa
 		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Skill));
 }
 
+void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
+{
+	const bool bPressed = InputActionValue.Get<bool>();
+	if (!bPressed) return;
+}
+
+
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());
