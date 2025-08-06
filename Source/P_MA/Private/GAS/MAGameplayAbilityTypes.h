@@ -10,8 +10,8 @@ enum class EMAAbilityInputID : uint8
 {
 	None				UMETA(DisplayName = "None"),
 
-	BasicAttack			UMETA(DisplayName = "Basic Attack"),
-	SubAbility			UMETA(DisplayName = "Ability Passive"),
+	Attack				UMETA(DisplayName = "Basic Attack"),
+	Skill				UMETA(DisplayName = "Ability Passive"),
 
 	Confirm				UMETA(DisplayName = "Confirm"),
 	Cancel				UMETA(DisplayName = "Cancel"),

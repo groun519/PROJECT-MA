@@ -8,7 +8,7 @@
 #include "MACharacter.generated.h"
 
 UCLASS()
-class AMACharacter : public ACharacter
+class AMACharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
@@ -17,7 +17,7 @@ public:
 	void ServerSideInit();
 	void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const;
-
+	
 	virtual void PossessedBy(AController* NewController) override;
 	
 protected:
