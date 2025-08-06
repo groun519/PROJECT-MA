@@ -51,5 +51,5 @@ private:
 	UFUNCTION() void OnRep_Armor(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
-	
+
 };
