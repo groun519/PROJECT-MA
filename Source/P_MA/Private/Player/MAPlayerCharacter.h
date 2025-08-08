@@ -9,6 +9,7 @@
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
+class UWeaponComponent;
 
 /**
  * 
@@ -54,4 +55,8 @@ private:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 	void UpdateCameraLead(const FVector& LookDirection) const;
+
+	/** Weapon **/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	UWeaponComponent* Weapon = nullptr;
 };

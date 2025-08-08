@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "Weapon/WeaponComponent.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -24,6 +25,10 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+
+	Weapon = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
+	Weapon->SetupAttachment(GetMesh()); // 필요시 소켓 지정: , TEXT("Hand_R_Socket")
+	UWeaponComponent::CreateDefaultPartsForOwner(this, Weapon, Weapon);
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
