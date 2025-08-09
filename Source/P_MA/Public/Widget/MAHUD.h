@@ -7,6 +7,7 @@
 class UHealthBarWidget;
 class UMASkillSlotWidget;
 class UHorizontalBox;
+class UMAPassiveSlotWidget;
 
 UCLASS()
 class P_MA_API UMAHUD : public UUserWidget
@@ -31,6 +32,13 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UHorizontalBox* HorizontalBox_SkillSlots;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TSubclassOf<UMAPassiveSlotWidget> PassiveSlotWidgetClass;
+
+    UPROPERTY(meta = (BindWidget))
+    UHorizontalBox* HorizontalBox_PassiveSlots;
+
 private:
     void CreateSkillSlots(int32 NumSlots);
+    void CreatePassiveSlots(int32 NumSlots);
 };

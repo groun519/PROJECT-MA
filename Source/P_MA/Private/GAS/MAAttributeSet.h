@@ -42,5 +42,5 @@ private:
 	UFUNCTION() void OnRep_Attack(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
-	
+
 };

@@ -43,6 +43,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SkillInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* InteractInputAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* GameplayInputMappingContext;
@@ -50,6 +53,7 @@ private:
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleAttackInput(const FInputActionValue& InputActionValue);
 	void HandleSkillInput(const FInputActionValue& InputActionValue);
+	void HandleInteractInput(const FInputActionValue& InputActionValue);
 
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
