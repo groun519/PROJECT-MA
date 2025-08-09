@@ -7,12 +7,12 @@
 #include "GameplayTagContainer.h"
 #include "AnimNotifyState_WeaponSegmentEvents.generated.h"
 
-class UWeaponComponent;
+class UHandleComponent;
 
 struct FTrackerKey
 {
 	TWeakObjectPtr<USkeletalMeshComponent> MeshComp;
-	TWeakObjectPtr<UWeaponComponent>       WeaponComp;
+	TWeakObjectPtr<UHandleComponent>       WeaponComp;
 	const void*                            Notify = nullptr; // this
 
 	bool operator==(const FTrackerKey& Other) const
@@ -55,7 +55,7 @@ private:
 	
 	// Cache
 	TWeakObjectPtr<AActor> CachedOwner;
-	TWeakObjectPtr<UWeaponComponent> CachedWeaponComponent;
+	TWeakObjectPtr<UHandleComponent> CachedWeaponComponent;
 	FTrackerKey TrackerKey;
 
 	// SendGameplayEvent

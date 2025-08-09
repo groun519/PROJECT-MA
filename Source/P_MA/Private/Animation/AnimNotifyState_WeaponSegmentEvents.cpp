@@ -4,7 +4,7 @@
 #include "Animation/AnimNotifyState_WeaponSegmentEvents.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "Weapon/WeaponComponent.h"
+#include "Weapon/HandleComponent.h"
 
 struct FSegmentTracker
 {
@@ -26,7 +26,7 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyBegin(USkeletalMeshComponent* M
 	if (!CachedOwner.IsValid()) return;
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return;
 	
-	CachedWeaponComponent = CachedOwner->FindComponentByClass<UWeaponComponent>();
+	CachedWeaponComponent = CachedOwner->FindComponentByClass<UHandleComponent>();
 	if (!CachedWeaponComponent.IsValid()) return;
 	
 	const FVector Start   = CachedWeaponComponent->GetBladeBaseWorldLocation();
@@ -55,7 +55,7 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyTick(USkeletalMeshComponent* Me
 	FSegmentTracker* T = GActiveTrackers.Find(TrackerKey);
 	if (!T) return;
 	
-	UWeaponComponent* WC = CachedWeaponComponent.Get();
+	UHandleComponent* WC = CachedWeaponComponent.Get();
 	if (!WC)
 	{
 		GActiveTrackers.Remove(TrackerKey);
