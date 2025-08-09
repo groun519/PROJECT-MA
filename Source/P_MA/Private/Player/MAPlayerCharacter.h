@@ -58,4 +58,11 @@ private:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 	void UpdateCameraLead(const FVector& LookDirection) const;
+
+	/** Weapon **/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UHandleComponent> HandleComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UBladeComponent> BladeComponent = nullptr;
 };
