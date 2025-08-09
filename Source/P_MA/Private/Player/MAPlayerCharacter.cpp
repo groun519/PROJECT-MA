@@ -10,20 +10,45 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "Weapon/BladeComponent.h"
+#include "Weapon/HandleComponent.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
+	/** Camera Set **//*
+	 * 1. CameraBoom cannot use "Pawn Control Rot"
+	 *		-> Because, player looks mouse pointer.
+	 * 2. CameraBoom must lock Yaw
+	 *		-> Because, Camera must not rotate z axis.
+	 */
+	// 1) CameraBoom
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritYaw = false;    
-
+	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
+	/** Controller Set **//*
+	 * 1. Player cannot use "Controller Rot"
+	 *		-> Because, player cam's rot must be fixed.
+	 * 2. Player cannot use "Origin Rot to Movement"
+	 *		-> Because, player must look mouse pointer.
+	 */
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	
+	/** Create SKCs **//*
+	 * - Child Relationship : Mesh - Handle - Blade
+	 */
+	// 1) Handle
+	HandleComponent = CreateDefaultSubobject<UHandleComponent>(TEXT("Handle"));
+	HandleComponent->SetupAttachment(GetMesh());		// Mesh - Handle
+	// 2) Blade
+	BladeComponent = CreateDefaultSubobject<UBladeComponent>(TEXT("Blade"));
+	BladeComponent->SetupAttachment(HandleComponent);	// Handle - Blade
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
