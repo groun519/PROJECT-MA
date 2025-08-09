@@ -48,7 +48,17 @@ public:
 						   const FAnimNotifyEventReference& EventReference) override;
 private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
-	FGameplayTag EventTag;
+	FGameplayTag AbilityEventTag;
+
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	bool bUseBeginEvent = true;
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="bUseBeginEvent"))
+	FGameplayTag BeginEventTag;
+
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	bool bUseEndEvent = true;
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="bUseEndEvent"))
+	FGameplayTag EndEventTag;
 
 	UPROPERTY(EditAnywhere, Category="Interp", meta=(ClampMin="1", AllowPrivateAccess="true"))
 	int32 InterpCount = 5;

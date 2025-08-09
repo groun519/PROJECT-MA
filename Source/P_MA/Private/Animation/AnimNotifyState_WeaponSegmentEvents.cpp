@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Weapon/BladeComponent.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 
 struct FSegmentTracker
 {
@@ -24,8 +25,16 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyBegin(USkeletalMeshComponent* M
 
 	CachedOwner = MeshComp ? MeshComp->GetOwner() : nullptr;
 	if (!CachedOwner.IsValid()) return;
-	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return;
 	
+	if (bUseBeginEvent &&
+	BeginEventTag.IsValid())
+	{
+		AActor* Owner = CachedOwner.IsValid() ? CachedOwner.Get() : (MeshComp ? MeshComp->GetOwner() : nullptr);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, BeginEventTag, FGameplayEventData());
+	}
+
+	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return;
+
 	CachedBladeComponent = CachedOwner->FindComponentByClass<UBladeComponent>();
 	if (!CachedBladeComponent.IsValid()) return;
 	
@@ -101,6 +110,13 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyEnd(USkeletalMeshComponent* Mes
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
+	if (bUseEndEvent &&
+		EndEventTag.IsValid())
+	{
+		AActor* Owner = CachedOwner.IsValid() ? CachedOwner.Get() : (MeshComp ? MeshComp->GetOwner() : nullptr);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EndEventTag, FGameplayEventData());
+	}
+	
 	GActiveTrackers.Remove(TrackerKey);
 	CachedOwner.Reset();
 	CachedBladeComponent.Reset();
@@ -114,12 +130,12 @@ void UAnimNotifyState_WeaponSegmentEvents::SendSegment(AActor* Owner, const FVec
 	if (!ASC) return;
 
 	FGameplayEventData Data;
-	Data.EventTag = EventTag;
+	Data.EventTag = AbilityEventTag;
 
 	auto* LocInfo = new FGameplayAbilityTargetData_LocationInfo();
 	LocInfo->SourceLocation.LiteralTransform.SetLocation(Start);
 	LocInfo->TargetLocation.LiteralTransform.SetLocation(End);
 	Data.TargetData.Add(LocInfo);
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, AbilityEventTag, Data);
 }
