@@ -9,7 +9,6 @@
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
-class UHandleComponent;
 
 /**
  * 
@@ -58,5 +57,8 @@ private:
 
 	/** Weapon **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	UHandleComponent* Weapon = nullptr;
+	TObjectPtr<class UHandleComponent> HandleComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UBladeComponent> BladeComponent = nullptr;
 };

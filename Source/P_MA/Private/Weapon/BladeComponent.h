@@ -28,4 +28,11 @@ public:
 	// Range
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
 	float Range = 100.f;
+
+	// Getter
+	UFUNCTION(BlueprintCallable, Category="Blade")
+	FVector GetBladeBaseSocketLocation();
+
+	UFUNCTION(BlueprintCallable, Category="Blade")
+	FVector GetBladeTipSocketLocation();
 };

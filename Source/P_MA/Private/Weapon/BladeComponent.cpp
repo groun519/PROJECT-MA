@@ -10,4 +10,14 @@ UBladeComponent::UBladeComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+FVector UBladeComponent::GetBladeBaseSocketLocation()
+{
+	return GetSocketLocation(BaseSocketName);
+}
+
+FVector UBladeComponent::GetBladeTipSocketLocation()
+{
+	return GetSocketLocation(TipSocketName);
+}
+
 

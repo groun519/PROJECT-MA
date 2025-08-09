@@ -4,12 +4,12 @@
 #include "Animation/AnimNotifyState_WeaponSegmentEvents.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "Weapon/HandleComponent.h"
+#include "Weapon/BladeComponent.h"
 
 struct FSegmentTracker
 {
-	FVector Start;       // Begin 시점 블레이드 Base (World)
-	FVector UnitDir;     // Begin 시점 블레이드 로컬 X(World 변환) 단위벡터
+	FVector Base;       // Begin 시점 블레이드 Base (World)
+	FVector UnitDir;
 	float   TotalLength; // WeaponComponent->Range
 	int32   TotalSegments; 
 	int32   CurrentSegmentIndex;
@@ -26,23 +26,29 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyBegin(USkeletalMeshComponent* M
 	if (!CachedOwner.IsValid()) return;
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return;
 	
-	CachedWeaponComponent = CachedOwner->FindComponentByClass<UHandleComponent>();
-	if (!CachedWeaponComponent.IsValid()) return;
+	CachedBladeComponent = CachedOwner->FindComponentByClass<UBladeComponent>();
+	if (!CachedBladeComponent.IsValid()) return;
 	
-	const FVector Start   = CachedWeaponComponent->GetBladeBaseWorldLocation();
-	const FVector DirUnit = CachedWeaponComponent->GetBladeForwardVector().GetSafeNormal();
-	const float   Length  = FMath::Max(0.f, CachedWeaponComponent->Range);
-	if (Length <= KINDA_SMALL_NUMBER || DirUnit.IsNearlyZero(KINDA_SMALL_NUMBER)) return;
+	if (!CachedBladeComponent->DoesSocketExist(CachedBladeComponent->BaseSocketName) ||
+		!CachedBladeComponent->DoesSocketExist(CachedBladeComponent->TipSocketName)) return;
+	
+	const FVector Base   = CachedBladeComponent->GetBladeBaseSocketLocation();
+	const FVector Tip	  = CachedBladeComponent->GetBladeTipSocketLocation();
+	
+	const FVector Dir = (Tip - Base).GetSafeNormal();
+	const float   Len  = FMath::Max(0.f, CachedBladeComponent->Range);
+	
+	if (Len <= KINDA_SMALL_NUMBER || Dir.IsNearlyZero(KINDA_SMALL_NUMBER)) return;
 
 	FSegmentTracker T;
-	T.Start = Start;
-	T.UnitDir = DirUnit;
-	T.TotalLength = Length;
+	T.Base = Base;
+	T.UnitDir = Dir;
+	T.TotalLength = Len;
 	T.TotalSegments = FMath::Max(InterpCount, 1); // 0 방지
 	T.CurrentSegmentIndex = 0;
 	T.SegmentLength = T.TotalLength / static_cast<float>(T.TotalSegments);
 
-	const FTrackerKey Key{ MeshComp, CachedWeaponComponent, this };
+	const FTrackerKey Key{ MeshComp, CachedBladeComponent, this };
 	GActiveTrackers.Add(Key, T);
 	TrackerKey = Key;
 }
@@ -55,22 +61,20 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyTick(USkeletalMeshComponent* Me
 	FSegmentTracker* T = GActiveTrackers.Find(TrackerKey);
 	if (!T) return;
 	
-	UHandleComponent* WC = CachedWeaponComponent.Get();
-	if (!WC)
-	{
-		GActiveTrackers.Remove(TrackerKey);
-		return;
-	}
-	
-	const float NewRange = FMath::Max(0.f, WC->Range);
-	if (!FMath::IsNearlyEqual(NewRange, T->TotalLength, 0.1f))
-	{
-		T->TotalLength   = NewRange;
-		T->SegmentLength = T->TotalLength / static_cast<float>(T->TotalSegments);
+	UBladeComponent* BladeComp = CachedBladeComponent.Get();
+	if (!BladeComp) { GActiveTrackers.Remove(TrackerKey); return; }
+
+	const float NewRangeLen = FVector::Distance(
+	BladeComp->GetBladeBaseSocketLocation(),
+	BladeComp->GetBladeTipSocketLocation()
+);
+	if (!FMath::IsNearlyEqual(NewRangeLen, T->TotalLength, 0.1f)) {
+		T->TotalLength   = NewRangeLen;
+		T->SegmentLength = T->TotalLength / float(T->TotalSegments);
 	}
 
-	const FVector CurrentBase = WC->GetBladeBaseWorldLocation();
-	const float ProjectedDist = FVector::DotProduct(CurrentBase - T->Start, T->UnitDir);
+	const FVector CurrentBase = BladeComp->GetBladeBaseSocketLocation();
+	const float ProjectedDist = FVector::DotProduct(CurrentBase - T->Base, T->UnitDir);
 	const float Traveled = FMath::Clamp(ProjectedDist, 0.f, T->TotalLength);
 
 	while (T->CurrentSegmentIndex < T->TotalSegments &&
@@ -79,12 +83,15 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyTick(USkeletalMeshComponent* Me
 		const float Apos = T->SegmentLength *  T->CurrentSegmentIndex;
 		const float Bpos = T->SegmentLength * (T->CurrentSegmentIndex + 1);
 
-		const FVector A = T->Start + T->UnitDir * Apos;
-		const FVector B = T->Start + T->UnitDir * Bpos;
+		const FVector A = T->Base + T->UnitDir * Apos;
+		const FVector B = T->Base + T->UnitDir * Bpos;
 
-		AActor* Owner = CachedOwner.Get(); if (!Owner) return;
-		SendSegment(Owner, A, B);
-
+		if (AActor* Owner = CachedOwner.Get()) {
+			SendSegment(Owner, A, B);
+		} else {
+			GActiveTrackers.Remove(TrackerKey);
+			return;
+		}
 		T->CurrentSegmentIndex++;
 	}
 }
@@ -96,7 +103,7 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyEnd(USkeletalMeshComponent* Mes
 
 	GActiveTrackers.Remove(TrackerKey);
 	CachedOwner.Reset();
-	CachedWeaponComponent.Reset();
+	CachedBladeComponent.Reset();
 }
 
 void UAnimNotifyState_WeaponSegmentEvents::SendSegment(AActor* Owner, const FVector& Start, const FVector& End) const
