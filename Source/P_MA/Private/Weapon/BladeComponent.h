@@ -28,15 +28,4 @@ public:
 	// Range
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
 	float Range = 100.f;
-	
-	// Editor
-	UFUNCTION(CallInEditor, Category="Weapon")
-	void MeasureRangeFromMarkers();
-	
-	// Getter
-	UFUNCTION(BlueprintCallable, Category="Weapon")
-	FVector GetBladeForwardVector() const;
-
-	UFUNCTION(BlueprintCallable, Category="Weapon")
-	FVector GetBladeBaseWorldLocation() const;
 };
