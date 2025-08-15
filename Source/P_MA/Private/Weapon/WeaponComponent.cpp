@@ -1,21 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BladeComponent.h"
+#include "WeaponComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SceneComponent.h"
 
-UBladeComponent::UBladeComponent()
+UWeaponComponent::UWeaponComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-FVector UBladeComponent::GetBladeBaseSocketLocation()
+FVector UWeaponComponent::GetBladeBaseSocketLocation()
 {
 	return GetSocketLocation(BaseSocketName);
 }
 
-FVector UBladeComponent::GetBladeTipSocketLocation()
+FVector UWeaponComponent::GetBladeTipSocketLocation()
 {
 	return GetSocketLocation(TipSocketName);
 }

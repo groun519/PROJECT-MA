@@ -10,7 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "Weapon/BladeComponent.h"
+#include "Weapon/WeaponComponent.h"
 #include "Weapon/HandleComponent.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
@@ -41,14 +41,11 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 	
 	/** Create SKCs **//*
-	 * - Child Relationship : Mesh - Handle - Blade
+	 * - Child Relationship : Mesh - Handle
 	 */
-	// 1) Handle
-	HandleComponent = CreateDefaultSubobject<UHandleComponent>(TEXT("Handle"));
-	HandleComponent->SetupAttachment(GetMesh());		// Mesh - Handle
-	// 2) Blade
-	BladeComponent = CreateDefaultSubobject<UBladeComponent>(TEXT("Blade"));
-	BladeComponent->SetupAttachment(HandleComponent);	// Handle - Blade
+	// Create and Attach Weapon
+	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
+	WeaponComponent->SetupAttachment(GetMesh(), WeaponComponent->HandSocketName);
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)

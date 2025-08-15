@@ -60,9 +60,6 @@ private:
 	void UpdateCameraLead(const FVector& LookDirection) const;
 
 	/** Weapon **/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UHandleComponent> HandleComponent = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UBladeComponent> BladeComponent = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 };

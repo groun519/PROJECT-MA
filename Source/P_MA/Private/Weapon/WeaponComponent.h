@@ -4,21 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "BladeComponent.generated.h"
+#include "WeaponComponent.generated.h"
 
 class USkeletalMeshComponent;
 class USceneComponent;
 class AActor;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class UBladeComponent : public USkeletalMeshComponent
+class UWeaponComponent : public USkeletalMeshComponent
 {
 	GENERATED_BODY()
 
 public:
-	UBladeComponent();
+	UWeaponComponent();
 	
 	// Socket
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon|Socket")
+	FName HandSocketName = TEXT("WeaponHandSocket");
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon|Socket")
 	FName BaseSocketName = TEXT("WeaponBaseSocket");
 
