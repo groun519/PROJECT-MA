@@ -61,5 +61,5 @@ private:
 
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UWeaponComponent> WeaponComp = nullptr;
+	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 };
