@@ -11,7 +11,6 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
-#include "Weapon/HandleComponent.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
