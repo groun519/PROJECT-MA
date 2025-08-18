@@ -67,6 +67,7 @@ private:
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponCom = nullptr;
+<<<<<<< HEAD
 
 	/** Death and Respawn **/
 	virtual void OnDead() override;
@@ -82,4 +83,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class UPaperSpriteComponent* MinimapSprite;
+=======
+>>>>>>> e514db7 (Add BasicAttack)
 };

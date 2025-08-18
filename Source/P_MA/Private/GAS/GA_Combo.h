@@ -17,6 +17,7 @@ class UGA_Combo : public UMAGameplayAbility
 public:
 	UGA_Combo();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+<<<<<<< HEAD
 	static FGameplayTag GetComboChangeEventTag();
 	static FGameplayTag GetComboChangeEventEndTag();
 	static FGameplayTag GetComboTargetEventTag();
@@ -46,4 +47,10 @@ private:
 	void DoDamage(FGameplayEventData Data);
 
 	FName NextComboName;
+=======
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ComboMontage;
+>>>>>>> e514db7 (Add BasicAttack)
 };

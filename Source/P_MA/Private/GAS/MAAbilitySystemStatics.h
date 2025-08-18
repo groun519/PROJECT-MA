@@ -6,7 +6,10 @@
 #include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MAAbilitySystemStatics.generated.h"
+<<<<<<< HEAD
 
+=======
+>>>>>>> e514db7 (Add BasicAttack)
 /**
  * 
  */
@@ -16,5 +19,8 @@ class UMAAbilitySystemStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static FGameplayTag GetBasicAttackAbilityTag();
+<<<<<<< HEAD
 	static FGameplayTag GetDeadStatTag();
+=======
+>>>>>>> e514db7 (Add BasicAttack)
 };
