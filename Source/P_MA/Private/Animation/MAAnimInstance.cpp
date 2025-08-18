@@ -18,7 +18,8 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	if (OwnerCharacter)
 	{
-		Speed = OwnerCharacter->GetVelocity().Length();
+		Velocity = OwnerCharacter->GetVelocity();
+		Speed = Velocity.Length();
 		FRotator BodyRot = OwnerCharacter->GetActorRotation();
 		BodyPrevRot = BodyRot;
 

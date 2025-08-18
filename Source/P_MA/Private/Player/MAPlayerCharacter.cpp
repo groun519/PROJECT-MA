@@ -44,7 +44,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 */
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
-	WeaponComponent->SetupAttachment(GetMesh(), WeaponComponent->HandSocketName);
+	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)

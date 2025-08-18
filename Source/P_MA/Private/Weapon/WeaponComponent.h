@@ -20,9 +20,6 @@ public:
 	
 	// Socket
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon|Socket")
-	FName HandSocketName = TEXT("WeaponHandSocket");
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon|Socket")
 	FName BaseSocketName = TEXT("WeaponBaseSocket");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon|Socket")
