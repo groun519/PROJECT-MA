@@ -32,6 +32,30 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	FORCEINLINE float GetLookPitchOffset() const { return LookRotOffset.Pitch; }
+
+
+
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE float GetVerticalInput() const
+	{
+		if (Velocity.IsNearlyZero())
+			return 0.f;
+
+		const FVector Forward = BodyPrevRot.Vector();
+		return FVector::DotProduct(Velocity, Forward); // Speed 포함
+	}
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE float GetHorizontalInput() const
+	{
+		if (Velocity.IsNearlyZero())
+			return 0.f;
+
+		const FVector Right = FRotationMatrix(BodyPrevRot).GetScaledAxis(EAxis::Y);
+		return FVector::DotProduct(Velocity, Right); // Speed 포함
+	}
+
 private:
 	UPROPERTY()
 	class ACharacter* OwnerCharacter;
@@ -39,6 +63,7 @@ private:
 	UPROPERTY()
 	class UCharacterMovementComponent* OwnerMovementComp;
 
+	FVector Velocity;
 	float Speed;
 	FRotator BodyPrevRot;
 	FRotator LookRotOffset;
