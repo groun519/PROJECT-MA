@@ -49,5 +49,9 @@ private:
 	float HeadStatGaugeVisibilityRangeSquared = 1000000.f;
 
 	FTimerHandle HeadStatGaugeVisibilityUpdateTimerHandle;
-	
+
+	/** AI **/
+private:
+	UPROPERTY()
+	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
 };

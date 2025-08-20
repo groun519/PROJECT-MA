@@ -3,9 +3,14 @@
 #include "Character/MACharacter.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
+
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
+
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
+
 
 AMACharacter::AMACharacter()
 {
@@ -14,6 +19,8 @@ AMACharacter::AMACharacter()
 
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
+
+	PerceptionStimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Stimuli Source Component");
 }
 
 void AMACharacter::ServerSideInit()
@@ -41,6 +48,8 @@ void AMACharacter::PossessedBy(AController* NewController)
 void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 }
 
 void AMACharacter::Tick(float DeltaTime)
