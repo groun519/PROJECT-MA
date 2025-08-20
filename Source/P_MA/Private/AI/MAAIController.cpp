@@ -64,7 +64,7 @@ void AMAAIController::TargetPerceptionUpdated(AActor* TargetActor, FAIStimulus S
 	}
 	else
 	{
-
+		ForgetActorIfDead(TargetActor);
 	}
 }
 
@@ -93,6 +93,29 @@ AActor* AMAAIController::GetNextPerceivedActor() const
 	}
 
 	return nullptr;
+}
+
+void AMAAIController::ForgetActorIfDead(AActor* ActorToForget)
+{
+	const UAbilitySystemComponent* ActorASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(ActorToForget);
+	if (!ActorASC)
+		return;
+
+	if (ActorASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag()))
+	{
+		for (UAIPerceptionComponent::TActorPerceptionContainer::TIterator Iter = AIPerceptionComponent->GetPerceptualDataIterator(); Iter; ++Iter)
+		{
+			if (Iter->Key != ActorToForget)
+			{
+				continue;
+			}
+
+			for (FAIStimulus& Stimuli : Iter->Value.LastSensedStimuli)
+			{
+				Stimuli.SetStimulusAge(TNumericLimits<float>::Max());
+			}
+		}
+	}
 }
 
 const UObject* AMAAIController::GetCurrentTarget() const

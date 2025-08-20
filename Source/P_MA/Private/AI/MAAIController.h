@@ -44,4 +44,6 @@ private:
 	void SetCurrentTarget(AActor* NewTarget);
 
 	AActor* GetNextPerceivedActor() const;
+
+	void ForgetActorIfDead(AActor* ActorToForget);
 };

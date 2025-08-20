@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "MACharacter.generated.h"
 
@@ -32,6 +33,9 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
 private:
+	void BindGASChangeDelegates();
+	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
 	UPROPERTY()
@@ -50,8 +54,34 @@ private:
 
 	FTimerHandle HeadStatGaugeVisibilityUpdateTimerHandle;
 
+	void SetStatusGaugeEnabled(bool bIsEnabled);
+	
+	/** Death and Respawn **/
+private:
+	FTransform MeshRelativeTransform;
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	
+	float DeathMontageFinishTimeShift = -0.8f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	UAnimMontage* DeathMontage;
+
+	FTimerHandle DeathMontageTimerHandle;
+
+	void DeathMontageFinished();
+	void SetRagdollEnabled(bool bIsEnabled);
+	
+	void PlayDeathAnimation();
+	
+	void StartDeathSequence();
+	void Respawn();
+
+	virtual void OnDead();
+	virtual void OnRespawn();
+
 	/** AI **/
 private:
+	void SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled);
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
 };
