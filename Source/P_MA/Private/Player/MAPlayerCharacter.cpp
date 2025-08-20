@@ -94,6 +94,11 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(AttackInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleAttackInput);
 		EnhancedInputComp->BindAction(SkillInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleSkillInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
+
+		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
+		{
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+		}
 	}
 }
 
@@ -153,6 +158,19 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	const bool bPressed = InputActionValue.Get<bool>();
 	UE_LOG(LogTemp, Log, TEXT("SPACE!!!!"));
 	if (!bPressed) return;
+}
+
+void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
+{
+	bool bPressed = InputActionValue.Get<bool>();
+	if (bPressed)
+	{
+		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
+	}
+	else
+	{
+		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+	}
 }
 
 

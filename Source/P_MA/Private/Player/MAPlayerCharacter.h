@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 
 #include "MAPlayerCharacter.generated.h"
 
@@ -48,12 +49,16 @@ private:
 	UInputAction* InteractInputAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* GameplayInputMappingContext;
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleAttackInput(const FInputActionValue& InputActionValue);
 	void HandleSkillInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
+	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
