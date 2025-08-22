@@ -210,3 +210,26 @@ void AMAPlayerCharacter::UpdateCameraLead(const FVector& LookDirection) const
 
 	CameraBoom->SetWorldLocation(PlayerLoc + LeadOffset + CamOffset);
 }
+
+void AMAPlayerCharacter::OnDead()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (PlayerController)
+	{
+		DisableInput(PlayerController);
+	}
+}
+
+void AMAPlayerCharacter::OnRespawn()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (PlayerController)
+	{
+		EnableInput(PlayerController);
+	}
+}
+
+void AMAPlayerCharacter::OnGhostMode()
+{
+	
+}

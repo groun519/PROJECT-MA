@@ -5,6 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Net/UnrealNetwork.h"
 #include "Widget/MAHUD.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
@@ -14,6 +15,7 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 	if (MAPlayerCharacter)
 	{
 		MAPlayerCharacter->ServerSideInit();
+		MAPlayerCharacter->SetGenericTeamId(TeamID);
 	}
 }
 
@@ -26,6 +28,22 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnHUDWidget();
 	}
+}
+
+void AMAPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamID = NewTeamID;
+}
+
+FGenericTeamId AMAPlayerController::GetGenericTeamId() const
+{
+	return TeamID;
+}
+
+void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
 void AMAPlayerController::SpawnHUDWidget()

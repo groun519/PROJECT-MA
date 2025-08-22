@@ -5,5 +5,10 @@
 
 FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
-	return FGameplayTag::RequestGameplayTag("ability.basicattack");
+	return FGameplayTag::RequestGameplayTag("Ability.BasicAttack");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Dead");
 }
