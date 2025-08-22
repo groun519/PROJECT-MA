@@ -19,6 +19,7 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	static FGameplayTag GetComboChangeEventTag();
 	static FGameplayTag GetComboChangeEventEndTag();
+	static FGameplayTag GetComboTargetEventTag();
 	
 private:
 	void SetupWaitComboInputPress();
@@ -27,11 +28,17 @@ private:
 	void HandleInputPress(float TimeWaited);
 	void TryCommitCombo();
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Targetting")
+	float TargetSweepSphereRadius = 30.f;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* ComboMontage;
 
 	UFUNCTION()
 	void ComboChangedEventReceived(FGameplayEventData Data);
+	
+	UFUNCTION()
+	void DoDamage(FGameplayEventData Data);
 
 	FName NextComboName;
 };
