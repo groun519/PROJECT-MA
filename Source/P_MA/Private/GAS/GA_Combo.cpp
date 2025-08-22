@@ -90,6 +90,22 @@ void UGA_Combo::TryCommitCombo()
 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
 }
 
+TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
+{
+	UAnimInstance* OwnerAnimInstance = GetOwnerAnimInstance();
+	if (OwnerAnimInstance)
+	{
+		FName CurrentSectionName = OwnerAnimInstance->Montage_GetCurrentSection(ComboMontage);
+		const TSubclassOf<UGameplayEffect>* FoundEffectPtr = DamageEffectMap.Find(CurrentSectionName);
+		if (FoundEffectPtr)
+		{
+			return *FoundEffectPtr;
+		}
+	}
+
+	return DefaultDamageEffect;
+}
+
 void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 {
 	FGameplayTag EventTag = Data.EventTag;
@@ -110,5 +126,18 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
-	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, TargetSweepSphereRadius);
+	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, ETeamAttitude::Hostile, true, true);
+
+	for (const FHitResult& HitResult : HitResults)
+	{
+		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
+		FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
+		
+		FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+		EffectContext.AddHitResult(HitResult);
+
+		EffectSpecHandle.Data->SetContext(EffectContext);
+
+		ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
+	}
 }
