@@ -17,35 +17,29 @@ class AMAPlayerController : public APlayerController, public IGenericTeamAgentIn
 
 public:
 	// 서버에서만 호출됨
-	virtual void OnPossess(APawn* NewPawn) override;
+	void OnPossess(APawn* NewPawn) override;
 	// 클라이언트에서만 호출됨, 리슨서버도.
-	virtual void AcknowledgePossession(APawn* NewPawn) override;
-	// 매 프레임마다 호출
-	virtual void Tick(float DeltaSeconds) override;
-
+	void AcknowledgePossession(APawn* NewPawn) override;
+	
 	// TeamID에 Team Agent 할당
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
-
+	
 	// FGenericTeamId 형식으로 TeamID 탐색
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
-
+	
 private:
-	void SpawnGameplayWidget();
+	void SpawnHUDWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
+	TSubclassOf<class UMAHUD> HUDWidgetClass;
 
 	UPROPERTY()
-	class UMAGameplayWidget* GameplayWidget;
-	
+	class UMAHUD* HUDWidget;
+
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
-
-	// 마우스 커서 관련
-	bool bOnMouseCursorRecord = false;
-	void CheckMouseCursorShape();
 };
