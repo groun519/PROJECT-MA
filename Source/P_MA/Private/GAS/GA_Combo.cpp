@@ -5,6 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayTagsManager.h"
 #include "GAS/MAAbilitySystemStatics.h"
 
@@ -36,17 +37,28 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		WaitComboChangeEventTask->ReadyForActivation();
 	}
 
+	if (K2_HasAuthority())
+	{
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboTargetEventTag());
+		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
+		WaitTargetEventTask->ReadyForActivation();
+	}
 	SetupWaitComboInputPress();
 }
 
 FGameplayTag UGA_Combo::GetComboChangeEventTag()
 {
-	return FGameplayTag::RequestGameplayTag("ability.combo.change");
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
 }
 
 FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
 {
-	return FGameplayTag::RequestGameplayTag("ability.combo.change.end");
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
+}
+
+FGameplayTag UGA_Combo::GetComboTargetEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Damage");
 }
 
 void UGA_Combo::SetupWaitComboInputPress()
@@ -94,4 +106,9 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 	NextComboName = TagNames.Last();
 
 	UE_LOG(LogTemp, Warning, TEXT("next combo is now : %s"), *NextComboName.ToString());
+}
+
+void UGA_Combo::DoDamage(FGameplayEventData Data)
+{
+	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, TargetSweepSphereRadius);
 }
