@@ -27,9 +27,14 @@ private:
 	UFUNCTION()
 	void HandleInputPress(float TimeWaited);
 	void TryCommitCombo();
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Targetting")
-	float TargetSweepSphereRadius = 30.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
+	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
+	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
+
+	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* ComboMontage;
