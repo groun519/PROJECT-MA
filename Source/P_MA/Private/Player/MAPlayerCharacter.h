@@ -66,4 +66,5 @@ private:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
+	virtual void OnGhostMode();
 };

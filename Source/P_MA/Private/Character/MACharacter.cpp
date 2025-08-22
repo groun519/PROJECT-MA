@@ -9,6 +9,7 @@
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
@@ -44,9 +45,26 @@ bool AMACharacter::IsLocallyControlledByPlayer() const
 	return GetController() && GetController()->IsLocalPlayerController();
 }
 
+
+void AMACharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamID = NewTeamID;
+}
+
+FGenericTeamId AMACharacter::GetGenericTeamId() const
+{
+	return TeamID;
+}
+
 void AMACharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+}
+
+void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMACharacter, TeamID);
 }
 
 void AMACharacter::BeginPlay()
@@ -71,7 +89,7 @@ void AMACharacter::BindGASChangeDelegates()
 {
 	if (MAAbilitySystemComponent)
 	{
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &ACCharacter::DeathTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 	}
 }
 
@@ -101,34 +119,34 @@ void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	}
 }
 
-void AMACharacter::DeathMontageFinished()
-{
-	SetRagdollEnabled(true);
-}
+// void AMACharacter::DeathMontageFinished()
+// {
+// 	SetRagdollEnabled(true);
+// }
 
-void AMACharacter::SetRagdollEnabled(bool bIsEnabled)
-{
-	if (bIsEnabled)
-	{
-		GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		GetMesh()->SetSimulatePhysics(true);
-		GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-	}
-	else
-	{
-		GetMesh()->SetSimulatePhysics(false);
-		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		GetMesh()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-		GetMesh()->SetRelativeTransform(MeshRelativeTransform);
-	}
-}
+// void AMACharacter::SetRagdollEnabled(bool bIsEnabled)
+// {
+// 	if (bIsEnabled)
+// 	{
+// 		GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+// 		GetMesh()->SetSimulatePhysics(true);
+// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+// 	}
+// 	else
+// 	{
+// 		GetMesh()->SetSimulatePhysics(false);
+// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+// 		GetMesh()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+// 		GetMesh()->SetRelativeTransform(MeshRelativeTransform);
+// 	}
+// }
 
 void AMACharacter::PlayDeathAnimation()
 {
 	if (DeathMontage)
 	{
 		float MontageDuration = PlayAnimMontage(DeathMontage);
-		GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &AMACharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimeShift);
+		//GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &AMACharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimeShift);
 	}
 }
 
@@ -145,12 +163,21 @@ void AMACharacter::StartDeathSequence()
 void AMACharacter::Respawn()
 {
 	OnRespawn();
-	//SetRagdollEnabled(false); <- 래그돌이 안 되는 쪽이 어울릴 것 같음.
+	//SetRagdollEnabled(false);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	GetMesh()->GetAnimInstance()->StopAllMontages(0.f);
 	SetStatusGaugeEnabled(true);
-
+	
+	if (HasAuthority() && GetController())
+	{
+		TWeakObjectPtr<AActor> StartSpot = GetController()->StartSpot;
+		if (StartSpot.IsValid())
+		{
+			SetActorTransform(StartSpot->GetActorTransform());
+		}
+	}
+	
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->ApplyFullStatEffect();

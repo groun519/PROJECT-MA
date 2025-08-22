@@ -210,3 +210,8 @@ void AMAPlayerCharacter::OnRespawn()
 		EnableInput(PlayerController);
 	}
 }
+
+void AMAPlayerCharacter::OnGhostMode()
+{
+	
+}
