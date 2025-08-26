@@ -21,7 +21,8 @@ public:
 	void AcknowledgePossession(APawn* NewPawn) override;
 	
 private:
-	void SpawnHUDWidget();
+	//void SpawnHUDWidget();
+	void SpawnGameplayWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
@@ -29,6 +30,12 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAHUD> HUDWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
+
 	UPROPERTY()
-	class UMAHUD* HUDWidget;
+	class UMAGameplayWidget* GameplayWidget;
+
+	/*UPROPERTY()
+	class UMAHUD* HUDWidget;*/
 };

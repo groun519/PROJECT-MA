@@ -6,6 +6,7 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "Kismet/GameplayStatics.h"
+#include "Widget/MAOverHeadStatsGauge.h"
 
 AMACharacter::AMACharacter()
 {
@@ -14,6 +15,8 @@ AMACharacter::AMACharacter()
 
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
+	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
+	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
 }
 
 void AMACharacter::ServerSideInit()
@@ -41,6 +44,7 @@ void AMACharacter::PossessedBy(AController* NewController)
 void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	ConfigureOverHeadStatusWidget();
 }
 
 void AMACharacter::Tick(float DeltaTime)
@@ -59,3 +63,16 @@ void AMACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 }
 
+void AMACharacter::ConfigureOverHeadStatusWidget()
+{
+	if (!OverHeadWidgetComponent)
+	{
+		return;
+	}
+
+	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
+	if (OverheadStatsGuage)
+	{
+		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
+	}
+}
