@@ -43,8 +43,8 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 * - Child Relationship : Mesh - Handle
 	 */
 	// Create and Attach Weapon
-	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
-	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+	WeaponCom = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
+	WeaponCom->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
@@ -94,6 +94,11 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(AttackInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleAttackInput);
 		EnhancedInputComp->BindAction(SkillInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleSkillInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
+
+		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
+		{
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+		}
 	}
 }
 
@@ -155,6 +160,19 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	if (!bPressed) return;
 }
 
+void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
+{
+	bool bPressed = InputActionValue.Get<bool>();
+	if (bPressed)
+	{
+		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
+	}
+	else
+	{
+		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+	}
+}
+
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
@@ -191,4 +209,27 @@ void AMAPlayerCharacter::UpdateCameraLead(const FVector& LookDirection) const
 	FVector CamOffset = FVector(-100.f, -100.f, 0.f);
 
 	CameraBoom->SetWorldLocation(PlayerLoc + LeadOffset + CamOffset);
+}
+
+void AMAPlayerCharacter::OnDead()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (PlayerController)
+	{
+		DisableInput(PlayerController);
+	}
+}
+
+void AMAPlayerCharacter::OnRespawn()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (PlayerController)
+	{
+		EnableInput(PlayerController);
+	}
+}
+
+void AMAPlayerCharacter::OnGhostMode()
+{
+	
 }

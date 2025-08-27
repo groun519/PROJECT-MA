@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayEffectTypes.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
@@ -16,10 +17,21 @@ class UMAAbilitySystemComponent : public UAbilitySystemComponent
 	GENERATED_BODY()
 
 public:
+	UMAAbilitySystemComponent();
 	void ApplyInitialEffects();
 	void GiveInitialAbilities();
+	void ApplyFullStatEffect();
 	
 private:
+	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
+	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
+	TSubclassOf<UGameplayEffect> FullStatEffect;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
+	TSubclassOf<UGameplayEffect> DeathEffect;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TArray<TSubclassOf<UGameplayEffect>> InitialEffects;
 

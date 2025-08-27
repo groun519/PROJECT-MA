@@ -9,26 +9,6 @@
 
 class UWeaponComponent;
 
-struct FTrackerKey
-{
-	TWeakObjectPtr<USkeletalMeshComponent> MeshComp;
-	TWeakObjectPtr<UWeaponComponent>       WeaponComp;
-	const void*                            Notify = nullptr; // this
-
-	bool operator==(const FTrackerKey& Other) const
-	{
-		return MeshComp == Other.MeshComp && WeaponComp == Other.WeaponComp && Notify == Other.Notify;
-	}
-};
-
-FORCEINLINE uint32 GetTypeHash(const FTrackerKey& K)
-{
-	uint32 H = ::GetTypeHash(K.MeshComp);
-	H = HashCombine(H, ::GetTypeHash(K.WeaponComp));
-	H = HashCombine(H, PointerHash(K.Notify));
-	return H;
-}
-
 /**
  * 
  */
@@ -62,12 +42,19 @@ private:
 
 	UPROPERTY(EditAnywhere, Category="Interp", meta=(ClampMin="1", AllowPrivateAccess="true"))
 	int32 InterpCount = 5;
-	
-	// Cache
-	TWeakObjectPtr<AActor> CachedOwner;
-	TWeakObjectPtr<UWeaponComponent> CachedBladeComponent;
-	FTrackerKey TrackerKey;
 
+	// 자른 구간 저장하는 배열
+	TArray<float> InterpMontagePos;
+
+	// Cache
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AActor> CachedOwner;
+	
+	// SocketLoc
+	FVector PrevBase       = FVector::ZeroVector; // 직전 틱 Base 월드 위치
+	FVector PrevTip        = FVector::ZeroVector; // 직전 틱 Tip  월드 위치
+	
 	// SendGameplayEvent
-	void SendSegment(AActor* Owner, const FVector& Start, const FVector& End) const;
+	void SendSegment(const FVector& Start, const FVector& End) const;
+	bool SendCurrentLocalSegment() const;
 };
