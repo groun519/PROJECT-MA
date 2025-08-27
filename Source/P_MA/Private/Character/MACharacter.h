@@ -61,8 +61,8 @@ private:
 	/** Death and Respawn **/
 private:
 	FTransform MeshRelativeTransform;
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeathMontageFinishTimeShift = -0.8f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Death")

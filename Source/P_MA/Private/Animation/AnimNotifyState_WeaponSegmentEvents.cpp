@@ -7,101 +7,68 @@
 #include "Weapon/WeaponComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 
-struct FSegmentTracker
-{
-	FVector Base;       // Begin 시점 블레이드 Base (World)
-	FVector UnitDir;
-	float   TotalLength; // WeaponComponent->Range
-	int32   TotalSegments; 
-	int32   CurrentSegmentIndex;
-	float   SegmentLength; // TotalLength / TotalSegments
-};
-static TMap<FTrackerKey, FSegmentTracker> GActiveTrackers;
-
 void UAnimNotifyState_WeaponSegmentEvents::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-
-	CachedOwner = MeshComp ? MeshComp->GetOwner() : nullptr;
-	if (!CachedOwner.IsValid()) return;
 	
-	if (bUseBeginEvent &&
-	BeginEventTag.IsValid())
-	{
-		AActor* Owner = CachedOwner.IsValid() ? CachedOwner.Get() : (MeshComp ? MeshComp->GetOwner() : nullptr);
+	// 캐릭터 찾기
+	AActor* Owner = MeshComp ? MeshComp->GetOwner() : nullptr;
+	if (!Owner) return;
+	CachedOwner = Owner; // 저장
+	
+	// ASC가 없다면 리턴
+	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
+
+	// BeginEventTag 이벤트 전송 (ex. Combo01)
+	if (bUseBeginEvent && BeginEventTag.IsValid())
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, BeginEventTag, FGameplayEventData());
-	}
 
-	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return;
+	// 시작지점은 Tick에서 감지하지 못하기에 따로 한번 전송함.
+	if (!SendCurrentLocalSegment()) return;
 
-	CachedBladeComponent = CachedOwner->FindComponentByClass<UWeaponComponent>();
-	if (!CachedBladeComponent.IsValid()) return;
-	
-	if (!CachedBladeComponent->DoesSocketExist(CachedBladeComponent->BaseSocketName) ||
-		!CachedBladeComponent->DoesSocketExist(CachedBladeComponent->TipSocketName)) return;
-	
-	const FVector Base   = CachedBladeComponent->GetBladeBaseSocketLocation();
-	const FVector Tip	  = CachedBladeComponent->GetBladeTipSocketLocation();
-	
-	const FVector Dir = (Tip - Base).GetSafeNormal();
-	const float   Len  = FMath::Max(0.f, CachedBladeComponent->Range);
-	
-	if (Len <= KINDA_SMALL_NUMBER || Dir.IsNearlyZero(KINDA_SMALL_NUMBER)) return;
+	// 나눈 세그먼트 포지션을 저장할 배열
+	InterpMontagePos.Reset();
 
-	FSegmentTracker T;
-	T.Base = Base;
-	T.UnitDir = Dir;
-	T.TotalLength = Len;
-	T.TotalSegments = FMath::Max(InterpCount, 1); // 0 방지
-	T.CurrentSegmentIndex = 0;
-	T.SegmentLength = T.TotalLength / static_cast<float>(T.TotalSegments);
+	// 세그먼트 개수 0 방지
+	const int32 N = FMath::Max(InterpCount, 1);
+	// 노티파이 길이가 거의 없는 수준이면 리턴
+	if (TotalDuration <= KINDA_SMALL_NUMBER) return;
 
-	const FTrackerKey Key{ MeshComp, CachedBladeComponent, this };
-	GActiveTrackers.Add(Key, T);
-	TrackerKey = Key;
+	UAnimInstance* Anim = MeshComp->GetAnimInstance();
+	const UAnimMontage* Montage = Cast<UAnimMontage>(Animation);
+	if (!Anim || !Montage) return;
+	
+	// 몽타주 타임라인 상의 NotifyState 스타트 지점
+	const float StartPos = Anim->Montage_GetPosition(Montage);
+	const float Step     = TotalDuration / static_cast<float>(N); // 세그먼트 간격
+
+	// 몽타주 타임라인 상의 각 세그먼트 위치를 저장
+	for (int32 i=1; i<=N; ++i)
+		InterpMontagePos.Add(StartPos + Step * i); 
 }
 
 void UAnimNotifyState_WeaponSegmentEvents::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
-	
-	FSegmentTracker* T = GActiveTrackers.Find(TrackerKey);
-	if (!T) return;
-	
-	UWeaponComponent* BladeComp = CachedBladeComponent.Get();
-	if (!BladeComp) { GActiveTrackers.Remove(TrackerKey); return; }
 
-	const float NewRangeLen = FVector::Distance(
-	BladeComp->GetBladeBaseSocketLocation(),
-	BladeComp->GetBladeTipSocketLocation()
-);
-	if (!FMath::IsNearlyEqual(NewRangeLen, T->TotalLength, 0.1f)) {
-		T->TotalLength   = NewRangeLen;
-		T->SegmentLength = T->TotalLength / float(T->TotalSegments);
-	}
+	// 잘린 구간이 없으면 리턴
+	if (InterpMontagePos.Num() == 0) return;
+	// 캐릭터가 없으면 리턴
+	if (!CachedOwner.IsValid()) return;
 
-	const FVector CurrentBase = BladeComp->GetBladeBaseSocketLocation();
-	const float ProjectedDist = FVector::DotProduct(CurrentBase - T->Base, T->UnitDir);
-	const float Traveled = FMath::Clamp(ProjectedDist, 0.f, T->TotalLength);
+	UAnimInstance* Anim = MeshComp->GetAnimInstance();
+	const UAnimMontage* Montage = Cast<UAnimMontage>(Animation);
+	if (!Anim || !Montage) return;
 
-	while (T->CurrentSegmentIndex < T->TotalSegments &&
-		   Traveled >= T->SegmentLength * (T->CurrentSegmentIndex + 1))
+	// 현재 몽타주의 재생위치
+	const float CurrPos  = Anim->Montage_GetPosition(Montage);
+
+	while (InterpMontagePos.Num() > 0 && CurrPos >= InterpMontagePos[0])
 	{
-		const float Apos = T->SegmentLength *  T->CurrentSegmentIndex;
-		const float Bpos = T->SegmentLength * (T->CurrentSegmentIndex + 1);
-
-		const FVector A = T->Base + T->UnitDir * Apos;
-		const FVector B = T->Base + T->UnitDir * Bpos;
-
-		if (AActor* Owner = CachedOwner.Get()) {
-			SendSegment(Owner, A, B);
-		} else {
-			GActiveTrackers.Remove(TrackerKey);
-			return;
-		}
-		T->CurrentSegmentIndex++;
+		if (!SendCurrentLocalSegment()) break; // 세그먼트마다 로컬 오프셋 전송
+		InterpMontagePos.RemoveAt(0, 1, /*bAllowShrinking=*/false);
 	}
 }
 
@@ -110,32 +77,46 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyEnd(USkeletalMeshComponent* Mes
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
-	if (bUseEndEvent &&
-		EndEventTag.IsValid())
-	{
-		AActor* Owner = CachedOwner.IsValid() ? CachedOwner.Get() : (MeshComp ? MeshComp->GetOwner() : nullptr);
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EndEventTag, FGameplayEventData());
-	}
-	
-	GActiveTrackers.Remove(TrackerKey);
+	if (bUseEndEvent && EndEventTag.IsValid())
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(CachedOwner.Get(), EndEventTag, FGameplayEventData());
+
+	InterpMontagePos.Reset();
 	CachedOwner.Reset();
-	CachedBladeComponent.Reset();
 }
 
-void UAnimNotifyState_WeaponSegmentEvents::SendSegment(AActor* Owner, const FVector& Start, const FVector& End) const
+void UAnimNotifyState_WeaponSegmentEvents::SendSegment(const FVector& StartPointLocal, const FVector& EndPointLocal) const
 {
-	if (!Owner) return;
+	if (!CachedOwner.IsValid()) return;
+	if (!AbilityEventTag.IsValid()) return; // AbilityEventTag 미할당 시 리턴
 
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner);
-	if (!ASC) return;
-
-	FGameplayEventData Data;
-	Data.EventTag = AbilityEventTag;
+	FGameplayEventData Data;  Data.EventTag = AbilityEventTag;
 
 	auto* LocInfo = new FGameplayAbilityTargetData_LocationInfo();
-	LocInfo->SourceLocation.LiteralTransform.SetLocation(Start);
-	LocInfo->TargetLocation.LiteralTransform.SetLocation(End);
-	Data.TargetData.Add(LocInfo);
+	LocInfo->SourceLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+	LocInfo->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+	LocInfo->SourceLocation.LiteralTransform.SetLocation(StartPointLocal); 
+	LocInfo->TargetLocation.LiteralTransform.SetLocation(EndPointLocal); 
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, AbilityEventTag, Data);
+	Data.TargetData = FGameplayAbilityTargetDataHandle(LocInfo);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(CachedOwner.Get(), AbilityEventTag, Data);
+}
+
+bool UAnimNotifyState_WeaponSegmentEvents::SendCurrentLocalSegment() const
+{
+	if (!CachedOwner.IsValid()) return false;
+	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return false;
+
+	// 캐릭터에서 WeaponComponent를 탐색
+	UWeaponComponent* WeaponComponent = CachedOwner->FindComponentByClass<UWeaponComponent>();
+	if (!WeaponComponent) return false;
+
+	const FVector BaseW = WeaponComponent->GetBladeBaseSocketLocation(); // Base 소켓의 월드 로케이션
+	const FVector TipW  = WeaponComponent->GetBladeTipSocketLocation(); // Tip 소켓의 월드 로케이션
+	
+	const FTransform Basis = CachedOwner->GetActorTransform(); // 기준점이 될 액터의 위치 (액터 위치 기반 오프셋을 넘겨줌.)
+	const FVector BaseL = Basis.InverseTransformPosition(BaseW); // 월드→로컬
+	const FVector TipL  = Basis.InverseTransformPosition(TipW);
+
+	SendSegment(BaseL, TipL); // 로컬 오프셋 전송
+	return true;
 }
