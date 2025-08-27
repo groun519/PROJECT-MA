@@ -19,7 +19,10 @@ class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
  * @param TargetTeam 타겟의 팀을 받아오는게 아니라, 타게팅할 팀을 받아오는 매개변수
  */
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
-	const FGameplayAbilityTargetDataHandle& TargetDataHandle, float SphereSweepRadius, ETeamAttitude::Type TargetTeam,
+	const FGameplayAbilityTargetDataHandle& TargetDataHandle,
+	FVector HalfSize,
+	ETeamAttitude::Type TargetTeam,
+	ETraceObjectType TraceObjType,
 	bool bDrawDebug, bool bIgnoreSelf) const
 {
 	TArray<FHitResult> OutResults;
@@ -45,7 +48,24 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 		TArray<FHitResult> Results;
 
-		UKismetSystemLibrary::SphereTraceMultiForObjects(this, StartLoc, EndLoc, SphereSweepRadius, ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false);
+		if (TraceObjType == ETraceObjectType::None)
+		{
+			return OutResults;
+		}
+		if (TraceObjType == ETraceObjectType::Box)
+		{
+			UKismetSystemLibrary::BoxTraceMultiForObjects(
+				this, StartLoc, EndLoc, HalfSize,FRotator::ZeroRotator,
+				ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false
+				);
+		}
+		else if (TraceObjType == ETraceObjectType::Sphere)
+		{
+			UKismetSystemLibrary::SphereTraceMultiForObjects(
+				this, StartLoc, EndLoc, HalfSize.X,
+				ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false
+				);
+		}
 
 		for (const FHitResult& Result : Results)
 		{
@@ -78,3 +98,18 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	}
 	return OutResults;
 }
+
+TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData_Box(
+	const FGameplayAbilityTargetDataHandle& TargetDataHandle, FVector HalfSize, ETeamAttitude::Type TargetTeam,
+	bool bDrawDebug, bool bIgnoreSelf) const
+{
+	return GetHitResultFromSweepLocationTargetData(TargetDataHandle, HalfSize, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
+}
+
+TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData_Sphere(
+	const FGameplayAbilityTargetDataHandle& TargetDataHandle, float Radius, ETeamAttitude::Type TargetTeam,
+	bool bDrawDebug, bool bIgnoreSelf) const
+{
+	return GetHitResultFromSweepLocationTargetData(TargetDataHandle, FVector(Radius, 0, 0), TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
+}
+
