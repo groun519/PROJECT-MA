@@ -29,7 +29,7 @@ protected:
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 		FVector HalfSize = FVector(30.f, 0, 0),
 		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
-		ETraceObjectType TraceObjType,
+		ETraceObjectType TraceObjType = ETraceObjectType::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true) const;
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData_Box(
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
