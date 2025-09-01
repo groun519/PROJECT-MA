@@ -41,7 +41,10 @@ protected:
 		float Radius,
 		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
 		bool bDrawDebug = false, bool bIgnoreSelf = true) const;
-	
+	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(
+		const FGameplayAbilityTargetDataHandle& Handle,
+		ETeamAttitude::Type TargetTeam,
+		bool bDrawDebug, bool bIgnoreSelf) const;
 
 	UFUNCTION()
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "AnimNotify_SendTargetGroup.generated.h"
 
 UENUM(BlueprintType)
@@ -12,6 +13,54 @@ enum class EVA_Shape : uint8
 {
 	Sphere,
 	Box
+};
+
+USTRUCT(BlueprintType)
+struct FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbilityTargetData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EVA_Shape Shape = EVA_Shape::Sphere;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector LocalOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator LocalRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SphereRadius = 25.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector BoxHalfSize = FVector(20.f,12.f,12.f);
+
+	virtual UScriptStruct* GetScriptStruct() const override
+	{
+		return StaticStruct();
+	}
+
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+	{
+		Ar << Shape;
+		Ar << LocalOffset;
+		Ar << LocalRotation;
+		Ar << SphereRadius;
+		Ar << BoxHalfSize;
+		bOutSuccess = true;
+		return true;
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayAbilityTargetData_VirtualSocket>
+	: public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetData_VirtualSocket>
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithCopy = true
+	};
 };
 
 /**
@@ -24,7 +73,7 @@ class UAnimNotify_SendTargetGroup : public UAnimNotify
 		
 public:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
-
+	
 private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	FGameplayTag EventTag;
@@ -48,21 +97,10 @@ private:
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(ClampMin="0.0"))
 	FVector BoxHalfSize = FVector(20.f,12.f,12.f);
 
-	// AnimNotify_SendTargetGroup.h
-	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.0"))
-	float DebugDuration = 0.3f; // n초 동안 유지
-	
-	/** TargetLocation = SourceLocation + Up * Height */
-	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	float Height = 5.0f;
-
 	/** 에디터 프리뷰 전용 디버그 옵션 */
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
 	FColor DebugColor = FColor::Cyan;
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.1"))
 	float DebugThickness = 1.5f;
-
-	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
-	bool bEditorPreviewOnly = true;
 };

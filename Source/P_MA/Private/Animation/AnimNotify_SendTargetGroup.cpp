@@ -8,12 +8,12 @@
 
 namespace
 {
-	inline bool IsEditorPreviewWorld(const UWorld* World)
+	inline bool IsEditorPreviewWorld_NoPIE(const UWorld* World)
 	{
 #if WITH_EDITOR
 		if (!World) return false;
 		const EWorldType::Type WT = World->WorldType;
-		return (WT == EWorldType::Editor || WT == EWorldType::EditorPreview || WT == EWorldType::PIE);
+		return (WT == EWorldType::Editor || WT == EWorldType::EditorPreview);
 #else
 		return false;
 #endif
@@ -26,55 +26,75 @@ void UAnimNotify_SendTargetGroup::Notify(USkeletalMeshComponent* MeshComp, UAnim
 	Super::Notify(MeshComp, Animation, EventReference);
 	if (!MeshComp) return;
 
-	AActor* Owner = MeshComp->GetOwner();
-	if (!Owner && !UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
+	UWorld* World = MeshComp->GetWorld();
+	if (!World) return;
 
-	// 루트(컴포넌트) 기준 로컬 → 월드
-	const FTransform CompXf = MeshComp->GetComponentTransform();
-	const FVector   WLoc = CompXf.TransformPosition(LocalOffset);
-	const FQuat     WRot = CompXf.GetRotation() * LocalRotation.Quaternion();
-
-	// Target = 위로 Height 만큼 (기존 의미 유지)
-	const FVector UpDir = FVector::UpVector; // 필요시 전방 정렬 등으로 확장 가능
-	const FVector WTarget = WLoc + UpDir * Height;
-
-	// Ability로 보낼 TargetData(한 지점)
-	FGameplayEventData Data;
+	FTransform BaseWorldXf; // 루트 본의 월드 트랜스폼
 	{
-		// GAS가 소유권 가짐(원본과 동일 패턴)
-		FGameplayAbilityTargetData_LocationInfo* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
-		LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
-		LocationInfo->TargetLocation.LiteralTransform.SetLocation(WTarget);
-		Data.TargetData.Add(LocationInfo);
+		// 안전 폴백: 본이 없거나 얻기 실패 시 컴포넌트 트랜스폼 사용
+		const int32 NumBones = MeshComp->GetNumBones();
+		if (NumBones > 0)
+		{
+			const FName RootBoneName = MeshComp->GetBoneName(0); // 스켈레톤 루트 본
+			const FVector RootPos    = MeshComp->GetBoneLocation(RootBoneName);     // 월드
+			const FQuat   RootQuat   = MeshComp->GetBoneQuaternion(RootBoneName);   // 월드
+			BaseWorldXf = FTransform(RootQuat, RootPos, FVector::OneVector);
+		}
+		else
+		{
+			BaseWorldXf = MeshComp->GetComponentTransform(); // 폴백
+		}
 	}
+	
+	// 로컬(노티 값) → 월드
+	const FVector WLoc = BaseWorldXf.TransformPosition(LocalOffset);
+	const FQuat   WRot = BaseWorldXf.GetRotation() * LocalRotation.Quaternion();
 
 	// 에디터 프리뷰: Notify 통과 프레임에만 1프레임 디버그
 #if WITH_EDITOR
-	// 오래 남은 선 지움
-	FlushPersistentDebugLines(MeshComp->GetWorld());
-	
-	const bool bPersistent = DebugDuration > 0.f;
-	const float LifeTime   = DebugDuration; // n초
-	
-	if (!bEditorPreviewOnly || IsEditorPreviewWorld(MeshComp->GetWorld()))
+	if (IsEditorPreviewWorld_NoPIE(World))
 	{
+		FlushPersistentDebugLines(World);
+		
 		switch (Shape)
 		{
-		case EVA_Shape::Sphere:
-			DrawDebugSphere(MeshComp->GetWorld(), WLoc, SphereRadius, 16,
-				DebugColor, bPersistent, LifeTime, 0, DebugThickness);
-			break;
-		case EVA_Shape::Box:
-			DrawDebugBox(MeshComp->GetWorld(), WLoc, BoxHalfSize, WRot,
-				DebugColor, bPersistent, LifeTime, 0, DebugThickness);
-			break;
+			case EVA_Shape::Sphere:
+				DrawDebugSphere(MeshComp->GetWorld(), WLoc, SphereRadius, 16,
+					DebugColor, true, 0, 0, DebugThickness);
+				break;
+			case EVA_Shape::Box:
+				DrawDebugBox(MeshComp->GetWorld(), WLoc, BoxHalfSize, WRot,
+					DebugColor, true, 0, 0, DebugThickness);
+				break;	
 		}
-		// 상단 방향선(선택)
-		DrawDebugLine(MeshComp->GetWorld(), WLoc, WTarget,
-			DebugColor, bPersistent, LifeTime, 0, DebugThickness);
 	}
 #endif
 
-	// 이벤트 송신(원본 유지)
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+	// --- ASC가 있을 때만 이벤트 송신 (에디터 프리뷰에서 return로 막지 않음) ---
+	if (AActor* Owner = MeshComp->GetOwner())
+	{
+		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner))
+		{
+			FGameplayEventData Data;
+			{
+				auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
+				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
+				LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 50);
+				Data.TargetData.Add(LocationInfo);
+			}
+
+			{
+				auto* VSData = new FGameplayAbilityTargetData_VirtualSocket();
+				VSData->Shape        = Shape;
+				VSData->LocalOffset  = LocalOffset;
+				VSData->LocalRotation= LocalRotation;
+				VSData->SphereRadius = SphereRadius;
+				VSData->BoxHalfSize  = BoxHalfSize;
+
+				Data.TargetData.Add(VSData);
+			}
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+		}
+	}
 }

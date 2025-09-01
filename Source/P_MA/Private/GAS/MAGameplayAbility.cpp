@@ -2,6 +2,8 @@
 
 
 #include "GAS/MAGameplayAbility.h"
+
+#include "Animation/AnimNotify_SendTargetGroup.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -43,7 +45,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		{
 			ActorsToIgnore.Add(GetAvatarActorFromActorInfo());
 		}
-
+		
 		EDrawDebugTrace::Type DrawDebugTrace = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
 
 		TArray<FHitResult> Results;
@@ -113,3 +115,40 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData_S
 	return GetHitResultFromSweepLocationTargetData(TargetDataHandle, FVector(Radius, 0, 0), TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
 }
 
+TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
+	const FGameplayAbilityTargetDataHandle& Handle,
+	ETeamAttitude::Type TargetTeam,
+	bool bDrawDebug, bool bIgnoreSelf) const
+{
+	// 1) VS 데이터/위치 추출
+	const FGameplayAbilityTargetData_VirtualSocket* VS = nullptr;
+	const FGameplayAbilityTargetData_LocationInfo*  Loc= nullptr;
+	
+	for (const TSharedPtr<FGameplayAbilityTargetData>& TD : Handle.Data)
+	{
+		if (!VS && TD->GetScriptStruct() == FGameplayAbilityTargetData_VirtualSocket::StaticStruct())
+			VS = static_cast<const FGameplayAbilityTargetData_VirtualSocket*>(TD.Get());
+		if (!Loc && TD->GetScriptStruct() == FGameplayAbilityTargetData_LocationInfo::StaticStruct())
+			Loc = static_cast<const FGameplayAbilityTargetData_LocationInfo*>(TD.Get());
+	}
+	if (!VS || !Loc) return {}; // 확실치 않음: 둘 다 필요. 한쪽 없으면 빈 배열 반환.
+
+	FGameplayAbilityTargetDataHandle LocHandle;
+	{
+		auto* Copy = new FGameplayAbilityTargetData_LocationInfo(*Loc);
+		LocHandle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(Copy));
+	}
+	
+	// 2) 기존 범용 함수로 위임
+	if (VS->Shape == EVA_Shape::Sphere)
+	{
+		return GetHitResultFromSweepLocationTargetData(
+			LocHandle, FVector(VS->SphereRadius,0,0), TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
+	}
+	else // Box
+	{
+		// 주의: 현재 박스는 ZeroRotator로 트레이스함. 박스 회전이 필요하면 아래 “선택 개선” 참고.
+		return GetHitResultFromSweepLocationTargetData(
+			LocHandle, VS->BoxHalfSize, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
+	}
+}
