@@ -3,7 +3,7 @@
 
 #include "GAS/MAGameplayAbility.h"
 
-#include "Animation/AnimNotify_SendTargetGroup.h"
+#include "Animation/AnimNotify_SendTracePoint.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 

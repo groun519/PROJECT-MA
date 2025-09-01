@@ -6,7 +6,7 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
-#include "AnimNotify_SendTargetGroup.generated.h"
+#include "AnimNotify_SendTracePoint.generated.h"
 
 UENUM(BlueprintType)
 enum class EVA_Shape : uint8
@@ -67,7 +67,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_VirtualSocket>
  * 
  */
 UCLASS()
-class UAnimNotify_SendTargetGroup : public UAnimNotify
+class UAnimNotify_SendTracePoint : public UAnimNotify
 {
 	GENERATED_BODY()
 		
