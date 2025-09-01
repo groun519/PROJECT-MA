@@ -83,19 +83,19 @@ private:
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
 	EVA_Shape Shape = EVA_Shape::Sphere;
 
-	/** 루트(컴포넌트) 기준 로컬 오프셋/회전 */
-	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	FVector  LocalOffset = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	FRotator LocalRotation = FRotator::ZeroRotator;
-
 	/** 모양별 크기 */
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(ClampMin="0.0"))
 	float SphereRadius = 25.f;
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(ClampMin="0.0"))
 	FVector BoxHalfSize = FVector(20.f,12.f,12.f);
+	
+	/** 루트(컴포넌트) 기준 로컬 오프셋/회전 */
+	UPROPERTY(EditAnywhere, Category="Virtual Socket")
+	FVector  LocalOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category="Virtual Socket")
+	FRotator LocalRotation = FRotator::ZeroRotator;
 
 	/** 에디터 프리뷰 전용 디버그 옵션 */
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
