@@ -36,12 +36,12 @@ FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
-	TArray<FHitResult> TargetHitResults = GetHitResultFromSweepLocationTargetData(EventData.TargetData, TargetSweepSphereRadius, ETeamAttitude::Hostile, ShouldDrawDebug());
-	if (K2_HasAuthority())
-	{
-		for (FHitResult& HitResult : TargetHitResults)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
-		}
-	}
+	// TArray<FHitResult> TargetHitResults = GetHitResultFromSweepLocationTargetData(EventData.TargetData, TargetSweepSphereRadius, ETeamAttitude::Hostile, ShouldDrawDebug());
+	// if (K2_HasAuthority())
+	// {
+	// 	for (FHitResult& HitResult : TargetHitResults)
+	// 	{
+	// 		UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
+	// 	}
+	// }
 }

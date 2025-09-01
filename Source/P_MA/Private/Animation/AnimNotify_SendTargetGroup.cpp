@@ -3,51 +3,78 @@
 
 #include "Animation/AnimNotify_SendTargetGroup.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "DrawDebugHelpers.h"
+
+namespace
+{
+	inline bool IsEditorPreviewWorld(const UWorld* World)
+	{
+#if WITH_EDITOR
+		if (!World) return false;
+		const EWorldType::Type WT = World->WorldType;
+		return (WT == EWorldType::Editor || WT == EWorldType::EditorPreview || WT == EWorldType::PIE);
+#else
+		return false;
+#endif
+	}
+}
 
 void UAnimNotify_SendTargetGroup::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
+	if (!MeshComp) return;
 
-	if (!MeshComp) 
-		return;
+	AActor* Owner = MeshComp->GetOwner();
+	if (!Owner && !UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
 
-	if (TargetSocketNames.Num() <= 1) 
-		return;
+	// 루트(컴포넌트) 기준 로컬 → 월드
+	const FTransform CompXf = MeshComp->GetComponentTransform();
+	const FVector   WLoc = CompXf.TransformPosition(LocalOffset);
+	const FQuat     WRot = CompXf.GetRotation() * LocalRotation.Quaternion();
 
-	if (!MeshComp->GetOwner() && !UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(MeshComp->GetOwner()))
-	{
-		return;
-	}
+	// Target = 위로 Height 만큼 (기존 의미 유지)
+	const FVector UpDir = FVector::UpVector; // 필요시 전방 정렬 등으로 확장 가능
+	const FVector WTarget = WLoc + UpDir * Height;
 
+	// Ability로 보낼 TargetData(한 지점)
 	FGameplayEventData Data;
-
-	if (bUsingfirstSocketOnly)
 	{
+		// GAS가 소유권 가짐(원본과 동일 패턴)
 		FGameplayAbilityTargetData_LocationInfo* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
-
-		FVector Loc = MeshComp->GetSocketLocation(TargetSocketNames[0]);
-		
-		LocationInfo->SourceLocation.LiteralTransform.SetLocation(Loc);
-		LocationInfo->TargetLocation.LiteralTransform.SetLocation(Loc + FVector(0,0,Height));
-
+		LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
+		LocationInfo->TargetLocation.LiteralTransform.SetLocation(WTarget);
 		Data.TargetData.Add(LocationInfo);
 	}
-	else
+
+	// 에디터 프리뷰: Notify 통과 프레임에만 1프레임 디버그
+#if WITH_EDITOR
+	// 오래 남은 선 지움
+	FlushPersistentDebugLines(MeshComp->GetWorld());
+	
+	const bool bPersistent = DebugDuration > 0.f;
+	const float LifeTime   = DebugDuration; // n초
+	
+	if (!bEditorPreviewOnly || IsEditorPreviewWorld(MeshComp->GetWorld()))
 	{
-		for (int i = 1; i < TargetSocketNames.Num(); ++i)
+		switch (Shape)
 		{
-			// heap allocation
-			FGameplayAbilityTargetData_LocationInfo* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
-
-			FVector StartLoc = MeshComp->GetSocketLocation(TargetSocketNames[i-1]);
-			FVector EndLoc = MeshComp->GetSocketLocation(TargetSocketNames[i]);
-
-			LocationInfo->SourceLocation.LiteralTransform.SetLocation(StartLoc);
-			LocationInfo->TargetLocation.LiteralTransform.SetLocation(EndLoc);
-
-			Data.TargetData.Add(LocationInfo);
+		case EVA_Shape::Sphere:
+			DrawDebugSphere(MeshComp->GetWorld(), WLoc, SphereRadius, 16,
+				DebugColor, bPersistent, LifeTime, 0, DebugThickness);
+			break;
+		case EVA_Shape::Box:
+			DrawDebugBox(MeshComp->GetWorld(), WLoc, BoxHalfSize, WRot,
+				DebugColor, bPersistent, LifeTime, 0, DebugThickness);
+			break;
 		}
+		// 상단 방향선(선택)
+		DrawDebugLine(MeshComp->GetWorld(), WLoc, WTarget,
+			DebugColor, bPersistent, LifeTime, 0, DebugThickness);
 	}
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), EventTag, Data);
+#endif
+
+	// 이벤트 송신(원본 유지)
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 }
