@@ -78,26 +78,29 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	FGameplayTag EventTag;
 	
-	
-	/** 디버그/타겟 지점의 모양 */
+	// 타입
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
 	EVA_Shape Shape = EVA_Shape::Sphere;
 
-	/** 모양별 크기 */
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(ClampMin="0.0"))
-	float SphereRadius = 25.f;
+	/** Sphere **/
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0"))
+	float Radius = 50.f;
 
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(ClampMin="0.0"))
-	FVector BoxHalfSize = FVector(20.f,12.f,12.f);
+	/** Box **/
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
+	float Width = 50.f;
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
+	float Height = 50.f;
 	
-	/** 루트(컴포넌트) 기준 로컬 오프셋/회전 */
+	// 어차피 Z축은 탑다운, 점프x 상황에서 필요없기에 고려x
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	FVector  LocalOffset = FVector::ZeroVector;
+	FVector2D  LocalOffset	= FVector2D::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	FRotator LocalRotation = FRotator::ZeroRotator;
+	FRotator LocalRotation	= FRotator::ZeroRotator;
 
-	/** 에디터 프리뷰 전용 디버그 옵션 */
+
+	/** Debug **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
 	FColor DebugColor = FColor::Cyan;
 

@@ -47,7 +47,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	}
 	
 	// 로컬(노티 값) → 월드
-	const FVector WLoc = BaseWorldXf.TransformPosition(LocalOffset);
+	const FVector WLoc = BaseWorldXf.TransformPosition(FVector(LocalOffset.X, LocalOffset.Y, 0));
 	const FQuat   WRot = BaseWorldXf.GetRotation() * LocalRotation.Quaternion();
 
 	// 에디터 프리뷰: Notify 통과 프레임에만 1프레임 디버그
@@ -59,11 +59,11 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		switch (Shape)
 		{
 			case EVA_Shape::Sphere:
-				DrawDebugSphere(MeshComp->GetWorld(), WLoc, SphereRadius, 16,
+				DrawDebugSphere(MeshComp->GetWorld(), WLoc, Radius, 16,
 					DebugColor, true, 0, 0, DebugThickness);
 				break;
 			case EVA_Shape::Box:
-				DrawDebugBox(MeshComp->GetWorld(), WLoc, BoxHalfSize, WRot,
+				DrawDebugBox(MeshComp->GetWorld(), WLoc, FVector(Width, Height, 100), WRot,
 					DebugColor, true, 0, 0, DebugThickness);
 				break;	
 		}
@@ -86,10 +86,10 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			{
 				auto* VSData = new FGameplayAbilityTargetData_VirtualSocket();
 				VSData->Shape        = Shape;
-				VSData->LocalOffset  = LocalOffset;
+				VSData->LocalOffset  = FVector(LocalOffset.X, LocalOffset.Y, 0);
 				VSData->LocalRotation= LocalRotation;
-				VSData->SphereRadius = SphereRadius;
-				VSData->BoxHalfSize  = BoxHalfSize;
+				VSData->SphereRadius = Radius;
+				VSData->BoxHalfSize  = FVector(Width, Height, 100);
 
 				Data.TargetData.Add(VSData);
 			}
