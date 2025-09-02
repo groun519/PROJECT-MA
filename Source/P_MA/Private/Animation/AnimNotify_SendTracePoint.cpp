@@ -79,7 +79,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			{
 				auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
 				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
-				LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 50);
+				LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
 				Data.TargetData.Add(LocationInfo);
 			}
 

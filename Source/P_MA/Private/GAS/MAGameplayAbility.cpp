@@ -22,7 +22,7 @@ class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
  */
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	const FGameplayAbilityTargetDataHandle& TargetDataHandle,
-	FVector HalfSize,
+	FVector HalfSize, FRotator BoxRot,
 	ETeamAttitude::Type TargetTeam,
 	ETraceObjectType TraceObjType,
 	bool bDrawDebug, bool bIgnoreSelf) const
@@ -56,8 +56,9 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		}
 		if (TraceObjType == ETraceObjectType::Box)
 		{
+			FRotator BoxWorldRot = GetAvatarActorFromActorInfo()->GetActorRotation() + BoxRot;
 			UKismetSystemLibrary::BoxTraceMultiForObjects(
-				this, StartLoc, EndLoc, HalfSize,FRotator::ZeroRotator,
+				this, StartLoc, EndLoc, HalfSize, BoxWorldRot,
 				ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false
 				);
 		}
@@ -101,20 +102,6 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	return OutResults;
 }
 
-TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData_Box(
-	const FGameplayAbilityTargetDataHandle& TargetDataHandle, FVector HalfSize, ETeamAttitude::Type TargetTeam,
-	bool bDrawDebug, bool bIgnoreSelf) const
-{
-	return GetHitResultFromSweepLocationTargetData(TargetDataHandle, HalfSize, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
-}
-
-TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData_Sphere(
-	const FGameplayAbilityTargetDataHandle& TargetDataHandle, float Radius, ETeamAttitude::Type TargetTeam,
-	bool bDrawDebug, bool bIgnoreSelf) const
-{
-	return GetHitResultFromSweepLocationTargetData(TargetDataHandle, FVector(Radius, 0, 0), TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
-}
-
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	const FGameplayAbilityTargetDataHandle& Handle,
 	ETeamAttitude::Type TargetTeam,
@@ -143,12 +130,12 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	if (VS->Shape == EVA_Shape::Sphere)
 	{
 		return GetHitResultFromSweepLocationTargetData(
-			LocHandle, FVector(VS->SphereRadius,0,0), TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
+			LocHandle, FVector(VS->SphereRadius,0,0), VS->LocalRotation, TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
 	}
 	else // Box
 	{
 		// 주의: 현재 박스는 ZeroRotator로 트레이스함. 박스 회전이 필요하면 아래 “선택 개선” 참고.
 		return GetHitResultFromSweepLocationTargetData(
-			LocHandle, VS->BoxHalfSize, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
+			LocHandle, VS->BoxHalfSize, VS->LocalRotation, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
 	}
 }

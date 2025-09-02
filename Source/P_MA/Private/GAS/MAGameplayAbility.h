@@ -28,19 +28,11 @@ protected:
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 		FVector HalfSize = FVector(30.f, 0, 0),
+		FRotator BoxRot = FRotator(0, 0, 0),
 		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
 		ETraceObjectType TraceObjType = ETraceObjectType::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true) const;
-	TArray<FHitResult> GetHitResultFromSweepLocationTargetData_Box(
-		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
-		FVector HalfSize = FVector(30.f, 0, 0),
-		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
-		bool bDrawDebug = false, bool bIgnoreSelf = true) const;
-	TArray<FHitResult> GetHitResultFromSweepLocationTargetData_Sphere(
-		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
-		float Radius,
-		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
-		bool bDrawDebug = false, bool bIgnoreSelf = true) const;
+
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(
 		const FGameplayAbilityTargetDataHandle& Handle,
 		ETeamAttitude::Type TargetTeam,
