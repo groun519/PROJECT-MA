@@ -10,10 +10,10 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Widget/MAOverHeadStatsGauge.h"
 
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
-
 
 AMACharacter::AMACharacter()
 {
@@ -23,8 +23,11 @@ AMACharacter::AMACharacter()
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 
+	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
+	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+
 	BindGASChangeDelegates();
-	
+
 	PerceptionStimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Stimuli Source Component");
 }
 
@@ -70,9 +73,10 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	ConfigureOverHeadStatusWidget();
 
 	MeshRelativeTransform = GetMesh()->GetRelativeTransform();
-	
+
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 }
 
@@ -171,7 +175,7 @@ void AMACharacter::Respawn()
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	GetMesh()->GetAnimInstance()->StopAllMontages(0.f);
 	SetStatusGaugeEnabled(true);
-	
+
 	if (HasAuthority() && GetController())
 	{
 		TWeakObjectPtr<AActor> StartSpot = GetController()->StartSpot;
@@ -180,7 +184,7 @@ void AMACharacter::Respawn()
 			SetActorTransform(StartSpot->GetActorTransform());
 		}
 	}
-	
+
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->ApplyFullStatEffect();
@@ -218,3 +222,16 @@ void AMACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 }
 
+void AMACharacter::ConfigureOverHeadStatusWidget()
+{
+	if (!OverHeadWidgetComponent)
+	{
+		return;
+	}
+
+	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
+	if (OverheadStatsGuage)
+	{
+		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
+	}
+}
