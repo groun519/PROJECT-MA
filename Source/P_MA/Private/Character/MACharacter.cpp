@@ -158,6 +158,12 @@ void AMACharacter::PlayDeathAnimation()
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->CancelAllAbilities();
+	}
+	
 	PlayDeathAnimation();
 	SetStatusGaugeEnabled(false);
 
@@ -197,6 +203,11 @@ void AMACharacter::OnDead()
 
 void AMACharacter::OnRespawn()
 {
+}
+
+void AMACharacter::OnRep_TeamID()
+{
+	// override only
 }
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
