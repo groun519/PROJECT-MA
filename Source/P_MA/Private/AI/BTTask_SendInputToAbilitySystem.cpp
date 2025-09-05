@@ -8,6 +8,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 
+#include "Kismet/KismetSystemLibrary.h"
+
 EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	AAIController* OwnerAIC = OwnerComp.GetAIOwner();
