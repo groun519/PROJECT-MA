@@ -13,10 +13,6 @@
 
 AMAAIController::AMAAIController()
 {
-	/** Create Objects **//**
-	 * 
-	 * 
-	 */
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>("AI Perception Component");
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>("Sight Config");
 
