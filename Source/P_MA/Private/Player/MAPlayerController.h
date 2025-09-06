@@ -23,23 +23,23 @@ public:
 	
 	// TeamID에 Team Agent 할당
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
-	
+
 	// FGenericTeamId 형식으로 TeamID 탐색
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
-	
+
 private:
-	void SpawnHUDWidget();
+	void SpawnGameplayWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UMAHUD> HUDWidgetClass;
+	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
 
 	UPROPERTY()
-	class UMAHUD* HUDWidget;
-
+	class UMAGameplayWidget* GameplayWidget;
+	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
 };
