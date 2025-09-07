@@ -25,7 +25,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	FVector HalfSize, FRotator BoxRot,
 	ETeamAttitude::Type TargetTeam,
 	ETraceObjectType TraceObjType,
-	bool bDrawDebug, bool bIgnoreSelf) const
+	bool bDrawDebug, bool bIgnoreSelf)
 {
 	TArray<FHitResult> OutResults;
 	TSet<AActor*> HitActors;
@@ -34,6 +34,9 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	
 	for (const TSharedPtr<FGameplayAbilityTargetData> TargetData : TargetDataHandle.Data)
 	{
+		const FVector LocalStart = TargetData->GetOrigin().GetTranslation(); // Base(Local)
+		const FVector LocalEnd   = TargetData->GetEndPoint();                // Tip (Local)
+
 		FVector StartLoc = TargetData->GetOrigin().GetTranslation();
 		FVector EndLoc = TargetData->GetEndPoint();
 
@@ -70,6 +73,50 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 				);
 		}
 
+		else if (TraceObjType == ETraceObjectType::Line)
+		{
+			// 첫 이벤트면 저장만
+			if (!bHasPrevSegment)
+			{
+				PrevBaseLocal  = LocalStart;
+				PrevTipLocal   = LocalEnd;
+				bHasPrevSegment = true;
+			}
+			else
+			{
+				// 생성할 때만 액터 위치 더해서(월드) 생성
+				const AActor* Avatar   = GetAvatarActorFromActorInfo();
+				const FTransform Basis = Avatar ? Avatar->GetActorTransform() : FTransform::Identity;
+
+				const FVector PrevBaseW = Basis.TransformPosition(PrevBaseLocal);
+				const FVector PrevTipW  = Basis.TransformPosition(PrevTipLocal);
+				const FVector CurBaseW  = Basis.TransformPosition(LocalStart);
+				const FVector CurTipW   = Basis.TransformPosition(LocalEnd);
+
+				auto DoLine = [&](const FVector& S, const FVector& E)
+				{
+					TArray<FHitResult> Temp;
+					UKismetSystemLibrary::LineTraceMultiForObjects(
+						this, S, E,
+						ObjectTypes, false, ActorsToIgnore,
+						DrawDebugTrace, Temp, false,
+						FLinearColor::Green, FLinearColor::Red, 1.0f
+					);
+					Results.Append(Temp);
+				};
+
+				// 누락 방지용 4개 선분
+				DoLine(PrevBaseW, CurBaseW);
+				DoLine(PrevTipW,  CurTipW);
+				DoLine(PrevBaseW, CurTipW);
+				DoLine(PrevTipW,  CurBaseW);
+
+				// 현재 로컬을 이전으로 갱신
+				PrevBaseLocal = LocalStart;
+				PrevTipLocal  = LocalEnd;
+			}
+		}
+		
 		for (const FHitResult& Result : Results)
 		{
 			// 스스로는 피해 x
@@ -105,7 +152,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	const FGameplayAbilityTargetDataHandle& Handle,
 	ETeamAttitude::Type TargetTeam,
-	bool bDrawDebug, bool bIgnoreSelf) const
+	bool bDrawDebug, bool bIgnoreSelf)
 {
 	// 1) VS 데이터/위치 추출
 	const FGameplayAbilityTargetData_VirtualSocket* VS = nullptr;
