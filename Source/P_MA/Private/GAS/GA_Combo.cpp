@@ -25,6 +25,8 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
+		IgnoreTargets.Empty();
+		
 		UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
 		PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
@@ -146,7 +148,7 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		EffectSpecHandle.Data->SetContext(EffectContext);
 
 		ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
-
+		
 		IgnoreTargets.Add(HitResult.GetActor());
 		UE_LOG(LogTemp, Log, TEXT("Ignore Added: %s"), *HitResult.GetActor()->GetName());
 	}
