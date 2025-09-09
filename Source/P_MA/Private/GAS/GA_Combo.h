@@ -46,4 +46,7 @@ private:
 	void DoDamage(FGameplayEventData Data);
 
 	FName NextComboName;
+
+	UPROPERTY()
+	TArray<AActor*> IgnoreTargets;
 };
