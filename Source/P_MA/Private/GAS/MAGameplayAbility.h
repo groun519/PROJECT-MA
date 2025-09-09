@@ -45,11 +45,7 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bShouldDrawDebug = true;
-
-	// ===== 라인트레이스 누적을 위한 상태(첫 이벤트/이전 Base/Tip) =====
-	UPROPERTY(Transient)
-	bool bHasPrevSegment = false;
-
+	
 	UPROPERTY(Transient)
 	FVector PrevBaseLocal = FVector::ZeroVector; // 이전 이벤트의 Base (로컬)
 

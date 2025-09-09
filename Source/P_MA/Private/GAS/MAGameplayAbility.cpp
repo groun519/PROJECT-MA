@@ -34,9 +34,6 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	
 	for (const TSharedPtr<FGameplayAbilityTargetData> TargetData : TargetDataHandle.Data)
 	{
-		const FVector LocalStart = TargetData->GetOrigin().GetTranslation(); // Base(Local)
-		const FVector LocalEnd   = TargetData->GetEndPoint();                // Tip (Local)
-
 		FVector StartLoc = TargetData->GetOrigin().GetTranslation();
 		FVector EndLoc = TargetData->GetEndPoint();
 
@@ -76,11 +73,10 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		else if (TraceObjType == ETraceObjectType::Line)
 		{
 			// 첫 이벤트면 저장만
-			if (!bHasPrevSegment)
+			if (PrevBaseLocal == FVector::ZeroVector && PrevTipLocal == FVector::ZeroVector)
 			{
-				PrevBaseLocal  = LocalStart;
-				PrevTipLocal   = LocalEnd;
-				bHasPrevSegment = true;
+				PrevBaseLocal  = StartLoc;
+				PrevTipLocal   = EndLoc;
 			}
 			else
 			{
@@ -90,17 +86,17 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 				const FVector PrevBaseW = Basis.TransformPosition(PrevBaseLocal);
 				const FVector PrevTipW  = Basis.TransformPosition(PrevTipLocal);
-				const FVector CurBaseW  = Basis.TransformPosition(LocalStart);
-				const FVector CurTipW   = Basis.TransformPosition(LocalEnd);
+				const FVector CurBaseW  = Basis.TransformPosition(StartLoc);
+				const FVector CurTipW   = Basis.TransformPosition(EndLoc);
 
-				auto DoLine = [&](const FVector& S, const FVector& E)
+				auto DoLine = [&](const FVector& Start, const FVector& End)
 				{
 					TArray<FHitResult> Temp;
 					UKismetSystemLibrary::LineTraceMultiForObjects(
-						this, S, E,
+						this, Start, End,
 						ObjectTypes, false, ActorsToIgnore,
 						DrawDebugTrace, Temp, false,
-						FLinearColor::Green, FLinearColor::Red, 1.0f
+						FLinearColor::Green, FLinearColor::Red, 2.0f
 					);
 					Results.Append(Temp);
 				};
@@ -112,8 +108,8 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 				DoLine(PrevTipW,  CurBaseW);
 
 				// 현재 로컬을 이전으로 갱신
-				PrevBaseLocal = LocalStart;
-				PrevTipLocal  = LocalEnd;
+				PrevBaseLocal = StartLoc;
+				PrevTipLocal  = EndLoc;
 			}
 		}
 		
