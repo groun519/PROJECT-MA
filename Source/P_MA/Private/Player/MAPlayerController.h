@@ -29,17 +29,24 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 
 private:
+	//void SpawnHUDWidget();
 	void SpawnGameplayWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UMAHUD> HUDWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
 
 	UPROPERTY()
 	class UMAGameplayWidget* GameplayWidget;
-	
+
+	/*UPROPERTY()
+	class UMAHUD* HUDWidget;*/
+
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
 };

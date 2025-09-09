@@ -11,7 +11,6 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -36,7 +35,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 * 2. Player cannot use "Origin Rot to Movement"
 	 *		-> Because, player must look mouse pointer.
 	 */
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 	
@@ -56,17 +55,8 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	if (GetLookDirectionToMouse(LookDir))
 	{
 		SetActorRotation(FRotator(0.f, LookDir.Rotation().Yaw, 0.f));
-
-		if (!HasAuthority())
-		{
-			Server_SetRotation(LookDir);
-		}
+		UpdateCameraLead(LookDir);
 	}
-}
-
-void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
-{
-	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
 
 void AMAPlayerCharacter::PawnClientRestart()
@@ -207,6 +197,18 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 
 	OutDirection = Dir;
 	return true;
+}
+
+void AMAPlayerCharacter::UpdateCameraLead(const FVector& LookDirection) const
+{
+	if (!CameraBoom) return;
+	if (LookDirection.IsNearlyZero()) return;
+
+	FVector PlayerLoc = GetActorLocation();
+	FVector LeadOffset = LookDirection * 30.f;
+	FVector CamOffset = FVector(-100.f, -100.f, 0.f);
+
+	CameraBoom->SetWorldLocation(PlayerLoc + LeadOffset + CamOffset);
 }
 
 void AMAPlayerCharacter::OnDead()

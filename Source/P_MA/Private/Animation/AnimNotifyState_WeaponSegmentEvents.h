@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
-#include "EVA_Shape.h"
 #include "AnimNotifyState_WeaponSegmentEvents.generated.h"
 
 class UWeaponComponent;
@@ -28,12 +27,6 @@ public:
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 						   const FAnimNotifyEventReference& EventReference) override;
 private:
-	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
-	EVA_Shape TraceType = EVA_Shape::Line;
-
-	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="TraceType!=EVA_Shape::Line"))
-	FName TraceSocketName = FName("TraceSocket");
-	
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	FGameplayTag AbilityEventTag;
 

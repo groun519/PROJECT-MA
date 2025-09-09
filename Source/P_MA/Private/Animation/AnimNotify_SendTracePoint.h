@@ -6,8 +6,14 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
-#include "EVA_Shape.h"
 #include "AnimNotify_SendTracePoint.generated.h"
+
+UENUM(BlueprintType)
+enum class EVA_Shape : uint8
+{
+	Sphere,
+	Box
+};
 
 USTRUCT(BlueprintType)
 struct FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbilityTargetData

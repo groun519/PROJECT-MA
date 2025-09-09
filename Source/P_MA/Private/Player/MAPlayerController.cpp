@@ -5,7 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Widget/MAGameplayWidget.h"
+#include "MAGameplayWidget.h"
 #include "Net/UnrealNetwork.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
@@ -47,6 +47,16 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
+//void AMAPlayerController::SpawnHUDWidget()
+//{
+//	if (!IsLocalPlayerController()) return;
+//
+//	HUDWidget = CreateWidget<UMAHUD>(this, HUDWidgetClass);
+//	if (HUDWidget)
+//	{
+//		HUDWidget->AddToViewport();
+//	}
+//}
 void AMAPlayerController::SpawnGameplayWidget()
 {
 	if (!IsLocalPlayerController()) return;

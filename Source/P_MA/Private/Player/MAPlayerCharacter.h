@@ -62,9 +62,7 @@ private:
 
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetRotation(FVector LookDirection);
+	void UpdateCameraLead(const FVector& LookDirection) const;
 
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
