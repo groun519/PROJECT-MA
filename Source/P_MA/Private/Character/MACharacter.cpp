@@ -22,7 +22,6 @@ AMACharacter::AMACharacter()
 
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
-
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
 
@@ -48,22 +47,6 @@ bool AMACharacter::IsLocallyControlledByPlayer() const
 	return GetController() && GetController()->IsLocalPlayerController();
 }
 
-
-void AMACharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
-{
-	TeamID = NewTeamID;
-}
-
-FGenericTeamId AMACharacter::GetGenericTeamId() const
-{
-	return TeamID;
-}
-
-void AMACharacter::PossessedBy(AController* NewController)
-{
-	Super::PossessedBy(NewController);
-}
-
 void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -80,9 +63,28 @@ void AMACharacter::BeginPlay()
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 }
 
+void AMACharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	if (NewController && !NewController->IsPlayerController())
+	{
+		ServerSideInit();
+	}
+}
+
 void AMACharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);	
+}
+
+void AMACharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamID = NewTeamID;
+}
+
+FGenericTeamId AMACharacter::GetGenericTeamId() const
+{
+	return TeamID;
 }
 
 UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
@@ -158,6 +160,12 @@ void AMACharacter::PlayDeathAnimation()
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->CancelAllAbilities();
+	}
+	
 	PlayDeathAnimation();
 	SetStatusGaugeEnabled(false);
 
@@ -197,6 +205,11 @@ void AMACharacter::OnDead()
 
 void AMACharacter::OnRespawn()
 {
+}
+
+void AMACharacter::OnRep_TeamID()
+{
+	// override only
 }
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)

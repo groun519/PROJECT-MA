@@ -60,11 +60,11 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		{
 			case EVA_Shape::Sphere:
 				DrawDebugSphere(MeshComp->GetWorld(), WLoc, Radius, 16,
-					DebugColor, true, 0, 0, DebugThickness);
+					DebugColor, false, 3, 0, DebugThickness);
 				break;
 			case EVA_Shape::Box:
 				DrawDebugBox(MeshComp->GetWorld(), WLoc, FVector(Width, Height, 100), WRot,
-					DebugColor, true, 0, 0, DebugThickness);
+					DebugColor, false, 3, 0, DebugThickness);
 				break;	
 		}
 	}
