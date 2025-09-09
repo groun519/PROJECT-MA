@@ -17,6 +17,9 @@ UGA_Combo::UGA_Combo()
 
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+	IgnoreTargets.Empty();
+	UE_LOG(LogTemp, Warning, TEXT("ignore targets are cleared"));
+	
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
@@ -25,8 +28,6 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
-		IgnoreTargets.Empty();
-		
 		UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
 		PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
@@ -44,6 +45,10 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboTargetEventTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
+
+		UAbilityTask_WaitGameplayEvent* WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboClearEventTag());
+		WaitClearEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ClearIgnore);
+		WaitClearEventTask->ReadyForActivation();
 	}
 	SetupWaitComboInputPress();
 }
@@ -61,6 +66,11 @@ FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
 FGameplayTag UGA_Combo::GetComboTargetEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Ability.Combo.Damage");
+}
+
+FGameplayTag UGA_Combo::GetComboClearEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
 }
 
 void UGA_Combo::SetupWaitComboInputPress()
@@ -111,7 +121,7 @@ TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
 void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 {
 	FGameplayTag EventTag = Data.EventTag;
-
+	
 	if (EventTag == GetComboChangeEventEndTag())
 	{
 		NextComboName = NAME_None;
@@ -151,5 +161,18 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		
 		IgnoreTargets.Add(HitResult.GetActor());
 		UE_LOG(LogTemp, Log, TEXT("Ignore Added: %s"), *HitResult.GetActor()->GetName());
+	}
+}
+
+void UGA_Combo::ClearIgnore(FGameplayEventData Data)
+{
+	UE_LOG(LogTemp, Error, TEXT("Ignore called"));
+	
+	FGameplayTag ClearTag = Data.EventTag;
+
+	if (ClearTag == GetComboClearEventTag())
+	{
+		IgnoreTargets.Empty();
+		UE_LOG(LogTemp, Error, TEXT("Ignore cleared"));
 	}
 }

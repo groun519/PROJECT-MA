@@ -40,6 +40,8 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="bUseEndEvent"))
 	FGameplayTag EndEventTag;
 
+	FGameplayTag ClearEventTag;
+
 	UPROPERTY(EditAnywhere, Category="Interp", meta=(ClampMin="1", AllowPrivateAccess="true"))
 	int32 InterpCount = 5;
 
