@@ -78,6 +78,8 @@ void UAnimNotifyState_WeaponSegmentEvents::NotifyEnd(USkeletalMeshComponent* Mes
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(CachedOwner.Get(), ClearEventTag, FGameplayEventData());
+	
 	if (bUseEndEvent && EndEventTag.IsValid())
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(CachedOwner.Get(), EndEventTag, FGameplayEventData());
 
