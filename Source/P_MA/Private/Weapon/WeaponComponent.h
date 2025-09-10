@@ -11,7 +11,7 @@ class USceneComponent;
 class AActor;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class UWeaponComponent : public USkeletalMeshComponent
+class P_MA_API UWeaponComponent : public USkeletalMeshComponent
 {
 	GENERATED_BODY()
 

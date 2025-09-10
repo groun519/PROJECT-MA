@@ -68,7 +68,7 @@ private:
 
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<class UWeaponComponent> WeaponCom = nullptr;
+	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
 	/** Death and Respawn **/
 	virtual void OnDead() override;

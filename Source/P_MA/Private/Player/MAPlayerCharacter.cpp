@@ -44,8 +44,8 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 * - Child Relationship : Mesh - Handle
 	 */
 	// Create and Attach Weapon
-	WeaponCom = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
-	WeaponCom->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
+	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
