@@ -51,6 +51,7 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMACharacter, TeamID);
+	DOREPLIFETIME(AMACharacter, MaterialParamValue);
 }
 
 void AMACharacter::BeginPlay()
@@ -61,6 +62,23 @@ void AMACharacter::BeginPlay()
 	MeshRelativeTransform = GetMesh()->GetRelativeTransform();
 
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
+
+	if (GetMesh())
+	{
+		DynMat = GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
+		if (DynMat)
+		{
+			// Body Param Update
+			//DynMat->SetScalarParameterValue("Body_Opacity",	BaseMaterialParam.BodyData.Opacity);
+			DynMat->SetVectorParameterValue("Body_Color",	BaseMaterialParam.BodyData.Color);
+			DynMat->SetScalarParameterValue("Body_Emissive",BaseMaterialParam.BodyData.Emissive);
+
+			// Eye Param Update
+			//DynMat->SetScalarParameterValue("Eye_Opacity",	BaseMaterialParam.EyeData.Opacity);
+			DynMat->SetVectorParameterValue("Eye_Color",	BaseMaterialParam.EyeData.Color);
+			DynMat->SetScalarParameterValue("Eye_Emissive", BaseMaterialParam.EyeData.Emissive);
+		}
+	}
 }
 
 void AMACharacter::PossessedBy(AController* NewController)
@@ -229,6 +247,7 @@ void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
 	}
 }
 
+
 void AMACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -247,4 +266,38 @@ void AMACharacter::ConfigureOverHeadStatusWidget()
 	{
 		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
 	}
+}
+
+
+/** Mat System Section **//**
+ *	머티리얼 파라미터 변경하는 섹션
+ */
+void AMACharacter::OnRep_MaterialParam()
+{
+	ApplyMaterialParam();
+}
+
+void AMACharacter::ApplyMaterialParam()
+{
+	if (DynMat)
+	{
+		// Body Param Update
+		//DynMat->SetScalarParameterValue("Body_Opacity", MaterialParamValue.BodyData.Opacity);
+		DynMat->SetVectorParameterValue("Body_Color", MaterialParamValue.BodyData.Color);
+		DynMat->SetScalarParameterValue("Body_Emissive", MaterialParamValue.BodyData.Emissive);
+
+		// Eye Param Update
+		//DynMat->SetScalarParameterValue("Eye_Opacity", MaterialParamValue.EyeData.Opacity);
+		DynMat->SetVectorParameterValue("Eye_Color", MaterialParamValue.EyeData.Color);
+		DynMat->SetScalarParameterValue("Eye_Emissive", MaterialParamValue.EyeData.Emissive);
+	}
+}
+
+void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
+	const FMaterialParamData& EyeData)
+{
+	MaterialParamValue.BodyData = BodyData;
+	MaterialParamValue.EyeData  = EyeData;
+
+	ApplyMaterialParam();
 }

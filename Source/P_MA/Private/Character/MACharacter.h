@@ -9,6 +9,33 @@
 #include "GenericTeamAgentInterface.h"
 #include "MACharacter.generated.h"
 
+USTRUCT(BlueprintType)
+struct FMaterialParamData
+{
+	GENERATED_BODY()
+	
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//float Opacity = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FLinearColor Color = FLinearColor::White;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float Emissive = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FMaterialParamDataPair
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FMaterialParamData BodyData	= FMaterialParamData();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FMaterialParamData EyeData	= FMaterialParamData();
+};
+
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
@@ -102,4 +129,25 @@ private:
 	void SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled);
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
+
+	/** Mat System **/
+protected:
+	UMaterialInstanceDynamic* DynMat;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_MaterialParam)
+	FMaterialParamDataPair MaterialParamValue;
+	UFUNCTION()
+	void OnRep_MaterialParam();
+	
+	void ApplyMaterialParam();
+	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FMaterialParamDataPair BaseMaterialParam;
+	UFUNCTION()
+	FORCEINLINE FMaterialParamDataPair& GetBaseMaterialParam() { return BaseMaterialParam; }
+	
+	// 서버에서 파라미터를 바꾸는 함수
+	UFUNCTION(Server, Reliable)
+	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 };
