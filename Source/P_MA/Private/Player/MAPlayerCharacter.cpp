@@ -49,7 +49,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponCom = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponCom->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
-<<<<<<< HEAD
 
 	/** Mini Map **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
@@ -77,8 +76,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	}
 	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
 	MinimapSprite->SetupAttachment(GetMesh());
-=======
->>>>>>> e514db7 (Add BasicAttack)
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)

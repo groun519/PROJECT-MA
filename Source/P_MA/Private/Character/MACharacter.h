@@ -58,6 +58,8 @@ private:
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
 	
+	void ConfigureOverHeadStatusWidget();
+	
 	/** Death and Respawn **/
 private:
 	FTransform MeshRelativeTransform;
