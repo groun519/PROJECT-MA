@@ -6,9 +6,10 @@
 #include "AbilitySystemComponent.h"
 #include "Weapon/WeaponComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GameFramework/Character.h"
 
 void UAnimNotifyState_WeaponSegmentEvents::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	float TotalDuration, const FAnimNotifyEventReference& EventReference)
+                                                       float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 	
@@ -93,9 +94,13 @@ void UAnimNotifyState_WeaponSegmentEvents::SendSegment(const FVector& StartPoint
 
 	auto* LocInfo = new FGameplayAbilityTargetData_LocationInfo();
 	LocInfo->SourceLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
-	LocInfo->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
-	LocInfo->SourceLocation.LiteralTransform.SetLocation(StartPointLocal); 
-	LocInfo->TargetLocation.LiteralTransform.SetLocation(EndPointLocal); 
+	LocInfo->SourceLocation.LiteralTransform.SetLocation(StartPointLocal);
+	
+	if (TraceType == EVA_Shape::Line)
+	{
+		LocInfo->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+		LocInfo->TargetLocation.LiteralTransform.SetLocation(EndPointLocal); 
+	}
 
 	Data.TargetData = FGameplayAbilityTargetDataHandle(LocInfo);
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(CachedOwner.Get(), AbilityEventTag, Data);
@@ -105,17 +110,20 @@ bool UAnimNotifyState_WeaponSegmentEvents::SendCurrentLocalSegment() const
 {
 	if (!CachedOwner.IsValid()) return false;
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CachedOwner.Get())) return false;
-
+	
 	// 캐릭터에서 WeaponComponent를 탐색
 	UWeaponComponent* WeaponComponent = CachedOwner->FindComponentByClass<UWeaponComponent>();
-	if (!WeaponComponent) return false;
-
-	const FVector BaseW = WeaponComponent->GetBladeBaseSocketLocation(); // Base 소켓의 월드 로케이션
-	const FVector TipW  = WeaponComponent->GetBladeTipSocketLocation(); // Tip 소켓의 월드 로케이션
+	ACharacter* Player = Cast<ACharacter>(CachedOwner.Get());
+	if (!Player) return false;
+	FVector BaseW = // Base 소켓의 월드 로케이션
+		WeaponComponent ? WeaponComponent->GetBladeBaseSocketLocation() : Player->GetMesh()->GetSocketLocation("WeaponBaseSocket");
+	FVector TipW =
+		WeaponComponent ? WeaponComponent->GetBladeTipSocketLocation() : Player->GetMesh()->GetSocketLocation("WeaponTipSocket");
 	
 	const FTransform Basis = CachedOwner->GetActorTransform(); // 기준점이 될 액터의 위치 (액터 위치 기반 오프셋을 넘겨줌.)
 	const FVector BaseL = Basis.InverseTransformPosition(BaseW); // 월드→로컬
-	const FVector TipL  = Basis.InverseTransformPosition(TipW);
+	const FVector TipL  =
+		TraceType == EVA_Shape::Line ? Basis.InverseTransformPosition(TipW) : FVector::ZeroVector;
 
 	SendSegment(BaseL, TipL); // 로컬 오프셋 전송
 	return true;

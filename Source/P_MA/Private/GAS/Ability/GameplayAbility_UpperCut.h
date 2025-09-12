@@ -18,6 +18,14 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 private:
+	UPROPERTY(EditDefaultsOnly, Category = "Targeting")
+	float TargetSweepSphereRadius = 80.f;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* UpperCutMontage;
+
+	static FGameplayTag GetUpperCutLaunchTag();
+
+	UFUNCTION()
+	void StartLaunching(FGameplayEventData EventData);
 };

@@ -126,7 +126,13 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
-	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, 30.f);
+	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData,
+	FVector::ZeroVector,
+	FRotator::ZeroRotator,
+	ETeamAttitude::Hostile,   // 딜이면 보통 Hostile
+	ETraceObjectType::Line, // ← 핵심: 라인 4개 분기 타게
+	ShouldDrawDebug(),        // ← true면 월드에 선 보임
+	true);
 
 	for (const FHitResult& HitResult : HitResults)
 	{
