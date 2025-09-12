@@ -72,4 +72,14 @@ private:
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
 	virtual void OnGhostMode();
+
+	/** Mini Map **/
+	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	class USpringArmComponent* MinimapCameraBoom;
+
+	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	class USceneCaptureComponent2D* MinimapCapture;
+
+	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	class UPaperSpriteComponent* MinimapSprite;
 };
