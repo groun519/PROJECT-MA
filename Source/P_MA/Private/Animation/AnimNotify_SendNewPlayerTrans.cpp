@@ -14,12 +14,21 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 		ACharacter* OwnerChar = Cast<ACharacter>(MeshComp->GetOwner());
 		if (OwnerChar && OwnerChar->HasAuthority())
 		{
+			/** MoveType:None **/
 			if (MoveType == EMoveType::None) return;
+
+			/** MoveType:Launch **//**
+			 *	- 플레이어 캐릭터를 LaunchCharacter를 이용해 '발사'한다.
+			 */
 			else if (MoveType == EMoveType::Launch)
 			{
 				FVector Forward = OwnerChar->GetActorForwardVector();
-				OwnerChar->LaunchCharacter(Forward * LaunchPower, false, false);
+				OwnerChar->LaunchCharacter(Forward * LaunchPower, true, true);
 			}
+
+			/** MoveType:Teleport **//**
+			 *	- 플레이어 캐릭터의 Location Teleport를 이용해
+			 */
 			else if (MoveType == EMoveType::Teleport)
 			{
 				FRotator LookRot = OwnerChar->GetActorRotation();
