@@ -6,20 +6,6 @@
 #include "AbilitySystemComponent.h"
 #include "DrawDebugHelpers.h"
 
-namespace
-{
-	inline bool IsEditorPreviewWorld_NoPIE(const UWorld* World)
-	{
-#if WITH_EDITOR
-		if (!World) return false;
-		const EWorldType::Type WT = World->WorldType;
-		return (WT == EWorldType::Editor || WT == EWorldType::EditorPreview);
-#else
-		return false;
-#endif
-	}
-}
-
 void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
@@ -49,26 +35,8 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	// 로컬(노티 값) → 월드
 	const FVector WLoc = BaseWorldXf.TransformPosition(FVector(LocalOffset.X, LocalOffset.Y, 0));
 	const FQuat   WRot = BaseWorldXf.GetRotation() * LocalRotation.Quaternion();
-
-	// 에디터 프리뷰: Notify 통과 프레임에만 1프레임 디버그
-#if WITH_EDITOR
-	if (IsEditorPreviewWorld_NoPIE(World))
-	{
-		FlushPersistentDebugLines(World);
-		
-		switch (Shape)
-		{
-			case EVA_Shape::Sphere:
-				DrawDebugSphere(MeshComp->GetWorld(), WLoc, Radius, 16,
-					DebugColor, false, 3, 0, DebugThickness);
-				break;
-			case EVA_Shape::Box:
-				DrawDebugBox(MeshComp->GetWorld(), WLoc, FVector(Width, Height, 100), WRot,
-					DebugColor, false, 3, 0, DebugThickness);
-				break;	
-		}
-	}
-#endif
+	
+	DebugShapeWithEditor(World, Shape, WLoc, WRot);
 
 	// --- ASC가 있을 때만 이벤트 송신 (에디터 프리뷰에서 return로 막지 않음) ---
 	if (AActor* Owner = MeshComp->GetOwner())
@@ -97,4 +65,59 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 		}
 	}
+}
+
+
+
+
+
+//** Debug Section **//
+
+namespace
+{
+	inline bool IsEditorPreviewWorld_NoPIE(const UWorld* World)
+	{
+#if WITH_EDITOR
+		if (!World) return false;
+		const EWorldType::Type WT = World->WorldType;
+		return (WT == EWorldType::Editor || WT == EWorldType::EditorPreview);
+#else
+		return false;
+#endif
+	}
+}
+
+void UAnimNotify_SendTracePoint::DebugShapeWithEditor(UWorld* World, EVA_Shape DebugShape, FVector WorldLoc, FQuat WorldRot)
+{
+	// 에디터 프리뷰: Notify 통과 프레임에만 1프레임 디버그
+#if WITH_EDITOR
+	if (IsEditorPreviewWorld_NoPIE(World))
+	{
+		FlushPersistentDebugLines(World);
+
+		if (DebugShape == EVA_Shape::Sphere)
+		{
+			DrawDebugSphere(World, WorldLoc, Radius, 16,
+				DebugColor, false, 3, 0, DebugThickness);
+
+			/*if (bUseSector)
+			{
+				FRotator SectorRotL = FRotator(WorldRot.X, WorldRot.Y, WorldRot.Z - SectorAngle/2);
+				FVector EndLocL = WorldLoc + SectorRotL.Vector() * Radius;
+				DrawDebugLine(World, WorldLoc, EndLocL,
+					DebugColor, false, 3, 0, DebugThickness);
+				
+				FRotator SectorRotR = FRotator(WorldRot.X, WorldRot.Y, WorldRot.Z + SectorAngle/2);
+				FVector EndLocR = WorldLoc + SectorRotR.Vector() * Radius;
+				DrawDebugLine(World, WorldLoc, EndLocR,
+					DebugColor, false, 3, 0, DebugThickness);
+			}*/
+		}
+		else if (DebugShape == EVA_Shape::Box)
+		{
+			DrawDebugBox(World, WorldLoc, FVector(Width, Height, 100), WorldRot,
+				DebugColor, false, 3, 0, DebugThickness);
+		}
+	}
+#endif
 }

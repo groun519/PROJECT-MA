@@ -79,7 +79,11 @@ private:
 	/** Sphere **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0"))
 	float Radius = 50.f;
-
+	/*UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
+	bool bUseSector = false;
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0", ClampMax="360.0"))
+	float SectorAngle = 0.f;*/
+	
 	/** Box **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
 	float Width = 50.f;
@@ -100,4 +104,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.1"))
 	float DebugThickness = 1.5f;
+
+	void DebugShapeWithEditor(UWorld* World, EVA_Shape DebugShape, FVector WorldLoc, FQuat WorldRot);
 };
