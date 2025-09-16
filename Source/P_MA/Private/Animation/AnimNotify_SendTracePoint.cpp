@@ -100,7 +100,7 @@ void UAnimNotify_SendTracePoint::DebugShapeWithEditor(UWorld* World, EVA_Shape D
 			DrawDebugSphere(World, WorldLoc, Radius, 16,
 				DebugColor, false, 3, 0, DebugThickness);
 
-			if (bUseSector)
+			/*if (bUseSector)
 			{
 				FRotator SectorRotL = FRotator(WorldRot.X, WorldRot.Y, WorldRot.Z - SectorAngle/2);
 				FVector EndLocL = WorldLoc + SectorRotL.Vector() * Radius;
@@ -111,7 +111,7 @@ void UAnimNotify_SendTracePoint::DebugShapeWithEditor(UWorld* World, EVA_Shape D
 				FVector EndLocR = WorldLoc + SectorRotR.Vector() * Radius;
 				DrawDebugLine(World, WorldLoc, EndLocR,
 					DebugColor, false, 3, 0, DebugThickness);
-			}
+			}*/
 		}
 		else if (DebugShape == EVA_Shape::Box)
 		{
