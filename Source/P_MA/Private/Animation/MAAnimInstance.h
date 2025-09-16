@@ -33,7 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	FORCEINLINE float GetLookPitchOffset() const { return LookRotOffset.Pitch; }
 
-
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE bool GetIsOnGround() const { return !bIsJumping; }
+	
 
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
@@ -67,4 +69,5 @@ private:
 	float Speed;
 	FRotator BodyPrevRot;
 	FRotator LookRotOffset;
+	bool bIsJumping;
 };
