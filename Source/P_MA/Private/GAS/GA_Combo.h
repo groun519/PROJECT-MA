@@ -20,6 +20,7 @@ public:
 	static FGameplayTag GetComboChangeEventTag();
 	static FGameplayTag GetComboChangeEventEndTag();
 	static FGameplayTag GetComboTargetEventTag();
+	static FGameplayTag GetComboClearEventTag();
 	
 private:
 	void SetupWaitComboInputPress();
@@ -45,5 +46,11 @@ private:
 	UFUNCTION()
 	void DoDamage(FGameplayEventData Data);
 
+	UFUNCTION()
+	void ClearIgnore(FGameplayEventData Data);
+
 	FName NextComboName;
+
+	UPROPERTY()
+	TArray<AActor*> IgnoreTargets;
 };

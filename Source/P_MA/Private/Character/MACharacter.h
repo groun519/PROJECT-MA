@@ -72,10 +72,8 @@ private:
 
 	/** UI **/
 private:
-	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
+	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	class UWidgetComponent* OverHeadWidgetComponent;
-
-	void ConfigureOverHeadStatusWidget();
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	float HeadStatGaugeVisibilityCheckUpdateGap = 1.f;
@@ -86,6 +84,8 @@ private:
 	FTimerHandle HeadStatGaugeVisibilityUpdateTimerHandle;
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
+	
+	void ConfigureOverHeadStatusWidget();
 	
 	/** Death and Respawn **/
 private:
@@ -118,11 +118,8 @@ public:
 	// Retrieve team identifier in form of FGenericTeamId
 	virtual FGenericTeamId GetGenericTeamId() const override;
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_TeamID)
+	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
-
-	UFUNCTION()
-	virtual void OnRep_TeamID();
 	
 	/** AI **/
 private:

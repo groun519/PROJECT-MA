@@ -5,7 +5,6 @@
 #include "Character/MACharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Perception/AIPerceptionComponent.h"
@@ -13,6 +12,10 @@
 
 AMAAIController::AMAAIController()
 {
+	/** Create Objects **//**
+	 * 
+	 * 
+	 */
 	AIPerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>("AI Perception Component");
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>("Sight Config");
 
@@ -35,19 +38,12 @@ AMAAIController::AMAAIController()
 void AMAAIController::OnPossess(APawn* NewPawn)
 {
 	Super::OnPossess(NewPawn);
+	SetGenericTeamId(FGenericTeamId(0));
 
 	IGenericTeamAgentInterface* PawnTeamInterface = Cast<IGenericTeamAgentInterface>(NewPawn);
 	if (PawnTeamInterface)
 	{
-		SetGenericTeamId(PawnTeamInterface->GetGenericTeamId());
-		ClearAndDisableAllSenses();
-		EnableAllSenses();
-	}
-
-	UAbilitySystemComponent* PawnASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(NewPawn);
-	if (PawnASC)
-	{
-		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMAAIController::PawnDeadTagUpdated);
+		PawnTeamInterface->SetGenericTeamId(GetGenericTeamId());
 	}
 }
 
@@ -145,42 +141,5 @@ void AMAAIController::SetCurrentTarget(AActor* NewTarget)
 	else
 	{
 		BlackboardComponent->ClearValue(TargetBlackboardKeyName);
-	}
-}
-
-void AMAAIController::ClearAndDisableAllSenses()
-{
-	AIPerceptionComponent->AgeStimuli(TNumericLimits<float>::Max());
-
-	for (auto SenseConfigIt = AIPerceptionComponent->GetSensesConfigIterator(); SenseConfigIt; ++SenseConfigIt)
-	{
-		AIPerceptionComponent->SetSenseEnabled((*SenseConfigIt)->GetSenseImplementation(), false);
-	}
-
-	if (GetBlackboardComponent())
-	{
-		GetBlackboardComponent()->ClearValue(TargetBlackboardKeyName);
-	}
-}
-
-void AMAAIController::EnableAllSenses()
-{
-	for (auto SenseConfigIt = AIPerceptionComponent->GetSensesConfigIterator(); SenseConfigIt; ++SenseConfigIt)
-	{
-		AIPerceptionComponent->SetSenseEnabled((*SenseConfigIt)->GetSenseImplementation(), true);
-	}
-}
-
-void AMAAIController::PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count)
-{
-	if (Count != 0)
-	{
-		GetBrainComponent()->StopLogic("Dead");
-		ClearAndDisableAllSenses();
-	}
-	else
-	{
-		GetBrainComponent()->StartLogic();
-		EnableAllSenses();
 	}
 }
