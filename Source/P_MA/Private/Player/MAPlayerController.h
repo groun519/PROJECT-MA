@@ -20,6 +20,8 @@ public:
 	void OnPossess(APawn* NewPawn) override;
 	// 클라이언트에서만 호출됨, 리슨서버도.
 	void AcknowledgePossession(APawn* NewPawn) override;
+
+	virtual void Tick(float DeltaSeconds) override;
 	
 	// TeamID에 Team Agent 할당
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
@@ -42,4 +44,8 @@ private:
 	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
+
+	// 마우스 커서 관련
+	bool bOnMouseCursorRecord = false;
+	void CheckMouseCursorShape();
 };
