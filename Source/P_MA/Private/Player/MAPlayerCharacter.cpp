@@ -6,6 +6,9 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/CanvasRenderTarget2D.h"
+#include "PaperSpriteComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -46,6 +49,35 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+
+	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
+	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+	MinimapCameraBoom->SetupAttachment(RootComponent);
+	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
+
+	MinimapCameraBoom->TargetArmLength = 900.0f;
+	MinimapCameraBoom->bUsePawnControlRotation = false;
+	MinimapCameraBoom->bInheritPitch = false;
+	MinimapCameraBoom->bInheritRoll = false;
+	MinimapCameraBoom->bInheritYaw = false;
+
+	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
+	MinimapCapture->SetupAttachment(MinimapCameraBoom);
+	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+	MinimapCapture->OrthoWidth = 1700.0f;
+	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+
+
+
+	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+	if (renderObj.Succeeded())
+	{
+		MinimapCapture->TextureTarget = renderObj.Object;
+	}
+	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+	MinimapSprite->SetupAttachment(GetMesh());
+	/** 여기 위에 까지는 별도의 코드 입니다 **/
+	
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
