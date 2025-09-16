@@ -5,7 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
-#include "MAGameplayWidget.h"
+#include "Widget/MAGameplayWidget.h"
 #include "Net/UnrealNetwork.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
@@ -26,18 +26,9 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	if (MAPlayerCharacter)
 	{
 		MAPlayerCharacter->ClientSideInit();
+		//SpawnHUDWidget();
 		SpawnGameplayWidget();
 	}
-	
-	bShowMouseCursor = true;
-	DefaultMouseCursor = EMouseCursor::Default;
-	CurrentMouseCursor = EMouseCursor::Default;
-}
-
-void AMAPlayerController::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	CheckMouseCursorShape(); 
 }
 
 void AMAPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
@@ -56,16 +47,6 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
-//void AMAPlayerController::SpawnHUDWidget()
-//{
-//	if (!IsLocalPlayerController()) return;
-//
-//	HUDWidget = CreateWidget<UMAHUD>(this, HUDWidgetClass);
-//	if (HUDWidget)
-//	{
-//		HUDWidget->AddToViewport();
-//	}
-//}
 void AMAPlayerController::SpawnGameplayWidget()
 {
 	if (!IsLocalPlayerController()) return;
@@ -77,39 +58,3 @@ void AMAPlayerController::SpawnGameplayWidget()
 	}
 }
 
-void AMAPlayerController::CheckMouseCursorShape()
-{
-	FHitResult mouseHitResult;
-	GetHitResultUnderCursor(ECC_Visibility, false, mouseHitResult);
-
-	if (mouseHitResult.bBlockingHit)
-	{
-		AActor* hitActor = mouseHitResult.GetActor();
-
-		if (hitActor && hitActor->IsA(AMACharacter::StaticClass()))
-		{
-			if (!bOnMouseCursorRecord)
-			{
-				bOnMouseCursorRecord = true;
-				CurrentMouseCursor = EMouseCursor::Crosshairs;
-			}
-			return;
-		}
-
-		// 다른 액터지만 몬스터가 아닐 때 → 기본 커서로
-		if (bOnMouseCursorRecord)
-		{
-			bOnMouseCursorRecord = false;
-			CurrentMouseCursor = EMouseCursor::Default;
-		}
-	}
-	else
-	{
-		// 아무 것도 안 맞았을 때도 기본 커서로 돌려주기
-		if (bOnMouseCursorRecord)
-		{
-			bOnMouseCursorRecord = false;
-			CurrentMouseCursor = EMouseCursor::Default;
-		}
-	}
-}

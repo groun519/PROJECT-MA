@@ -6,9 +6,6 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "Components/SceneCaptureComponent2D.h"
-#include "Engine/CanvasRenderTarget2D.h"
-#include "PaperSpriteComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -39,7 +36,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 * 2. Player cannot use "Origin Rot to Movement"
 	 *		-> Because, player must look mouse pointer.
 	 */
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 	
@@ -49,33 +46,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
-	
-	/** Mini Map **/
-	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
-	MinimapCameraBoom->SetupAttachment(RootComponent);
-	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
-
-	MinimapCameraBoom->TargetArmLength = 900.0f;
-	MinimapCameraBoom->bUsePawnControlRotation = false;
-	MinimapCameraBoom->bInheritPitch = false;
-	MinimapCameraBoom->bInheritRoll = false;
-	MinimapCameraBoom->bInheritYaw = false;
-
-	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
-	MinimapCapture->SetupAttachment(MinimapCameraBoom);
-	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
-	MinimapCapture->OrthoWidth = 1700.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
-
-
-
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
-	if (renderObj.Succeeded())
-	{
-		MinimapCapture->TextureTarget = renderObj.Object;
-	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)

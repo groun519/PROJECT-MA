@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
+#include "EVA_Shape.h"
 #include "AnimNotifyState_WeaponSegmentEvents.generated.h"
 
 class UWeaponComponent;
@@ -28,6 +29,12 @@ public:
 						   const FAnimNotifyEventReference& EventReference) override;
 private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	EVA_Shape TraceType = EVA_Shape::Line;
+
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="TraceType!=EVA_Shape::Line"))
+	FName TraceSocketName = FName("TraceSocket");
+	
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	FGameplayTag AbilityEventTag;
 
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
@@ -39,8 +46,6 @@ private:
 	bool bUseEndEvent = true;
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="bUseEndEvent"))
 	FGameplayTag EndEventTag;
-	UPROPERTY()
-	FGameplayTag ClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
 
 	UPROPERTY(EditAnywhere, Category="Interp", meta=(ClampMin="1", AllowPrivateAccess="true"))
 	int32 InterpCount = 5;

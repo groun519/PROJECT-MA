@@ -17,9 +17,6 @@ UGA_Combo::UGA_Combo()
 
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	IgnoreTargets.Empty();
-	UE_LOG(LogTemp, Warning, TEXT("ignore targets are cleared"));
-	
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
@@ -45,10 +42,6 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboTargetEventTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
-
-		UAbilityTask_WaitGameplayEvent* WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboClearEventTag());
-		WaitClearEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ClearIgnore);
-		WaitClearEventTask->ReadyForActivation();
 	}
 	SetupWaitComboInputPress();
 }
@@ -66,11 +59,6 @@ FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
 FGameplayTag UGA_Combo::GetComboTargetEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Ability.Combo.Damage");
-}
-
-FGameplayTag UGA_Combo::GetComboClearEventTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
 }
 
 void UGA_Combo::SetupWaitComboInputPress()
@@ -121,7 +109,7 @@ TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
 void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 {
 	FGameplayTag EventTag = Data.EventTag;
-	
+
 	if (EventTag == GetComboChangeEventEndTag())
 	{
 		NextComboName = NAME_None;
@@ -141,14 +129,13 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData,
 	FVector::ZeroVector,
 	FRotator::ZeroRotator,
-	ETeamAttitude::Hostile,
-	ETraceObjectType::Line,
-	ShouldDrawDebug(),true);
+	ETeamAttitude::Hostile,   // 딜이면 보통 Hostile
+	ETraceObjectType::Line, // ← 핵심: 라인 4개 분기 타게
+	ShouldDrawDebug(),        // ← true면 월드에 선 보임
+	true);
 
 	for (const FHitResult& HitResult : HitResults)
 	{
-		if (IgnoreTargets.Contains(HitResult.GetActor())) continue;
-			
 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
 		FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
 		
@@ -158,21 +145,5 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		EffectSpecHandle.Data->SetContext(EffectContext);
 
 		ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
-		
-		IgnoreTargets.Add(HitResult.GetActor());
-		UE_LOG(LogTemp, Log, TEXT("Ignore Added: %s"), *HitResult.GetActor()->GetName());
-	}
-}
-
-void UGA_Combo::ClearIgnore(FGameplayEventData Data)
-{
-	UE_LOG(LogTemp, Error, TEXT("Ignore called"));
-	
-	FGameplayTag ClearTag = Data.EventTag;
-
-	if (ClearTag == GetComboClearEventTag())
-	{
-		IgnoreTargets.Empty();
-		UE_LOG(LogTemp, Error, TEXT("Ignore cleared"));
 	}
 }

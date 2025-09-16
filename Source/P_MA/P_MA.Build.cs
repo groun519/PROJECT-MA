@@ -10,12 +10,12 @@ public class P_MA : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Paper2D"
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"EnhancedInput", "GameplayAbilities", "GameplayTasks", "GameplayTags", "UMG", "Slate", "SlateCore", "AIModule", "Paper2D"
+			"EnhancedInput", "GameplayAbilities", "GameplayTasks", "GameplayTags", "UMG", "Slate", "SlateCore", "AIModule"
 		});
 
 		// Uncomment if you are using Slate UI
