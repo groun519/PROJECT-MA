@@ -131,7 +131,6 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
-	UE_LOG(LogTemp, Log, TEXT("moving!!!!"));
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
@@ -166,7 +165,6 @@ void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionVa
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
 	const bool bPressed = InputActionValue.Get<bool>();
-	UE_LOG(LogTemp, Log, TEXT("SPACE!!!!"));
 	if (!bPressed) return;
 }
 
