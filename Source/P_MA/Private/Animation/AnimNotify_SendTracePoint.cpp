@@ -51,7 +51,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			{
 				auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
 				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
-				LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
+				//LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
 				Data.TargetData.Add(LocationInfo);
 			}
 
@@ -60,7 +60,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 				VSData->Shape        = Shape;
 				VSData->LocalOffset  = FVector(LocalOffset.X, LocalOffset.Y, 0);
 				VSData->SphereRadius = Radius;
-				VSData->BoxHalfSize  = FVector(Width, Height, 100);
+				VSData->BoxHalfSize  = FVector(Height, Width, 100.f);
 				VSData->bUseSector	 = bUseSector;
 				VSData->SectorAngle  = SectorAngle;
 
@@ -117,7 +117,7 @@ void UAnimNotify_SendTracePoint::DebugShapeWithEditor(UWorld* World, EVA_Shape D
 		}
 		else if (DebugShape == EVA_Shape::Box)
 		{
-			FDebugShapeHelper::DrawDebugRect(World, WorldLoc, Width, Height, MeshForward,
+			FDebugShapeHelper::DrawDebugRect(World, WorldLoc, Height, Width, MeshForward,
 				DebugColor, DebugThickness);
 		}
 	}

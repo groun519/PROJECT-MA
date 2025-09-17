@@ -36,10 +36,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
 
-	const TSharedPtr<FGameplayAbilityTargetData> TargetData;
-
-	FVector Start = TargetData->GetOrigin().GetTranslation();
-	FVector End = TargetData->GetEndPoint();
+	const TSharedPtr<FGameplayAbilityTargetData>& TargetData = TargetDataHandle.Data[0];
 
 	FVector Center = TargetData->GetOrigin().GetTranslation();
 
@@ -58,7 +55,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	}
 	else if (TraceObjType == EVA_Shape::Sphere)
 	{
-		if (!bUseSector)
+		if (!bUseSector) // 원
 		{
 			GetWorld()->OverlapMultiByChannel(
 				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
@@ -69,29 +66,35 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 					false, 0.f, GetAvatarActorFromActorInfo()->GetActorForwardVector(),
 					FColor::White, 1.f);
 		}
-		else
+		else // 부채꼴
 		{
 			GetWorld()->OverlapMultiByChannel(
 				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
 				FCollisionShape::MakeSphere(HalfSize.X));
 
 			if (bDrawDebug)
+			{
 				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 360,
-					true, SectorAngle, GetAvatarActorFromActorInfo()->GetActorForwardVector(),
+					true, SectorAngle/2, GetAvatarActorFromActorInfo()->GetActorRotation().Vector(),
 					FColor::White, 1.f);
+			}
 		}
 	}
-	else if (TraceObjType == EVA_Shape::Box)
+	else if (TraceObjType == EVA_Shape::Box) // 사각형
 	{
-		FRotator BoxWorldRot = GetAvatarActorFromActorInfo()->GetActorRotation() + BoxRot;
+		FQuat WorldQuat = GetAvatarActorFromActorInfo()->GetActorRotation().Quaternion();
+		FQuat LocalQuat = BoxRot.Quaternion();
+		FQuat FinalQuat = WorldQuat * LocalQuat;
 		
 		GetWorld()->OverlapMultiByChannel(
-			OverlapResults, Center, BoxWorldRot.Quaternion(), ECC_Pawn,
+			OverlapResults, Center, FinalQuat, ECC_Pawn,
 			FCollisionShape::MakeBox(HalfSize));
 
 		if (bDrawDebug)
+		{
 			FDebugShapeHelper::DrawDebugRect(GetWorld(), Center, HalfSize.X, HalfSize.Y,
-				BoxWorldRot.Vector(), FColor::White, 1.f);
+				FinalQuat.Vector(), FColor::White, 1.f);
+		}
 	}
 	
 	for (const FOverlapResult& Result : OverlapResults)
@@ -160,7 +163,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	{
 		return GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize,
-			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
+			VS->LocalRotation, false, 0,
 			TargetTeam, EVA_Shape::Box, bDrawDebug, bIgnoreSelf);
 	}
 }

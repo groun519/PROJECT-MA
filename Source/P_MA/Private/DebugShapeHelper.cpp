@@ -12,49 +12,34 @@ void FDebugShapeHelper::DrawDebugSectorableCircle(
     int32 Segments,
     bool bUseSector,
     float HalfAngleDeg,
-    FVector Forward,
+    const FVector Forward,
     FColor Color,
     float Thickness)
 {
     if (!World || Segments < 3) return;
 
-    if (!bUseSector) // 원
+    // Forward → 정규화
+    FVector Fwd = Forward.GetSafeNormal();
+    // Right → Forward와 Up으로부터 직교축 생성
+    FVector Right = FVector::CrossProduct(FVector::UpVector, Fwd).GetSafeNormal();
+
+    float StartRad = bUseSector ? FMath::DegreesToRadians(-HalfAngleDeg) : 0.f;
+    float EndRad   = bUseSector ? FMath::DegreesToRadians(HalfAngleDeg)  : 2 * PI;
+    float AngleStep = (EndRad - StartRad) / Segments;
+
+    FVector PrevPoint = Center + Radius * (FMath::Cos(StartRad) * Fwd + FMath::Sin(StartRad) * Right);
+
+    for (int32 i = 1; i <= Segments; i++)
     {
-        const float AngleStep = 2 * PI / Segments;
-        FVector PrevPoint = Center + Radius * FVector(FMath::Cos(0.f), FMath::Sin(0.f), 0);
+        float Angle = StartRad + i * AngleStep;
+        FVector NextPoint = Center + Radius * (FMath::Cos(Angle) * Fwd + FMath::Sin(Angle) * Right);
 
-        for (int32 i = 1; i <= Segments; i++)
+        DrawDebugLine(World, PrevPoint, NextPoint, Color, false, 3, 0, Thickness);
+        PrevPoint = NextPoint;
+
+        if (bUseSector && (i == 1 || i == Segments))
         {
-            float Angle = i * AngleStep;
-            FVector NextPoint = Center + Radius * FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0);
-
-            DrawDebugLine(World, PrevPoint, NextPoint, Color, false, 3, 0, Thickness);
-            PrevPoint = NextPoint;
-        }
-    }
-    else // 부채꼴
-    {
-        Forward = Forward.GetSafeNormal2D();
-        FVector Right = FVector::CrossProduct(Forward, FVector::UpVector).GetSafeNormal();
-
-        float StartRad = FMath::DegreesToRadians(-HalfAngleDeg);
-        float EndRad   = FMath::DegreesToRadians(HalfAngleDeg);
-        float AngleStep = (EndRad - StartRad) / Segments;
-
-        FVector PrevPoint = Center + Radius * (FMath::Cos(StartRad) * Forward + FMath::Sin(StartRad) * Right);
-
-        for (int32 i = 1; i <= Segments; i++)
-        {
-            float Angle = StartRad + i * AngleStep;
-            FVector NextPoint = Center + Radius * (FMath::Cos(Angle) * Forward + FMath::Sin(Angle) * Right);
-
-            DrawDebugLine(World, PrevPoint, NextPoint, Color, false, 3, 0, Thickness);
-            PrevPoint = NextPoint;
-
-            if (i == 1 || i == Segments)
-            {
-                DrawDebugLine(World, Center, NextPoint, Color, false, 3, 0, Thickness);
-            }
+            DrawDebugLine(World, Center, NextPoint, Color, false, 3, 0, Thickness);
         }
     }
 }
@@ -73,10 +58,10 @@ void FDebugShapeHelper::DrawDebugRect(
     Forward = Forward.GetSafeNormal2D();
     FVector Right = FVector::CrossProduct(FVector::UpVector, Forward).GetSafeNormal();
 
-    FVector P1 = Center + Forward * HalfY + Right * HalfX;
-    FVector P2 = Center + Forward * HalfY - Right * HalfX;
-    FVector P3 = Center - Forward * HalfY - Right * HalfX;
-    FVector P4 = Center - Forward * HalfY + Right * HalfX;
+    const FVector P1 = Center + Forward * HalfX + Right * HalfY;
+    const FVector P2 = Center + Forward * HalfX - Right * HalfY;
+    const FVector P3 = Center - Forward * HalfX - Right * HalfY;
+    const FVector P4 = Center - Forward * HalfX + Right * HalfY;
 
     DrawDebugLine(World, P1, P2, Color, false, 3, 0, Thickness);
     DrawDebugLine(World, P2, P3, Color, false, 3, 0, Thickness);
