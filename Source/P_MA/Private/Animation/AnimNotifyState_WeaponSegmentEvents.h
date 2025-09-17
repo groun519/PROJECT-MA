@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DebugShapeHelper.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
-#include "EVA_Shape.h"
 #include "AnimNotifyState_WeaponSegmentEvents.generated.h"
 
 class UWeaponComponent;
@@ -29,7 +29,7 @@ public:
 						   const FAnimNotifyEventReference& EventReference) override;
 private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
-	EVA_Shape TraceType = EVA_Shape::Line;
+	EVA_Shape TraceType = EVA_Shape::None;
 
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="TraceType!=EVA_Shape::Line"))
 	FName TraceSocketName = FName("TraceSocket");

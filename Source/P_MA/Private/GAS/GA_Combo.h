@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
+#include "DebugShapeHelper.h"
 #include "GA_Combo.generated.h"
 
 /**
@@ -35,6 +36,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
+	EVA_Shape DamageShape = EVA_Shape::Sphere;
+	
 	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")

@@ -3,9 +3,12 @@
 
 #include "GAS/MAGameplayAbility.h"
 
-#include "Animation/AnimNotify_SendTracePoint.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+
+#include "DebugShapeHelper.h"
+#include "VirtualSocketTargetData.h"
+#include "Engine/OverlapResult.h"
 
 class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 {
@@ -23,140 +26,102 @@ class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 	FVector HalfSize, FRotator BoxRot,
+	bool bUseSector, float SectorAngle,
 	ETeamAttitude::Type TargetTeam,
-	ETraceObjectType TraceObjType,
+	EVA_Shape TraceObjType,
 	bool bDrawDebug, bool bIgnoreSelf)
 {
-	TArray<FHitResult> OutResults;
+	TArray<FOverlapResult> OutResults;
 	TSet<AActor*> HitActors;
 
 	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
+
+	const TSharedPtr<FGameplayAbilityTargetData> TargetData;
+
+	FVector Start = TargetData->GetOrigin().GetTranslation();
+	FVector End = TargetData->GetEndPoint();
+
+	FVector Center = TargetData->GetOrigin().GetTranslation();
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+	TArray<AActor*> ActorsToIgnore;
+	if (bIgnoreSelf) ActorsToIgnore.Add(GetAvatarActorFromActorInfo());
+	EDrawDebugTrace::Type DrawDebugTrace = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
 	
-	for (const TSharedPtr<FGameplayAbilityTargetData> TargetData : TargetDataHandle.Data)
+	TArray<FOverlapResult> OverlapResults;
+
+	if (TraceObjType == EVA_Shape::None)
 	{
-		const FVector LocalStart = TargetData->GetOrigin().GetTranslation(); // Base(Local)
-		const FVector LocalEnd   = TargetData->GetEndPoint();                // Tip (Local)
-
-		FVector StartLoc = TargetData->GetOrigin().GetTranslation();
-		FVector EndLoc = TargetData->GetEndPoint();
-
-		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
-
-		TArray<AActor*> ActorsToIgnore;
-		if (bIgnoreSelf)
+		return {};
+	}
+	else if (TraceObjType == EVA_Shape::Sphere)
+	{
+		if (!bUseSector)
 		{
-			ActorsToIgnore.Add(GetAvatarActorFromActorInfo());
+			GetWorld()->OverlapMultiByChannel(
+				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
+				FCollisionShape::MakeSphere(HalfSize.X));
+
+			if (bDrawDebug)
+				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 32,
+					false, 0.f, GetAvatarActorFromActorInfo()->GetActorForwardVector(),
+					FColor::White, 1.f);
 		}
+		else
+		{
+			GetWorld()->OverlapMultiByChannel(
+				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
+				FCollisionShape::MakeSphere(HalfSize.X));
+
+			if (bDrawDebug)
+				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 360,
+					true, SectorAngle, GetAvatarActorFromActorInfo()->GetActorForwardVector(),
+					FColor::White, 1.f);
+		}
+	}
+	else if (TraceObjType == EVA_Shape::Box)
+	{
+		FRotator BoxWorldRot = GetAvatarActorFromActorInfo()->GetActorRotation() + BoxRot;
 		
-		EDrawDebugTrace::Type DrawDebugTrace = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
+		GetWorld()->OverlapMultiByChannel(
+			OverlapResults, Center, BoxWorldRot.Quaternion(), ECC_Pawn,
+			FCollisionShape::MakeBox(HalfSize));
 
-		TArray<FHitResult> Results;
+		if (bDrawDebug)
+			FDebugShapeHelper::DrawDebugRect(GetWorld(), Center, HalfSize.X, HalfSize.Y,
+				BoxWorldRot.Vector(), FColor::White, 1.f);
+	}
+	
+	for (const FOverlapResult& Result : OverlapResults)
+	{
+		// 무시당해야하는 하찮은 액터들 거르기
+		if (HitActors.Contains(Result.GetActor())) continue;
 
-		if (TraceObjType == ETraceObjectType::None)
+		/** 대상과의 팀 관계(OtherActorTeamAttitude, PlayerTeam -> TargetTeam)가 TargetTeam과 같지 않으면 피해x
+		 * ex1.	TargetTeam				= ETeamAttitude::Friendly	"이 스킬은 아군에게만 적용."
+		 *		OtherActorTeamAttitude	= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
+		 *			=> 피격 가능 (힐 스킬인데, 적군을 캐스팅했음.)
+		 * ex2.	OtherActorTeamAttitude  = ETeamAttitude::Hostile	"이 스킬은 적군에게만 적용."
+		 *		TargetTeam				= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
+		 *			=> 피격 불가 (딜 스킬인데, 아군이 피격 범위에 존재했음.)
+		 */
+		if (OwnerTeamInterface)
 		{
-			return OutResults;
-		}
-		if (TraceObjType == ETraceObjectType::Box)
-		{
-			FRotator BoxWorldRot = GetAvatarActorFromActorInfo()->GetActorRotation() + BoxRot;
-			UKismetSystemLibrary::BoxTraceMultiForObjects(
-				this, StartLoc, EndLoc, HalfSize, BoxWorldRot,
-				ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false
-				);
-		}
-		else if (TraceObjType == ETraceObjectType::Sphere)
-		{
-			UKismetSystemLibrary::SphereTraceMultiForObjects(
-				this, StartLoc, EndLoc, HalfSize.X,
-				ObjectTypes, false, ActorsToIgnore, DrawDebugTrace, Results, false
-				);
-		}
-
-		else if (TraceObjType == ETraceObjectType::Line)
-		{
-			// 첫 이벤트면 저장만
-			if (!bHasPrevSegment)
-			{
-				PrevBaseLocal  = LocalStart;
-				PrevTipLocal   = LocalEnd;
-				bHasPrevSegment = true;
-			}
-			else
-			{
-				// 생성할 때만 액터 위치 더해서(월드) 생성
-				const AActor* Avatar   = GetAvatarActorFromActorInfo();
-				const FTransform Basis = Avatar ? Avatar->GetActorTransform() : FTransform::Identity;
-
-				const FVector PrevBaseW = Basis.TransformPosition(PrevBaseLocal);
-				const FVector PrevTipW  = Basis.TransformPosition(PrevTipLocal);
-				const FVector CurBaseW  = Basis.TransformPosition(LocalStart);
-				const FVector CurTipW   = Basis.TransformPosition(LocalEnd);
-
-				auto DoLine = [&](const FVector& S, const FVector& E)
-				{
-					TArray<FHitResult> Temp;
-					UKismetSystemLibrary::LineTraceMultiForObjects(
-						this, S, E,
-						ObjectTypes, false, ActorsToIgnore,
-						DrawDebugTrace, Temp, false,
-						FLinearColor::Green, FLinearColor::Red, 2.0f
-					);
-					for(FHitResult result : Temp)
-					{
-						AActor* HitActor = result.GetActor();
-						ActorsToIgnore.Add(HitActor);
-						UE_LOG(LogTemp, Log, TEXT("Hit Component: %s"), *result.GetComponent()->GetName());
-					}
-					Results.Append(Temp);
-				};
-
-				// 누락 방지용 4개 선분
-				DoLine(PrevBaseW, CurBaseW);
-				UE_LOG(LogTemp, Log, TEXT("1"));
-				DoLine(PrevTipW,  CurTipW);
-				UE_LOG(LogTemp, Log, TEXT("2"));
-				DoLine(PrevBaseW, CurTipW);
-				UE_LOG(LogTemp, Log, TEXT("3"));
-				DoLine(PrevTipW,  CurBaseW);
-				UE_LOG(LogTemp, Log, TEXT("4"));
-
-				// 현재 로컬을 이전으로 갱신
-				PrevBaseLocal = LocalStart;
-				PrevTipLocal  = LocalEnd;
-			}
-		}
-		
-		for (const FHitResult& Result : Results)
-		{
-			// 스스로는 피해 x
-			if (HitActors.Contains(Result.GetActor()))
+			ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
+			if (OtherActorTeamAttitude != TargetTeam)
 			{
 				continue;
 			}
-
-			/** 대상과의 팀 관계(OtherActorTeamAttitude, PlayerTeam -> TargetTeam)가 TargetTeam과 같지 않으면 피해x
-			 * ex1.	TargetTeam				= ETeamAttitude::Friendly	"이 스킬은 아군에게만 적용."
-			 *		OtherActorTeamAttitude	= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
-			 *			=> 피격 가능 (힐 스킬인데, 적군을 캐스팅했음.)
-			 * ex2.	OtherActorTeamAttitude  = ETeamAttitude::Hostile	"이 스킬은 적군에게만 적용."
-			 *		TargetTeam				= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
-			 *			=> 피격 불가 (딜 스킬인데, 아군이 피격 범위에 존재했음.)
-			 */
-			if (OwnerTeamInterface)
-			{
-				ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
-				if (OtherActorTeamAttitude != TargetTeam)
-				{
-					continue;
-				}
-			}
-
-			HitActors.Add(Result.GetActor());
-			OutResults.Add(Result);
 		}
+
+		HitActors.Add(Result.GetActor());
+		OutResults.Add(Result);
 	}
-	return OutResults;
+	TArray<FHitResult> OutHits;
+	FDebugShapeHelper::ConvertOverlapsToHitResults(OutResults, OutHits);
+	return OutHits;
 }
 
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
@@ -175,7 +140,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 		if (!Loc && TD->GetScriptStruct() == FGameplayAbilityTargetData_LocationInfo::StaticStruct())
 			Loc = static_cast<const FGameplayAbilityTargetData_LocationInfo*>(TD.Get());
 	}
-	if (!VS || !Loc) return {}; // 확실치 않음: 둘 다 필요. 한쪽 없으면 빈 배열 반환.
+	if (!VS || !Loc) return {};
 
 	FGameplayAbilityTargetDataHandle LocHandle;
 	{
@@ -187,12 +152,15 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	if (VS->Shape == EVA_Shape::Sphere)
 	{
 		return GetHitResultFromSweepLocationTargetData(
-			LocHandle, FVector(VS->SphereRadius,0,0), VS->LocalRotation, TargetTeam, ETraceObjectType::Sphere, bDrawDebug, bIgnoreSelf);
+			LocHandle, FVector(VS->SphereRadius,0,0),
+			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
+			TargetTeam, EVA_Shape::Sphere, bDrawDebug, bIgnoreSelf);
 	}
 	else // Box
 	{
-		// 주의: 현재 박스는 ZeroRotator로 트레이스함. 박스 회전이 필요하면 아래 “선택 개선” 참고.
 		return GetHitResultFromSweepLocationTargetData(
-			LocHandle, VS->BoxHalfSize, VS->LocalRotation, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
+			LocHandle, VS->BoxHalfSize,
+			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
+			TargetTeam, EVA_Shape::Box, bDrawDebug, bIgnoreSelf);
 	}
 }

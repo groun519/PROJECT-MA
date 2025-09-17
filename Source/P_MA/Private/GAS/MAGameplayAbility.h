@@ -5,16 +5,11 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "GenericTeamAgentInterface.h"
-#include "MAGameplayAbility.generated.h"
 
-UENUM()
-enum class ETraceObjectType : uint8
-{
-	None,
-	Box,
-	Sphere,
-	Line
-};
+#include "DebugShapeHelper.h"
+#include "VirtualSocketTargetData.h"
+
+#include "MAGameplayAbility.generated.h"
 
 /**
  * 
@@ -30,8 +25,9 @@ protected:
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 		FVector HalfSize = FVector(30.f, 0, 0),
 		FRotator BoxRot = FRotator(0, 0, 0),
+		bool bUseSector = false, float SectorAngle = 0.0f,
 		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
-		ETraceObjectType TraceObjType = ETraceObjectType::None,
+		EVA_Shape TraceObjType = EVA_Shape::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true);
 
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(
@@ -55,4 +51,8 @@ private:
 
 	UPROPERTY(Transient)
 	FVector PrevTipLocal  = FVector::ZeroVector; // 이전 이벤트의 Tip  (로컬)
+
+
+
+
 };

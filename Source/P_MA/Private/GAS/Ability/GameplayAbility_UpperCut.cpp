@@ -6,7 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 
 void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+                                                const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (!K2_CommitAbility())
 	{
@@ -36,11 +36,12 @@ FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
-	TArray<FHitResult> TargetHitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+	TArray<FHitResult> TargetResults =
+		GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
 	
 	if (K2_HasAuthority())
 	{
-		for (FHitResult& HitResult : TargetHitResults)
+		for (FHitResult& HitResult : TargetResults)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
 		}

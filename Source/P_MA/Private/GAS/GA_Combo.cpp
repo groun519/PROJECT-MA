@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayTagsManager.h"
+#include "Engine/OverlapResult.h"
 #include "GAS/MAAbilitySystemStatics.h"
 
 UGA_Combo::UGA_Combo()
@@ -138,12 +139,11 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
-	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData,
-	FVector::ZeroVector,
-	FRotator::ZeroRotator,
-	ETeamAttitude::Hostile,
-	ETraceObjectType::Line,
-	ShouldDrawDebug(),true);
+	TArray<FHitResult> HitResults =
+		GetHitResultFromVirtualSocketTargetData(
+			Data.TargetData,
+			ETeamAttitude::Hostile,
+			ShouldDrawDebug(),true);
 
 	for (const FHitResult& HitResult : HitResults)
 	{
