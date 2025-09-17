@@ -79,10 +79,10 @@ private:
 	/** Sphere **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0"))
 	float Radius = 50.f;
-	/*UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
 	bool bUseSector = false;
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0", ClampMax="360.0"))
-	float SectorAngle = 0.f;*/
+	float SectorAngle = 0.f;
 	
 	/** Box **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
@@ -100,10 +100,32 @@ private:
 
 	/** Debug **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
-	FColor DebugColor = FColor::Cyan;
+	FColor DebugColor = FColor::Green;
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.1"))
 	float DebugThickness = 1.5f;
 
+	FVector MeshForward = FVector::ZeroVector;
+
 	void DebugShapeWithEditor(UWorld* World, EVA_Shape DebugShape, FVector WorldLoc, FQuat WorldRot);
+	void DrawDebugCircle(
+		UWorld* World,
+		const FVector& Center,
+		float Rad,
+		int32 Segments,
+		bool bUseSect = false,
+		float HalfAngleDeg = 0.f,
+		FVector Forward = FVector::ForwardVector,
+		FColor Color = FColor::Green,
+		float Thickness = 1.f
+		);
+	void DrawDebugRect(
+		UWorld* World,
+		const FVector& Center,
+		float HalfX,
+		float HalfY,
+		FVector Forward,
+		FColor Color = FColor::Blue,
+		float Thickness = 1.f
+		);
 };
