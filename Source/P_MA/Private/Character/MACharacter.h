@@ -120,8 +120,7 @@ public:
 	// Retrieve team identifier in form of FGenericTeamId
 	virtual FGenericTeamId GetGenericTeamId() const override;
 private:
-	// UPROPERTY(ReplicatedUsing = OnRep_TeamID)
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_TeamID)
 	FGenericTeamId TeamID;
 
 	UFUNCTION()
