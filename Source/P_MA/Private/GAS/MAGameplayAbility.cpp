@@ -106,20 +106,15 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 					{
 						AActor* HitActor = result.GetActor();
 						ActorsToIgnore.Add(HitActor);
-						UE_LOG(LogTemp, Log, TEXT("Hit Component: %s"), *result.GetComponent()->GetName());
 					}
 					Results.Append(Temp);
 				};
 
 				// 누락 방지용 4개 선분
 				DoLine(PrevBaseW, CurBaseW);
-				UE_LOG(LogTemp, Log, TEXT("1"));
 				DoLine(PrevTipW,  CurTipW);
-				UE_LOG(LogTemp, Log, TEXT("2"));
 				DoLine(PrevBaseW, CurTipW);
-				UE_LOG(LogTemp, Log, TEXT("3"));
 				DoLine(PrevTipW,  CurBaseW);
-				UE_LOG(LogTemp, Log, TEXT("4"));
 
 				// 현재 로컬을 이전으로 갱신
 				PrevBaseLocal = LocalStart;

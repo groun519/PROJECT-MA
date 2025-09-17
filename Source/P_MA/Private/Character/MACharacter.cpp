@@ -136,7 +136,7 @@ void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	if (bIsEnabled)
 	{
 		// TODO:
-		//ConfigureOverHeadStatusWidget();
+		// ConfigureOverHeadStatusWidget();
 	}
 	else
 	{
@@ -206,7 +206,7 @@ void AMACharacter::Respawn()
 	{
 		TWeakObjectPtr<AActor> StartSpot = GetController()->StartSpot;
 		if (StartSpot.IsValid())
-		{
+		{ 
 			SetActorTransform(StartSpot->GetActorTransform());
 		}
 	}
@@ -258,7 +258,7 @@ void AMACharacter::ConfigureOverHeadStatusWidget()
 {
 	if (!OverHeadWidgetComponent)
 	{
-		return;
+		return; 
 	}
 
 	if (IsLocallyControlledByPlayer())

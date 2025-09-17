@@ -9,7 +9,7 @@ APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, con
 {
 	APlayerController* NewPlayerController = Super::SpawnPlayerController(InRemoteRole, Options);
 	IGenericTeamAgentInterface* NewPlayerTeamInterface = Cast<IGenericTeamAgentInterface>(NewPlayerController);
-	FGenericTeamId TeamId = GetTeamIDForPlayer(NewPlayerController);
+	FGenericTeamId TeamId = FGenericTeamId(0);
 	if (NewPlayerTeamInterface)
 	{
 		NewPlayerTeamInterface->SetGenericTeamId(TeamId);
@@ -17,13 +17,6 @@ APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, con
 
 	NewPlayerController->StartSpot = FIndNextStartSpotForTeam(TeamId);
 	return NewPlayerController;
-}
-
-FGenericTeamId AMAGameMode::GetTeamIDForPlayer(const APlayerController* PlayerController) const
-{
-	static int PlayerCount = 0;
-	++PlayerCount;
-	return FGenericTeamId(PlayerCount % 2);
 }
 
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const

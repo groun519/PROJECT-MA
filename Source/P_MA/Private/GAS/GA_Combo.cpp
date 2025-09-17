@@ -18,7 +18,6 @@ UGA_Combo::UGA_Combo()
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	IgnoreTargets.Empty();
-	UE_LOG(LogTemp, Warning, TEXT("ignore targets are cleared"));
 	
 	if (!K2_CommitAbility())
 	{
@@ -125,15 +124,12 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 	if (EventTag == GetComboChangeEventEndTag())
 	{
 		NextComboName = NAME_None;
-		UE_LOG(LogTemp, Warning, TEXT("next combo is cleared"));
 		return;
 	}
 
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
 	NextComboName = TagNames.Last();
-
-	UE_LOG(LogTemp, Warning, TEXT("next combo is now : %s"), *NextComboName.ToString());
 }
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
@@ -160,19 +156,16 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
 		
 		IgnoreTargets.Add(HitResult.GetActor());
-		UE_LOG(LogTemp, Log, TEXT("Ignore Added: %s"), *HitResult.GetActor()->GetName());
 	}
 }
 
 void UGA_Combo::ClearIgnore(FGameplayEventData Data)
 {
-	UE_LOG(LogTemp, Error, TEXT("Ignore called"));
 	
 	FGameplayTag ClearTag = Data.EventTag;
 
 	if (ClearTag == GetComboClearEventTag())
 	{
 		IgnoreTargets.Empty();
-		UE_LOG(LogTemp, Error, TEXT("Ignore cleared"));
 	}
 }
