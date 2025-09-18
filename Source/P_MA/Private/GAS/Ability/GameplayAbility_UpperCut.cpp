@@ -36,13 +36,15 @@ FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
-	TArray<FHitResult> TargetHitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
-	
 	if (K2_HasAuthority())
 	{
+		TArray<FHitResult> TargetHitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed);
 		for (FHitResult& HitResult : TargetHitResults)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
+			//UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
+			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed);
+			ApplyGameplayEffectToHitResultActor(HitResult, LaunchDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}
 }

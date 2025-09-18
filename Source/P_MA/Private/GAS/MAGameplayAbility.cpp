@@ -2,10 +2,12 @@
 
 
 #include "GAS/MAGameplayAbility.h"
-
+#include "GAS/Passive/GAP_Launched.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/Character.h"
 
 class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 {
@@ -190,4 +192,50 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 		return GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize, VS->LocalRotation, TargetTeam, ETraceObjectType::Box, bDrawDebug, bIgnoreSelf);
 	}
+}
+
+void UMAGameplayAbility::PushSelf(const FVector& PushVel)
+{
+	if (ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter())
+	{
+		OwningAvatarCharacter -> LaunchCharacter(PushVel, true, true);
+	}
+}
+
+//대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
+void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
+{
+	if (!Target)
+		return;
+
+	FGameplayEventData EventData;		//GAS 이벤트 전달 컨테이너
+	FGameplayAbilityTargetData_SingleTargetHit* HitData = new FGameplayAbilityTargetData_SingleTargetHit;	//TargetData의 종류(FHitResult포함) -> 히트 기반 타깃 정보 담아
+	FHitResult HitResult;				//충돌 결과 구조체 (히트 위치/노말/히트된 컴포넌트,액터 포함)
+	HitResult.ImpactNormal = PushVel;
+	HitData -> HitResult = HitResult;
+	EventData.TargetData.Add(HitData);
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, UGAP_Launched::GetLaunchedAbilityActivationTag(), EventData);
+}
+
+ACharacter* UMAGameplayAbility::GetOwningAvatarCharacter()
+{
+	if (!AvatarCharacter)
+	{
+		AvatarCharacter = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	}
+	return AvatarCharacter;
+}
+
+void UMAGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult,
+	TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
+{
+	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, Level);
+		
+	FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+	EffectContext.AddHitResult(HitResult);
+
+	EffectSpecHandle.Data->SetContext(EffectContext);
+
+	ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
 }
