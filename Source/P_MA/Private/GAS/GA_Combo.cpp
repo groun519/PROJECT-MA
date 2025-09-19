@@ -134,12 +134,11 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
-	TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData,
-	FVector::ZeroVector,
-	FRotator::ZeroRotator,
-	ETeamAttitude::Hostile,
-	ETraceObjectType::Line,
-	ShouldDrawDebug(),true);
+	TArray<FHitResult> HitResults =
+		GetHitResultFromVirtualSocketTargetData(
+			Data.TargetData,
+			ETeamAttitude::Hostile,
+			ShouldDrawDebug(),true);
 
 	for (const FHitResult& HitResult : HitResults)
 	{

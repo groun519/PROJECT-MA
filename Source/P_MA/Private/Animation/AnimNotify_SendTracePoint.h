@@ -5,57 +5,12 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
-#include "Abilities/GameplayAbilityTargetTypes.h"
-#include "EVA_Shape.h"
+
+#include "DebugShapeHelper.h"
+
 #include "AnimNotify_SendTracePoint.generated.h"
 
-USTRUCT(BlueprintType)
-struct FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbilityTargetData
-{
-	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EVA_Shape Shape = EVA_Shape::Sphere;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector LocalOffset = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRotator LocalRotation = FRotator::ZeroRotator;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SphereRadius = 25.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector BoxHalfSize = FVector(20.f,12.f,12.f);
-
-	virtual UScriptStruct* GetScriptStruct() const override
-	{
-		return StaticStruct();
-	}
-
-	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
-	{
-		Ar << Shape;
-		Ar << LocalOffset;
-		Ar << LocalRotation;
-		Ar << SphereRadius;
-		Ar << BoxHalfSize;
-		bOutSuccess = true;
-		return true;
-	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FGameplayAbilityTargetData_VirtualSocket>
-	: public TStructOpsTypeTraitsBase2<FGameplayAbilityTargetData_VirtualSocket>
-{
-	enum
-	{
-		WithNetSerializer = true,
-		WithCopy = true
-	};
-};
 
 /**
  * 
@@ -79,10 +34,10 @@ private:
 	/** Sphere **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0"))
 	float Radius = 50.f;
-	/*UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
 	bool bUseSector = false;
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0", ClampMax="360.0"))
-	float SectorAngle = 0.f;*/
+	float SectorAngle = 0.f;
 	
 	/** Box **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
@@ -100,10 +55,12 @@ private:
 
 	/** Debug **/
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
-	FColor DebugColor = FColor::Cyan;
+	FColor DebugColor = FColor::Green;
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.1"))
 	float DebugThickness = 1.5f;
+
+	FVector MeshForward = FVector::ZeroVector;
 
 	void DebugShapeWithEditor(UWorld* World, EVA_Shape DebugShape, FVector WorldLoc, FQuat WorldRot);
 };
