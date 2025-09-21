@@ -10,8 +10,15 @@
 #include "GameFramework/Character.h"
 
 #include "DebugShapeHelper.h"
+#include "MAAbilitySystemStatics.h"
 #include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
+
+
+UMAGameplayAbility::UMAGameplayAbility()
+{
+	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+}
 
 class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 {
@@ -183,12 +190,11 @@ void UMAGameplayAbility::PushSelf(const FVector& PushVel)
 //대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
 void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 {
-	if (!Target)
-		return;
+	if (!Target)	return;
 
-	FGameplayEventData EventData;		//GAS 이벤트 전달 컨테이너
-	FGameplayAbilityTargetData_SingleTargetHit* HitData = new FGameplayAbilityTargetData_SingleTargetHit;	//TargetData의 종류(FHitResult포함) -> 히트 기반 타깃 정보 담아
-	FHitResult HitResult;				//충돌 결과 구조체 (히트 위치/노말/히트된 컴포넌트,액터 포함)
+	FGameplayEventData EventData;
+	FGameplayAbilityTargetData_SingleTargetHit* HitData = new FGameplayAbilityTargetData_SingleTargetHit;
+	FHitResult HitResult;
 	HitResult.ImpactNormal = PushVel;
 	HitData -> HitResult = HitResult;
 	EventData.TargetData.Add(HitData);

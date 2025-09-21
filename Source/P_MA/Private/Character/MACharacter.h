@@ -64,6 +64,7 @@ public:
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
@@ -88,8 +89,20 @@ private:
 	void UpdateHeadGaugeVisibility();
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
+
+	/** Stun **/
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Stun")
+	UAnimMontage* StunMontage;
+
+	virtual void OnStun();
+	virtual void OnRecoverFromStun();
 	
 	/** Death and Respawn **/
+public:
+	bool IsDead() const;
+	void RespawnImmediately();
+	
 private:
 	FTransform MeshRelativeTransform;
 	

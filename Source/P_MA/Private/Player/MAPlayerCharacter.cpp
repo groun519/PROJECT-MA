@@ -213,6 +213,20 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	}
 }
 
+void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (!PlayerController)	return;
+
+	if (bEnabled)
+	{
+		EnableInput(PlayerController);
+	}else
+	{
+		DisableInput(PlayerController);
+	}
+}
+
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
@@ -239,22 +253,25 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
+void AMAPlayerCharacter::OnStun()
+{
+	SetInputEnabledFromPlayerController(false);
+}
+
+void AMAPlayerCharacter::OnRecoverFromStun()
+{
+	if (IsDead()) return;
+	SetInputEnabledFromPlayerController(true);
+}
+
 void AMAPlayerCharacter::OnDead()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
-	{
-		DisableInput(PlayerController);
-	}
+	SetInputEnabledFromPlayerController(false);
 }
 
 void AMAPlayerCharacter::OnRespawn()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
-	{
-		EnableInput(PlayerController);
-	}
+	SetInputEnabledFromPlayerController(true);
 }
 
 void AMAPlayerCharacter::OnGhostMode()

@@ -59,7 +59,8 @@ private:
 	void HandleSkillInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
-
+	void SetInputEnabledFromPlayerController(bool bEnabled);
+	
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 	
@@ -70,6 +71,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
+	/** Death and Respawn **/
+	virtual void OnStun() override;
+	virtual void OnRecoverFromStun() override;
+	
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;

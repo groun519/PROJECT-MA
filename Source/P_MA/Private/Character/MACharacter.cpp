@@ -115,6 +115,7 @@ void AMACharacter::BindGASChangeDelegates()
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
 	}
 }
 
@@ -130,6 +131,22 @@ void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	}
 }
 
+void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	if (IsDead()) return;
+	if (NewCount != 0)
+	{
+		OnStun();
+		PlayAnimMontage(StunMontage);
+	}
+	else
+	{
+		OnRecoverFromStun();
+		StopAnimMontage(StunMontage);
+	}
+	
+}
+
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 {
 	GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
@@ -142,6 +159,25 @@ void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	{
 		OverHeadWidgetComponent->SetHiddenInGame(true);
 	}
+}
+
+void AMACharacter::OnStun()
+{
+}
+
+void AMACharacter::OnRecoverFromStun()
+{
+}
+
+bool AMACharacter::IsDead() const
+{
+	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+}
+
+void AMACharacter::RespawnImmediately()
+{
+	if (HasAuthority())
+		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
 }
 
 // void AMACharacter::DeathMontageFinished()
@@ -232,10 +268,7 @@ void AMACharacter::OnRep_TeamID()
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
 {
-	if (!PerceptionStimuliSourceComponent)
-	{
-		return;
-	}
+	if (!PerceptionStimuliSourceComponent)		return;
 
 	if (bIsEnabled)
 	{

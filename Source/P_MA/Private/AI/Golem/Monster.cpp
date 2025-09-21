@@ -2,10 +2,8 @@
 
 
 #include "AI/Golem/Monster.h"
-#include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "GAS/MAAbilitySystemStatics.h"
 
 void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
 {
@@ -15,12 +13,12 @@ void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
 
 bool AMonster::IsActive() const
 {
-	return !GetAbilitySystemComponent()->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+	return !IsDead();
 }
 
 void AMonster::Activate()
 {
-	GetAbilitySystemComponent()->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
+	RespawnImmediately();
 }
 
 void AMonster::SetGoal(AActor* Goal)

@@ -27,7 +27,9 @@ UCLASS()
 class UMAGameplayAbility : public UGameplayAbility
 {
 	GENERATED_BODY()
-
+public:
+	UMAGameplayAbility();
+	
 protected:
 	class UAnimInstance* GetOwnerAnimInstance() const;
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(

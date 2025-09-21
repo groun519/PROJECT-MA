@@ -2,18 +2,19 @@
 
 
 #include "GAS/Passive/GAP_Launched.h"
-
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 
 
 UGAP_Launched::UGAP_Launched()
 {
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;		//서버에서만 실행되도록 -> 서버가 트리거하기 때문
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	// How this ability can be triggered by an event
 	FAbilityTriggerData TriggerData;
-	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;	//Gameplay Event 기반의 능력 트리거 하나 있다
-	TriggerData.TriggerTag = GetLaunchedAbilityActivationTag();					//그 태그도 여기 있다
+	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
+	TriggerData.TriggerTag = GetLaunchedAbilityActivationTag();
 
+	ActivationBlockedTags.RemoveTag(UMAAbilitySystemStatics::GetStunStatTag());
 	AbilityTriggers.Add(TriggerData);
 }
 
