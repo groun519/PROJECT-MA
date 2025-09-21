@@ -27,6 +27,10 @@
 		{
 			"Name": "GameplayAbilities",
 			"Enabled": true
+		},
+		{
+			"Name": "ToonShadingPlugin",
+			"Enabled": true
 		}
 	]
 }
