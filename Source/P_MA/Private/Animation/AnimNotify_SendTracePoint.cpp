@@ -5,15 +5,19 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "DrawDebugHelpers.h"
+#include "DebugShapeHelper.h"
+#include "VirtualSocketTargetData.h"
 
 void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	const FAnimNotifyEventReference& EventReference)
+                                        const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 	if (!MeshComp) return;
 
 	UWorld* World = MeshComp->GetWorld();
 	if (!World) return;
+
+	MeshForward = MeshComp->GetRightVector();
 
 	FTransform BaseWorldXf; // 루트 본의 월드 트랜스폼
 	{
@@ -47,7 +51,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			{
 				auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
 				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
-				LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
+				//LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
 				Data.TargetData.Add(LocationInfo);
 			}
 
@@ -55,9 +59,10 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 				auto* VSData = new FGameplayAbilityTargetData_VirtualSocket();
 				VSData->Shape        = Shape;
 				VSData->LocalOffset  = FVector(LocalOffset.X, LocalOffset.Y, 0);
-				VSData->LocalRotation= LocalRotation;
 				VSData->SphereRadius = Radius;
-				VSData->BoxHalfSize  = FVector(Width, Height, 100);
+				VSData->BoxHalfSize  = FVector(Height, Width, 100.f);
+				VSData->bUseSector	 = bUseSector;
+				VSData->SectorAngle  = SectorAngle;
 
 				Data.TargetData.Add(VSData);
 			}
@@ -97,26 +102,23 @@ void UAnimNotify_SendTracePoint::DebugShapeWithEditor(UWorld* World, EVA_Shape D
 
 		if (DebugShape == EVA_Shape::Sphere)
 		{
-			DrawDebugSphere(World, WorldLoc, Radius, 16,
-				DebugColor, false, 3, 0, DebugThickness);
-
-			/*if (bUseSector)
+			if (!bUseSector)
 			{
-				FRotator SectorRotL = FRotator(WorldRot.X, WorldRot.Y, WorldRot.Z - SectorAngle/2);
-				FVector EndLocL = WorldLoc + SectorRotL.Vector() * Radius;
-				DrawDebugLine(World, WorldLoc, EndLocL,
-					DebugColor, false, 3, 0, DebugThickness);
-				
-				FRotator SectorRotR = FRotator(WorldRot.X, WorldRot.Y, WorldRot.Z + SectorAngle/2);
-				FVector EndLocR = WorldLoc + SectorRotR.Vector() * Radius;
-				DrawDebugLine(World, WorldLoc, EndLocR,
-					DebugColor, false, 3, 0, DebugThickness);
-			}*/
+				FDebugShapeHelper::DrawDebugSectorableCircle(World, WorldLoc, Radius, 32,
+				false, 0.f, MeshForward,
+				DebugColor, DebugThickness);
+			}
+			else
+			{
+				FDebugShapeHelper::DrawDebugSectorableCircle(World, WorldLoc, Radius, 360,
+				true, SectorAngle/2.f, MeshForward,
+				DebugColor, DebugThickness);
+			}
 		}
 		else if (DebugShape == EVA_Shape::Box)
 		{
-			DrawDebugBox(World, WorldLoc, FVector(Width, Height, 100), WorldRot,
-				DebugColor, false, 3, 0, DebugThickness);
+			FDebugShapeHelper::DrawDebugRect(World, WorldLoc, Height, Width, MeshForward,
+				DebugColor, DebugThickness);
 		}
 	}
 #endif
