@@ -14,7 +14,8 @@ class UGameplayAbility_UpperCut : public UMAGameplayAbility
 {
 	GENERATED_BODY()
 
-public:	
+public:
+	UGameplayAbility_UpperCut();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 private:

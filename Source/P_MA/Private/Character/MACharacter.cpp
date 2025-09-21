@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/MACharacter.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -108,6 +110,18 @@ FGenericTeamId AMACharacter::GetGenericTeamId() const
 UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 {
 	return MAAbilitySystemComponent;
+}
+
+void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
+}
+
+bool AMACharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	return true;
 }
 
 void AMACharacter::BindGASChangeDelegates()
