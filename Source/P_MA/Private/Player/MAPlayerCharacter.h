@@ -71,7 +71,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
-	/** Death and Respawn **/
+	/** Stun **/
 	virtual void OnStun() override;
 	virtual void OnRecoverFromStun() override;
 	
