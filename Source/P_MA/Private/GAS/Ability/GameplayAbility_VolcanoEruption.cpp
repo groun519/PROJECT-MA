@@ -1,17 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Ability/GameplayAbility_Stab.h"
-#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "GAS/Ability/GameplayAbility_VolcanoEruption.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 
-UGameplayAbility_Stab::UGameplayAbility_Stab()
+UGameplayAbility_VolcanoEruption::UGameplayAbility_VolcanoEruption()
 {
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 
-void UGameplayAbility_Stab::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+void UGameplayAbility_VolcanoEruption::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
@@ -24,22 +24,21 @@ void UGameplayAbility_Stab::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
 		UAbilityTask_PlayMontageAndWait* PlayStabMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SkillMontage);
-		PlayStabMontageTask -> OnBlendOut.AddDynamic(this, &UGameplayAbility_Stab::K2_EndAbility);
-		PlayStabMontageTask -> OnCancelled.AddDynamic(this, &UGameplayAbility_Stab::K2_EndAbility);
-		PlayStabMontageTask -> OnInterrupted.AddDynamic(this, &UGameplayAbility_Stab::K2_EndAbility);
-		PlayStabMontageTask -> OnCompleted.AddDynamic(this, &UGameplayAbility_Stab::K2_EndAbility);
+		PlayStabMontageTask -> OnBlendOut.AddDynamic(this, &UGameplayAbility_VolcanoEruption::K2_EndAbility);
+		PlayStabMontageTask -> OnCancelled.AddDynamic(this, &UGameplayAbility_VolcanoEruption::K2_EndAbility);
+		PlayStabMontageTask -> OnInterrupted.AddDynamic(this, &UGameplayAbility_VolcanoEruption::K2_EndAbility);
+		PlayStabMontageTask -> OnCompleted.AddDynamic(this, &UGameplayAbility_VolcanoEruption::K2_EndAbility);
 		PlayStabMontageTask -> ReadyForActivation();
 	}
-
 	if (K2_HasAuthority())
 	{
-		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetStabDamageTag());
-		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_Stab::DoDamage);
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetVolcanoEruptionDamageTag());
+		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_VolcanoEruption::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
 	}
 }
 
-void UGameplayAbility_Stab::DoDamage(FGameplayEventData EventData)
+void UGameplayAbility_VolcanoEruption::DoDamage(FGameplayEventData EventData)
 {
 	if (K2_HasAuthority())
 	{
@@ -51,7 +50,7 @@ void UGameplayAbility_Stab::DoDamage(FGameplayEventData EventData)
 	}
 }
 
-FGameplayTag UGameplayAbility_Stab::GetStabDamageTag()
+FGameplayTag UGameplayAbility_VolcanoEruption::GetVolcanoEruptionDamageTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Stab.Damage");
+	return FGameplayTag::RequestGameplayTag("Ability.VolcanoEruption.Damage");
 }

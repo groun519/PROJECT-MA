@@ -4,30 +4,29 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
-#include "GameplayAbility_Stab.generated.h"
+#include "GameplayAbility_VolcanoEruption.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UGameplayAbility_Stab : public UMAGameplayAbility
+class UGameplayAbility_VolcanoEruption : public UMAGameplayAbility
 {
 	GENERATED_BODY()
 	
 public:
-	UGameplayAbility_Stab();
+	UGameplayAbility_VolcanoEruption();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Damage")
-	TSubclassOf<UGameplayEffect> SkillDamageEffect;
+    UPROPERTY(EditDefaultsOnly, Category = "Damage")
+    TSubclassOf<UGameplayEffect> SkillDamageEffect;
+    
+    UPROPERTY(EditDefaultsOnly, Category = "Animation")
+    UAnimMontage* SkillMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	UAnimMontage* SkillMontage;
-	
 	UFUNCTION()
 	void DoDamage(FGameplayEventData EventData);
 
-	static FGameplayTag GetStabDamageTag();
-	
+	static FGameplayTag GetVolcanoEruptionDamageTag();
 };
