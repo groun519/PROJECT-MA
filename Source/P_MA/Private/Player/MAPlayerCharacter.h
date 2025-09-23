@@ -51,8 +51,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputMappingContext* GameplayInputMappingContext;
+.
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleAttackInput(const FInputActionValue& InputActionValue);
