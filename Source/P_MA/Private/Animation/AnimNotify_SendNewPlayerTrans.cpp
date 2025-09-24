@@ -137,10 +137,10 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					 *	* TeleportTo() : 언리얼에서 제공하는 함수 TeleportTo()는 이동 위치, 방향 바라보기, RPC 모두 처리해주니,
 					 *					 TeleportTo()를 사용해 날먹하도록 합시다
 					 */
-					auto* DashData = new FJumpData();
-					DashData->OwnerLocation = Owner->GetActorLocation();
-					DashData->OwnerRotation = Owner->GetActorRotation();
-					Data.TargetData.Add(DashData);
+					auto* TeleportData = new FTeleportData();
+					TeleportData->OwnerLocation = Owner->GetActorLocation();
+					TeleportData->OwnerRotation = Owner->GetActorRotation();
+					Data.TargetData.Add(TeleportData);
 				}
 				if (TagType != EMovementNotifyTags::None)
 					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);

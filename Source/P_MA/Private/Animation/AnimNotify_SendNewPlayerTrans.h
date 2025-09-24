@@ -123,6 +123,33 @@ struct P_MA_API FRushData : public FGameplayAbilityTargetData
 	}
 };
 
+USTRUCT(BlueprintType)
+struct P_MA_API FTeleportData : public FGameplayAbilityTargetData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector OwnerLocation = FVector();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator OwnerRotation = FRotator();
+
+	virtual UScriptStruct* GetScriptStruct() const override
+	{
+		return StaticStruct();
+	}
+
+	// 네트워크 직렬화 (GameplayAbilityTargetData는 네트워크 연결이 꼭 필요해서 해줘야함.)
+	bool NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+	{
+		Ar << OwnerLocation;
+		Ar << OwnerRotation;
+		
+		bOutSuccess = true;
+		return true;
+	}
+};
+
 /**
  * 
  */
@@ -139,7 +166,7 @@ public:
 	EMoveType MoveType = EMoveType::None;
 
 	UPROPERTY(EditAnywhere, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Jump||MoveType==EMoveType::Dash", EditConditionHides))
+		meta=(EditCondition="MoveType==EMoveType::Jump||MoveType==EMoveType::Rush", EditConditionHides))
 	FName MoveSectionName = FName("MoveStart");
 
 	UPROPERTY(EditAnywhere, Category = "Movement",
