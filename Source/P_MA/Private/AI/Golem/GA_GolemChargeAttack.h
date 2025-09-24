@@ -20,11 +20,14 @@ public:
 
 protected:
 	/** 발동 최소 거리 (이상일 때만 발동) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ability Effect")
 	float MinDistance = 600.f;
 
 	/** 차징 공격 애니메이션 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ability Effect")
+	TSubclassOf<class UGameplayEffect> DamageEffect;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ability Effect")
 	UAnimMontage* ChargeMontage = nullptr;
 
 	/** 디버그 로그 출력 */
