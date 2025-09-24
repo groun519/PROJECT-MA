@@ -4,7 +4,10 @@
 #include "GAS/Ability/GameplayAbility_VolcanoEruption.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "GameFramework/Character.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/GameplayStaticsTypes.h"
 
 UGameplayAbility_VolcanoEruption::UGameplayAbility_VolcanoEruption()
 {
@@ -21,6 +24,13 @@ void UGameplayAbility_VolcanoEruption::ActivateAbility(const FGameplayAbilitySpe
 		return;
 	}
 
+	FHitResult TraceHit;
+	APlayerController* PlayerController = GetActorInfo().PlayerController.Get();
+	if (PlayerController)
+		PlayerController -> GetHitResultUnderCursor(ECC_Visibility,false, TraceHit);
+	
+	TargetLocation = TraceHit.ImpactPoint;
+	
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
 		UAbilityTask_PlayMontageAndWait* PlayStabMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SkillMontage);
@@ -32,10 +42,19 @@ void UGameplayAbility_VolcanoEruption::ActivateAbility(const FGameplayAbilitySpe
 	}
 	if (K2_HasAuthority())
 	{
+		UAbilityTask_WaitGameplayEvent* WaitJumpEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag("Ability.Movement.Jump"));
+		WaitJumpEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_VolcanoEruption::JumpToTarget);
+		WaitJumpEventTask->ReadyForActivation();
+		
 		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetVolcanoEruptionDamageTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_VolcanoEruption::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
 	}
+}
+
+FGameplayTag UGameplayAbility_VolcanoEruption::GetVolcanoEruptionDamageTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Skill.VolcanoEruption.Damage");
 }
 
 void UGameplayAbility_VolcanoEruption::DoDamage(FGameplayEventData EventData)
@@ -50,7 +69,28 @@ void UGameplayAbility_VolcanoEruption::DoDamage(FGameplayEventData EventData)
 	}
 }
 
-FGameplayTag UGameplayAbility_VolcanoEruption::GetVolcanoEruptionDamageTag()
+void UGameplayAbility_VolcanoEruption::JumpToTarget(FGameplayEventData EventData)
 {
-	return FGameplayTag::RequestGameplayTag("Ability.VolcanoEruption.Damage");
+	ACharacter* OwnerCharacter = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	if (OwnerCharacter)
+	{
+		const FVector StartLocation = OwnerCharacter -> GetActorLocation();
+
+		FVector LaunchVelocity;
+		bool bHaveSolution = UGameplayStatics::SuggestProjectileVelocity(
+			this,
+			LaunchVelocity,
+			StartLocation,
+			TargetLocation,
+			1.0f, // 점프 시간 (조절 필요)
+			0.0f,
+			0.0f,
+			ESuggestProjVelocityTraceOption::DoNotTrace
+		);
+
+		if (bHaveSolution)
+			OwnerCharacter -> LaunchCharacter(LaunchVelocity, true, true);
+	}
 }
+
+

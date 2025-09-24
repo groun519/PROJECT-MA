@@ -53,5 +53,5 @@ void UGameplayAbility_Stab::DoDamage(FGameplayEventData EventData)
 
 FGameplayTag UGameplayAbility_Stab::GetStabDamageTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Stab.Damage");
+	return FGameplayTag::RequestGameplayTag("Ability.Skill.Stab.Damage");
 }

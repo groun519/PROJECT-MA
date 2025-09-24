@@ -53,5 +53,5 @@ void UGameplayAbility_Spin::DoDamage(FGameplayEventData EventData)
 
 FGameplayTag UGameplayAbility_Spin::GetSpinDamageTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Spin.Damage");
+	return FGameplayTag::RequestGameplayTag("Ability.Skill.Spin.Damage");
 }

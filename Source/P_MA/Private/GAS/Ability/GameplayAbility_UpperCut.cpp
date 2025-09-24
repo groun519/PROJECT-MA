@@ -37,7 +37,7 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 
 FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Uppercut.Launch");
+	return FGameplayTag::RequestGameplayTag("Ability.Skill.Uppercut.Damage");
 }
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)

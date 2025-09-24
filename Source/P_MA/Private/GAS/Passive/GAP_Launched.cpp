@@ -9,13 +9,13 @@
 UGAP_Launched::UGAP_Launched()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	// How this ability can be triggered by an event
+	
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
 	TriggerData.TriggerTag = GetLaunchedAbilityActivationTag();
-
-	ActivationBlockedTags.RemoveTag(UMAAbilitySystemStatics::GetStunStatTag());
 	AbilityTriggers.Add(TriggerData);
+	
+	ActivationBlockedTags.RemoveTag(UMAAbilitySystemStatics::GetStunStatTag());
 }
 
 void UGAP_Launched::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
