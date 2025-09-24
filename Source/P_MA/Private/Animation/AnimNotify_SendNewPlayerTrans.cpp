@@ -18,7 +18,22 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 		{
 			/** MoveType:None **/
 			if (MoveType == EMoveType::None) return;
-
+			
+			float SectionStart = 0.f, SectionEnd = 0.f, PlayRate = 0.f, RateScale = 0.f;
+			if (UAnimMontage* Montage = Cast<UAnimMontage>(Animation))
+			{
+				UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
+				PlayRate	= AnimInst->Montage_GetPlayRate(Montage);
+				RateScale	= Montage->RateScale;
+				if (int32 SectionIndex = Montage->GetSectionIndex(MoveSectionName))
+				{
+					if (SectionIndex != INDEX_NONE)
+					{
+						Montage->GetSectionStartAndEndTime(SectionIndex, SectionStart, SectionEnd);
+					}
+				}
+			}
+			
 			/** MoveType:Jump **//**
 			 *	- 플레이어 캐릭터를 LaunchCharacter를 이용해 '발사'한다.
 			 */
@@ -40,11 +55,14 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					 *	* 받는 방법은 MAGameplayAbility 참고할 것.
 					 */
 					auto* JumpData = new FJumpData();
-					JumpData->OwnerLocation = Owner->GetActorLocation();
-					JumpData->OwnerRotation = Owner->GetActorRotation();
+					JumpData->OwnerLocation		= Owner->GetActorLocation();
+					JumpData->OwnerRotation		= Owner->GetActorRotation();
+					JumpData->StartToEndTime	= (SectionEnd - SectionStart) * PlayRate * RateScale;
+					JumpData->JumpTimeRequired	= JumpTimeRequired;
 					Data.TargetData.Add(JumpData);
 				}
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetJumpTag(), Data);
+				if (TagType != EMovementNotifyTags::None)
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetJumpTag(), Data);
 			}
 			
 			/** MoveType:Dash **//**
@@ -73,7 +91,8 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					DashData->DashForce = DashForce;
 					Data.TargetData.Add(DashData);
 				}
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+				if (TagType != EMovementNotifyTags::None)
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
 			}
 
 			/** MoveType:Rush **//**
@@ -96,7 +115,8 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					DashData->MaxRotateAngle = MaxRotateAngle;
 					Data.TargetData.Add(DashData);
 				}
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+				if (TagType != EMovementNotifyTags::None)
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
 			}
 			
 			/** MoveType:Teleport **//**
@@ -122,7 +142,8 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					DashData->OwnerRotation = Owner->GetActorRotation();
 					Data.TargetData.Add(DashData);
 				}
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+				if (TagType != EMovementNotifyTags::None)
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
 			}
 		}
 	}
@@ -132,21 +153,25 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
  * GetJumpType()
  * "Ability.Movement.Jump" 관련 태그를 반환합니다.
  * 
- * @return bHitTag == true -> "Ability.Movement.Jump.Damage"
- *					  false-> "Ability.Movement.Jump"
+ * @return TagType == None	-> "Ability.Movement.Jump"
+ *					  Start -> "Ability.Movement.Jump.Start"
+ *					  End	-> "Ability.Movement.Jump.End"
  *
  *	bDamageTag는 노티파이에서 직접 할당받습니다.
  */
 FGameplayTag UAnimNotify_SendNewPlayerTrans::GetJumpTag()
 {
-	if (bDamageTag)
+	switch (TagType)
 	{
-		return FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Hit");
-	}
-	else
-	{
-		return FGameplayTag::RequestGameplayTag("Ability.Movement.Jump");
-	}
+	case EMovementNotifyTags::None:
+       	return FGameplayTag::RequestGameplayTag("Ability.Movement.Jump");
+    case EMovementNotifyTags::Start:
+        return FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Start");
+    case EMovementNotifyTags::End:
+       	return FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.End");
+    default:
+       	return FGameplayTag();
+    }	
 }
 
 /**
@@ -155,7 +180,7 @@ FGameplayTag UAnimNotify_SendNewPlayerTrans::GetJumpTag()
  * 
  * @return TagType == None	-> "Ability.Movement.Dash"
  *					  Start -> "Ability.Movement.Dash.Start"
- *					  Damage-> "Ability.Movement.Dash.Damage"
+ *					  End	-> "Ability.Movement.Dash.End"
  *
  *	TagType은 노티파이에서 직접 할당받습니다.
  */
@@ -167,8 +192,8 @@ FGameplayTag UAnimNotify_SendNewPlayerTrans::GetDashTag()
 		return FGameplayTag::RequestGameplayTag("Ability.Movement.Dash");
 	case EMovementNotifyTags::Start:
 		return FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Start");
-	case EMovementNotifyTags::Damage:
-		return FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Damage");
+	case EMovementNotifyTags::End:
+		return FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.End");
 	default:
 		return FGameplayTag();
 	}
@@ -180,7 +205,7 @@ FGameplayTag UAnimNotify_SendNewPlayerTrans::GetDashTag()
  * 
  * @return TagType == None	-> "Ability.Movement.Rush"
  *					  Start -> "Ability.Movement.Rush.Start"
- *					  Damage-> "Ability.Movement.Rush.Damage"
+ *					  End	-> "Ability.Movement.Rush.End"
  */
 FGameplayTag UAnimNotify_SendNewPlayerTrans::GetRushTag()
 {
@@ -190,8 +215,8 @@ FGameplayTag UAnimNotify_SendNewPlayerTrans::GetRushTag()
 		return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush");
 	case EMovementNotifyTags::Start:
 		return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush.Start");
-	case EMovementNotifyTags::Damage:
-		return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush.Damage");
+	case EMovementNotifyTags::End:
+		return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush.End");
 	default:
 		return FGameplayTag();
 	}
@@ -206,12 +231,15 @@ FGameplayTag UAnimNotify_SendNewPlayerTrans::GetRushTag()
  */
 FGameplayTag UAnimNotify_SendNewPlayerTrans::GetTeleportTag()
 {
-	if (bDamageTag)
+	switch (TagType)
 	{
-		return FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.Damage");
-	}
-	else
-	{
+	case EMovementNotifyTags::None:
 		return FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport");
+	case EMovementNotifyTags::Start:
+		return FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.Start");
+	case EMovementNotifyTags::End:
+		return FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.End");
+	default:
+		return FGameplayTag();
 	}
 }
