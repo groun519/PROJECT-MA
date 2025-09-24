@@ -25,4 +25,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* SkillMontage;
 
+	UFUNCTION()
+	void OnJumpEventReceived(FGameplayEventData Data);
+
+	enum class EMovementNotifyTags : uint8{None,Start,End};
+	FGameplayTag GetJumpTag(EMovementNotifyTags TagType);
 };

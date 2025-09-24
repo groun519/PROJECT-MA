@@ -37,7 +37,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 			/** MoveType:Jump **//**
 			 *	- 플레이어 캐릭터를 LaunchCharacter를 이용해 '발사'한다.
 			 */
-			else if (MoveType == EMoveType::Jump)
+			if (MoveType == EMoveType::Jump)
 			{
 				FGameplayEventData Data;
 				{
@@ -57,7 +57,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					auto* JumpData = new FJumpData();
 					JumpData->OwnerLocation		= Owner->GetActorLocation();
 					JumpData->OwnerRotation		= Owner->GetActorRotation();
-					JumpData->StartToEndTime	= (SectionEnd - SectionStart) * PlayRate * RateScale;
+					JumpData->StartToEndTime	= (SectionEnd - SectionStart) / PlayRate / RateScale;
 					JumpData->JumpTimeRequired	= JumpTimeRequired;
 					Data.TargetData.Add(JumpData);
 				}
