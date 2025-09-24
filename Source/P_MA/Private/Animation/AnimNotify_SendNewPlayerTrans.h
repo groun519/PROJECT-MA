@@ -19,18 +19,28 @@ enum class EMoveType : uint8
 };
 
 UENUM(BlueprintType)
-enum class EMovementNotifyTags : uint8{None,Start,Damage};
+enum class EMovementNotifyTags : uint8{None,Start,End};
 
 USTRUCT(BlueprintType)
 struct P_MA_API FJumpData : public FGameplayAbilityTargetData
 {
 	GENERATED_BODY()
 
+	// 해당 노티파이 시점의 Owner 캐릭터 위치
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector OwnerLocation = FVector();
 
+	// 해당 노티파이 시점의 Owner 캐릭터 방향
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator OwnerRotation = FRotator();
+	
+	// Start -> End 타임라인 기준 소요시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float StartToEndTime = 0.0f;
+	
+	// Jump 소요시간 (Start -> End까지 몇 초 동안 이동할건가?), 단위 s
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float JumpTimeRequired = 0.0f;
 
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
@@ -42,6 +52,8 @@ struct P_MA_API FJumpData : public FGameplayAbilityTargetData
 	{
 		Ar << OwnerLocation;
 		Ar << OwnerRotation;
+		Ar << StartToEndTime;
+		Ar << JumpTimeRequired;
 		
 		bOutSuccess = true;
 		return true;
@@ -126,46 +138,42 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMoveType MoveType = EMoveType::None;
 
-	/** Event Tag **/
-	// 수정불가, ReadOnly.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	FGameplayTag EventHitTag;
+	UPROPERTY(EditAnywhere, Category = "Movement",
+		meta=(EditCondition="MoveType==EMoveType::Jump||MoveType==EMoveType::Dash", EditConditionHides))
+	FName MoveSectionName = FName("MoveStart");
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Dash&&MoveType==EMoveType::Rush"))
-	FGameplayTag EventStartTag;
-
-	// true		-> return .Hit Tag
-	// false	-> return basic Tag
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Jump||MoveType==EMoveType::Teleport"))
-	bool bDamageTag = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Jump||MoveType==EMoveType::Teleport"))
+	UPROPERTY(EditAnywhere, Category = "Movement",
+		meta=(EditCondition="MoveType!=EMoveType::None", EditConditionHides))
 	EMovementNotifyTags TagType = EMovementNotifyTags::None;
-	
+
 	/** Type : Jump **//**
 	 *	GA에서 목표 위치(커서 위치)를 받아와야 함.
 	 *	받아온 목표 위치 기반으로, 이동 시간, 
 	 */
 	FGameplayTag GetJumpTag();
+	// End 지점 섹션을 받아올 FName. (노티파이 위치는 찾기 힘듬. 섹션으로 End 처리, 이벤트 필요시 End 지점에 노티 추가)
+    UPROPERTY(EditAnywhere, Category = "Movement",
+        meta=(EditCondition="MoveType==EMoveType::Jump", EditConditionHides, ClampMin="0.1"))
+    float JumpTimeRequired = 1.0f;
+
 	
 	/** Type : Dash **/
 	FGameplayTag GetDashTag();
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Dash"))
+	UPROPERTY(EditAnywhere, Category = "Movement",
+		meta=(EditCondition="MoveType==EMoveType::Dash", EditConditionHides))
 	float DashForce = 100.f;
 
+	
 	/** Type : Rush **/
 	FGameplayTag GetRushTag();
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Rush"))
+	UPROPERTY(EditAnywhere, Category = "Movement",
+		meta=(EditCondition="MoveType==EMoveType::Rush", EditConditionHides))
 	float RushForce = 100.f;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement",
-		meta=(EditCondition="MoveType==EMoveType::Rush"))
+	UPROPERTY(EditAnywhere, Category = "Movement",
+		meta=(EditCondition="MoveType==EMoveType::Rush", EditConditionHides))
 	float MaxRotateAngle = 30.f;
 
+	
 	/** Type : Teleport **/
 	FGameplayTag GetTeleportTag();
 };
