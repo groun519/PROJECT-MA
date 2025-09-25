@@ -11,6 +11,15 @@
 
 #include "MAGameplayAbility.generated.h"
 
+UENUM()
+enum class ETraceObjectType : uint8
+{
+	None,
+	Box,
+	Sphere,
+	Line
+};
+
 /**
  * 
  */
@@ -18,7 +27,9 @@ UCLASS()
 class UMAGameplayAbility : public UGameplayAbility
 {
 	GENERATED_BODY()
-
+public:
+	UMAGameplayAbility();
+	
 protected:
 	class UAnimInstance* GetOwnerAnimInstance() const;
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(
@@ -38,6 +49,11 @@ protected:
 	UFUNCTION()
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }
 	
+	void PushSelf(const FVector& PushVel);			//캐릭터 움직임 제어 함수
+	void PushTarget(AActor* Target, const FVector& PushVel);
+	ACharacter* GetOwningAvatarCharacter();			//AvatarChar getter
+	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
+	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bShouldDrawDebug = true;
@@ -51,8 +67,8 @@ private:
 
 	UPROPERTY(Transient)
 	FVector PrevTipLocal  = FVector::ZeroVector; // 이전 이벤트의 Tip  (로컬)
+	//==============================================================//
 
-
-
-
+	UPROPERTY()
+	class ACharacter* AvatarCharacter;
 };

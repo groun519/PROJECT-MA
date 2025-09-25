@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/MACharacter.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -110,11 +112,24 @@ UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 	return MAAbilitySystemComponent;
 }
 
+void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
+}
+
+bool AMACharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
+	const FGameplayEventData& EventData)
+{
+	return true;
+}
+
 void AMACharacter::BindGASChangeDelegates()
 {
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
 	}
 }
 
@@ -130,6 +145,22 @@ void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	}
 }
 
+void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	if (IsDead()) return;
+	if (NewCount != 0)
+	{
+		OnStun();
+		PlayAnimMontage(StunMontage);
+	}
+	else
+	{
+		OnRecoverFromStun();
+		StopAnimMontage(StunMontage);
+	}
+	
+}
+
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 {
 	GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
@@ -142,6 +173,25 @@ void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 	{
 		OverHeadWidgetComponent->SetHiddenInGame(true);
 	}
+}
+
+void AMACharacter::OnStun()
+{
+}
+
+void AMACharacter::OnRecoverFromStun()
+{
+}
+
+bool AMACharacter::IsDead() const
+{
+	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+}
+
+void AMACharacter::RespawnImmediately()
+{
+	if (HasAuthority())
+		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
 }
 
 // void AMACharacter::DeathMontageFinished()
@@ -232,10 +282,7 @@ void AMACharacter::OnRep_TeamID()
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
 {
-	if (!PerceptionStimuliSourceComponent)
-	{
-		return;
-	}
+	if (!PerceptionStimuliSourceComponent)		return;
 
 	if (bIsEnabled)
 	{

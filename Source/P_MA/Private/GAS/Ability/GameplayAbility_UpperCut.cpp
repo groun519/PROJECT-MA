@@ -4,6 +4,12 @@
 #include "GAS/Ability/GameplayAbility_UpperCut.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "GAS/MAAbilitySystemStatics.h"
+
+UGameplayAbility_UpperCut::UGameplayAbility_UpperCut()
+{
+	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
+}
 
 void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                                 const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -16,7 +22,7 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
-		UAbilityTask_PlayMontageAndWait* PlayUpperCutMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, UpperCutMontage);
+		UAbilityTask_PlayMontageAndWait* PlayUpperCutMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SkillMontage);
 		PlayUpperCutMontageTask->OnBlendOut.AddDynamic(this, &UGameplayAbility_UpperCut::K2_EndAbility);
 		PlayUpperCutMontageTask->OnCancelled.AddDynamic(this, &UGameplayAbility_UpperCut::K2_EndAbility);
 		PlayUpperCutMontageTask->OnInterrupted.AddDynamic(this, &UGameplayAbility_UpperCut::K2_EndAbility);
@@ -31,19 +37,19 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 
 FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Uppercut.Launch");
+	return FGameplayTag::RequestGameplayTag("Ability.Skill.Uppercut.Damage");
 }
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
-	TArray<FHitResult> TargetResults =
-		GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
-	
 	if (K2_HasAuthority())
 	{
-		for (FHitResult& HitResult : TargetResults)
+		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed);
+		for (FHitResult& HitResult : HitResults)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("I Hit: %s"), *HitResult.GetActor()->GetName());
+			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed);
+			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}
 }

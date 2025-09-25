@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffect.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -12,7 +13,24 @@ enum class EMAAbilityInputID : uint8
 
 	Attack				UMETA(DisplayName = "Attack"),
 	Skill				UMETA(DisplayName = "Skill"),
+	Skill1				UMETA(DisplayName = "Skill1"),
+	Skill2				UMETA(DisplayName = "Skill2"),
+	Skill3				UMETA(DisplayName = "Skill3"),
+	Skill4				UMETA(DisplayName = "Skill4"),
 
 	Confirm				UMETA(DisplayName = "Confirm"),
 	Cancel				UMETA(DisplayName = "Cancel"),
+};
+
+USTRUCT(BlueprintType)
+struct FGenericDamageEffectDef
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UGameplayEffect> DamageEffect;
+
+	UPROPERTY(EditAnywhere)
+	FVector PushVelocity;
 };

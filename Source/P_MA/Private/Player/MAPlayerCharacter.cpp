@@ -2,6 +2,8 @@
 
 
 #include "Player/MAPlayerCharacter.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -12,6 +14,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -211,6 +214,25 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	{
 		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
 	}
+	if (InputID == EMAAbilityInputID::Attack)
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
+		Server_SendGameplayEventToSelf(UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
+	}
+}
+
+void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (!PlayerController)	return;
+
+	if (bEnabled)
+	{
+		EnableInput(PlayerController);
+	}else
+	{
+		DisableInput(PlayerController);
+	}
 }
 
 
@@ -239,22 +261,25 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
+void AMAPlayerCharacter::OnStun()
+{
+	SetInputEnabledFromPlayerController(false);
+}
+
+void AMAPlayerCharacter::OnRecoverFromStun()
+{
+	if (IsDead()) return;
+	SetInputEnabledFromPlayerController(true);
+}
+
 void AMAPlayerCharacter::OnDead()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
-	{
-		DisableInput(PlayerController);
-	}
+	SetInputEnabledFromPlayerController(false);
 }
 
 void AMAPlayerCharacter::OnRespawn()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (PlayerController)
-	{
-		EnableInput(PlayerController);
-	}
+	SetInputEnabledFromPlayerController(true);
 }
 
 void AMAPlayerCharacter::OnGhostMode()

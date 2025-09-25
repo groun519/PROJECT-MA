@@ -12,3 +12,9 @@ FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Dead");
 }
+
+FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Stun");
+	
+}

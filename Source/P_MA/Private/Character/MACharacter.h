@@ -61,9 +61,13 @@ public:
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
+		//입력 이벤트를 서버로 보내기 위한 함수 (입력은 Client에서 일어남 -> 서버가 알도록 하기 위해서)
+	UFUNCTION(Server, Reliable, WithValidation)		//서버에서 실행, 신뢰가능, 유효성 검사 기능	-> 클라에서 호출 시 서버도 동일한 함수 호출하도록
+	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
@@ -88,8 +92,20 @@ private:
 	void UpdateHeadGaugeVisibility();
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
+
+	/** Stun **/
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Stun")
+	UAnimMontage* StunMontage;
+
+	virtual void OnStun();
+	virtual void OnRecoverFromStun();
 	
 	/** Death and Respawn **/
+public:
+	bool IsDead() const;
+	void RespawnImmediately();
+	
 private:
 	FTransform MeshRelativeTransform;
 	

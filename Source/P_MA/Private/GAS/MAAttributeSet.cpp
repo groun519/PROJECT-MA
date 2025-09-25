@@ -3,6 +3,7 @@
 
 #include "GAS/MAAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayEffectExtension.h"
 
 /*
 * void UNVAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
@@ -31,6 +32,19 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
 }
+
+void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	if (Attribute == GetHealthAttribute())
+		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
+}
+
+void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
+{
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
+		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+}
+
 
 DEFINE_REPNOTIFY(Health)
 DEFINE_REPNOTIFY(MaxHealth)
