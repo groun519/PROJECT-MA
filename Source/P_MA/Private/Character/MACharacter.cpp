@@ -54,6 +54,11 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AMACharacter, MaterialParamValue);
 }
 
+const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AMACharacter::GetAbilities() const
+{
+	return MAAbilitySystemComponent->GetAbilities();
+}
+
 void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();

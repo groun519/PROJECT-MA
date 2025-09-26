@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAGameplayWidget.generated.h"
 
 class UMASkillSlotWidget;
@@ -16,6 +17,7 @@ class UMAGameplayWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
 
 protected:
 	// 체력바와 같은 기존 UI 요소 유지
@@ -35,6 +37,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UHorizontalBox* HorizontalBox_PassiveSlots;
+
+	UPROPERTY(meta=(BindWidget))
+	class UMAAbilityListView* AbilityListView;
 
 private:
 	void CreateSkillSlots(int32 NumSlots);
