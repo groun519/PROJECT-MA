@@ -1,8 +1,10 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/MASkillSlotWidget.h"
 #include "Widget/MAPassiveSlotWidget.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Widget/MAAbilityListView.h"
 #include "Widget/MAValueGauge.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -67,4 +69,9 @@ void UMAGameplayWidget::CreatePassiveSlots(int32 NumSlots)
         // 슬롯을 표시하거나 숨깁니다. (예시로 3개만 보이도록 설정)
         NewSlot->SetVisibility(i < 3 ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
     }
+}
+
+void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
+{
+    AbilityListView->ConfigureAbilities(Abilities);
 }

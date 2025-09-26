@@ -35,7 +35,7 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	/** 위에까지는 별로 코드입니다 **/
 }
 
-/** 아래는 별로 코드입니다 **/
+/** 아래는 별로 코드입니다 **/	
 void AMAPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -67,6 +67,7 @@ void AMAPlayerController::SpawnGameplayWidget()
 	if (GameplayWidget)
 	{
 		GameplayWidget->AddToViewport();
+		GameplayWidget->ConfigureAbilities(MAPlayerCharacter->GetAbilities());
 	}
 }
 
