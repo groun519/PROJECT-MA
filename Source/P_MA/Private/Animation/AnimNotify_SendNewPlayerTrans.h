@@ -73,7 +73,7 @@ struct P_MA_API FDashData : public FGameplayAbilityTargetData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DashForce = 0.f;
-
+		
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
 		return StaticStruct();

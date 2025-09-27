@@ -181,14 +181,18 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 
 void UMAGameplayAbility::PushSelf(const FVector& PushVel)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[gameplay Abiliy] execute PushSelf"));
+	
 	if (ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter())
 	{
+	    UE_LOG(LogTemp, Warning, TEXT("[gameplay Abiliy] if success"));
+		
 		OwningAvatarCharacter -> LaunchCharacter(PushVel, true, true);
 	}
 }
 
 //대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
-void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
+void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel, FGameplayTag Tag)
 {
 	if (!Target)	return;
 
@@ -198,8 +202,9 @@ void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 	HitResult.ImpactNormal = PushVel;
 	HitData -> HitResult = HitResult;
 	EventData.TargetData.Add(HitData);
+	EventData.EventTag = Tag;
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, UGAP_Launched::GetLaunchedAbilityActivationTag(), EventData);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventData.EventTag, EventData);
 }
 
 ACharacter* UMAGameplayAbility::GetOwningAvatarCharacter()

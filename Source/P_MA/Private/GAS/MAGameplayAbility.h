@@ -4,9 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "GenericTeamAgentInterface.h"
-
 #include "DebugShapeHelper.h"
+#include "GenericTeamAgentInterface.h"
 #include "VirtualSocketTargetData.h"
 
 #include "MAGameplayAbility.generated.h"
@@ -49,10 +48,12 @@ protected:
 	UFUNCTION()
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }
 	
-	void PushSelf(const FVector& PushVel);			//캐릭터 움직임 제어 함수
-	void PushTarget(AActor* Target, const FVector& PushVel);
-	ACharacter* GetOwningAvatarCharacter();			//AvatarChar getter
+	ACharacter* GetOwningAvatarCharacter();
 	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
+
+	//== Movement ==//
+	void PushSelf(const FVector& PushVel);
+	void PushTarget(AActor* Target, const FVector& PushVel, FGameplayTag Tag);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")

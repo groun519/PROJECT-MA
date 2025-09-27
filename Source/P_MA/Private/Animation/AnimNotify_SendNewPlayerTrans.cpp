@@ -14,6 +14,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 	if (MeshComp)
 	{
 		ACharacter* Owner = Cast<ACharacter>(MeshComp->GetOwner());
+		
 		if (Owner && Owner->HasAuthority())
 		{
 			/** MoveType:None **/
@@ -33,7 +34,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					}
 				}
 			}
-			
+		
 			/** MoveType:Jump **//**
 			 *	- 플레이어 캐릭터를 LaunchCharacter를 이용해 '발사'한다.
 			 */
@@ -58,11 +59,16 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					JumpData->OwnerLocation		= Owner->GetActorLocation();
 					JumpData->OwnerRotation		= Owner->GetActorRotation();
 					JumpData->StartToEndTime	= (SectionEnd - SectionStart) / PlayRate / RateScale;
-					JumpData->JumpTimeRequired	= JumpTimeRequired;
+					JumpData->JumpTimeRequired	= JumpTimeRequired;					
 					Data.TargetData.Add(JumpData);
 				}
 				if (TagType != EMovementNotifyTags::None)
+				{
+					FGameplayTag EventTag = GetJumpTag();
+					Data.EventTag = EventTag;
 					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetJumpTag(), Data);
+					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+				}
 			}
 			
 			/** MoveType:Dash **//**
@@ -92,7 +98,12 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					Data.TargetData.Add(DashData);
 				}
 				if (TagType != EMovementNotifyTags::None)
+				{
+					FGameplayTag EventTag = GetDashTag();
+					Data.EventTag = EventTag;
 					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+				}
 			}
 
 			/** MoveType:Rush **//**
@@ -116,7 +127,12 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					Data.TargetData.Add(DashData);
 				}
 				if (TagType != EMovementNotifyTags::None)
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+				{
+					FGameplayTag EventTag = GetRushTag();
+					Data.EventTag = EventTag;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetRushTag(), Data);
+					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+				}
 			}
 			
 			/** MoveType:Teleport **//**
@@ -140,10 +156,17 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 					auto* TeleportData = new FTeleportData();
 					TeleportData->OwnerLocation = Owner->GetActorLocation();
 					TeleportData->OwnerRotation = Owner->GetActorRotation();
+					
 					Data.TargetData.Add(TeleportData);
 				}
 				if (TagType != EMovementNotifyTags::None)
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
+				{
+					FGameplayTag EventTag = GetTeleportTag();
+					Data.EventTag = EventTag;
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetTeleportTag(), Data);
+					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+					
+				}
 			}
 		}
 	}

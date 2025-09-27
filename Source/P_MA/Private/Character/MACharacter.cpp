@@ -113,7 +113,7 @@ UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 }
 
 void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
-	const FGameplayEventData& EventData)
+                                                                 const FGameplayEventData& EventData)
 {
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
 }

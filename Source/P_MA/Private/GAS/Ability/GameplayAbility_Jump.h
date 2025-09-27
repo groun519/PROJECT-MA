@@ -19,9 +19,6 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Damage")
-	TSubclassOf<UGameplayEffect> SkillDamageEffect;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* SkillMontage;
 

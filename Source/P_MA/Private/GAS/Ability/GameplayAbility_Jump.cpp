@@ -2,7 +2,6 @@
 
 
 #include "GAS/Ability/GameplayAbility_Jump.h"
-
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Animation/AnimNotify_SendNewPlayerTrans.h"
@@ -28,9 +27,9 @@ void UGameplayAbility_Jump::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	
 	// 몽타주가 끝나거나, 취소되거나, 중단되면 어빌리티를 종료합니다.
 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
-	PlayMontageTask->OnBlendOut.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
-	PlayMontageTask->OnCancelled.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
-	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
+	//PlayMontageTask->OnBlendOut.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
+	//PlayMontageTask->OnCancelled.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
+	//PlayMontageTask->OnInterrupted.AddDynamic(this, &UGameplayAbility_Jump::K2_EndAbility);
 	PlayMontageTask->ReadyForActivation();
 
 	UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetJumpTag(EMovementNotifyTags::Start), nullptr, false, false);
