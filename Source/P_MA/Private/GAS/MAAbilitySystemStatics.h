@@ -18,5 +18,7 @@ public:
 	static FGameplayTag GetBasicAttackAbilityTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetMovementTag();
+	static FGameplayTag GetActiveSkillTag();
 
 };

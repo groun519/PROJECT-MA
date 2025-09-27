@@ -19,11 +19,8 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 protected:
-	UPROPERTY()
-	FVector DashStartDirection;
-	// 서버에서 실제 대쉬 로직을 실행할 함수
-	UFUNCTION(Server, Reliable)
-	void Server_ExecuteDash(FGameplayEventData EventData);
+	UFUNCTION()
+	void StartDashEventReceived(FGameplayEventData EventData);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")

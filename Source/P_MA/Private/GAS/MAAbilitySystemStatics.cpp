@@ -16,5 +16,14 @@ FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Stun");
-	
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMovementTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Movement");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetActiveSkillTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Skill");
 }

@@ -2,15 +2,11 @@
 
 
 #include "GAS/Ability/GameplayAbility_Dash.h"
-
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
-#include "Character/MACharacter.h"
 #include "GameFramework/Character.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Passive/GAP_Movement.h"
+
 
 UGameplayAbility_Dash::UGameplayAbility_Dash()
 {
@@ -31,26 +27,18 @@ void UGameplayAbility_Dash::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	PlayMontageTask->OnCompleted.AddDynamic(this, &UGameplayAbility_Dash::K2_EndAbility);
 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGameplayAbility_Dash::K2_EndAbility);
 	PlayMontageTask->OnCancelled.AddDynamic(this, &UGameplayAbility_Dash::K2_EndAbility);
+	PlayMontageTask->OnBlendOut.AddDynamic(this, &UGameplayAbility_Dash::K2_EndAbility);
 	PlayMontageTask->ReadyForActivation();
 
 	UAbilityTask_WaitGameplayEvent* WaitStartDashTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Start"));
-	WaitStartDashTask->EventReceived.AddDynamic(this, &UGameplayAbility_Dash::Server_ExecuteDash);
+	WaitStartDashTask->EventReceived.AddDynamic(this, &UGameplayAbility_Dash::StartDashEventReceived);
 	WaitStartDashTask->ReadyForActivation();
 }
 
-
-
-void UGameplayAbility_Dash::Server_ExecuteDash_Implementation(FGameplayEventData EventData)
+void UGameplayAbility_Dash::StartDashEventReceived(FGameplayEventData EventData)
 {
-	if (K2_HasAuthority())
-	{
-		
-		const FVector ForwardVector = GetAvatarActorFromActorInfo()->GetActorForwardVector();
-		const FVector DashVelocity = ForwardVector * DashSpeed;
-		
-		UE_LOG(LogTemp, Warning, TEXT("[Server_executedash] %s"), *ForwardVector.ToString());
-		UE_LOG(LogTemp, Warning, TEXT("[Server_executedash] %s"), *DashVelocity.ToString());
-		FGameplayTag PushActionTag = FGameplayTag::RequestGameplayTag("Ability.Passive.Dash.Activate");
-		PushTarget(GetAvatarActorFromActorInfo(), DashVelocity, PushActionTag);
-	}
+	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	const FVector DashDirection = Character->GetActorForwardVector();
+	const FVector DashVelocity = DashDirection * DashSpeed;
+	PushTarget(GetAvatarActorFromActorInfo(), DashVelocity, FGameplayTag::RequestGameplayTag("Ability.Passive.Dash.Activate"));
 }

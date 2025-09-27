@@ -17,6 +17,8 @@ enum class EMAAbilityInputID : uint8
 	Skill2				UMETA(DisplayName = "Skill2"),
 	Skill3				UMETA(DisplayName = "Skill3"),
 	Skill4				UMETA(DisplayName = "Skill4"),
+	
+	Movement			UMETA(DisplayName = "Movement"),
 
 	Confirm				UMETA(DisplayName = "Confirm"),
 	Cancel				UMETA(DisplayName = "Cancel"),

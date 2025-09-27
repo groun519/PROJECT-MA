@@ -2,7 +2,6 @@
 
 
 #include "GAS/MAGameplayAbility.h"
-#include "GAS/Passive/GAP_Launched.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -181,12 +180,8 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 
 void UMAGameplayAbility::PushSelf(const FVector& PushVel)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[gameplay Abiliy] execute PushSelf"));
-	
 	if (ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter())
 	{
-	    UE_LOG(LogTemp, Warning, TEXT("[gameplay Abiliy] if success"));
-		
 		OwningAvatarCharacter -> LaunchCharacter(PushVel, true, true);
 	}
 }
