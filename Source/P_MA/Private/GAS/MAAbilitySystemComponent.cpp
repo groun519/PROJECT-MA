@@ -40,6 +40,11 @@ void UMAAbilitySystemComponent::ApplyFullStatEffect()
 	AuthApplyGameplayEffect(FullStatEffect);
 }
 
+const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& UMAAbilitySystemComponent::GetAbilities() const
+{
+	return Abilities;
+}
+
 void UMAAbilitySystemComponent::AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())
