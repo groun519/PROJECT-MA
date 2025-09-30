@@ -28,6 +28,8 @@ public:
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Attack)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MoveSpeed)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, AttackSpeed)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Fury)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MaxFury)
 
 
 private:
@@ -36,11 +38,15 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_Attack)			FGameplayAttributeData Attack;
 	UPROPERTY(ReplicatedUsing = OnRep_MoveSpeed)		FGameplayAttributeData MoveSpeed;
 	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)		FGameplayAttributeData AttackSpeed;
+	UPROPERTY(ReplicatedUsing = OnRep_Fury)				FGameplayAttributeData Fury;
+	UPROPERTY(ReplicatedUsing = OnRep_MaxFury)			FGameplayAttributeData MaxFury;
 	
 	UFUNCTION()	void OnRep_Health(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Attack(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Fury(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_MaxFury(const FGameplayAttributeData& OldValue);
 
 };
