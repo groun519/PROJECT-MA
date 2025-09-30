@@ -7,6 +7,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MAAbilitySystemStatics.generated.h"
 
+
+class UGameplayAbility;
 /**
  * 
  */
@@ -21,4 +23,7 @@ public:
 	static FGameplayTag GetMovementTag();
 	static FGameplayTag GetActiveSkillTag();
 
+
+	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
+	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
 };
