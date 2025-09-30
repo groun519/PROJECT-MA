@@ -3,6 +3,12 @@
 
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "AbilitySystemGlobals.h"
+#include "GameplayCueManager.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "GameplayEffectTypes.h"
+
 #include "AbilitySystemComponent.h"
 #include "DrawDebugHelpers.h"
 #include "DebugShapeHelper.h"
@@ -51,18 +57,23 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 			{
 				auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
 				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
-				//LocationInfo->TargetLocation.LiteralTransform.SetLocation(WLoc + FVector::UpVector * 150);
+				
 				Data.TargetData.Add(LocationInfo);
 			}
 
 			{
 				auto* VSData = new FGameplayAbilityTargetData_VirtualSocket();
-				VSData->Shape        = Shape;
-				VSData->LocalOffset  = FVector(LocalOffset.X, LocalOffset.Y, 0);
-				VSData->SphereRadius = Radius;
-				VSData->BoxHalfSize  = FVector(Height, Width, 100.f);
-				VSData->bUseSector	 = bUseSector;
-				VSData->SectorAngle  = SectorAngle;
+				VSData->Shape					= Shape;
+				VSData->LocalOffset				= FVector(LocalOffset.X, LocalOffset.Y, 0);
+				VSData->SphereRadius			= Radius;
+				VSData->BoxHalfSize				= FVector(Height, Width, 100.f);
+				VSData->bUseSector				= bUseSector;
+				VSData->SectorAngle				= SectorAngle;
+
+				VSData->bIgnoreOwner			= bIgnoreOwner;
+				VSData->bDrawDebug				= bDrawDebug;
+				VSData->TargetTeam				= TargetTeam;
+				VSData->TriggerGameplayCueTags	= TriggerGameplayCueTags;
 
 				Data.TargetData.Add(VSData);
 			}
