@@ -39,7 +39,7 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 void AMAPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	CheckMouseCursorShape(); 
+	CheckMouseCursorShape();
 }
 /** 위에까지는 별로 코드입니다 **/
 

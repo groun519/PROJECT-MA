@@ -19,6 +19,8 @@
 #include "Weapon/WeaponComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+#include "DrawDebugHelpers.h"
+
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
 	/** Camera Set **//*
@@ -42,7 +44,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	 * 2. Player cannot use "Origin Rot to Movement"
 	 *		-> Because, player must look mouse pointer.
 	 */
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 	
@@ -97,6 +99,13 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 			Server_SetRotation(LookDir);
 		}
 	}
+	// --- ⭐ 새로운 돌진(Rush) 로직 추가 ---
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(this);
+	if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Rushing")))
+	{
+		// "State.Rushing" 태그가 있다면, 캐릭터의 정면(마우스 방향)으로 계속 이동 입력을 줍니다.
+		AddMovementInput(GetActorForwardVector(), 2.0f);
+	}
 }
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
@@ -116,6 +125,7 @@ void AMAPlayerCharacter::PawnClientRestart()
 		OwningPlayerController->bEnableMouseOverEvents = true;
 
 		FInputModeGameAndUI InputMode;
+		//FInputModeGameOnly InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 자유롭게
 		InputMode.SetHideCursorDuringCapture(false); // 클릭 중에도 마우스 보임
 		OwningPlayerController->SetInputMode(InputMode);
@@ -139,7 +149,10 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(AttackInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleAttackInput);
 		EnhancedInputComp->BindAction(SkillInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleSkillInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
-
+		//Rush 누르는 동안 시전하도록 하는 바인드
+		EnhancedInputComp->BindAction(MovementInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleMovementInput);
+		EnhancedInputComp->BindAction(MovementInputAction, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleMovementInput);
+		
 		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
 		{
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
@@ -201,6 +214,25 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 {
 	const bool bPressed = InputActionValue.Get<bool>();
 	if (!bPressed) return;
+}
+
+// Movement 입력 핸들
+void AMAPlayerCharacter::HandleMovementInput(const FInputActionValue& InputActionValue)
+{
+	const bool bPressed = InputActionValue.Get<bool>();
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	if (bPressed)
+	{
+		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Movement));
+	}
+	else
+	{
+		// 키를 뗐을 때 이 로그가 보여야 합니다.
+		UE_LOG(LogTemp, Warning, TEXT("--- STEP 1/7: Input Released! Calling AbilityLocalInputReleased... ---"));
+		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Movement));
+	}
 }
 
 void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
@@ -285,4 +317,37 @@ void AMAPlayerCharacter::OnRespawn()
 void AMAPlayerCharacter::OnGhostMode()
 {
 	
+}
+
+
+
+void AMAPlayerCharacter::RequestTeleport(FVector TargetLocation)
+{
+	// 클라이언트에서 호출되면 서버 RPC를 통해 서버로 요청을 보냅니다.
+	Server_RequestTeleport(TargetLocation);
+}
+
+void AMAPlayerCharacter::Server_RequestTeleport_Implementation(FVector_NetQuantize Location)
+{
+	// 서버는 요청을 받으면, 즉시 모든 클라이언트에게 텔레포트를 명령합니다.
+	Multicast_PerformTeleport(Location);
+}
+
+void AMAPlayerCharacter::Multicast_PerformTeleport_Implementation(FVector_NetQuantize Location)
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (MoveComp)
+	{
+		// 1. 물리 시뮬레이션을 잠시 멈춥니다.
+		MoveComp->SetMovementMode(MOVE_None);
+	}
+
+	// 2. 캐릭터를 텔레포트시킵니다.
+	TeleportTo(Location, GetActorRotation());
+
+	if (MoveComp)
+	{
+		// 3. 물리 시뮬레이션을 원래대로 되돌립니다.
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
 }

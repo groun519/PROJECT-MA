@@ -19,14 +19,19 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Damage")
-	TSubclassOf<UGameplayEffect> SkillDamageEffect;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* SkillMontage;
 
 	UFUNCTION()
-	void OnJumpEventReceived(FGameplayEventData Data);
+	void StartJumpEventReceived(FGameplayEventData Data);
+
+	// 점프의 수직 속도
+	UPROPERTY(EditDefaultsOnly, Category = "MA|Jump")
+	float JumpZVelocity = 450.0f;
+
+	// 점프의 수평 속도
+	UPROPERTY(EditDefaultsOnly, Category = "MA|Jump")
+	float JumpXYVelocity = 500.0f;
 
 	enum class EMovementNotifyTags : uint8{None,Start,End};
 	FGameplayTag GetJumpTag(EMovementNotifyTags TagType);

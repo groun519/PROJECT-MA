@@ -12,7 +12,7 @@ UGameplayAbility_UpperCut::UGameplayAbility_UpperCut()
 }
 
 void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-                                                const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (!K2_CommitAbility())
 	{
@@ -30,7 +30,7 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 		PlayUpperCutMontageTask->ReadyForActivation();
 	}
 
-	UAbilityTask_WaitGameplayEvent* WaitLaunchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetUpperCutLaunchTag());
+	UAbilityTask_WaitGameplayEvent* WaitLaunchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag("Ability.Skill.Uppercut.Damage"));
 	WaitLaunchEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_UpperCut::StartLaunching);
 	WaitLaunchEventTask->ReadyForActivation();
 }
@@ -45,10 +45,10 @@ void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 	if (K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
-		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed);
+		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed, FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate"));
 		for (FHitResult& HitResult : HitResults)
 		{
-			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed);
+			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed, FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate"));
 			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}

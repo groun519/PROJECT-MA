@@ -47,6 +47,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* InteractInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UInputAction* MovementInputAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
@@ -58,6 +61,7 @@ private:
 	void HandleAttackInput(const FInputActionValue& InputActionValue);
 	void HandleSkillInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
+	void HandleMovementInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	
@@ -90,4 +94,19 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class UPaperSpriteComponent* MinimapSprite;
 	/** 여기 위에 까지는 별도의 코드 입니다 **/
+
+
+	/** 텔레포트 기능 **/
+public:
+	// 이 함수는 GameplayAbility_Teleport에서 호출됩니다.
+	void RequestTeleport(FVector TargetLocation);
+protected:
+	// 서버가 텔레포트 요청을 받아 모든 클라이언트에게 전파합니다.
+	UFUNCTION(Server, Reliable)
+	void Server_RequestTeleport(FVector_NetQuantize Location);
+
+	// 서버와 모든 클라이언트에서 실제 텔레포트를 실행합니다.
+	UFUNCTION(NetMulticast,Reliable)
+	void Multicast_PerformTeleport(FVector_NetQuantize Location);
+
 };

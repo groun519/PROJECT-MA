@@ -2,7 +2,6 @@
 
 
 #include "GAS/MAGameplayAbility.h"
-#include "GAS/Passive/GAP_Launched.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -188,7 +187,7 @@ void UMAGameplayAbility::PushSelf(const FVector& PushVel)
 }
 
 //대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
-void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
+void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel, FGameplayTag Tag)
 {
 	if (!Target)	return;
 
@@ -198,8 +197,9 @@ void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 	HitResult.ImpactNormal = PushVel;
 	HitData -> HitResult = HitResult;
 	EventData.TargetData.Add(HitData);
+	EventData.EventTag = Tag;
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, UGAP_Launched::GetLaunchedAbilityActivationTag(), EventData);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventData.EventTag, EventData);
 }
 
 ACharacter* UMAGameplayAbility::GetOwningAvatarCharacter()
