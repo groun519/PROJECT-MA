@@ -159,7 +159,6 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 
 	if (FuryEffect && !IgnoreTargets.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Applying Fury Effect"));
 		FGameplayEffectSpecHandle FuryEffectSpec = MakeOutgoingGameplayEffectSpec(FuryEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
 		ApplyGameplayEffectSpecToOwner(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), CurrentActivationInfo, FuryEffectSpec);
 
