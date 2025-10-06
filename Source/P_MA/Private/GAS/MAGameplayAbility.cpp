@@ -12,6 +12,7 @@
 #include "MAAbilitySystemStatics.h"
 #include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
+#include "Kismet/GameplayStatics.h"
 
 
 UMAGameplayAbility::UMAGameplayAbility()

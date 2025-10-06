@@ -18,8 +18,9 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-
 #include "DrawDebugHelpers.h"
+#include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/Movement/GAM_Rush.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -72,7 +73,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->OrthoWidth = 1700.0f;
 	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
-
+	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
+	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
+	
 
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())
@@ -90,21 +93,21 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	FVector LookDir;
-	if (GetLookDirectionToMouse(LookDir))
+	if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
 	{
-		SetActorRotation(FRotator(0.f, LookDir.Rotation().Yaw, 0.f));
-
+		const FRotator CurrentRotation = GetActorRotation();
+		const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
+		FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime,RotationInterpSpeed);
+		SetActorRotation(NewRotation);
+		
 		if (!HasAuthority())
 		{
 			Server_SetRotation(LookDir);
 		}
 	}
-	// --- ⭐ 새로운 돌진(Rush) 로직 추가 ---
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(this);
-	if (ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Rushing")))
+	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
-		// "State.Rushing" 태그가 있다면, 캐릭터의 정면(마우스 방향)으로 계속 이동 입력을 줍니다.
-		AddMovementInput(GetActorForwardVector(), 2.0f);
+		AddMovementInput(GetActorForwardVector(), RushingSpeed*DeltaTime);
 	}
 }
 
@@ -125,7 +128,6 @@ void AMAPlayerCharacter::PawnClientRestart()
 		OwningPlayerController->bEnableMouseOverEvents = true;
 
 		FInputModeGameAndUI InputMode;
-		//FInputModeGameOnly InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 자유롭게
 		InputMode.SetHideCursorDuringCapture(false); // 클릭 중에도 마우스 보임
 		OwningPlayerController->SetInputMode(InputMode);
@@ -146,16 +148,13 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	if (EnhancedInputComp)
 	{
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleMoveInput);
-		EnhancedInputComp->BindAction(AttackInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleAttackInput);
-		EnhancedInputComp->BindAction(SkillInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleSkillInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
-		//Rush 누르는 동안 시전하도록 하는 바인드
-		EnhancedInputComp->BindAction(MovementInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleMovementInput);
-		EnhancedInputComp->BindAction(MovementInputAction, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleMovementInput);
 		
 		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
 		{
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 		}
 	}
 }
@@ -186,29 +185,6 @@ void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionVal
 	AddMovementInput(GetMoveForwardDir() * InputVal.Y + GetMoveRightDir() * InputVal.X);
 }
 
-void AMAPlayerCharacter::HandleAttackInput(const FInputActionValue& InputActionValue)
-{
-	const bool bPressed = InputActionValue.Get<bool>();
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-	
-	if (bPressed)
-		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Attack));
-	else
-		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Attack));
-}
-
-void AMAPlayerCharacter::HandleSkillInput(const FInputActionValue& InputActionValue)
-{
-	const bool bPressed = InputActionValue.Get<bool>();
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-	
-	if (bPressed)
-		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Skill));
-	else
-		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Skill));
-}
 
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
@@ -216,27 +192,10 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	if (!bPressed) return;
 }
 
-// Movement 입력 핸들
-void AMAPlayerCharacter::HandleMovementInput(const FInputActionValue& InputActionValue)
-{
-	const bool bPressed = InputActionValue.Get<bool>();
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-	
-	if (bPressed)
-	{
-		ASC->AbilityLocalInputPressed(static_cast<int32>(EMAAbilityInputID::Movement));
-	}
-	else
-	{
-		// 키를 뗐을 때 이 로그가 보여야 합니다.
-		UE_LOG(LogTemp, Warning, TEXT("--- STEP 1/7: Input Released! Calling AbilityLocalInputReleased... ---"));
-		ASC->AbilityLocalInputReleased(static_cast<int32>(EMAAbilityInputID::Movement));
-	}
-}
-
 void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Release caught for InputID %d, value = %s"), 
+		(int32)InputID, *InputActionValue.ToString());
 	bool bPressed = InputActionValue.Get<bool>();
 	if (bPressed)
 	{
@@ -245,6 +204,18 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	else
 	{
 		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+		if (InputID == EMAAbilityInputID::Movement)
+		{
+			// 강제로 현재 활성화된 Rush Ability에 Release 신호 보내기
+			FGameplayAbilitySpec* Spec = GetAbilitySystemComponent()->FindAbilitySpecFromInputID((int32)InputID);
+			if (Spec && Spec->IsActive())
+			{
+				if (UGAM_Rush* RushAbility = Cast<UGAM_Rush>(Spec->Ability))
+				{
+					RushAbility->HandleInputReleased(0.f);
+				}
+			}
+		}
 	}
 	if (InputID == EMAAbilityInputID::Attack)
 	{
@@ -320,34 +291,7 @@ void AMAPlayerCharacter::OnGhostMode()
 }
 
 
+/*************************************************************/
+/**								SKILL						**/
+/*************************************************************/
 
-void AMAPlayerCharacter::RequestTeleport(FVector TargetLocation)
-{
-	// 클라이언트에서 호출되면 서버 RPC를 통해 서버로 요청을 보냅니다.
-	Server_RequestTeleport(TargetLocation);
-}
-
-void AMAPlayerCharacter::Server_RequestTeleport_Implementation(FVector_NetQuantize Location)
-{
-	// 서버는 요청을 받으면, 즉시 모든 클라이언트에게 텔레포트를 명령합니다.
-	Multicast_PerformTeleport(Location);
-}
-
-void AMAPlayerCharacter::Multicast_PerformTeleport_Implementation(FVector_NetQuantize Location)
-{
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (MoveComp)
-	{
-		// 1. 물리 시뮬레이션을 잠시 멈춥니다.
-		MoveComp->SetMovementMode(MOVE_None);
-	}
-
-	// 2. 캐릭터를 텔레포트시킵니다.
-	TeleportTo(Location, GetActorRotation());
-
-	if (MoveComp)
-	{
-		// 3. 물리 시뮬레이션을 원래대로 되돌립니다.
-		MoveComp->SetMovementMode(MOVE_Walking);
-	}
-}

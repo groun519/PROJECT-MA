@@ -66,8 +66,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 				{
 					FGameplayTag EventTag = GetJumpTag();
 					Data.EventTag = EventTag;
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetJumpTag(), Data);
-					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 				}
 			}
 			
@@ -101,8 +100,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 				{
 					FGameplayTag EventTag = GetDashTag();
 					Data.EventTag = EventTag;
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetDashTag(), Data);
-					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 				}
 			}
 
@@ -130,8 +128,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 				{
 					FGameplayTag EventTag = GetRushTag();
 					Data.EventTag = EventTag;
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetRushTag(), Data);
-					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 				}
 			}
 			
@@ -163,8 +160,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 				{
 					FGameplayTag EventTag = GetTeleportTag();
 					Data.EventTag = EventTag;
-					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, GetTeleportTag(), Data);
-					UE_LOG(LogTemp,Warning,TEXT("[SendNewPlayerTans]	Event Tag : %s "), *Data.EventTag.ToString());
+					UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 					
 				}
 			}

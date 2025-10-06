@@ -4,28 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
-#include "GameplayAbility_Dash.generated.h"
+#include "GAP_Launch.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UGameplayAbility_Dash : public UMAGameplayAbility
+class UGAP_Launch : public UMAGameplayAbility
 {
 	GENERATED_BODY()
 
 public:
-	UGameplayAbility_Dash();
+	UGAP_Launch();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-
-protected:
-	UFUNCTION()
-	void StartDashEventReceived(FGameplayEventData EventData);
 	
-private:
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	UAnimMontage* SkillMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Dash")
-	float DashSpeed = 2000.0f;
 };

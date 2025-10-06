@@ -12,11 +12,11 @@ enum class EMAAbilityInputID : uint8
 	None				UMETA(DisplayName = "None"),
 
 	Attack				UMETA(DisplayName = "Attack"),
-	Skill				UMETA(DisplayName = "Skill"),
 	Skill1				UMETA(DisplayName = "Skill1"),
 	Skill2				UMETA(DisplayName = "Skill2"),
 	Skill3				UMETA(DisplayName = "Skill3"),
 	Skill4				UMETA(DisplayName = "Skill4"),
+	Ultimate			UMETA(DisplayName = "Ultimate"),
 	
 	Movement			UMETA(DisplayName = "Movement"),
 
@@ -30,6 +30,7 @@ struct FGenericDamageEffectDef
 	GENERATED_BODY()
 
 public:
+	FGenericDamageEffectDef();
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
