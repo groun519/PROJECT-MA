@@ -43,6 +43,13 @@ void UGAM_Dash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		EventTask->EventReceived.AddDynamic(this, &UGAM_Dash::OnGameplayEventReceived);
 		EventTask->ReadyForActivation();
 	}
+
+	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Damage"));
+	if (AttackEventTask)
+	{
+		AttackEventTask->EventReceived.AddDynamic(this, &UGAM_Dash::DoDamage);
+		AttackEventTask->ReadyForActivation();
+	}
 }
 
 

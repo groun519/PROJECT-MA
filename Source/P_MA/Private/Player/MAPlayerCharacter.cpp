@@ -107,7 +107,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	}
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
-		AddMovementInput(GetActorForwardVector(), RushingSpeed*DeltaTime);
+		AddMovementInput(GetActorForwardVector(), RushingSpeed);
 	}
 }
 
@@ -194,28 +194,16 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 
 void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Release caught for InputID %d, value = %s"), 
-		(int32)InputID, *InputActionValue.ToString());
 	bool bPressed = InputActionValue.Get<bool>();
 	if (bPressed)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("1. Ability Local Input Pressed"));
 		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
 	}
 	else
 	{
+		UE_LOG(LogTemp, Warning, TEXT("3. Ability Local Input Released"));
 		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
-		if (InputID == EMAAbilityInputID::Movement)
-		{
-			// 강제로 현재 활성화된 Rush Ability에 Release 신호 보내기
-			FGameplayAbilitySpec* Spec = GetAbilitySystemComponent()->FindAbilitySpecFromInputID((int32)InputID);
-			if (Spec && Spec->IsActive())
-			{
-				if (UGAM_Rush* RushAbility = Cast<UGAM_Rush>(Spec->Ability))
-				{
-					RushAbility->HandleInputReleased(0.f);
-				}
-			}
-		}
 	}
 	if (InputID == EMAAbilityInputID::Attack)
 	{

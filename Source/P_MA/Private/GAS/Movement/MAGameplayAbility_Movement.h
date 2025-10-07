@@ -29,8 +29,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	TObjectPtr<UAnimMontage> MontageToPlay;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	TSubclassOf<UGameplayEffect> SkillDamageEffect;
+
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> EventTask;
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> AttackEventTask;
+
+	UFUNCTION()
+	void DoDamage(FGameplayEventData EventData);
 };

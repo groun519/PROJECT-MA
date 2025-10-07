@@ -39,4 +39,16 @@ void UMAGameplayAbility_Movement::EndAbility(const FGameplayAbilitySpecHandle Ha
 	}
 }
 
+void UMAGameplayAbility_Movement::DoDamage(FGameplayEventData EventData)
+{
+	if (K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+		for (FHitResult HitResult : HitResults)
+		{
+			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+		}
+	}
+}
+
 

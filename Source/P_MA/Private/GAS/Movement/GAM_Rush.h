@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS/Movement/MAGameplayAbility_Movement.h"
 #include "GAM_Rush.generated.h"
 
@@ -17,12 +19,30 @@ class UGAM_Rush : public UMAGameplayAbility_Movement
 	
 public:
 	UGAM_Rush();
+	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+
+protected:
+	UFUNCTION()
+	void OnInputPressed(float TimePressed);
 
 	UFUNCTION()
-	void HandleInputReleased(float TimeWaited);
+	void OnInputReleased(float TimePressed);
+
+	UFUNCTION()
+	void OnTimeout();
+
 private:
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitInputRelease> WaitInputReleaseTask;
+
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitDelay> TimeoutTask;
 	
-	void WaitInputRelease();
+	UPROPERTY(EditDefaultsOnly, Category="Rush")
+	float MaxHoldDuration = 3.5f;
+
+	void MontageToEndSection();
+
+	bool bIsEnd = false;
 };
