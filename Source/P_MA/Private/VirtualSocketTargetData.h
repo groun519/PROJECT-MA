@@ -29,6 +29,19 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SectorAngle = 0.f;
 
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIgnoreOwner = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bDrawDebug = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TEnumAsByte<ETeamAttitude::Type> TargetTeam = ETeamAttitude::Hostile;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTagContainer TriggerGameplayCueTags = FGameplayTagContainer();
+
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
 		return StaticStruct();
@@ -43,6 +56,13 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 		Ar << BoxHalfSize;
 		Ar << bUseSector;
 		Ar << SectorAngle;
+		Ar << bIgnoreOwner;
+		Ar << bDrawDebug;
+		Ar << TargetTeam;
+		for (FGameplayTag CueTag : TriggerGameplayCueTags)
+		{
+			Ar << CueTag;
+		}
 		
 		bOutSuccess = true;
 		return true;

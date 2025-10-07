@@ -8,6 +8,7 @@
 
 #include "DebugShapeHelper.h"
 
+#include "GenericTeamAgentInterface.h"
 #include "AnimNotify_SendTracePoint.generated.h"
 
 
@@ -52,8 +53,20 @@ private:
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
 	FRotator LocalRotation	= FRotator::ZeroRotator;
 
+	// Others
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	FGameplayTagContainer TriggerGameplayCueTags;
 
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	TEnumAsByte<ETeamAttitude::Type> TargetTeam = ETeamAttitude::Hostile;
+	
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	bool bIgnoreOwner = true;
+	
 	/** Debug **/
+	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
+	bool bDrawDebug = true;
+	
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug")
 	FColor DebugColor = FColor::Green;
 

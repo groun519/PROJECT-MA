@@ -4,11 +4,13 @@
 #include "GAS/MAGameplayAbility.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/Character.h"
 
 #include "DebugShapeHelper.h"
+#include "GameplayCueManager.h"
 #include "MAAbilitySystemStatics.h"
 #include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
@@ -134,6 +136,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	}
 	TArray<FHitResult> OutHits;
 	FDebugShapeHelper::ConvertOverlapsToHitResults(OutResults, OutHits);
+	
 	return OutHits;
 }
 
@@ -162,21 +165,36 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	}
 	
 	// 2) 기존 범용 함수로 위임
+	TArray<FHitResult> OutHits;
 	if (VS->Shape == EVA_Shape::Sphere)
 	{
-		return GetHitResultFromSweepLocationTargetData(
+		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, FVector(VS->SphereRadius,0,0),
 			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
-			TargetTeam, EVA_Shape::Sphere, bDrawDebug, bIgnoreSelf);
+			VS->TargetTeam, EVA_Shape::Sphere, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 	else // Box
 	{
 		// 주의: 현재 박스는 ZeroRotator로 트레이스함. 박스 회전이 필요하면 아래 “선택 개선” 참고.
-		return GetHitResultFromSweepLocationTargetData(
+		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize,
 			VS->LocalRotation, false, 0,
-			TargetTeam, EVA_Shape::Box, bDrawDebug, bIgnoreSelf);
+			VS->TargetTeam, EVA_Shape::Box, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
+
+	// 3) GameplayCue 실행
+	for (FHitResult& Result : OutHits)
+	{
+		FGameplayCueParameters CueParam;
+		CueParam.Location = Result.ImpactPoint;
+		CueParam.Normal = Result.ImpactNormal;
+		for (const FGameplayTag& GameplayCueTag : VS->TriggerGameplayCueTags)
+		{
+			UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCue(Result.GetActor(), GameplayCueTag, EGameplayCueEvent::Executed, CueParam);
+		}
+	}
+
+	return OutHits;
 }
 
 void UMAGameplayAbility::PushSelf(const FVector& PushVel)
