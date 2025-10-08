@@ -29,6 +29,22 @@ FGameplayTag UMAAbilitySystemStatics::GetActiveSkillTag()
 	return FGameplayTag::RequestGameplayTag("Ability.Skill");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetRushEndTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush.End");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetRotationLockTag()
+{
+	return FGameplayTag::RequestGameplayTag("Player.State.RotationLock");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
+{
+	return FGameplayTag::RequestGameplayTag("Player.State.Rushing");
+}
+
+
 float UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)
 {
 	if (!Ability)

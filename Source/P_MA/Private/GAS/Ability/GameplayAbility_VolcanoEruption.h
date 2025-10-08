@@ -28,9 +28,6 @@ private:
 	UFUNCTION()
 	void DoDamage(FGameplayEventData EventData);
 
-	UFUNCTION()
-	void JumpToTarget(FGameplayEventData EventData);
-
 	static FGameplayTag GetVolcanoEruptionDamageTag();
 
 	FVector TargetLocation;

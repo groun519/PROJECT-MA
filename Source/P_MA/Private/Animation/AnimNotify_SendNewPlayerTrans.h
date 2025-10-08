@@ -73,6 +73,9 @@ struct P_MA_API FDashData : public FGameplayAbilityTargetData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DashForce = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector TargetLocation = FVector::ZeroVector;
 		
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
@@ -84,6 +87,8 @@ struct P_MA_API FDashData : public FGameplayAbilityTargetData
 	{
 		Ar << OwnerLocation;
 		Ar << OwnerRotation;
+		Ar << DashForce;
+		Ar << TargetLocation;
 		
 		bOutSuccess = true;
 		return true;

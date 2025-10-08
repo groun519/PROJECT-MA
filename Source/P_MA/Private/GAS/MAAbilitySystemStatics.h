@@ -23,6 +23,10 @@ public:
 	static FGameplayTag GetMovementTag();
 	static FGameplayTag GetActiveSkillTag();
 
+	static FGameplayTag GetRushEndTag();
+	
+	static FGameplayTag GetRotationLockTag();
+	static FGameplayTag GetRushingTag();
 
 	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
 	static float GetStaticCostForAbility(const UGameplayAbility* Ability);

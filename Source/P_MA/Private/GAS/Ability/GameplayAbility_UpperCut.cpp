@@ -19,6 +19,7 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 		K2_EndAbility();
 		return;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("2. Activate Ability"));
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
