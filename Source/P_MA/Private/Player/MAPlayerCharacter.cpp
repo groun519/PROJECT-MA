@@ -15,6 +15,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -48,6 +49,8 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+
+	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Hero Attribute Set");
 	
 	/** Create SKCs **//*
 	 * - Child Relationship : Mesh - Handle

@@ -9,7 +9,7 @@ class UMASkillSlotWidget;
 class UMAPassiveSlotWidget;
 class UHorizontalBox;
 class UMAValueGauge;
-
+class UMAMobilityChargeWidget;
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
 {
@@ -40,6 +40,9 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
+
+	UPROPERTY(meta = (BindWidget))
+	UMAMobilityChargeWidget* ChargeBar;
 
 private:
 	void CreateSkillSlots(int32 NumSlots);
