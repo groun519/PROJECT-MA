@@ -40,10 +40,7 @@ protected:
 		EVA_Shape TraceObjType = EVA_Shape::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true);
 
-	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(
-		const FGameplayAbilityTargetDataHandle& Handle,
-		ETeamAttitude::Type TargetTeam,
-		bool bDrawDebug, bool bIgnoreSelf);
+	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
 
 	UFUNCTION()
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }

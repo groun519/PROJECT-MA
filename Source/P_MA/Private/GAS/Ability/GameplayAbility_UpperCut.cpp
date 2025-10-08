@@ -45,7 +45,7 @@ void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
 	if (K2_HasAuthority())
 	{
-		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
 		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed, FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate"));
 		for (FHitResult& HitResult : HitResults)
 		{

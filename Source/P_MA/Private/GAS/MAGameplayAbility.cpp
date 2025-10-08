@@ -141,9 +141,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 }
 
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
-	const FGameplayAbilityTargetDataHandle& Handle,
-	ETeamAttitude::Type TargetTeam,
-	bool bDrawDebug, bool bIgnoreSelf)
+	const FGameplayAbilityTargetDataHandle& Handle)
 {
 	// 1) VS 데이터/위치 추출
 	const FGameplayAbilityTargetData_VirtualSocket* VS = nullptr;

@@ -43,7 +43,7 @@ void UGameplayAbility_Spin::DoDamage(FGameplayEventData EventData)
 {
 	if (K2_HasAuthority())
 	{
-		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData, ETeamAttitude::Hostile, ShouldDrawDebug(), true);
+		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
 		for (FHitResult& HitResult : HitResults)
 		{
 			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));

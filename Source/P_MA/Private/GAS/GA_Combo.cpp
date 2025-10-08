@@ -135,10 +135,7 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
 	TArray<FHitResult> HitResults =
-		GetHitResultFromVirtualSocketTargetData(
-			Data.TargetData,
-			ETeamAttitude::Hostile,
-			ShouldDrawDebug(),true);
+		GetHitResultFromVirtualSocketTargetData(Data.TargetData);
 
 	for (const FHitResult& HitResult : HitResults)
 	{
