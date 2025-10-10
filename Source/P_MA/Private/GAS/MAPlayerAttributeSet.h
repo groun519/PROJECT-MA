@@ -22,28 +22,14 @@ class UMAPlayerAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 
 public:
-	
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, Health)
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, MaxHealth)
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, Attack)
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, MoveSpeed)
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, AttackSpeed)
 	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, Gold)
-
+	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, AttackRange)
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_Health)			FGameplayAttributeData Health;
-	UPROPERTY(ReplicatedUsing = OnRep_MaxHealth)		FGameplayAttributeData MaxHealth;
-	UPROPERTY(ReplicatedUsing = OnRep_Attack)			FGameplayAttributeData Attack;
-	UPROPERTY(ReplicatedUsing = OnRep_MoveSpeed)		FGameplayAttributeData MoveSpeed;
-	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)		FGameplayAttributeData AttackSpeed;
 	UPROPERTY(ReplicatedUsing = OnRep_Gold)				FGameplayAttributeData Gold;
+	UPROPERTY(ReplicatedUsing = OnRep_AttackRange)		FGameplayAttributeData AttackRange;
 	
-	UFUNCTION()	void OnRep_Health(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_Attack(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Gold(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_AttackRange(const FGameplayAttributeData& OldValue);
 
 };

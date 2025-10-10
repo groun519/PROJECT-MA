@@ -31,6 +31,8 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Attack, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Armor, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ArmorPenetration, COND_None, REPNOTIFY_Always)
 }
 
 void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -51,4 +53,6 @@ DEFINE_REPNOTIFY(MaxHealth)
 DEFINE_REPNOTIFY(Attack)
 DEFINE_REPNOTIFY(MoveSpeed)
 DEFINE_REPNOTIFY(AttackSpeed)
+DEFINE_REPNOTIFY(Armor)
+DEFINE_REPNOTIFY(ArmorPenetration)
 

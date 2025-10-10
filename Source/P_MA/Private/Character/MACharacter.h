@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
@@ -70,6 +71,8 @@ private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
+
+	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;

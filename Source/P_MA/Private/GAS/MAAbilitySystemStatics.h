@@ -28,6 +28,14 @@ public:
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
 
+	static FGameplayTag GetHealthFullStatTag();
+	static FGameplayTag GetHealthEmptyStatTag();
+
+	static FGameplayTag GetPlayerRoleTag();
+	static FGameplayTag GetGoldAttributeTag();
+
+	static bool IsPlayer(const AActor* ActorToCheck);
+
 	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
 	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
 };

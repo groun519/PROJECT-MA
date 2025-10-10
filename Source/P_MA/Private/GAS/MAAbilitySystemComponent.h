@@ -18,27 +18,23 @@ class UMAAbilitySystemComponent : public UAbilitySystemComponent
 
 public:
 	UMAAbilitySystemComponent();
-	void ApplyInitialEffects();
-	void GiveInitialAbilities();
+	void InitializeBaseAttributes();
+	void ServerSideInit();
 	void ApplyFullStatEffect();
 	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
 	
 private:
+	void ApplyInitialEffects();
+	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TSubclassOf<UGameplayEffect> FullStatEffect;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TSubclassOf<UGameplayEffect> DeathEffect;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TArray<TSubclassOf<UGameplayEffect>> InitialEffects;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
+	class UPA_AbilitySystemGenerics* AbilitySystemGenerics;
 };
