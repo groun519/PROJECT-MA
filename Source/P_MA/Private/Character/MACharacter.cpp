@@ -35,8 +35,9 @@ AMACharacter::AMACharacter()
 void AMACharacter::ServerSideInit()
 {
 	MAAbilitySystemComponent->InitAbilityActorInfo(this, this);
-	MAAbilitySystemComponent->ApplyInitialEffects();
-	MAAbilitySystemComponent->GiveInitialAbilities();
+	//MAAbilitySystemComponent->ApplyInitialEffects();
+	//MAAbilitySystemComponent->GiveInitialAbilities();
+	MAAbilitySystemComponent->ServerSideInit();
 }
 
 void AMACharacter::ClientSideInit()
@@ -135,6 +136,7 @@ void AMACharacter::BindGASChangeDelegates()
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
+		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
 
@@ -164,6 +166,11 @@ void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 		StopAnimMontage(StunMontage);
 	}
 	
+}
+
+void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
 }
 
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)

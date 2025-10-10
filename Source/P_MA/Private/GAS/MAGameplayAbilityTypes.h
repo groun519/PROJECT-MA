@@ -37,3 +37,31 @@ public:
 	UPROPERTY(EditAnywhere)
 	FVector PushVelocity;
 };
+
+USTRUCT(BlueprintType)
+struct FPlayerBaseStats : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> Class;
+
+	UPROPERTY(EditAnywhere)
+	float BaseMaxHealth;
+
+	UPROPERTY(EditAnywhere)
+	float BaseAttack;
+	
+	UPROPERTY(EditAnywhere)
+	float BaseAttackRange;
+
+	UPROPERTY(EditAnywhere)
+	float BaseMoveSpeed;
+	
+	UPROPERTY(EditAnywhere)
+	float BaseArmor;
+
+	UPROPERTY(EditAnywhere)
+	float BaseArmorPenetration;
+	
+};

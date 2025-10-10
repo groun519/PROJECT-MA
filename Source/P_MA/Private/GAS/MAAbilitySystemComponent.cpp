@@ -2,7 +2,13 @@
 
 
 #include "GAS/MAAbilitySystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayEffectExtension.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAplayerAttributeSet.h"
+#include "GAS/PA_AbilitySystemGenerics.h"
 
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
@@ -13,7 +19,10 @@ void UMAAbilitySystemComponent::ApplyInitialEffects()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
-	for (const TSubclassOf<UGameplayEffect>& EffectClass : InitialEffects)
+	if (!AbilitySystemGenerics)
+		return;
+
+	for (const TSubclassOf<UGameplayEffect>& EffectClass : AbilitySystemGenerics->GetInitialEffects())
 	{
 		FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingSpec(EffectClass, 1, MakeEffectContext());
 		ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
@@ -33,11 +42,21 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 	{
 		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
 	}
+
+	if (!AbilitySystemGenerics)
+		return;
+
+	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
+	{
+		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
+	}
 }
 
 void UMAAbilitySystemComponent::ApplyFullStatEffect()
 {
-	AuthApplyGameplayEffect(FullStatEffect);
+	if (!AbilitySystemGenerics)
+		return;
+	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
 }
 
 const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& UMAAbilitySystemComponent::GetAbilities() const
@@ -73,10 +92,92 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 	 *		=>	if MAAbilitySystemComponent not have Owner, return.
 	 *			(if Character is Dead)
 	 */
-	if (!GetOwner()) return;
+	// if (!GetOwner()) return;
+	//
+	// if (ChangeData.NewValue <= 0 && GetOwner()->HasAuthority() && DeathEffect)
+	// {
+	// 	AuthApplyGameplayEffect(DeathEffect);
+	// }
 	
-	if (ChangeData.NewValue <= 0 && GetOwner()->HasAuthority() && DeathEffect)
+		// 1. 안전장치: 주인 없거나 서버 아니면 중단
+	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
+
+		// --- 가득 참상태 관리 ---
+	bool bFound = false;
+	float MaxHealth = GetGameplayAttributeValue(UMAAttributeSet::GetMaxHealthAttribute(), bFound);
+
+	if (bFound && ChangeData.NewValue >= MaxHealth)
 	{
-		AuthApplyGameplayEffect(DeathEffect);
+		// 여기서는 죽음 효과를 적용하면 안됨
+		if (!HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHealthFullStatTag()))
+		{
+			AddLooseGameplayTag(UMAAbilitySystemStatics::GetHealthFullStatTag());
+		}
 	}
+	else
+	{
+		RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetHealthFullStatTag());
+	}
+
+	// --- 바닥남 상태 관리 ---
+	if (ChangeData.NewValue <= 0)
+	{
+		if (!HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag()))
+		{
+			AddLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
+
+			// 죽음 효과는 반드시 체력이 0 이하일 때만 적용
+			if(AbilitySystemGenerics && AbilitySystemGenerics->GetDeathEffect())
+				AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
+
+			FGameplayEventData DeadAbilityEventData;
+			if(ChangeData.GEModData)
+				DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UMAAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData);
+		}
+	}
+	else
+	{
+			// 체력이 0보다 클 때 태그를 제거하는 구문
+		RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
+	}
+}
+
+
+void UMAAbilitySystemComponent::InitializeBaseAttributes()
+{
+	if (!AbilitySystemGenerics || ! AbilitySystemGenerics->GetBaseStatDataTable() || !GetOwner())
+	{
+		return;
+	}
+
+	const UDataTable* BaseStatDataTable = AbilitySystemGenerics->GetBaseStatDataTable();
+	const FPlayerBaseStats* BaseStats = nullptr;
+
+	for (const TPair<FName, uint8*>& DataPair : BaseStatDataTable->GetRowMap())
+	{
+		BaseStats = BaseStatDataTable->FindRow<FPlayerBaseStats>(DataPair.Key, "");
+		if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+		{
+			break;
+		}
+	}
+
+	if (BaseStats)
+	{
+		SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
+		SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
+		SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
+		SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
+		SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
+		SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
+	}
+}
+
+void UMAAbilitySystemComponent::ServerSideInit()
+{
+	InitializeBaseAttributes();
+	ApplyInitialEffects();
+	GiveInitialAbilities();
 }

@@ -3,6 +3,9 @@
 
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Abilities/GameplayAbility.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
@@ -44,6 +47,39 @@ FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Rushing");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("stats.health.full");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("stats.health.empty");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetPlayerRoleTag()
+{
+	return FGameplayTag::RequestGameplayTag("role.Player");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
+{
+	return FGameplayTag::RequestGameplayTag("attr.gold");
+}
+
+bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
+{
+	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);
+	if (ActorISA)
+	{
+		UAbilitySystemComponent* ActorASC = ActorISA->GetAbilitySystemComponent();
+		if (ActorASC)
+		{
+			return ActorASC->HasMatchingGameplayTag(GetPlayerRoleTag());
+		}
+	}
+	return false;
+}
 
 float UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)
 {
