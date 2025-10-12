@@ -22,21 +22,6 @@ FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 	return FGameplayTag::RequestGameplayTag("Stats.Stun");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetMovementTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Movement");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetActiveSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Skill");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetRushEndTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Movement.Rush.End");
-}
-
 FGameplayTag UMAAbilitySystemStatics::GetRotationLockTag()
 {
 	return FGameplayTag::RequestGameplayTag("Player.State.RotationLock");
@@ -49,12 +34,12 @@ FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.health.full");
+	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.health.empty");
+	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetPlayerRoleTag()
@@ -65,6 +50,31 @@ FGameplayTag UMAAbilitySystemStatics::GetPlayerRoleTag()
 FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 {
 	return FGameplayTag::RequestGameplayTag("attr.gold");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillAttributeTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attribute");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetChargeSkillTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Charge");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHoldSkillTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Hold");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetChainSkillTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Chain");
 }
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)

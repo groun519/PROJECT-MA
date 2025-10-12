@@ -8,6 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "GAS/WeaponEffectInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "Abilities/GameplayAbility.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "MACharacter.generated.h"
@@ -40,7 +41,7 @@ struct FMaterialParamDataPair
 };
 
 UCLASS()
-class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
+class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface, public IWeaponEffectInterface
 {
 	GENERATED_BODY()
 
@@ -173,4 +174,12 @@ public:
 	// 서버에서 파라미터를 바꾸는 함수
 	UFUNCTION(Server, Reliable)
 	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
+
+	/***************************************************************/
+	/*								Skill						   */
+	/***************************************************************/
+public:
+	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
+	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;
+	virtual void DeactivateWeaponEffect() override;
 };

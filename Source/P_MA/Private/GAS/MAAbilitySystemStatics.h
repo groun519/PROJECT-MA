@@ -20,10 +20,6 @@ public:
 	static FGameplayTag GetBasicAttackAbilityTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
-	static FGameplayTag GetMovementTag();
-	static FGameplayTag GetActiveSkillTag();
-
-	static FGameplayTag GetRushEndTag();
 	
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
@@ -33,6 +29,12 @@ public:
 
 	static FGameplayTag GetPlayerRoleTag();
 	static FGameplayTag GetGoldAttributeTag();
+
+	static FGameplayTag GetMontageDamageTag();
+	static FGameplayTag GetSkillAttributeTag();
+	static FGameplayTag GetChargeSkillTag();
+	static FGameplayTag GetHoldSkillTag();
+	static FGameplayTag GetChainSkillTag();
 
 	static bool IsPlayer(const AActor* ActorToCheck);
 

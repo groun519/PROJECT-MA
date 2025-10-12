@@ -381,10 +381,23 @@ void AMACharacter::ApplyMaterialParam()
 }
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
-	const FMaterialParamData& EyeData)
+                                                           const FMaterialParamData& EyeData)
 {
 	MaterialParamValue.BodyData = BodyData;
 	MaterialParamValue.EyeData  = EyeData;
 
 	ApplyMaterialParam();
+}
+
+UNiagaraComponent* AMACharacter::GetWeaponEffectComponent() const
+{
+	return nullptr;
+}
+
+void AMACharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
+{
+}
+
+void AMACharacter::DeactivateWeaponEffect()
+{
 }

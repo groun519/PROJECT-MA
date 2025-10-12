@@ -28,11 +28,11 @@ struct P_MA_API FJumpData : public FGameplayAbilityTargetData
 
 	// 해당 노티파이 시점의 Owner 캐릭터 위치
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector OwnerLocation = FVector();
+	FVector OwnerLocation = FVector::ZeroVector;
 
 	// 해당 노티파이 시점의 Owner 캐릭터 방향
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRotator OwnerRotation = FRotator();
+	FRotator OwnerRotation = FRotator::ZeroRotator;
 	
 	// Start -> End 타임라인 기준 소요시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -66,10 +66,10 @@ struct P_MA_API FDashData : public FGameplayAbilityTargetData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector OwnerLocation = FVector();
+	FVector OwnerLocation = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRotator OwnerRotation = FRotator();
+	FRotator OwnerRotation = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DashForce = 0.f;
@@ -101,10 +101,10 @@ struct P_MA_API FRushData : public FGameplayAbilityTargetData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector OwnerLocation = FVector();
+	FVector OwnerLocation = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRotator OwnerRotation = FRotator();
+	FRotator OwnerRotation = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float RushForce = 0.f;
@@ -134,10 +134,10 @@ struct P_MA_API FTeleportData : public FGameplayAbilityTargetData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector OwnerLocation = FVector();
+	FVector OwnerLocation = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FRotator OwnerRotation = FRotator();
+	FRotator OwnerRotation = FRotator::ZeroRotator;
 
 	virtual UScriptStruct* GetScriptStruct() const override
 	{

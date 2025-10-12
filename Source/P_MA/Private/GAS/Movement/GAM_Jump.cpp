@@ -45,7 +45,7 @@ void UGAM_Jump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		SlamTask->ReadyForActivation();
 	}
 
-	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Damage"));
+	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,UMAAbilitySystemStatics::GetMontageDamageTag());
 	if (AttackEventTask)
 	{
 		AttackEventTask->EventReceived.AddDynamic(this, &UGAM_Jump::DoDamage);

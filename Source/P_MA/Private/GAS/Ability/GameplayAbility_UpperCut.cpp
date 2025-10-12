@@ -19,7 +19,6 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 		K2_EndAbility();
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("2. Activate Ability"));
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
@@ -31,14 +30,14 @@ void UGameplayAbility_UpperCut::ActivateAbility(const FGameplayAbilitySpecHandle
 		PlayUpperCutMontageTask->ReadyForActivation();
 	}
 
-	UAbilityTask_WaitGameplayEvent* WaitLaunchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag("Ability.Skill.Uppercut.Damage"));
+	UAbilityTask_WaitGameplayEvent* WaitLaunchEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetMontageDamageTag());
 	WaitLaunchEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_UpperCut::StartLaunching);
 	WaitLaunchEventTask->ReadyForActivation();
 }
 
 FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.Skill.Uppercut.Damage");
+	return FGameplayTag::RequestGameplayTag("Event.Montage.Launch");
 }
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
@@ -46,10 +45,10 @@ void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 	if (K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed, FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate"));
+		PushTarget(GetAvatarActorFromActorInfo(), FVector::UpVector * UpperCutLaunchSpeed,GetUpperCutLaunchTag());
 		for (FHitResult& HitResult : HitResults)
 		{
-			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed, FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate"));
+			PushTarget(HitResult.GetActor(), FVector::UpVector * UpperCutLaunchSpeed, GetUpperCutLaunchTag());
 			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}

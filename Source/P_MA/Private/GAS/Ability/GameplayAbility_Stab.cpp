@@ -33,7 +33,7 @@ void UGameplayAbility_Stab::ActivateAbility(const FGameplayAbilitySpecHandle Han
 
 	if (K2_HasAuthority())
 	{
-		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetStabDamageTag());
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetMontageDamageTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_Stab::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
 	}
@@ -49,9 +49,4 @@ void UGameplayAbility_Stab::DoDamage(FGameplayEventData EventData)
 			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}
-}
-
-FGameplayTag UGameplayAbility_Stab::GetStabDamageTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Skill.Stab.Damage");
 }

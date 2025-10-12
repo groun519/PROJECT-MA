@@ -42,7 +42,8 @@ USTRUCT(BlueprintType)
 struct FPlayerBaseStats : public FTableRowBase
 {
 	GENERATED_BODY()
-
+FPlayerBaseStats();
+	
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> Class;
 

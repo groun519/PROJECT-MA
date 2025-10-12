@@ -33,7 +33,7 @@ void UGAM_Blink::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 		EventTask->ReadyForActivation();
 	}
 
-	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Damage"));
+	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,UMAAbilitySystemStatics::GetMontageDamageTag());
 	if (AttackEventTask)
 	{
 		AttackEventTask->EventReceived.AddDynamic(this, &UGAM_Blink::DoDamage);

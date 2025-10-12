@@ -6,10 +6,10 @@
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
+class UNiagaraComponent;
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMAChargeAbilityUpdate, float, ChargePercentage);
@@ -73,6 +73,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
+	UNiagaraComponent* WeaponEffectComponent;
+
 	/** Stun **/
 	virtual void OnStun() override;
 	virtual void OnRecoverFromStun() override;
@@ -97,6 +100,10 @@ private:
 	/**								SKILL						**/
 	/*************************************************************/
 public:
+	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
+	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;
+	virtual void DeactivateWeaponEffect() override;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "State")
 	FGameplayTag RotationLockTag;
 
