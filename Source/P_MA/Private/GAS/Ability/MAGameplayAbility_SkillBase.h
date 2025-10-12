@@ -44,15 +44,17 @@ private:
 	//스킬에 속성 부여하는 모듈 - 방송의 구체적 내용 (어떤 이펙트를 적용할까)
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
 	FGameplayTag ModuleAttributeTag;
+public:
 	//스킬 행동 변경 모듈
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
 	FGameplayTag ModuleBehaviorTag;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
+	FName LoopSection = FName("Loop");
     
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
-	FName LoopSectionName = FName("Loop");
-    
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
-	FName ExecutionSectionName = FName("Execute");
+	FName EndSection = FName("End");
 
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
 	TObjectPtr<UAbilityVFXsData> AttributeEffects;
@@ -65,4 +67,37 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Cue")
 	FGameplayTag AttributeCueTag;
 
+	virtual void HandleDefaultSkill();
+	virtual void HandleChargeSkill();
+	virtual void HandleChainSkill();
+	virtual void HandleHoldingSkill();
+
+	UFUNCTION()
+	void OnChargeEventReceived(FGameplayEventData EventData);
+	UFUNCTION()
+	void OnMaxCharged();
+	UFUNCTION()
+	void OnChargeReleased(float Time);
+	
+	UFUNCTION()
+	void OnMaxHold();
+	UFUNCTION()
+	void OnForwardPlay(FGameplayEventData EventData);
+	UFUNCTION()
+	void OnReversePlay(FGameplayEventData EventData);
+	UFUNCTION()
+	void OnHoldReleased(float Time);
+
+	
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	float MaxChargeDuration = 3.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	float MaxHoldDuration = 3.0f;
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	float ReverseSpeed = -2.f;
+
+	void SetMontagePlayRate(float NewPlayRate);
+	void MontageToOtherSection(FName SectionName);
+	bool bIsEnd = false;
+	bool bIsHoldEnd = false;
 };

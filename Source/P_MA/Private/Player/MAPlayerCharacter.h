@@ -27,6 +27,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(Exec)
+	void SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	UFUNCTION(Server, Reliable)
+	void Server_SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	
 private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")

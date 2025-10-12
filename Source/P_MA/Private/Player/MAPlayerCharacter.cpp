@@ -23,6 +23,7 @@
 #include "DrawDebugHelpers.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/Movement/GAM_Rush.h"
+#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -165,6 +166,45 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		}
 	}
 }
+// 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
+void AMAPlayerCharacter::SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
+{
+	Server_SetSkillBehavior(SkillClassName, BehaviorTagString);
+}
+void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& SkillClassName,
+	const FString& BehaviorTagString)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *(SkillClassName + "_C"));
+	if (!SkillClass)
+	{
+		return;
+	}
+
+	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
+	if (!AbilitySpec)
+	{
+		return;
+	}
+	
+	FGameplayTagContainer BehaviorTagsToRemove;
+	BehaviorTagsToRemove.AddTag(UMAAbilitySystemStatics::GetChargeSkillTag());
+	BehaviorTagsToRemove.AddTag(UMAAbilitySystemStatics::GetHoldSkillTag());
+	BehaviorTagsToRemove.AddTag(UMAAbilitySystemStatics::GetChainSkillTag());
+	AbilitySpec->DynamicAbilityTags.RemoveTags(BehaviorTagsToRemove);
+
+	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*BehaviorTagString));
+	if (NewBehaviorTag.IsValid() && !BehaviorTagString.Equals("None", ESearchCase::IgnoreCase))
+	{
+		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+	}
+	
+	ASC->MarkAbilitySpecDirty(*AbilitySpec);
+
+}
+//******************************************************************************//
 
 FVector AMAPlayerCharacter::GetMoveForwardDir() const
 {
