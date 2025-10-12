@@ -19,4 +19,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UMAValueGauge* FuryBar;
 };
