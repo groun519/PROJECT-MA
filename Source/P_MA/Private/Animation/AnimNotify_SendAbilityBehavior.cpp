@@ -3,6 +3,7 @@
 
 #include "Animation/AnimNotify_SendAbilityBehavior.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
 
 
@@ -21,4 +22,15 @@ void UAnimNotify_SendAbilityBehavior::Notify(USkeletalMeshComponent* MeshComp, U
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner,Data.EventTag,Data);
 		}
 	}
+}
+
+FString UAnimNotify_SendAbilityBehavior::GetNotifyName_Implementation() const
+{
+	if (MontageEventTag.IsValid())
+	{
+		TArray<FName> TagNames;
+		UGameplayTagsManager::Get().SplitGameplayTagFName(MontageEventTag, TagNames);
+		return TagNames.Last().ToString();
+	}
+	return "None";
 }

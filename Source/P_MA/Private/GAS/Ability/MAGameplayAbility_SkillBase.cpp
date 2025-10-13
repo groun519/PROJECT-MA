@@ -4,9 +4,6 @@
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
-#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
-#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/WeaponEffectInterface.h"
 #include "Player/MAPlayerCharacter.h"
@@ -28,9 +25,6 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-
-	bIsEnd = false;
-	bIsHoldEnd = false;
 
 	UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,SkillAnimMontage);
 	PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
@@ -76,133 +70,39 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	*/
 
 	// Module 3) Behavior
+	FGameplayTag BehaviorTagToUse;
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
-	bool bIsChargingSkill = DynamicTags.HasTag(UMAAbilitySystemStatics::GetChargeSkillTag());
-	bool bIsChainSkill = DynamicTags.HasTag(UMAAbilitySystemStatics::GetChainSkillTag());
-	bool bIsHoldingSkill = DynamicTags.HasTag(UMAAbilitySystemStatics::GetHoldSkillTag());
-	
-	if (bIsChargingSkill)
+
+	FGameplayTagContainer FilteredTags = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
+	if (FilteredTags.Num() > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Behavior: Charge (From Dynamic Tag)"));
-		HandleChargeSkill();
-	}
-	else if (bIsChainSkill)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Behavior: Chain (From Dynamic Tag)"));
-		HandleChainSkill();
-	}
-	else if (bIsHoldingSkill)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Behavior: Hold (From Dynamic Tag)"));
-		HandleHoldingSkill();
+		BehaviorTagToUse = FilteredTags.First();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Behavior: Default"));
-		HandleDefaultSkill();
+		BehaviorTagToUse = DefaultBehaviorTag;
+	}
+
+	if (BehaviorTagToUse.IsValid())
+		ActiveSkillBehavior = BehaviorModules.FindRef(BehaviorTagToUse);
+
+	if (ActiveSkillBehavior)
+	{
+		ActiveSkillBehavior->OwningAbility = this;
+		ActiveSkillBehavior->OnActivate();
 	}
 }
 
-void UMAGameplayAbility_SkillBase::HandleDefaultSkill()
+void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Default"));
-	
-}
-
-void UMAGameplayAbility_SkillBase::HandleChargeSkill()
-{	//최대 차지 시간
-	UAbilityTask_WaitDelay* ChargeTimeout = UAbilityTask_WaitDelay::WaitDelay(this, MaxChargeDuration);
-	ChargeTimeout->OnFinish.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnMaxCharged);
-	ChargeTimeout->ReadyForActivation();
-	//애니메이션 느리게
-	UAbilityTask_WaitGameplayEvent* WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay"));
-	WaitSlowTagTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnChargeEventReceived);
-	WaitSlowTagTask->ReadyForActivation();
-	//차지 중 키 놓으면
-	UAbilityTask_WaitInputRelease* InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this);
-	InputReleaseTask->OnRelease.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnChargeReleased);
-	InputReleaseTask->ReadyForActivation();
-}
-
-void UMAGameplayAbility_SkillBase::HandleHoldingSkill()
-{	//최대 홀딩 시간
-	UAbilityTask_WaitDelay* HoldTimeOut = UAbilityTask_WaitDelay::WaitDelay(this, MaxHoldDuration);
-	HoldTimeOut->OnFinish.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnMaxHold);
-	HoldTimeOut->ReadyForActivation();
-	
-	//애니메이션 거꾸로 재생하도록
-	UAbilityTask_WaitGameplayEvent* WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay"));
-	WaitReverseTagTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnReversePlay);
-	WaitReverseTagTask->ReadyForActivation();
-
-	//홀딩 중 키 놓으면
-	UAbilityTask_WaitInputRelease* InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(this);
-	InputReleaseTask->OnRelease.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnHoldReleased);
-	InputReleaseTask->ReadyForActivation();
-}
-void UMAGameplayAbility_SkillBase::HandleChainSkill()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Skill chains"));
-	K2_EndAbility();
-}
-
-void UMAGameplayAbility_SkillBase::OnChargeEventReceived(FGameplayEventData EventData)
-{
-	SetMontagePlayRate(0.01f);
-}
-void UMAGameplayAbility_SkillBase::OnChargeReleased(float Time)
-{
-	if (bIsEnd)
-		return;
-	bIsEnd = true;
-	SetMontagePlayRate(1.f);
-}
-void UMAGameplayAbility_SkillBase::OnMaxCharged()
-{
-	if (bIsEnd)
-		return;
-	bIsEnd = true;
-	SetMontagePlayRate(1.f);
-}
-
-
-void UMAGameplayAbility_SkillBase::OnForwardPlay(FGameplayEventData EventData)
-{
-	if (bIsHoldEnd)	return;
-	
-	SetMontagePlayRate(1.f);
-	UAbilityTask_WaitGameplayEvent* WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay"));
-	WaitReverseTagTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnReversePlay);
-	WaitReverseTagTask->ReadyForActivation();
-}
-
-void UMAGameplayAbility_SkillBase::OnReversePlay(FGameplayEventData EventData)
-{
-	if (bIsHoldEnd)	return;
-	
-	SetMontagePlayRate(ReverseSpeed);
-	UAbilityTask_WaitGameplayEvent* WaitForwardTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay"));
-	WaitForwardTagTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_SkillBase::OnForwardPlay);
-	WaitForwardTagTask->ReadyForActivation();
-}
-void UMAGameplayAbility_SkillBase::OnMaxHold()
-{
-	if (bIsEnd)
-		return;
-	bIsEnd = true;
-	bIsHoldEnd = true;
-	SetMontagePlayRate(1.f);
-	MontageToOtherSection(EndSection);
-}
-void UMAGameplayAbility_SkillBase::OnHoldReleased(float Time)
-{
-	if (bIsEnd)
-		return;
-	bIsEnd = true;
-	bIsHoldEnd = true;
-	SetMontagePlayRate(1.f);
-	MontageToOtherSection(EndSection);
-	K2_EndAbility();
+	if (ActiveSkillBehavior)
+	{
+		ActiveSkillBehavior->OnEndAbility();
+		ActiveSkillBehavior = nullptr;
+	}
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 
@@ -222,12 +122,11 @@ void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)
 
 void UMAGameplayAbility_SkillBase::MontageToOtherSection(FName SectionName)
 {
-	AMAPlayerCharacter* Character = Cast<AMAPlayerCharacter>(CurrentActorInfo->AvatarActor.Get());
-	if (Character)
+	if (AMAPlayerCharacter* Character = Cast<AMAPlayerCharacter>(CurrentActorInfo->AvatarActor.Get()))
 	{
-		if (SkillAnimMontage)
+		if (UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance())
 		{
-			Character->GetMesh()->GetAnimInstance()->Montage_JumpToSection(SectionName,SkillAnimMontage);
+			AnimInst->Montage_JumpToSection(SectionName,SkillAnimMontage);
 		}
 	}
 }
