@@ -63,14 +63,13 @@ void UGAM_Rush::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		TimeoutTask -> OnFinish.AddDynamic(this, &UGAM_Rush::OnTimeout);
 		TimeoutTask -> ReadyForActivation();
 	}
-
-	// AttackEventTask 관련 코드는 DoDamage 함수가 없으므로 일단 주석 처리합니다.
-	// AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Damage"));
-	// if (AttackEventTask)
-	// {
-	// 	AttackEventTask->EventReceived.AddDynamic(this, &UGAM_Rush::DoDamage);
-	// 	AttackEventTask->ReadyForActivation();
-	// }
+	
+	AttackEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag("Ability.Movement.Damage"));
+	if (AttackEventTask)
+	{
+		AttackEventTask->EventReceived.AddDynamic(this, &UGAM_Rush::DoDamage);
+		AttackEventTask->ReadyForActivation();
+	}
 }
 
 // 추가된 부분 

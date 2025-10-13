@@ -8,8 +8,10 @@
 void UAnimNotifyState_SendComboStartEnd::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                        float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
+	if (MeshComp->GetWorld()->IsPreviewWorld())
+		return;
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-
+	
 	if (!MeshComp->GetOwner()) return;
 	// ASC가 없다면 리턴
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(MeshComp->GetOwner())) return;
@@ -22,6 +24,8 @@ void UAnimNotifyState_SendComboStartEnd::NotifyBegin(USkeletalMeshComponent* Mes
 void UAnimNotifyState_SendComboStartEnd::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
+	if (MeshComp->GetWorld()->IsPreviewWorld())
+		return;
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 
 	if (!MeshComp->GetOwner()) return;

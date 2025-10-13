@@ -27,7 +27,5 @@ private:
 	
 	UFUNCTION()
 	void DoDamage(FGameplayEventData EventData);
-
-	static FGameplayTag GetStabDamageTag();
 	
 };

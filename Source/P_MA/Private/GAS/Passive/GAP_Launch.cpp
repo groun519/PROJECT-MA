@@ -8,7 +8,7 @@ UGAP_Launch::UGAP_Launch()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
-	TriggerData.TriggerTag = FGameplayTag::RequestGameplayTag("Ability.Passive.Launch.Activate");
+	TriggerData.TriggerTag = FGameplayTag::RequestGameplayTag("Event.Montage.Launch");
 
 	ActivationBlockedTags.RemoveTag(FGameplayTag::RequestGameplayTag("Stats.Stun"));
 	AbilityTriggers.Add(TriggerData);

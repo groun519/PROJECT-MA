@@ -42,15 +42,10 @@ void UGameplayAbility_VolcanoEruption::ActivateAbility(const FGameplayAbilitySpe
 	}
 	if (K2_HasAuthority())
 	{		
-		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetVolcanoEruptionDamageTag());
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetMontageDamageTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_VolcanoEruption::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
 	}
-}
-
-FGameplayTag UGameplayAbility_VolcanoEruption::GetVolcanoEruptionDamageTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Skill.VolcanoEruption.Damage");
 }
 
 void UGameplayAbility_VolcanoEruption::DoDamage(FGameplayEventData EventData)
