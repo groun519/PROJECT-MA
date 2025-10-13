@@ -26,14 +26,18 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration);
 	ChargeTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_Charge::OnMaxCharged);
 	ChargeTimeoutTask->ReadyForActivation();
-	//애니메이션 느리게
-	WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay"));
+	//차징 시작
+	WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ChargeStartTag);
 	WaitSlowTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::OnChargeEventReceived);
 	WaitSlowTagTask->ReadyForActivation();
 	//차지 중 키 놓으면
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Charge::OnChargeReleased);
 	InputReleaseTask->ReadyForActivation();
+	//데미지 태그 만나면
+	WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+	WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::HitTarget);
+	WaitHitEventTask->ReadyForActivation();
 }
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()
@@ -48,6 +52,8 @@ void USkillBehavior_Charge::OnEndAbility_Implementation()
 		WaitSlowTagTask->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
+	if (WaitHitEventTask.IsValid())
+		WaitHitEventTask->EndTask();
 
 	Super::OnEndAbility_Implementation();
 }
@@ -74,6 +80,15 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 	bIsEnd = true;
 	if (OwningAbility)
 		OwningAbility->SetMontagePlayRate(1.f);
+}
+
+void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)
+{
+	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+	for (FHitResult& HitResult : HitResults)
+	{
+		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DefaultDamageEffect, OwningAbility->GetAbilityLevel());
+	}
 }
 
 void USkillBehavior_Charge::UpdateChargeUI()

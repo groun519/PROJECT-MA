@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Chain.generated.h"
@@ -39,16 +40,17 @@ private:
 	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
 	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
+	UPROPERTY()
+	TArray<AActor*> IgnoreTargets;
 	
+	FGameplayTag ComboDamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
-	FGameplayTag ComboDamageEventTag = FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
 	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
 	FGameplayTag ComboClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
 	
-	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
 	void SetupWaitComboInputPress();
 	void TryCommitCombo();
+	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
 	FName NextComboName;
-	UPROPERTY()
-	TArray<AActor*> IgnoreTargets;
+	bool bIsComboInputBuffered;
 };

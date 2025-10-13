@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Hold.generated.h"
@@ -28,7 +29,11 @@ protected:
 	void OnReversePlay(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnHoldReleased(float Time);
+	UFUNCTION()
+	void HitTarget(FGameplayEventData EventData);
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxHoldDuration = 3.0f;
 	UPROPERTY(EditDefaultsOnly)
@@ -40,7 +45,12 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitForwardTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitReverseTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
+	FGameplayTag ReversePlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay");
+	FGameplayTag ForwardPlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay");
+	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
+	
 	FTimerHandle ChargeUpdateTimerHandle;
 	float StartTime = 0.f;
 	void UpdateChargeUI();

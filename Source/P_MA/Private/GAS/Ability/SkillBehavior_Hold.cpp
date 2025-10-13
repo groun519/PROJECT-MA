@@ -26,16 +26,18 @@ void USkillBehavior_Hold::OnActivate_Implementation()
 	HoldTimeOut = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxHoldDuration);
 	HoldTimeOut->OnFinish.AddDynamic(this, &USkillBehavior_Hold::OnMaxHold);
 	HoldTimeOut->ReadyForActivation();
-	
 	//애니메이션 거꾸로 재생하도록
-	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay"));
+	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ReversePlayTag);
 	WaitReverseTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnReversePlay);
 	WaitReverseTagTask->ReadyForActivation();
-
 	//홀딩 중 키 놓으면
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Hold::OnHoldReleased);
 	InputReleaseTask->ReadyForActivation();
+	//데미지 태그 만나면
+	WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+	WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::HitTarget);
+	WaitHitEventTask->ReadyForActivation();
 }
 
 void USkillBehavior_Hold::OnEndAbility_Implementation()
@@ -52,6 +54,8 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 		WaitReverseTagTask->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
+	if (WaitHitEventTask.IsValid())
+		WaitHitEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
@@ -64,7 +68,7 @@ void USkillBehavior_Hold::OnForwardPlay(FGameplayEventData EventData)
 	if (OwningAbility)
 		OwningAbility->SetMontagePlayRate(1.f);
 	
-	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay"));
+	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,ReversePlayTag);
 	WaitReverseTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnReversePlay);
 	WaitReverseTagTask->ReadyForActivation();
 }
@@ -76,7 +80,7 @@ void USkillBehavior_Hold::OnReversePlay(FGameplayEventData EventData)
 	if (OwningAbility)
 	OwningAbility->SetMontagePlayRate(ReverseSpeed);
 	
-	WaitForwardTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay"));
+	WaitForwardTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ForwardPlayTag);
 	WaitForwardTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnForwardPlay);
 	WaitForwardTagTask->ReadyForActivation();
 }
@@ -90,6 +94,15 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 	{
 		OwningAbility->SetMontagePlayRate(1.f);
 		OwningAbility->MontageToOtherSection(FName("End"));
+	}
+}
+
+void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)
+{
+	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+	for (FHitResult& HitResult : HitResults)
+	{
+		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DefaultDamageEffect, OwningAbility->GetAbilityLevel());
 	}
 }
 

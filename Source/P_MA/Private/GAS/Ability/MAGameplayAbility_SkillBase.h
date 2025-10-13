@@ -32,8 +32,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Skill | Common")
 	TArray<TSubclassOf<UGameplayEffect>> EffectsToApply;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Common")
-	FGameplayTag DamageEventTag;
 
 	/***************************************************************/
 	/*						Skill Module						   */

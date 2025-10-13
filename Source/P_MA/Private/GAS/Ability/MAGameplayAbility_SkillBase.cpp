@@ -10,7 +10,6 @@
 
 UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 {
-	DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	AttributeCueTag = UMAAbilitySystemStatics::GetSkillAttributeTag();
 }
 

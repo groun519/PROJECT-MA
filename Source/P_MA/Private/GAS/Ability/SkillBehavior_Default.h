@@ -3,6 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffect.h"
+#include "GameplayTagContainer.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Default.generated.h"
 
@@ -17,4 +20,15 @@ class USkillBehavior_Default : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+
+private:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+	
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
+
+	UFUNCTION()
+	void HitTarget(FGameplayEventData EventData);
+
+	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };
