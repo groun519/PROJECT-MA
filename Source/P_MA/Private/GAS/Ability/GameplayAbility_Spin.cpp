@@ -33,7 +33,7 @@ void UGameplayAbility_Spin::ActivateAbility(const FGameplayAbilitySpecHandle Han
 
 	if (K2_HasAuthority())
 	{
-		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetSpinDamageTag());
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetMontageDamageTag());
 		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGameplayAbility_Spin::DoDamage);
 		WaitTargetEventTask->ReadyForActivation();
 	}
@@ -49,9 +49,4 @@ void UGameplayAbility_Spin::DoDamage(FGameplayEventData EventData)
 			ApplyGameplayEffectToHitResultActor(HitResult, SkillDamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		}
 	}
-}
-
-FGameplayTag UGameplayAbility_Spin::GetSpinDamageTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Skill.Spin.Damage");
 }

@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+#include "MAPlayerCharacter.h"
 #include "Player/MAPlayerCharacter.h"
-
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
@@ -18,10 +18,12 @@
 #include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
+#include "NiagaraComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "DrawDebugHelpers.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/Movement/GAM_Rush.h"
+#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -58,6 +60,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+
+	WeaponEffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponEffect"));
+	WeaponEffectComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
 	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
@@ -161,6 +166,38 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		}
 	}
 }
+// 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
+void AMAPlayerCharacter::SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
+{
+	Server_SetSkillBehavior(SkillClassName, BehaviorTagString);
+}
+void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& SkillClassName,
+	const FString& BehaviorTagString)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *(SkillClassName + "_C"));
+	if (!SkillClass) return;
+
+	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
+	if (!AbilitySpec) return;
+
+	// 1. 기존의 모든 Behavior 관련 태그를 제거합니다.
+	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Behavior"));
+	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
+
+	// 2. "None"이 아닐 경우에만 새로운 태그를 추가합니다.
+	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*BehaviorTagString));
+	if (NewBehaviorTag.IsValid() && !BehaviorTagString.Equals("None", ESearchCase::IgnoreCase))
+	{
+		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+	}
+
+	// 3. 변경사항을 모든 클라이언트에 동기화합니다.
+	ASC->MarkAbilitySpecDirty(*AbilitySpec);
+}
+//******************************************************************************//
 
 FVector AMAPlayerCharacter::GetMoveForwardDir() const
 {
@@ -200,12 +237,10 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	bool bPressed = InputActionValue.Get<bool>();
 	if (bPressed)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("1. Ability Local Input Pressed"));
 		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("3. Ability Local Input Released"));
 		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
 	}
 	if (InputID == EMAAbilityInputID::Attack)
@@ -286,3 +321,25 @@ void AMAPlayerCharacter::OnGhostMode()
 /**								SKILL						**/
 /*************************************************************/
 
+
+UNiagaraComponent* AMAPlayerCharacter::GetWeaponEffectComponent() const
+{
+	return WeaponEffectComponent;
+}
+
+void AMAPlayerCharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
+{
+	if (WeaponEffectComponent)
+	{
+		WeaponEffectComponent->SetAsset(Effect);
+		WeaponEffectComponent->Activate(true);
+	}
+}
+
+void AMAPlayerCharacter::DeactivateWeaponEffect()
+{
+	if (WeaponEffectComponent)
+	{
+		WeaponEffectComponent->Deactivate();
+	}
+}

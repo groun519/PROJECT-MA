@@ -29,8 +29,10 @@ class UMAGameplayAbility : public UGameplayAbility
 public:
 	UMAGameplayAbility();
 	
-protected:
 	class UAnimInstance* GetOwnerAnimInstance() const;
+	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
+	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
+protected:
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 		FVector HalfSize = FVector(30.f, 0, 0),
@@ -39,14 +41,10 @@ protected:
 		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
 		EVA_Shape TraceObjType = EVA_Shape::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true);
-
-	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
-
 	UFUNCTION()
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }
 	
 	ACharacter* GetOwningAvatarCharacter();
-	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
 
 	//== Movement ==//
 	void PushSelf(const FVector& PushVel);
