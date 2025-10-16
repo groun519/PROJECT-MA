@@ -27,13 +27,21 @@ protected:
 	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
 	
 private:
-	// 스킬 범위 선택 액터
+	// 스킬 타격 범위 선택 액터
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor> TargetActorClass;
+	// 스킬 범위 나타낼 액터
 	UPROPERTY(EditDefaultsOnly)
-	float TargetAreaRadius = 300.f;
+	TSubclassOf<class AMAAbilityRangeActor> RangeActorClass;
+	UPROPERTY()
+	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
+
+	// 스킬 사이즈 (타격 범위)
 	UPROPERTY(EditDefaultsOnly)
-	float Distance = 2000.f;
+	float AbilitySize = 300.f;
+	// 스킬 시전 범위
+	UPROPERTY(EditDefaultsOnly)
+	float MaxRange = 2000.f;
 
 	
 	// 타격 액터 생성 변수

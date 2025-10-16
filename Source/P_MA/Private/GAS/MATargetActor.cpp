@@ -2,7 +2,9 @@
 
 #include "GAS/MATargetActor.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/GameplayAbility.h"
 #include "Components/DecalComponent.h"
+
 
 
 AMATargetActor::AMATargetActor()
@@ -11,8 +13,8 @@ AMATargetActor::AMATargetActor()
 
 	SetRootComponent(CreateDefaultSubobject<USceneComponent>("Root Component"));
 
-	DecalComp=CreateDefaultSubobject<UDecalComponent>("Decal Component");
-	DecalComp->SetupAttachment(GetRootComponent());
+	SkillLocDecal=CreateDefaultSubobject<UDecalComponent>("Decal Component");
+	SkillLocDecal->SetupAttachment(GetRootComponent());
 }
 void AMATargetActor::Tick(float DeltaTime)
 {
@@ -20,20 +22,22 @@ void AMATargetActor::Tick(float DeltaTime)
 
 	if (PrimaryPC && PrimaryPC->IsLocalPlayerController())
 		SetActorLocation(GetTargetPoint());
-}
 
-void AMATargetActor::SetTargetAreaRadius(float NewRadius)
-{
-	TargetAreaRadius = NewRadius;
-	DecalComp->DecalSize = FVector{NewRadius};
+	if (DecalDMI && OwningAbility)
+	{
+		const FVector CharacterLoc = OwningAbility->GetAvatarActorFromActorInfo()->GetActorLocation();
+		//캐릭터와 마우스 위치 사이 거리
+		const float CurrentDistance = FVector::Dist2D(CharacterLoc, GetTargetPoint());
+		//마우스가 범위 내
+		if (CurrentDistance < Distance)
+		{
+			DecalDMI->SetVectorParameterValue(FName("Color"),InRangeColor);
+		}else
+		{
+			DecalDMI->SetVectorParameterValue(FName("Color"),OutOfRangeColor);
+		}
+	}
 }
-
-void AMATargetActor::SetTargetOptions(bool bTargetFriendly, bool bTargetEnemy)
-{
-	bShouldTargetEnemy = bTargetEnemy;
-	bShouldTargetFriendly = bTargetFriendly;
-}
-
 
 void AMATargetActor::ConfirmTargetingAndContinue()
 {
@@ -46,6 +50,16 @@ void AMATargetActor::ConfirmTargetingAndContinue()
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);
 }
 
+void AMATargetActor::StartTargeting(UGameplayAbility* Ability)
+{
+	Super::StartTargeting(Ability);
+
+	if (SkillLocDecal)
+	{
+		DecalDMI = SkillLocDecal -> CreateDynamicMaterialInstance();
+	}
+}
+
 FVector AMATargetActor::GetTargetPoint() const
 {
 	if (!PrimaryPC)
@@ -54,11 +68,13 @@ FVector AMATargetActor::GetTargetPoint() const
 	FHitResult HitResult;
 	if (PrimaryPC->GetHitResultUnderCursor(ECC_Visibility, true, HitResult))
 	{
-		if (bShouldDrawDebug)
-		{
-			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint,TargetAreaRadius, 32, FColor::Red, false, 0.1f);
-		}
 		return HitResult.ImpactPoint;
 	}
 	return GetActorLocation();
+}
+
+void AMATargetActor::SetTargetAreaRadius(float NewRadius)
+{
+	TargetAreaRadius = NewRadius;
+	SkillLocDecal->DecalSize = FVector{NewRadius};
 }

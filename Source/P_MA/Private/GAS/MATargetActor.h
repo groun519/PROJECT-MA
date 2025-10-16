@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "MATargetActor.generated.h"
 
+class UMaterialParameterCollection;
 /**
  * 
  */
@@ -18,24 +19,29 @@ public:
 	AMATargetActor();
 	
 	void SetTargetAreaRadius(float NewRadius);
-	void SetTargetOptions(bool bTargetFriendly, bool bTargetEnemy=true);
-	FORCEINLINE void SetTargetTraceRange(float NewRange) {Distance = NewRange;}
-	FORCEINLINE void SetShouldDrawDebug(bool bDrawDebug) {bShouldDrawDebug = bDrawDebug;}
-
+	FORCEINLINE void SetTargetTraceRange(float NewRange) {Distance=NewRange;}
+	
 private:
 	virtual void Tick(float DeltaTime) override;
 	virtual void ConfirmTargetingAndContinue() override;
-
-	UPROPERTY(EditDefaultsOnly)
-	float Distance = 2000.f;
+	virtual void StartTargeting(UGameplayAbility* Ability) override;
+	
+	
 	UPROPERTY(EditDefaultsOnly)
 	float TargetAreaRadius = 300.f;
-	UPROPERTY(VisibleDefaultsOnly)
-	class UDecalComponent* DecalComp;
+	UPROPERTY(EditDefaultsOnly)
+	float Distance = 2000.f;
+	
+	UPROPERTY(VisibleDefaultsOnly, Category="Visual")
+	class UDecalComponent* SkillLocDecal;
 
-	bool bShouldTargetEnemy = true;
-	bool bShouldTargetFriendly = false;
-	bool bShouldDrawDebug = false;
-
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DecalDMI;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	FLinearColor InRangeColor = FLinearColor(0.700000,2.600000,5.000000,1.000000);
+	UPROPERTY(EditDefaultsOnly, Category = "Visual")
+	FLinearColor OutOfRangeColor = FLinearColor::Red;
+	
 	FVector GetTargetPoint() const;
 };
