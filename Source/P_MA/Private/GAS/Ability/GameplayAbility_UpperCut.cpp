@@ -48,7 +48,6 @@ FGameplayTag UGameplayAbility_UpperCut::GetUpperCutLaunchTag()
 
 void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnEventReceived"));
 	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{
@@ -62,7 +61,6 @@ void UGameplayAbility_UpperCut::StartLaunching(FGameplayEventData EventData)
 
 void UGameplayAbility_UpperCut::OnReleased(float TimeHeld)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnInputReleased"));
 	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	if (Character)
 	{

@@ -23,6 +23,7 @@ public:
 	
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
+	static FGameplayTag GetAimingTag();
 
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();

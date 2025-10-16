@@ -125,10 +125,5 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Ability | Rush")
-	float RushingSpeed = 800.f;
-
-private:
 	
 };

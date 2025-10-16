@@ -115,7 +115,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	}
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
-		AddMovementInput(GetActorForwardVector(), RushingSpeed);
+		AddMovementInput(GetActorForwardVector(), 2.f);
 	}
 }
 

@@ -2,21 +2,26 @@
 
 
 #include "GAS/Ability/MASkillBehavior.h"
-#include "Kismet/GameplayStatics.h"
+#include "MAGameplayAbility_SkillBase.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMASkillBehavior::OnActivate_Implementation()
 {
-	this->PlayerCharacter = GetPlayerCharacter();
+	this->Character = GetCharacter();
+	this->PlayerCharacter = Cast<AMAPlayerCharacter>(this->Character);
 }
 
 void UMASkillBehavior::OnEndAbility_Implementation()
 {
+	this->Character = nullptr;
 	this->PlayerCharacter = nullptr;
 }
 
-class AMAPlayerCharacter* UMASkillBehavior::GetPlayerCharacter()
+class AMACharacter* UMASkillBehavior::GetCharacter() const
 {
-	ACharacter* FoundCharacter = UGameplayStatics::GetPlayerCharacter(this,0);
-	return Cast<AMAPlayerCharacter>(FoundCharacter);
+	if (OwningAbility)
+	{
+		return Cast<AMACharacter>(OwningAbility->GetAvatarActorFromActorInfo());
+	}
+	return nullptr;
 }

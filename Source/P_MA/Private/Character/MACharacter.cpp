@@ -10,6 +10,7 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MABaseProjectile.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
@@ -98,6 +99,7 @@ void AMACharacter::PossessedBy(AController* NewController)
 	}
 }
 
+
 void AMACharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);	
@@ -136,6 +138,7 @@ void AMACharacter::BindGASChangeDelegates()
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
@@ -166,6 +169,10 @@ void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 		StopAnimMontage(StunMontage);
 	}
 	
+}
+
+void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
 }
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
@@ -389,6 +396,8 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 	ApplyMaterialParam();
 }
 
+
+
 UNiagaraComponent* AMACharacter::GetWeaponEffectComponent() const
 {
 	return nullptr;
@@ -400,4 +409,25 @@ void AMACharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
 
 void AMACharacter::DeactivateWeaponEffect()
 {
+}
+
+
+/*************************************************************/
+/*								Skill						 */
+/*************************************************************/
+
+void AMACharacter::Server_SpawnProjectile_Implementation(TSubclassOf<class AMABaseProjectile> ProjectileClass,
+	FVector Location, FRotator Rotation)
+{
+	UWorld* World = this->GetWorld();
+	if (World && ProjectileClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		APawn* InstigatorPawn = Cast<APawn>(this);
+		SpawnParams.Owner = InstigatorPawn;
+		SpawnParams.Instigator = InstigatorPawn;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		
+		World->SpawnActor<AMABaseProjectile>(ProjectileClass, Location, Rotation, SpawnParams);
+	}
 }

@@ -32,6 +32,11 @@ FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Rushing");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
+{
+	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");

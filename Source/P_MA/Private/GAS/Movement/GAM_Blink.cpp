@@ -5,6 +5,7 @@
 
 #include "GameFramework/Character.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "Player/MAPlayerCharacter.h"
 
 UGAM_Blink::UGAM_Blink()
 {
@@ -43,6 +44,22 @@ void UGAM_Blink::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 
 void UGAM_Blink::OnBlinkEventReceived(FGameplayEventData Payload)
 {
+	/*
+	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(GetAvatarActorFromActorInfo());
+	APlayerController* PC = Cast<APlayerController>(PlayerCharacter->GetController());
+	if (!PlayerCharacter || !PC)
+		return;
+
+	FHitResult HitResult;
+	if (PC->GetHitResultUnderCursor(ECC_Visibility, true,HitResult))
+	{
+		const FVector TargetLocation = HitResult.ImpactPoint;
+		FVector Direction = TargetLocation;
+		const FRotator DestRot = Direction.Rotation();
+		PlayerCharacter->TeleportTo(Direction,DestRot);
+	}
+	*/
+	
 	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	if (Character && Character->HasAuthority())
 	{
@@ -56,6 +73,7 @@ void UGAM_Blink::OnBlinkEventReceived(FGameplayEventData Payload)
 		// 목표 위치로 즉시 이동합니다.
 		Character->TeleportTo(TargetLocation, Character->GetActorRotation());
 	}
+	
 }
 
 void UGAM_Blink::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

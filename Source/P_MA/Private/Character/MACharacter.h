@@ -72,6 +72,7 @@ private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 	
@@ -179,6 +180,9 @@ public:
 	/*								Skill						   */
 	/***************************************************************/
 public:
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnProjectile(TSubclassOf<class AMABaseProjectile> ProjectileClass, FVector Location, FRotator Rotation);
+	
 	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
 	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;
 	virtual void DeactivateWeaponEffect() override;

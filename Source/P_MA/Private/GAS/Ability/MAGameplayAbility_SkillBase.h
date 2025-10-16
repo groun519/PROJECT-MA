@@ -25,11 +25,11 @@ public:
 	/*							Common		  				       */
 	/***************************************************************/
 
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Common")
+	UPROPERTY(EditDefaultsOnly, Category="Common")
 	TObjectPtr<UAnimMontage> SkillAnimMontage;
 private:
 	
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Common")
+	UPROPERTY(EditDefaultsOnly, Category="Common")
 	TArray<TSubclassOf<UGameplayEffect>> EffectsToApply;
 	
 
@@ -38,23 +38,23 @@ private:
 	/***************************************************************/
 
 	// 스킬 사용 시 짧은 버프를 부여하는 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
+	UPROPERTY(EditDefaultsOnly, Category="Module")
 	TArray<TSubclassOf<UGameplayEffect>> ModuleUtility;
 	//스킬에 속성 부여하는 모듈 - 방송의 구체적 내용 (어떤 이펙트를 적용할까)
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
+	UPROPERTY(EditDefaultsOnly, Category="Module")
 	FGameplayTag ModuleAttributeTag;
 	//스킬 행동 변경 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module", Instanced)
+	UPROPERTY(EditDefaultsOnly, Category="Module", Instanced)
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
 
 	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그입니다.
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
+	UPROPERTY(EditDefaultsOnly, Category="Module")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Default");
 	
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveSkillBehavior;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Module")
+	UPROPERTY(EditDefaultsOnly, Category="Module")
 	TObjectPtr<UAbilityVFXsData> AttributeEffects;
 
 	/***************************************************************/
@@ -62,10 +62,13 @@ private:
 	/***************************************************************/
 	
 	//스킬에 속성 부여 시 방송할 채널 (이펙트를 키거나 꺼라)
-	UPROPERTY(EditDefaultsOnly, Category="Skill | Cue")
+	UPROPERTY(EditDefaultsOnly, Category="Cue")
 	FGameplayTag AttributeCueTag;
+
+	
 
 public:
 	void SetMontagePlayRate(float NewPlayRate);
 	void MontageToOtherSection(FName SectionName);
+	void RequestEndAbility();
 };
