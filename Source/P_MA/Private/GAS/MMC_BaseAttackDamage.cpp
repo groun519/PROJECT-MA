@@ -26,7 +26,7 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	EvalParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
 	EvalParams.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
 
-	float AttackDamage = 100.f;
+	float AttackDamage = 0.f;
 	GetCapturedAttributeMagnitude(DamageCaptureDef, Spec, EvalParams, AttackDamage);
 
 	float Armor = 0.f;

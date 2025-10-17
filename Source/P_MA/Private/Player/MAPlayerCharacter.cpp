@@ -16,6 +16,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAPlayerAttributeSet.h"
+#include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "NiagaraComponent.h"
@@ -52,7 +53,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 
-	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Hero Attribute Set");
+	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
+
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 	
 	/** Create SKCs **//*
 	 * - Child Relationship : Mesh - Handle

@@ -2,7 +2,8 @@
 
 
 #include "Player/MAPlayerController.h"
-
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
@@ -110,3 +111,27 @@ void AMAPlayerController::CheckMouseCursorShape()
 }
 /** 여기 위에 까지에는 강의에는 없는 별도 코드입니다 **/
 
+void AMAPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	if (InputSubsystem)
+	{
+		InputSubsystem->RemoveMappingContext(UIInputMapping);
+		InputSubsystem->AddMappingContext(UIInputMapping, 1);
+	}
+
+	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
+	if (EnhancedInputComp)
+	{
+		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
+	}
+}
+
+void AMAPlayerController::ToggleShop()
+{	
+	if(GameplayWidget)
+	{
+		GameplayWidget->ToggleShop();
+	}
+}
