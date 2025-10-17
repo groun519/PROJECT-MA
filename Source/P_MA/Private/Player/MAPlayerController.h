@@ -29,6 +29,8 @@ public:
 	// FGenericTeamId 형식으로 TeamID 탐색
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
+	
+	virtual void SetupInputComponent() override;
 
 private:
 	void SpawnGameplayWidget();
@@ -44,6 +46,15 @@ private:
 	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputMappingContext* UIInputMapping;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* ShopToggleInputAction;
+
+	UFUNCTION()
+	void ToggleShop();
 
 	// 마우스 커서 관련 여기 코드는 강의에는 없는 별도 코드입니다.
 	bool bOnMouseCursorRecord = false;

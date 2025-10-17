@@ -18,7 +18,10 @@ class UMAGameplayWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
-
+	
+	void ToggleShop();
+	
+	void SetOwinigPawnInputEnabled(bool bPawnInputEnabled);
 protected:
 	// 체력바와 같은 기존 UI 요소 유지
 	UPROPERTY(meta = (BindWidget))
@@ -41,10 +44,24 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
 
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
+	class UWidgetAnimation* ShopPopupAnimation;
+
+	void PlayShopPopupAnimation(bool bPlayForward);
+
 	UPROPERTY(meta = (BindWidget))
 	UMAMobilityChargeWidget* ChargeBar;
+
+	UPROPERTY(meta=(BindWidget))
+	class UShopWidget* ShopWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	class UButton *ShopButton;
 
 private:
 	// void CreateSkillSlots(int32 NumSlots);
 	// void CreatePassiveSlots(int32 NumSlots);
+	
+	UFUNCTION()
+	void OnShopButtonClicked();
 };
