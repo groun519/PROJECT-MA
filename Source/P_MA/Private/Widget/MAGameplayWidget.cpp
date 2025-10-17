@@ -4,8 +4,10 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Button.h"
 #include "Widget/MAAbilityListView.h"
 #include "Widget/MAValueGauge.h"
+#include "Widget/ShopWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
@@ -13,6 +15,13 @@
 void UMAGameplayWidget::NativeConstruct()
 {
     Super::NativeConstruct();
+
+    if (ShopButton)
+    {
+        // OnClicked 이벤트에 C++ 함수를 연결(바인딩)합니다.
+        // 이 한 줄이 블루프린트 이벤트 그래프에서 노드를 연결하는 것과 똑같은 역할을 합니다.
+        ShopButton->OnClicked.AddDynamic(this, &UMAGameplayWidget::OnShopButtonClicked);
+    }
 
     // AbilitySystemComponent을 통한 체력바 설정
     UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
@@ -74,4 +83,49 @@ void UMAGameplayWidget::NativeConstruct()
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
 {
     AbilityListView->ConfigureAbilities(Abilities);
+}
+
+
+void UMAGameplayWidget::ToggleShop()
+{
+    if (ShopWidget->GetVisibility() == ESlateVisibility::HitTestInvisible)
+    {
+        ShopWidget->SetVisibility(ESlateVisibility::Visible);
+        PlayShopPopupAnimation(true);
+        SetOwinigPawnInputEnabled(false);
+    }
+    else
+    {
+        ShopWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+        PlayShopPopupAnimation(false);
+        SetOwinigPawnInputEnabled(true);
+    }
+}
+
+void UMAGameplayWidget::PlayShopPopupAnimation(bool bPlayForward)
+{
+    if (bPlayForward)
+    {
+        PlayAnimationForward(ShopPopupAnimation);
+    }
+    else
+    {
+        PlayAnimationReverse(ShopPopupAnimation);
+    }
+}
+void UMAGameplayWidget::SetOwinigPawnInputEnabled(bool bPawnInputEnabled)
+{
+    if (bPawnInputEnabled)
+    {
+        GetOwningPlayerPawn()->EnableInput(GetOwningPlayer());
+    }
+    else
+    {
+        GetOwningPlayerPawn()->DisableInput(GetOwningPlayer());
+    }
+}
+
+void UMAGameplayWidget::OnShopButtonClicked()
+{
+    ToggleShop();
 }
