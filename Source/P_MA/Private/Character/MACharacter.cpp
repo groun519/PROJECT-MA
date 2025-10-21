@@ -7,6 +7,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SphereComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -174,6 +175,7 @@ void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 
 void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
+	//Aim태그 변경시 -> 이동 속도 느리게
 }
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
@@ -418,17 +420,24 @@ void AMACharacter::DeactivateWeaponEffect()
 /*************************************************************/
 
 void AMACharacter::Server_SpawnProjectile_Implementation(TSubclassOf<class AMABaseProjectile> ProjectileClass,
-	FVector Location, FRotator Rotation)
+	FVector Location, FRotator Rotation,float CollisionRadius)
 {
 	UWorld* World = this->GetWorld();
 	if (World && ProjectileClass)
 	{
 		FActorSpawnParameters SpawnParams;
-		APawn* InstigatorPawn = Cast<APawn>(this);
-		SpawnParams.Owner = InstigatorPawn;
-		SpawnParams.Instigator = InstigatorPawn;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		
-		World->SpawnActor<AMABaseProjectile>(ProjectileClass, Location, Rotation, SpawnParams);
+
+		AMABaseProjectile* SpawnedProjectile =World->SpawnActor<AMABaseProjectile>(ProjectileClass,Location, Rotation, SpawnParams);
+
+		if (SpawnedProjectile && CollisionRadius > 0.f)
+		{
+			if (USphereComponent* SphereComponent = SpawnedProjectile->CollisionComponent)
+			{
+				SphereComponent->SetSphereRadius(CollisionRadius);
+			}
+		}
 	}
 }

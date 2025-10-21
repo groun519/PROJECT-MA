@@ -8,7 +8,9 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
-#include "Particles/ParticleSystemComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 AMABaseProjectile::AMABaseProjectile()
 {
@@ -18,16 +20,13 @@ AMABaseProjectile::AMABaseProjectile()
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>("Collision Component");
 	SetRootComponent(CollisionComponent);
 	CollisionComponent->SetIsReplicated(true);
-
-	ParticleComponent = CreateDefaultSubobject<UParticleSystemComponent>("Particle Component");
-	ParticleComponent->SetupAttachment(RootComponent);
-	ParticleComponent->SetIsReplicated(true);
+	
+	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>("Niagara Component");
+	NiagaraComponent -> SetupAttachment(GetRootComponent());
+	NiagaraComponent -> SetIsReplicated(true);
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("Projectile Movement");
-	ProjectileMovement->InitialSpeed = ProjectileSpeed;
-	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->bRotationFollowsVelocity = true;
-	ProjectileMovement->ProjectileGravityScale = 0.f;
 	ProjectileMovement->bIsHomingProjectile = false;
 	ProjectileMovement->SetIsReplicated(true);
 }
@@ -35,22 +34,19 @@ AMABaseProjectile::AMABaseProjectile()
 void AMABaseProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	SetLifeSpan(2.5f);
-	if (HasAuthority())
-	{//충돌 처리 (게임 로직) = 서버에서 실행
-		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMABaseProjectile::OnCollisionOverlap);
-	}
+	SetLifeSpan(LifeTime);
+	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMABaseProjectile::OnCollisionOverlap);
+	
 }
 
 void AMABaseProjectile::OnCollisionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!OtherActor || OtherActor==this || OtherActor == GetInstigator())
+	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator() || OtherActor->IsA(AMABaseProjectile::StaticClass()))
 		return;
 
 	if (HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[BaseProjectile] OnCollisionOverlap execute in Server"));
 		// 데미지 입힐 타겟 찾기 위한 충돌 지점
 		TArray<FOverlapResult> OverlapResults;
 		FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
@@ -61,10 +57,12 @@ void AMABaseProjectile::OnCollisionOverlap(UPrimitiveComponent* OverlappedCompon
 		UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
 		if (!SourceASC)
 		{
-			UE_LOG(LogTemp,Warning, TEXT("[BaseProjectile] Instigator doesnt have ASC"));
 			Destroy();
 			return;
 		}
+		
+		Multicast_PlayOverlapEffects();
+		
 		// 오버랩된 유효 타겟에게 데미지 적용
 		for (const FOverlapResult& OverlapResult : OverlapResults)
 		{
@@ -83,6 +81,15 @@ void AMABaseProjectile::OnCollisionOverlap(UPrimitiveComponent* OverlappedCompon
 			}
 		}
 		Destroy();
+	}
+}
+
+void AMABaseProjectile::Multicast_PlayOverlapEffects_Implementation()
+{
+	if (ImpactVFX)
+	{
+		const FVector SpawnLocation = GetActorLocation();
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactVFX, SpawnLocation);
 	}
 }
 

@@ -16,11 +16,14 @@ class USkillBehavior_AreaTarget : public UMASkillBehavior
 	GENERATED_BODY()
 
 public:
+	USkillBehavior_AreaTarget();
+	
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override { return true; }
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
+
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
@@ -35,18 +38,24 @@ private:
 	TSubclassOf<class AMAAbilityRangeActor> RangeActorClass;
 	UPROPERTY()
 	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
+	// 투사체 클래스
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class AMABaseProjectile> ProjectileClass;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UGameplayEffect> InputLockEffect;
+	
 	// 스킬 사이즈 (타격 범위)
 	UPROPERTY(EditDefaultsOnly)
 	float AbilitySize = 300.f;
 	// 스킬 시전 범위
 	UPROPERTY(EditDefaultsOnly)
 	float MaxRange = 2000.f;
-
 	
 	// 타격 액터 생성 변수
 	UPROPERTY(EditDefaultsOnly)
 	FVector SpawnOffset = FVector(-800.f,0.f,0.f);
 	UPROPERTY(EditDefaultsOnly)
 	float SpawnHeight = 1500.f;
+
 };
