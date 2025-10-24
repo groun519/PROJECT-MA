@@ -9,8 +9,8 @@
 UBTService_UpdateFury::UBTService_UpdateFury()
 {
 	NodeName = TEXT("Update Fury Value");
-	Interval = 0.2f;       // 0.2초마다 업데이트
-	RandomDeviation = 0.f; // 일정한 주기로 실행
+	Interval = 0.2f;
+	RandomDeviation = 0.f;
 }
 
 void UBTService_UpdateFury::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -24,23 +24,15 @@ void UBTService_UpdateFury::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	APawn* ControlledPawn = AIController->GetPawn();
 	if (!ControlledPawn)
 		return;
-
-	// AbilitySystemComponent 가져오기
+	
 	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(ControlledPawn);
 	if (!ASC)
 		return;
-
-	// Fury 값 읽기
+	
 	const float Fury = ASC->GetNumericAttribute(UMAAttributeSet::GetFuryAttribute());
-
-	// Blackboard에 저장
+	
 	if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
 	{
 		BB->SetValueAsFloat(GetSelectedBlackboardKey(), Fury);
 	}
-
-#if WITH_EDITOR
-	// 디버그용 로그
-	UE_LOG(LogTemp, Verbose, TEXT("[BTService_UpdateFury] %s Fury: %.2f"), *ControlledPawn->GetName(), Fury);
-#endif
 }

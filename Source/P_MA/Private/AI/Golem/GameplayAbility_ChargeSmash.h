@@ -32,6 +32,9 @@ private:
 	UFUNCTION()
 	void OnMontageCompleted();
 
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
+	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Animation")
 	UAnimMontage* ChargeSmashMontage;
