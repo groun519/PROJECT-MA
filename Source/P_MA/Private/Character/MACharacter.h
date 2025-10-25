@@ -181,7 +181,14 @@ public:
 	/***************************************************************/
 public:
 	UFUNCTION(Server, Reliable)
-	void Server_SpawnProjectile(TSubclassOf<class AMABaseProjectile> ProjectileClass, FVector Location, FRotator Rotation,float CollisionRadius);
+	void Server_SpawnProjectile(
+		TSubclassOf<class AMABaseProjectile> ProjectileClass, FVector Location, FRotator Rotation,float CollisionRadius, bool bExplodeOnHit);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_RequestTeleport(FVector Location, FRotator Rotation);
+	UFUNCTION(Server, Reliable)
+	void Server_RequestLaunch(FVector LaunchVel, bool bXYOverride, bool bZOverride);
+	
 	
 	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
 	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;

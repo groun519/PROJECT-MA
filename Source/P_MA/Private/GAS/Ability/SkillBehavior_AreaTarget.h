@@ -21,6 +21,8 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override { return true; }
+	virtual bool ShouldLockRotation() const override {return false;}
+	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 
@@ -33,11 +35,13 @@ private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor> TargetActorClass;
+	
 	// 스킬 범위 나타낼 액터
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMAAbilityRangeActor> RangeActorClass;
 	UPROPERTY()
 	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
+	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMABaseProjectile> ProjectileClass;

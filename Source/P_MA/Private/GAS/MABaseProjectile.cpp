@@ -35,7 +35,18 @@ void AMABaseProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	SetLifeSpan(LifeTime);
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMABaseProjectile::OnCollisionOverlap);
+
+	if (bExplodeOnHit)
+	{
+		CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		CollisionComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+		CollisionComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+		CollisionComponent->OnComponentHit.AddDynamic(this, &AMABaseProjectile::OnCollisionHit);
+	}
+	else
+	{
+		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMABaseProjectile::OnCollisionOverlap);
+	}
 	
 }
 
@@ -70,9 +81,56 @@ void AMABaseProjectile::OnCollisionOverlap(UPrimitiveComponent* OverlappedCompon
 			if (TargetActor && TargetActor != GetInstigator())
 			{
 				UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+				if (TargetASC)
 				{
 					FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
 					EffectContext.AddHitResult(SweepResult);
+					FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f, EffectContext);
+
+					if (SpecHandle.IsValid())
+						SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+				}
+			}
+		}
+		Destroy();
+	}
+}
+
+void AMABaseProjectile::OnCollisionHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator() || OtherActor->IsA(AMABaseProjectile::StaticClass()))
+		return;
+		
+	if (HasAuthority())
+	{
+		// 데미지 입힐 타겟 찾기 위한 충돌 지점 (Hit.ImpactPoint 사용)
+		TArray<FOverlapResult> OverlapResults;
+		FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
+		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ImpactRadius); // 스킬에서 설정된 ImpactRadius 사용
+
+		GetWorld()->OverlapMultiByObjectType(OverlapResults, Hit.ImpactPoint, FQuat::Identity, ObjectQueryParams, CollisionShape);
+		
+		UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+		if (!SourceASC)
+		{
+			Destroy();
+			return;
+		}
+		
+		Multicast_PlayOverlapEffects();
+		
+		// 오버랩된 유효 타겟에게 데미지 적용
+		for (const FOverlapResult& OverlapResult : OverlapResults)
+		{
+			AActor* TargetActor = OverlapResult.GetActor();
+			if (TargetActor && TargetActor != GetInstigator())
+			{
+				UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+				if (TargetASC)
+				{
+					FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+					EffectContext.AddHitResult(Hit);
 					FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f, EffectContext);
 
 					if (SpecHandle.IsValid())

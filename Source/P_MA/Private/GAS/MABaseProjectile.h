@@ -8,12 +8,10 @@
 #include "MABaseProjectile.generated.h"
 
 class USphereComponent;
-class UParticleSystemComponent;
 class UNiagaraSystem;
+class UNiagaraComponent;
 class UProjectileMovementComponent;
 class UGameplayEffect;
-
-class UNiagaraComponent;
 
 UCLASS()
 class AMABaseProjectile : public AActor
@@ -23,13 +21,20 @@ class AMABaseProjectile : public AActor
 public:	
 	AMABaseProjectile();
 
-
 	UFUNCTION(BlueprintPure, Category="Ability")
 	UProjectileMovementComponent* GetProjectileMovement() const {return ProjectileMovement;}
 
 	// 충돌 감지 스피어 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USphereComponent> CollisionComponent;
+
+	//충돌 범위
+	UPROPERTY(EditDefaultsOnly, Category="Ability")
+	float ImpactRadius = 300.f;
+	
+	//false = Pawn 충돌 , true = WorldStatic, WorldDynamic에 충돌
+	UPROPERTY(EditDefaultsOnly, Category="Ability")
+	bool bExplodeOnHit = false;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -37,11 +42,11 @@ protected:
 	// 투사체 움직임 담당 컴포넌트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
-	// 투사체 외형 담당 파티클 컴포넌트
+	// 투사체 외형 담당 나이아가라
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Components")
 	UNiagaraComponent* NiagaraComponent;
 	
-	// 충돌 데미지 적용 게임플레이 이펙트 - 투사체 종류 결정
+	// 충돌 데미지 적용 게임플레이 이펙트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability")
 	TSubclassOf<UGameplayEffect> DamageGameplayEffect;
 	// 충돌 이펙트
@@ -53,21 +58,23 @@ protected:
 	// 충돌 이펙트(파티클/사운드) 재생위한 게임플레이 큐 태그
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	FGameplayTag ImpactCueTag;
-
-	//충돌 범위
-	UPROPERTY(EditDefaultsOnly, Category="Ability")
-	float ImpactRadius = 300.f;
+	
 	UPROPERTY(EditDefaultsOnly, Category="Ability")
 	float LifeTime = 2.5f;
 	
-	// 충돌 시 호출 함수
+	// 파이어볼 충돌 이벤트
 	UFUNCTION()
 	void OnCollisionOverlap(
 		UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
+	// 메테오 충돌 이벤트
+	UFUNCTION()
+	void OnCollisionHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor, UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse, const FHitResult& Hit);
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayOverlapEffects();
-
 };

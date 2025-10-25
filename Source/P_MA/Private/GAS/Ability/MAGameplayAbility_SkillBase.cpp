@@ -12,6 +12,7 @@ UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 {
 	AttributeCueTag = UMAAbilitySystemStatics::GetSkillAttributeTag();
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
 void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -25,12 +26,6 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,SkillAnimMontage);
-	PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-	PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-	PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-	PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-	PlayMontageTask->ReadyForActivation();
 	
 	// --- Module 1) Utility ---
 	if (UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get())
@@ -85,14 +80,28 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	if (BehaviorTagToUse.IsValid())
 		ActiveSkillBehavior = BehaviorModules.FindRef(BehaviorTagToUse);
 
+	UAnimMontage* MontageToPlay = ActiveSkillBehavior->MontageToPlay;
+	if (MontageToPlay)
+	{
+		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
+		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->ReadyForActivation();
+	}
+	
 	if (ActiveSkillBehavior)
 	{
-		if (!ActiveSkillBehavior->IsRequirePlayerInput())
+		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
+		if (PlayerCharacter)
 		{
-			AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
-			if (PlayerCharacter)
+			if (ActiveSkillBehavior->ShouldLockRotation())
 			{
 				GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+			}
+			if (!ActiveSkillBehavior->IsRequirePlayerInput())
+			{
 				PlayerCharacter->SetInputEnabledFromPlayerController(false);
 			}
 		}
@@ -108,12 +117,15 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 	
 	if (ActiveSkillBehavior)
 	{
-		if (!ActiveSkillBehavior->IsRequirePlayerInput())
+		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
+		if (PlayerCharacter)
 		{
-			AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
-			if (PlayerCharacter)
+			if (ActiveSkillBehavior->ShouldLockRotation())
 			{
 				GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+			}
+			if (!ActiveSkillBehavior->IsRequirePlayerInput())
+			{
 				PlayerCharacter->SetInputEnabledFromPlayerController(true);
 			}
 		}
@@ -142,7 +154,7 @@ void UMAGameplayAbility_SkillBase::MontageToOtherSection(FName SectionName)
 	{
 		if (UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance())
 		{
-			AnimInst->Montage_JumpToSection(SectionName,SkillAnimMontage);
+			AnimInst->Montage_JumpToSection(SectionName,ActiveSkillBehavior->MontageToPlay);
 		}
 	}
 }

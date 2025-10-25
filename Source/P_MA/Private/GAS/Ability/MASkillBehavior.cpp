@@ -3,6 +3,8 @@
 
 #include "GAS/Ability/MASkillBehavior.h"
 #include "MAGameplayAbility_SkillBase.h"
+#include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
+#include "GameFramework/PlayerController.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMASkillBehavior::OnActivate_Implementation()
@@ -16,6 +18,7 @@ void UMASkillBehavior::OnEndAbility_Implementation()
 	this->Character = nullptr;
 	this->PlayerCharacter = nullptr;
 }
+
 
 class AMACharacter* UMASkillBehavior::GetCharacter() const
 {

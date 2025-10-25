@@ -79,7 +79,7 @@ void USkillBehavior_AreaTarget::TargetConfirmed(const FGameplayAbilityTargetData
 	const FRotator FinalSpawnRot = FRotator(-90.f, 0.f, 0.f);
 
 	if (Character && ProjectileClass)
-		Character -> Server_SpawnProjectile(ProjectileClass, FinalSpawnLoc, FinalSpawnRot, AbilitySize);
+		Character -> Server_SpawnProjectile(ProjectileClass, FinalSpawnLoc, FinalSpawnRot, AbilitySize, true);
 	
 	// 기본공격 나가는 현상 막기 편법
 	if (InputLockEffect && OwningAbility)

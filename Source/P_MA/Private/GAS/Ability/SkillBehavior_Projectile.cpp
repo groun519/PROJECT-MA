@@ -46,7 +46,7 @@ void USkillBehavior_Projectile::OnProjectileEventReceived(FGameplayEventData Eve
 		const FVector TargetDirection = Character->GetActorForwardVector();
 		const FRotator FinalSpawnRotation = TargetDirection.Rotation();
 
-		Character->Server_SpawnProjectile(ProjectileClass, MuzzleLocation, FinalSpawnRotation,AbilitySize);
+		Character->Server_SpawnProjectile(ProjectileClass, MuzzleLocation, FinalSpawnRotation,AbilitySize, false);
 	}
 }
 

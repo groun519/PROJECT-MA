@@ -78,7 +78,6 @@ void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
 		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, OwningAbility->GetAbilityLevel());
 		IgnoreTargets.Add(HitResult.GetActor());
-		
 	}
 }
 
@@ -91,7 +90,7 @@ void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
 		UAnimInstance* OwerAnimInst = OwningAbility->GetOwnerAnimInstance();
 		if (OwerAnimInst)
 		{
-			OwerAnimInst->Montage_JumpToSection(NextComboName);
+			OwerAnimInst->Montage_JumpToSection(NextComboName, MontageToPlay);
 		}
 	}
 	bIsComboInputBuffered = false;
@@ -109,7 +108,7 @@ TSubclassOf<UGameplayEffect> USkillBehavior_Chain::GetDamageEffectForCurrentComb
 	UAnimInstance* OwnerAnimInstance = OwningAbility->GetOwnerAnimInstance();
 	if (OwnerAnimInstance)
 	{
-		FName CurrentSectionName = OwnerAnimInstance->Montage_GetCurrentSection(OwningAbility->SkillAnimMontage);
+		FName CurrentSectionName = OwnerAnimInstance->Montage_GetCurrentSection(MontageToPlay);
 		const TSubclassOf<UGameplayEffect>* FoundEffectPtr = DamageEffectMap.Find(CurrentSectionName);
 		if (FoundEffectPtr)
 			return *FoundEffectPtr;
@@ -126,6 +125,6 @@ void USkillBehavior_Chain::TryCommitCombo()
 	if (!OwnerAnimInst)
 		return;
 
-	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(OwningAbility->SkillAnimMontage), NextComboName, OwningAbility->SkillAnimMontage);
+	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(MontageToPlay), NextComboName, MontageToPlay);
 }
 

@@ -19,6 +19,7 @@ class USkillBehavior_Hold : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+	virtual bool IsRequirePlayerInput() const override {return true;}
 
 protected:
 	UFUNCTION()

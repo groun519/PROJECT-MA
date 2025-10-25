@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "MASkillBehavior.generated.h"
 
 class UMAGameplayAbility_SkillBase;
 class AMACharacter;
-
+class UAnimMontage;
 /**
  * 
  */
@@ -30,9 +31,13 @@ public:
 	void OnEndAbility();
 	virtual void OnEndAbility_Implementation();
 
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
-	
+	//스킬 사용 중 캐릭터 회전 막기 - AreaTarget스킬은 false
+	virtual bool ShouldLockRotation() const {return true;}
 
 protected:
 	//자식 클래스가 캐릭터 접근 쉽게 하도록 돕는 헬퍼

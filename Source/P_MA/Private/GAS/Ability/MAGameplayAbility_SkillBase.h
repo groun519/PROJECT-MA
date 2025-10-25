@@ -21,14 +21,12 @@ public:
 	UMAGameplayAbility_SkillBase();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+
+
 	/***************************************************************/
 	/*							Common		  				       */
 	/***************************************************************/
-
-	UPROPERTY(EditDefaultsOnly, Category="Common")
-	TObjectPtr<UAnimMontage> SkillAnimMontage;
 private:
-	
 	UPROPERTY(EditDefaultsOnly, Category="Common")
 	TArray<TSubclassOf<UGameplayEffect>> EffectsToApply;
 	
@@ -36,7 +34,6 @@ private:
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
-
 	// 스킬 사용 시 짧은 버프를 부여하는 모듈
 	UPROPERTY(EditDefaultsOnly, Category="Module")
 	TArray<TSubclassOf<UGameplayEffect>> ModuleUtility;
@@ -47,7 +44,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Module", Instanced)
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
 
-	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그입니다.
+	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그
 	UPROPERTY(EditDefaultsOnly, Category="Module")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Default");
 	
@@ -65,7 +62,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Cue")
 	FGameplayTag AttributeCueTag;
 
-	
 
 public:
 	void SetMontagePlayRate(float NewPlayRate);

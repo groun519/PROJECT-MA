@@ -420,11 +420,23 @@ void AMACharacter::DeactivateWeaponEffect()
 /*************************************************************/
 
 void AMACharacter::Server_SpawnProjectile_Implementation(TSubclassOf<class AMABaseProjectile> ProjectileClass,
-	FVector Location, FRotator Rotation,float CollisionRadius)
+	FVector Location, FRotator Rotation,float CollisionRadius, bool bExplodeOnHit)
 {
 	UWorld* World = this->GetWorld();
 	if (World && ProjectileClass)
 	{
+		FTransform SpawnTransform(Rotation,Location);
+		AMABaseProjectile* SpawnedProjectile = World->SpawnActorDeferred<AMABaseProjectile>(
+			ProjectileClass,SpawnTransform,this,this,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+		if (SpawnedProjectile)
+		{
+			SpawnedProjectile->ImpactRadius = CollisionRadius;
+			SpawnedProjectile->bExplodeOnHit = bExplodeOnHit;
+			//MABaseProjectile의 BeginPlay 호출
+			SpawnedProjectile->FinishSpawning(SpawnTransform);
+		}
+		/*
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
@@ -439,5 +451,15 @@ void AMACharacter::Server_SpawnProjectile_Implementation(TSubclassOf<class AMABa
 				SphereComponent->SetSphereRadius(CollisionRadius);
 			}
 		}
+		*/
 	}
+}
+void AMACharacter::Server_RequestTeleport_Implementation(FVector Location, FRotator Rotation)
+{
+	TeleportTo(Location,Rotation);
+}
+
+void AMACharacter::Server_RequestLaunch_Implementation(FVector LaunchVel, bool bXYOverride, bool bZOverride)
+{
+	LaunchCharacter(LaunchVel,bXYOverride,bZOverride);
 }
