@@ -8,7 +8,7 @@
 #include "GAS/MAGameplayAbility.h"
 #include "SkillBehavior_Projectile.generated.h"
 
-class MABaseProjectile;
+
 class AMACharacter;
 
 /**
@@ -33,7 +33,7 @@ protected:
 
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMABaseProjectile> ProjectileClass;
+	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass;
 	
 
 	UPROPERTY(EditDefaultsOnly)
@@ -41,5 +41,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly)
 	float AbilitySize = 300.f;
-
 };

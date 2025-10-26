@@ -181,14 +181,11 @@ public:
 	/***************************************************************/
 public:
 	UFUNCTION(Server, Reliable)
-	void Server_SpawnProjectile(
-		TSubclassOf<class AMABaseProjectile> ProjectileClass, FVector Location, FRotator Rotation,float CollisionRadius, bool bExplodeOnHit);
-	
+	void Server_SpawnOverlapAoEProjectile(
+		TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, float ImpactRadius);
 	UFUNCTION(Server, Reliable)
-	void Server_RequestTeleport(FVector Location, FRotator Rotation);
-	UFUNCTION(Server, Reliable)
-	void Server_RequestLaunch(FVector LaunchVel, bool bXYOverride, bool bZOverride);
-	
+	void Server_SpawnGroundTargetedAoEProjectile(
+		TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, FVector TargetImpactLocation, float DamageRadius,TSubclassOf<UGameplayEffect> DamageEffect);
 	
 	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
 	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;

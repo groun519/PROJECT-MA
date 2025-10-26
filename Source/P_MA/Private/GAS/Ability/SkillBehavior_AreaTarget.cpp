@@ -8,7 +8,7 @@
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "GAS/MATargetActor.h"
 #include "GAS/MAAbilityRangeActor.h"
-#include "GAS/MABaseProjectile.h"
+#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 
 USkillBehavior_AreaTarget::USkillBehavior_AreaTarget()
@@ -77,9 +77,10 @@ void USkillBehavior_AreaTarget::TargetConfirmed(const FGameplayAbilityTargetData
 
 	const FVector FinalSpawnLoc = TargetPoint + FVector(0.f, 0.f, SpawnHeight);
 	const FRotator FinalSpawnRot = FRotator(-90.f, 0.f, 0.f);
-
+	
 	if (Character && ProjectileClass)
-		Character -> Server_SpawnProjectile(ProjectileClass, FinalSpawnLoc, FinalSpawnRot, AbilitySize, true);
+		Character -> Server_SpawnGroundTargetedAoEProjectile(
+			ProjectileClass, FinalSpawnLoc, FinalSpawnRot, TargetPoint, AbilitySize,DamageEffect);
 	
 	// 기본공격 나가는 현상 막기 편법
 	if (InputLockEffect && OwningAbility)

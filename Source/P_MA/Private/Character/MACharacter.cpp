@@ -11,7 +11,8 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MABaseProjectile.h"
+#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
+#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
@@ -419,47 +420,53 @@ void AMACharacter::DeactivateWeaponEffect()
 /*								Skill						 */
 /*************************************************************/
 
-void AMACharacter::Server_SpawnProjectile_Implementation(TSubclassOf<class AMABaseProjectile> ProjectileClass,
-	FVector Location, FRotator Rotation,float CollisionRadius, bool bExplodeOnHit)
+void AMACharacter::Server_SpawnOverlapAoEProjectile_Implementation(
+	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
+	float NewImpactRadius)
 {
-	UWorld* World = this->GetWorld();
-	if (World && ProjectileClass)
+	if (!ProjectileClass || !HasAuthority())
+		return;
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return;
+
+	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	AMAProjectile_OverlapAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_OverlapAOE>(
+		ProjectileClass, SpawnTransform, this, this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+	if (SpawnedProjectile)
 	{
-		FTransform SpawnTransform(Rotation,Location);
-		AMABaseProjectile* SpawnedProjectile = World->SpawnActorDeferred<AMABaseProjectile>(
-			ProjectileClass,SpawnTransform,this,this,
-			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-		if (SpawnedProjectile)
-		{
-			SpawnedProjectile->ImpactRadius = CollisionRadius;
-			SpawnedProjectile->bExplodeOnHit = bExplodeOnHit;
-			//MABaseProjectile의 BeginPlay 호출
-			SpawnedProjectile->FinishSpawning(SpawnTransform);
-		}
-		/*
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = this;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-		AMABaseProjectile* SpawnedProjectile =World->SpawnActor<AMABaseProjectile>(ProjectileClass,Location, Rotation, SpawnParams);
-
-		if (SpawnedProjectile && CollisionRadius > 0.f)
-		{
-			if (USphereComponent* SphereComponent = SpawnedProjectile->CollisionComponent)
-			{
-				SphereComponent->SetSphereRadius(CollisionRadius);
-			}
-		}
-		*/
+		// ExposeOnSpawn 변수 설정
+		SpawnedProjectile->ImpactRadius = NewImpactRadius;
+		
+		SpawnedProjectile->FinishSpawning(SpawnTransform);
 	}
 }
-void AMACharacter::Server_RequestTeleport_Implementation(FVector Location, FRotator Rotation)
-{
-	TeleportTo(Location,Rotation);
-}
 
-void AMACharacter::Server_RequestLaunch_Implementation(FVector LaunchVel, bool bXYOverride, bool bZOverride)
+void AMACharacter::Server_SpawnGroundTargetedAoEProjectile_Implementation(
+	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
+	FVector TargetImpactLocation, float DamageRadius, TSubclassOf<UGameplayEffect> DamageEffect)
 {
-	LaunchCharacter(LaunchVel,bXYOverride,bZOverride);
+	if (!ProjectileClass || !HasAuthority())
+		return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	AMAProjectile_GroundTargetedAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_GroundTargetedAOE>(
+		ProjectileClass,SpawnTransform,this,this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+	if (SpawnedProjectile)
+	{
+		// ExposeOnSpawn 변수 설정
+		SpawnedProjectile->TargetImpactLocation = TargetImpactLocation;
+		SpawnedProjectile->DamageRadius = DamageRadius;
+		SpawnedProjectile->DamageEffect = DamageEffect;
+
+		SpawnedProjectile->FinishSpawning(SpawnTransform);
+		
+	}
+	
 }

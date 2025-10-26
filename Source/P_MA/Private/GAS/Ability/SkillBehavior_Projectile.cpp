@@ -6,7 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
-#include "GAS/MABaseProjectile.h"
+#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "GameFramework/PlayerController.h"
 #include "Character/MACharacter.h"
 
@@ -46,7 +46,7 @@ void USkillBehavior_Projectile::OnProjectileEventReceived(FGameplayEventData Eve
 		const FVector TargetDirection = Character->GetActorForwardVector();
 		const FRotator FinalSpawnRotation = TargetDirection.Rotation();
 
-		Character->Server_SpawnProjectile(ProjectileClass, MuzzleLocation, FinalSpawnRotation,AbilitySize, false);
+		Character->Server_SpawnOverlapAoEProjectile(ProjectileClass, MuzzleLocation, FinalSpawnRotation,AbilitySize);
 	}
 }
 

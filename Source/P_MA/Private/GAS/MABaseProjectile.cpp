@@ -6,11 +6,10 @@
 #include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
-#include "Net/UnrealNetwork.h"
-#include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Engine/OverlapResult.h"
 
 AMABaseProjectile::AMABaseProjectile()
 {
@@ -19,6 +18,7 @@ AMABaseProjectile::AMABaseProjectile()
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>("Collision Component");
 	SetRootComponent(CollisionComponent);
+	CollisionComponent->SetCollisionProfileName("Projectile");
 	CollisionComponent->SetIsReplicated(true);
 	
 	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>("Niagara Component");
@@ -27,7 +27,6 @@ AMABaseProjectile::AMABaseProjectile()
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("Projectile Movement");
 	ProjectileMovement->bRotationFollowsVelocity = true;
-	ProjectileMovement->bIsHomingProjectile = false;
 	ProjectileMovement->SetIsReplicated(true);
 }
 
@@ -35,121 +34,54 @@ void AMABaseProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	SetLifeSpan(LifeTime);
-
-	if (bExplodeOnHit)
-	{
-		CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-		CollisionComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-		CollisionComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
-		CollisionComponent->OnComponentHit.AddDynamic(this, &AMABaseProjectile::OnCollisionHit);
-	}
-	else
-	{
-		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMABaseProjectile::OnCollisionOverlap);
-	}
-	
+	if (NiagaraComponent)
+		NiagaraComponent->Activate();
+	if (HasAuthority())
+		SetupCollision();
 }
 
-void AMABaseProjectile::OnCollisionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMABaseProjectile::ApplyAreaDamage(FVector OriginLocation, float DamageRadius, const FHitResult& Hit)
 {
-	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator() || OtherActor->IsA(AMABaseProjectile::StaticClass()))
+	if (!HasAuthority() || !GetInstigator())
 		return;
 
-	if (HasAuthority())
-	{
-		// 데미지 입힐 타겟 찾기 위한 충돌 지점
-		TArray<FOverlapResult> OverlapResults;
-		FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
-		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ImpactRadius);
-
-		GetWorld()->OverlapMultiByObjectType(OverlapResults, SweepResult.ImpactPoint, FQuat::Identity, ObjectQueryParams, CollisionShape);
-		// 스킬 시전자의 ASC 없으면 리턴
-		UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
-		if (!SourceASC)
-		{
-			Destroy();
-			return;
-		}
-		
-		Multicast_PlayOverlapEffects();
-		
-		// 오버랩된 유효 타겟에게 데미지 적용
-		for (const FOverlapResult& OverlapResult : OverlapResults)
-		{
-			AActor* TargetActor = OverlapResult.GetActor();
-			if (TargetActor && TargetActor != GetInstigator())
-			{
-				UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-				if (TargetASC)
-				{
-					FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
-					EffectContext.AddHitResult(SweepResult);
-					FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f, EffectContext);
-
-					if (SpecHandle.IsValid())
-						SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
-				}
-			}
-		}
-		Destroy();
-	}
-}
-
-void AMABaseProjectile::OnCollisionHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator() || OtherActor->IsA(AMABaseProjectile::StaticClass()))
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+	if (!SourceASC)
 		return;
-		
-	if (HasAuthority())
-	{
-		// 데미지 입힐 타겟 찾기 위한 충돌 지점 (Hit.ImpactPoint 사용)
-		TArray<FOverlapResult> OverlapResults;
-		FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
-		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ImpactRadius); // 스킬에서 설정된 ImpactRadius 사용
 
-		GetWorld()->OverlapMultiByObjectType(OverlapResults, Hit.ImpactPoint, FQuat::Identity, ObjectQueryParams, CollisionShape);
-		
-		UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
-		if (!SourceASC)
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
+	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(DamageRadius);
+
+	GetWorld()->OverlapMultiByObjectType(Overlaps, OriginLocation, FQuat::Identity, ObjectQueryParams, CollisionShape);
+	for (const FOverlapResult& OverlapResult : Overlaps)
+	{
+		AActor* TargetActor = OverlapResult.GetActor();
+		if (TargetActor && TargetActor != GetInstigator())
 		{
-			Destroy();
-			return;
-		}
-		
-		Multicast_PlayOverlapEffects();
-		
-		// 오버랩된 유효 타겟에게 데미지 적용
-		for (const FOverlapResult& OverlapResult : OverlapResults)
-		{
-			AActor* TargetActor = OverlapResult.GetActor();
-			if (TargetActor && TargetActor != GetInstigator())
+			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+			if (TargetASC && DamageGameplayEffect)
 			{
-				UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-				if (TargetASC)
-				{
-					FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+				FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+				if (Hit.IsValidBlockingHit())
 					EffectContext.AddHitResult(Hit);
-					FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f, EffectContext);
-
-					if (SpecHandle.IsValid())
-						SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
-				}
+				FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f,EffectContext);
+				if (SpecHandle.IsValid())
+					SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 			}
 		}
-		Destroy();
 	}
 }
 
-void AMABaseProjectile::Multicast_PlayOverlapEffects_Implementation()
+void AMABaseProjectile::Multicast_PlayEffects_Implementation(FVector Location)
 {
 	if (ImpactVFX)
 	{
-		const FVector SpawnLocation = GetActorLocation();
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactVFX, SpawnLocation);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactVFX, Location);
 	}
 }
 
 
-
+void AMABaseProjectile::SetupCollision()
+{
+}

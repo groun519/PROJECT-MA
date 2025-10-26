@@ -44,11 +44,13 @@ private:
 	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMABaseProjectile> ProjectileClass;
+	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class UGameplayEffect> InputLockEffect;
+	TSubclassOf<UGameplayEffect> InputLockEffect;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> DamageEffect;
 	// 스킬 사이즈 (타격 범위)
 	UPROPERTY(EditDefaultsOnly)
 	float AbilitySize = 300.f;
