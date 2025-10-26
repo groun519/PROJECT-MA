@@ -22,44 +22,49 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 
 private:
+	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitJumpStartEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitJumpEndEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitDelay> WaitSlamDelayTask;
-	
+
+	UFUNCTION()
+	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
+	UFUNCTION()
+	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
 	void OnJumpStartEventReceived(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnJumpEndEventReceived(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData EventData);
-	UFUNCTION()
-	void ExecuteSlam();
 	
 	FGameplayTag JumpStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Start");
 	FGameplayTag JumpEndTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.End");
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 
 	UPROPERTY(EditDefaultsOnly)
-	float MaxJumpDistance = 500.f;
+	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> MovementDamageEffect;
-
+	
+	UPROPERTY(EditDefaultsOnly)
+	float MaxJumpDistance = 700.f;
+	UPROPERTY(EditDefaultsOnly)
+	float MinJumpDistance = 100.f;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxJumpForce = 1000.f;
 	UPROPERTY(EditDefaultsOnly)
-	float MinJumpForce = 0.f;
-	
+	float MinJumpForce = 200.f;
 	UPROPERTY(EditDefaultsOnly)
 	float VerticalLaunchForce = 400.f;
-
 	UPROPERTY(EditDefaultsOnly)
-	float SlamForce = 2000.f;
+	float SlamForce = -2000.f;
+	
+	bool bJumpTagReceived;
+	bool bHasValidTargetLocation;
+	
+	FVector CachedJumpLocation;
 
-	UPROPERTY(EditDefaultsOnly)
-	float SlamHopForce = 200.f;
-
-	UPROPERTY(EditDefaultsOnly)
-	float SlamDelay = 0.2f;
+	void TryJump();
 };

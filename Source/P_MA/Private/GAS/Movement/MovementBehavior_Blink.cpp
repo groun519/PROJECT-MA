@@ -2,11 +2,11 @@
 
 
 #include "GAS/Movement/MovementBehavior_Blink.h"
-#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
-#include "GAS/Movement/MATargetActor_Movement.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "GameFramework/PlayerController.h"
+#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Movement/MATargetActor_Movement.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMovementBehavior_Blink::OnActivate_Implementation()
@@ -101,10 +101,9 @@ void UMovementBehavior_Blink::TryTeleport()
 		{
 			Character->TeleportTo(CachedBlinkLocation, CachedBlinkRotation);
 		}
-		if (OwningAbility)
-		{
-			OwningAbility->RequestEndAbility();
-		}
+		
+		bHasValidTargetLocation = false;
+		bBlinkTagReceived = false;
 	}
 }
 
