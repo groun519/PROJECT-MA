@@ -22,7 +22,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "DrawDebugHelpers.h"
 #include "GAS/MAAbilitySystemComponent.h"
-#include "GAS/Movement/GAM_Rush.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()

@@ -46,7 +46,7 @@ private:
 
 	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그
 	UPROPERTY(EditDefaultsOnly, Category="Module")
-	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Default");
+	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveSkillBehavior;
