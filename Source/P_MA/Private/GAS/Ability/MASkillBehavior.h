@@ -33,10 +33,13 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> MontageToPlay;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> DamageEffect;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
-	//스킬 사용 중 캐릭터 회전 막기 - AreaTarget스킬은 false
+	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
 
 protected:

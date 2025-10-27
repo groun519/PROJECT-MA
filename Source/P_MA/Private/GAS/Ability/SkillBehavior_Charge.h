@@ -32,8 +32,6 @@ protected:
 	void HitTarget(FGameplayEventData EventData);
 	
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
-	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
     
 	bool bIsEnd = false;

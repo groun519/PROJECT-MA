@@ -38,11 +38,7 @@ protected:
 
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
-	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
-	UPROPERTY()
-	TArray<AActor*> IgnoreTargets;
 	
 	FGameplayTag ComboDamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");

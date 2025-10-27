@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MABaseProjectile.h"
+#include "GAS/Projectile/MABaseProjectile.h"
 #include "MAProjectile_OverlapAOE.generated.h"
 
 /**
- * 앞으로 날아가는 투사체
+ * 앞으로 날아가는 투사체 (기본적인 파이어볼 타입)
  */
 UCLASS()
 class AMAProjectile_OverlapAOE : public AMABaseProjectile

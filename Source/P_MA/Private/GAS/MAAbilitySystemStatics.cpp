@@ -62,26 +62,6 @@ FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetSkillAttributeTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attribute");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetChargeSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Charge");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetHoldSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Hold");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetChainSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Chain");
-}
-
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
 {
 	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);

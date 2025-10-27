@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "GAS/MATargetActor.h"
+#include "GAS/Projectile/MATargetActor.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbility.h"
 #include "Components/DecalComponent.h"

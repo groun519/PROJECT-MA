@@ -5,12 +5,10 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/WeaponEffectInterface.h"
 #include "Player/MAPlayerCharacter.h"
 
 UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 {
-	AttributeCueTag = UMAAbilitySystemStatics::GetSkillAttributeTag();
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
@@ -26,7 +24,9 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	
+
+	IgnoreTargets.Empty();
+	/*
 	// --- Module 1) Utility ---
 	if (UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get())
 	{
@@ -40,28 +40,8 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 			}
 		}
 	}
-
-	// Module 2) Attribute
-	AActor* AvatarActor = GetAvatarActorFromActorInfo();
-	IWeaponEffectInterface* WeaponEffect = Cast<IWeaponEffectInterface>(AvatarActor);
-	if (WeaponEffect && AttributeEffects && ModuleAttributeTag.IsValid())
-	{
-		UNiagaraSystem* EffectToPlay = AttributeEffects->EffectMap.FindRef(ModuleAttributeTag);
-		if (EffectToPlay)
-			WeaponEffect->ActivateWeaponEffect(EffectToPlay);
-	}
-
-	/* 멀티 플레이어에서 변경되도록 Cue 사용은 작동 안함 - 내가 잘 모르나봄. K2_ExecuteGameplayCueWithParams() 써도 안되고 별 지랄..
-	if (UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get())
-	{
-	   if (ASC->GetOwnerRole() == ROLE_Authority)
-	   {
-		  FGameplayCueParameters CueParams;
-		  CueParams.MatchedTagName = ModuleAttributeTag;
-		  ASC->ExecuteGameplayCue(AttributeCueTag, CueParams);
-	   }
-	}
 	*/
+	
 
 	// Module 3) Behavior	-	동적으로 변한 태그 확인
 	FGameplayTag BehaviorTagToUse;
@@ -162,4 +142,22 @@ void UMAGameplayAbility_SkillBase::MontageToOtherSection(FName SectionName)
 void UMAGameplayAbility_SkillBase::RequestEndAbility()
 {
 	EndAbility(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(),true,false);
+}
+
+
+void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults,
+	TSubclassOf<UGameplayEffect> DamageEffect)
+{
+	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
+		return;
+
+	for (const FHitResult& Hit : HitResults)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (HitActor && !IgnoreTargets.Contains(HitActor))
+		{
+			ApplyGameplayEffectToHitResultActor(Hit, DamageEffect, GetAbilityLevel());
+			IgnoreTargets.Add(HitActor);
+		}
+	}
 }

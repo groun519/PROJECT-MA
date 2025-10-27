@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/MAAbilityRangeActor.h"
+#include "GAS/Projectile/MAAbilityRangeActor.h"
 #include "Components/DecalComponent.h"
 
 

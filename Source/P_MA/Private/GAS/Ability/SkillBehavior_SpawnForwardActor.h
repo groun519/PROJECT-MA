@@ -6,16 +6,17 @@
 #include "GameplayTagContainer.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "GAS/MAGameplayAbility.h"
-#include "SkillBehavior_Projectile.generated.h"
+#include "SkillBehavior_SpawnForwardActor.generated.h"
 
 
 class AMACharacter;
 
 /**
- * 
+ * 전방 액터 스폰
+ * 설정한 투사체를 캐릭터 앞에서 스폰
  */
 UCLASS()
-class USkillBehavior_Projectile : public UMASkillBehavior
+class USkillBehavior_SpawnForwardActor : public UMASkillBehavior
 {
 	GENERATED_BODY()
 

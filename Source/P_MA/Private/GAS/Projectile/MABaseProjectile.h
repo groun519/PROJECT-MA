@@ -28,7 +28,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USphereComponent> CollisionComponent;
 	// 투사체 움직임 담당 컴포넌트
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Components")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
 	// 투사체 외형 담당 나이아가라
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Components")

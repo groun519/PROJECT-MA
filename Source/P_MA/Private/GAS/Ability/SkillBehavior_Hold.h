@@ -32,9 +32,7 @@ protected:
 	void OnHoldReleased(float Time);
 	UFUNCTION()
 	void HitTarget(FGameplayEventData EventData);
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxHoldDuration = 3.0f;
 	UPROPERTY(EditDefaultsOnly)

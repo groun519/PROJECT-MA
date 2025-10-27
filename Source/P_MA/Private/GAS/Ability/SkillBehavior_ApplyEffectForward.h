@@ -3,17 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayEffect.h"
-#include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Ability/MASkillBehavior.h"
-#include "SkillBehavior_Default.generated.h"
+#include "SkillBehavior_ApplyEffectForward.generated.h"
+
 
 /**
- * 
+ * 전방 즉시 효과 적용
+ * 캐릭터 전방 일정 거리까지 지정된 모양으로 즉시 충돌 검사
  */
 UCLASS()
-class USkillBehavior_Default : public UMASkillBehavior
+class USkillBehavior_ApplyEffectForward : public UMASkillBehavior
 {
 	GENERATED_BODY()
 
@@ -21,11 +22,11 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 
-private:
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
+protected:
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageEventTask;
 
 	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
-
+	void OnDamageEventReceived(FGameplayEventData Payload);
+	
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };

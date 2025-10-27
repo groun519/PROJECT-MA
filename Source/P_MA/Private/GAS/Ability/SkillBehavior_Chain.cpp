@@ -15,7 +15,7 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 	if (!OwningAbility)
 		return;
 	Super::OnActivate_Implementation();
-	IgnoreTargets.Empty();
+	OwningAbility->IgnoreTargets.Empty();
 	bIsComboInputBuffered = false;
 	
 	WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,ComboChangeEventTag,nullptr,false,false);
@@ -73,17 +73,17 @@ void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
 
 	for (const FHitResult& HitResult : HitResults)
 	{
-		if (IgnoreTargets.Contains(HitResult.GetActor())) continue;
+		if (OwningAbility->IgnoreTargets.Contains(HitResult.GetActor())) continue;
 			
 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
 		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, OwningAbility->GetAbilityLevel());
-		IgnoreTargets.Add(HitResult.GetActor());
+		OwningAbility->IgnoreTargets.Add(HitResult.GetActor());
 	}
 }
 
 void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
 {
-	IgnoreTargets.Empty();
+	OwningAbility->IgnoreTargets.Empty();
 
 	if (bIsComboInputBuffered && NextComboName != NAME_None)
 	{
@@ -113,7 +113,7 @@ TSubclassOf<UGameplayEffect> USkillBehavior_Chain::GetDamageEffectForCurrentComb
 		if (FoundEffectPtr)
 			return *FoundEffectPtr;
 	}
-	return DefaultDamageEffect;
+	return DamageEffect;
 }
 
 void USkillBehavior_Chain::TryCommitCombo()

@@ -3,6 +3,8 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -391,6 +393,7 @@ void AMACharacter::ApplyMaterialParam()
 	}
 }
 
+
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
 {
@@ -400,20 +403,6 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 	ApplyMaterialParam();
 }
 
-
-
-UNiagaraComponent* AMACharacter::GetWeaponEffectComponent() const
-{
-	return nullptr;
-}
-
-void AMACharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
-{
-}
-
-void AMACharacter::DeactivateWeaponEffect()
-{
-}
 
 
 /*************************************************************/
@@ -466,7 +455,14 @@ void AMACharacter::Server_SpawnGroundTargetedAoEProjectile_Implementation(
 		SpawnedProjectile->DamageEffect = DamageEffect;
 
 		SpawnedProjectile->FinishSpawning(SpawnTransform);
-		
 	}
-	
+}
+
+void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform)
+{
+	if (NS)
+	{
+		UNiagaraComponent* SpawnedComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
+	}
 }
