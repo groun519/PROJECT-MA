@@ -145,6 +145,14 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		IgnoreTargets.Add(HitResult.GetActor());
 	}
+
+	if (FuryEffect && !IgnoreTargets.IsEmpty())
+	{
+		FGameplayEffectSpecHandle FuryEffectSpec = MakeOutgoingGameplayEffectSpec(FuryEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
+		ApplyGameplayEffectSpecToOwner(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), CurrentActivationInfo, FuryEffectSpec);
+
+		IgnoreTargets.Empty();
+	}
 }
 
 void UGA_Combo::ClearIgnore(FGameplayEventData Data)

@@ -34,6 +34,9 @@ private:
 	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
+	TSubclassOf<UGameplayEffect> FuryEffect;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effect")
