@@ -3,24 +3,30 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SphereComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
+#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
-
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
+#include "P_MA/P_MA.h"
 
 AMACharacter::AMACharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Target, ECR_Ignore);
 
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
@@ -98,6 +104,7 @@ void AMACharacter::PossessedBy(AController* NewController)
 	}
 }
 
+
 void AMACharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);	
@@ -136,6 +143,7 @@ void AMACharacter::BindGASChangeDelegates()
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
@@ -166,6 +174,11 @@ void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 		StopAnimMontage(StunMontage);
 	}
 	
+}
+
+void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	//Aim태그 변경시 -> 이동 속도 느리게
 }
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
@@ -380,6 +393,7 @@ void AMACharacter::ApplyMaterialParam()
 	}
 }
 
+
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
 {
@@ -389,15 +403,66 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 	ApplyMaterialParam();
 }
 
-UNiagaraComponent* AMACharacter::GetWeaponEffectComponent() const
+
+
+/*************************************************************/
+/*								Skill						 */
+/*************************************************************/
+
+void AMACharacter::Server_SpawnOverlapAoEProjectile_Implementation(
+	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
+	float NewImpactRadius)
 {
-	return nullptr;
+	if (!ProjectileClass || !HasAuthority())
+		return;
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return;
+
+	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	AMAProjectile_OverlapAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_OverlapAOE>(
+		ProjectileClass, SpawnTransform, this, this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+	if (SpawnedProjectile)
+	{
+		// ExposeOnSpawn 변수 설정
+		SpawnedProjectile->ImpactRadius = NewImpactRadius;
+		
+		SpawnedProjectile->FinishSpawning(SpawnTransform);
+	}
 }
 
-void AMACharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
+void AMACharacter::Server_SpawnGroundTargetedAoEProjectile_Implementation(
+	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
+	FVector TargetImpactLocation, float DamageRadius, TSubclassOf<UGameplayEffect> DamageEffect)
 {
+	if (!ProjectileClass || !HasAuthority())
+		return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	AMAProjectile_GroundTargetedAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_GroundTargetedAOE>(
+		ProjectileClass,SpawnTransform,this,this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+	if (SpawnedProjectile)
+	{
+		// ExposeOnSpawn 변수 설정
+		SpawnedProjectile->TargetImpactLocation = TargetImpactLocation;
+		SpawnedProjectile->DamageRadius = DamageRadius;
+		SpawnedProjectile->DamageEffect = DamageEffect;
+
+		SpawnedProjectile->FinishSpawning(SpawnTransform);
+	}
 }
 
-void AMACharacter::DeactivateWeaponEffect()
+void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform)
 {
+	if (NS)
+	{
+		UNiagaraComponent* SpawnedComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
+	}
 }

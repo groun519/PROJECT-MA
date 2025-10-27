@@ -85,10 +85,7 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DefaultDamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
 }
 
 void USkillBehavior_Charge::UpdateChargeUI()

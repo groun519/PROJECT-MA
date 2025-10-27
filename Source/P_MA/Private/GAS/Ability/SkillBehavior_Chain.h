@@ -19,7 +19,8 @@ class USkillBehavior_Chain : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-
+	virtual bool IsRequirePlayerInput() const override {return true;}
+	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboChangeEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
@@ -37,11 +38,7 @@ protected:
 
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
-	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
-	UPROPERTY()
-	TArray<AActor*> IgnoreTargets;
 	
 	FGameplayTag ComboDamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");

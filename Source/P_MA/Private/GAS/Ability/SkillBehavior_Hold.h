@@ -19,6 +19,7 @@ class USkillBehavior_Hold : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+	virtual bool IsRequirePlayerInput() const override {return true;}
 
 protected:
 	UFUNCTION()
@@ -31,9 +32,7 @@ protected:
 	void OnHoldReleased(float Time);
 	UFUNCTION()
 	void HitTarget(FGameplayEventData EventData);
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxHoldDuration = 3.0f;
 	UPROPERTY(EditDefaultsOnly)

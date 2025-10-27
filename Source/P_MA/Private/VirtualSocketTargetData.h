@@ -1,6 +1,7 @@
 #pragma once
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "DebugShapeHelper.h"
+#include "GenericTeamAgentInterface.h"
 #include "VirtualSocketTargetData.generated.h"
 
 USTRUCT(BlueprintType)

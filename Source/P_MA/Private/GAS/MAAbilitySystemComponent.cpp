@@ -13,6 +13,8 @@
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
+	GenericConfirmInputID = (int32)EMAAbilityInputID::Confirm;
+	GenericCancelInputID = (int32)EMAAbilityInputID::Cancel;
 }
 
 void UMAAbilitySystemComponent::ApplyInitialEffects()

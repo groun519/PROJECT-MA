@@ -2,7 +2,6 @@
 
 
 #include "MAPlayerCharacter.h"
-#include "Player/MAPlayerCharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
@@ -19,12 +18,8 @@
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
-#include "NiagaraComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "DrawDebugHelpers.h"
-#include "GAS/MAAbilitySystemComponent.h"
-#include "GAS/Movement/GAM_Rush.h"
-#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -63,9 +58,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
-
-	WeaponEffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponEffect"));
-	WeaponEffectComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
 	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
@@ -118,7 +110,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	}
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
-		AddMovementInput(GetActorForwardVector(), RushingSpeed);
+		AddMovementInput(GetActorForwardVector(), 2.f);
 	}
 }
 
@@ -317,32 +309,4 @@ void AMAPlayerCharacter::OnRespawn()
 void AMAPlayerCharacter::OnGhostMode()
 {
 	
-}
-
-
-/*************************************************************/
-/**								SKILL						**/
-/*************************************************************/
-
-
-UNiagaraComponent* AMAPlayerCharacter::GetWeaponEffectComponent() const
-{
-	return WeaponEffectComponent;
-}
-
-void AMAPlayerCharacter::ActivateWeaponEffect(UNiagaraSystem* Effect)
-{
-	if (WeaponEffectComponent)
-	{
-		WeaponEffectComponent->SetAsset(Effect);
-		WeaponEffectComponent->Activate(true);
-	}
-}
-
-void AMAPlayerCharacter::DeactivateWeaponEffect()
-{
-	if (WeaponEffectComponent)
-	{
-		WeaponEffectComponent->Deactivate();
-	}
 }
