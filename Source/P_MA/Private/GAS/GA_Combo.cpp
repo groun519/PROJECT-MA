@@ -13,6 +13,7 @@ UGA_Combo::UGA_Combo()
 {
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
+	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAimingTag());
 }
 
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

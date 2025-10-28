@@ -14,7 +14,7 @@ void UAnimNotify_SendNewPlayerTrans::Notify(USkeletalMeshComponent* MeshComp, UA
 	if (MeshComp)
 	{
 		ACharacter* Owner = Cast<ACharacter>(MeshComp->GetOwner());
-		
+
 		if (Owner && Owner->HasAuthority())
 		{
 			/** MoveType:None **/

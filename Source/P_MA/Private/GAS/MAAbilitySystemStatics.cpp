@@ -32,6 +32,11 @@ FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Rushing");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
+{
+	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");
@@ -55,26 +60,6 @@ FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetSkillAttributeTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attribute");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetChargeSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Charge");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetHoldSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Hold");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetChainSkillTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Behavior.Chain");
 }
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)

@@ -19,7 +19,8 @@ class USkillBehavior_Charge : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-
+	virtual bool IsRequirePlayerInput() const override {return true;}
+	
 protected:
 	UFUNCTION()
 	void OnChargeEventReceived(FGameplayEventData EventData);
@@ -30,8 +31,6 @@ protected:
 	UFUNCTION()
 	void HitTarget(FGameplayEventData EventData);
 	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
     

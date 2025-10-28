@@ -78,9 +78,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
-	UNiagaraComponent* WeaponEffectComponent;
-
 	/** Stun **/
 	virtual void OnStun() override;
 	virtual void OnRecoverFromStun() override;
@@ -111,10 +108,6 @@ private:
 	/**								SKILL						**/
 	/*************************************************************/
 public:
-	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
-	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;
-	virtual void DeactivateWeaponEffect() override;
-	
 	UPROPERTY(EditDefaultsOnly, Category = "State")
 	FGameplayTag RotationLockTag;
 
@@ -131,10 +124,5 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Ability | Rush")
-	float RushingSpeed = 800.f;
-
-private:
 	
 };

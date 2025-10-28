@@ -22,9 +22,6 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 
 private:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
-	
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
 	UFUNCTION()

@@ -8,10 +8,11 @@
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
-#include "GAS/WeaponEffectInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "Abilities/GameplayAbility.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "MACharacter.generated.h"
+
+class UNiagaraSystem;
 
 USTRUCT(BlueprintType)
 struct FMaterialParamData
@@ -41,7 +42,7 @@ struct FMaterialParamDataPair
 };
 
 UCLASS()
-class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface, public IWeaponEffectInterface
+class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -72,6 +73,7 @@ private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 	
@@ -179,7 +181,12 @@ public:
 	/*								Skill						   */
 	/***************************************************************/
 public:
-	virtual UNiagaraComponent* GetWeaponEffectComponent() const override;
-	virtual void ActivateWeaponEffect(UNiagaraSystem* Effect) override;
-	virtual void DeactivateWeaponEffect() override;
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnOverlapAoEProjectile(
+		TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, float ImpactRadius);
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnGroundTargetedAoEProjectile(
+		TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, FVector TargetImpactLocation, float DamageRadius,TSubclassOf<UGameplayEffect> DamageEffect);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform);
 };
