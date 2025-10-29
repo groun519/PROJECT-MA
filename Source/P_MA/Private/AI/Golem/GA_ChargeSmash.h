@@ -22,7 +22,9 @@ protected:
 	UFUNCTION()
 	void OnMontageCompleted();
 
-protected:
+	UFUNCTION()
+	void OnEndEventReceived(FGameplayEventData Payload);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	UAnimMontage* ChargeSmashMontage;
 
