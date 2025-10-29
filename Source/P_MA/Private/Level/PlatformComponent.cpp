@@ -19,28 +19,15 @@ UPlatformComponent::UPlatformComponent()
 	}
 }
 
-void UPlatformComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-void UPlatformComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                       FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-}
-
 void UPlatformComponent::EnablePlatform()
 {
 	SetVisibility(true, true);
 	SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
-	if (SpawnEffect)
+	if (EnableEffect)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAttached(
-			SpawnEffect,
+			EnableEffect,
 			this,                  
 			NAME_None,           
 			FVector::ZeroVector,

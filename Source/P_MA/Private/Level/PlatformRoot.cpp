@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlatformRoot.h"
+
+#include "PlatformComponent.h"
 #include "PlatformMatrixComponent.h"
 #include "Components/ArrowComponent.h"
 
@@ -10,7 +12,7 @@ APlatformRoot::APlatformRoot()
 
 	/** Add Matrix **/
 	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
-	PlatformMatrixComponent->SetupAttachment(GetMesh());
+	PlatformMatrixComponent->SetupAttachment(RootComponent);
 	
 	/** Add Arrow **/
 	if (UArrowComponent* Arrow = GetArrowComponent())
@@ -24,7 +26,6 @@ APlatformRoot::APlatformRoot()
 void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void APlatformRoot::Tick(float DeltaTime)
