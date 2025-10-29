@@ -33,7 +33,6 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 		: EMAAbilityInputID::Attack;
 
 	const TCHAR* InputName = (InputToUse == EMAAbilityInputID::Skill1) ? TEXT("Skill1") : TEXT("Attack");
-	UE_LOG(LogBTTaskAbilitySystem, Log, TEXT("[BTTask] Fury=%.1f / Threshold=%.1f → %s 입력"), Fury, Threshold, InputName);
 
 	ASC->PressInputID(static_cast<int32>(InputToUse));
 
@@ -42,18 +41,13 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End"));
 		FGameplayTagContainer TagContainer(EndEventTag);
 
-		// ✅ Delegate 등록 및 Handle 저장
 		FDelegateHandle DelegateHandle = ASC->AddGameplayEventTagContainerDelegate(
 			TagContainer,
 			FGameplayEventTagMulticastDelegate::FDelegate::CreateLambda(
 				[this, &OwnerComp, ASC, TagContainer, DelegateHandle](const FGameplayTag Tag, const FGameplayEventData* Payload) mutable
 				{
-					UE_LOG(LogBTTaskAbilitySystem, Log, TEXT("[BTTask] Ability.Combo.Change.End 이벤트 수신 → FinishLatentTask + RestartTree"));
-
-					// 1️⃣ Task 종료
 					FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 
-					// 2️⃣ Root 재시작 (0.1초 지연)
 					if (UBehaviorTreeComponent* BTC = &OwnerComp)
 					{
 						if (UWorld* World = BTC->GetWorld())
@@ -63,23 +57,18 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 							{
 								if (UBehaviorTree* BTAsset = BTC->GetCurrentTree())
 								{
-									UE_LOG(LogBTTaskAbilitySystem, Log, TEXT("[BTTask] RestartTree() 호출"));
 									BTC->RestartTree();
 								}
 							}, 0.1f, false);
 						}
 					}
 
-					// 3️⃣ 델리게이트 해제 (태그 + 핸들 필요)
 					ASC->RemoveGameplayEventTagContainerDelegate(TagContainer, DelegateHandle);
 				}
 			)
 		);
 
-		UE_LOG(LogBTTaskAbilitySystem, Log, TEXT("[BTTask] Skill1 InProgress → Ability.Combo.Change.End 이벤트 대기 중"));
 		return EBTNodeResult::InProgress;
 	}
-
-	// Attack은 즉시 완료
 	return EBTNodeResult::Succeeded;
 }
