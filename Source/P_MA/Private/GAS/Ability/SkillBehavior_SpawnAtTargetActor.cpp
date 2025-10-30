@@ -6,7 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "Character/MACharacter.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
-#include "GAS/Projectile/MATargetActor.h"
+#include "GAS/Projectile/MATargetActor_SelectLoc.h"
 #include "GAS/Projectile/MAAbilityRangeActor.h"
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
@@ -37,16 +37,14 @@ void USkillBehavior_SpawnAtTargetActor::OnActivate_Implementation()
 	WaitTargetDataTask -> Cancelled.AddDynamic(this, &USkillBehavior_SpawnAtTargetActor::TargetCancelled);
 	WaitTargetDataTask -> ReadyForActivation();
 	
-	// 미리보기 상태로 스폰
 	AGameplayAbilityTargetActor* TargetActor;
 	WaitTargetDataTask -> BeginSpawningActor(OwningAbility, TargetActorClass, TargetActor);
-	AMATargetActor* GroundPick = Cast<AMATargetActor>(TargetActor);
-	if (GroundPick)
+	AMATargetActor_SelectLoc* SelectLoc = Cast<AMATargetActor_SelectLoc>(TargetActor);
+	if (SelectLoc)
 	{
-		GroundPick -> SetTargetAreaRadius(AbilitySize);
-		GroundPick -> SetTargetTraceRange(MaxRange);
+		SelectLoc -> SetTargetAreaRadius(AbilitySize);
+		SelectLoc -> SetTargetTraceRange(MaxRange);
 	}
-	// 미리보기 최종 결정
 	WaitTargetDataTask -> FinishSpawningActor(OwningAbility, TargetActor);
 }
 
@@ -55,8 +53,10 @@ void USkillBehavior_SpawnAtTargetActor::OnEndAbility_Implementation()
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
 	if (SpawnedRangeActor)
+	{
 		SpawnedRangeActor->Destroy();
-	SpawnedRangeActor = nullptr;
+		SpawnedRangeActor = nullptr;
+	}
 	
 	Super::OnEndAbility_Implementation();
 }

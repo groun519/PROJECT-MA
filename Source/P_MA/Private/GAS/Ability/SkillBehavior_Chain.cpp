@@ -15,21 +15,26 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 	if (!OwningAbility)
 		return;
 	Super::OnActivate_Implementation();
+	
 	OwningAbility->IgnoreTargets.Empty();
 	bIsComboInputBuffered = false;
-	
+
 	WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,ComboChangeEventTag,nullptr,false,false);
 	WaitComboChangeEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::ComboChangedEventReceived);
 	WaitComboChangeEventTask->ReadyForActivation();
-
-	WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ComboDamageEventTag);
-	WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::HitTarget);
-	WaitHitEventTask->ReadyForActivation();
-
+	
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ComboClearEventTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
 
+	if (OwningAbility->K2_HasAuthority())
+	{
+		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ComboDamageEventTag);
+		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::HitTarget);
+		WaitHitEventTask->ReadyForActivation();
+
+
+	}
 	SetupWaitComboInputPress();
 }
 
@@ -83,7 +88,10 @@ void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
 
 void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
 {
-	OwningAbility->IgnoreTargets.Empty();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		OwningAbility->IgnoreTargets.Empty();
+	}
 
 	if (bIsComboInputBuffered && NextComboName != NAME_None)
 	{

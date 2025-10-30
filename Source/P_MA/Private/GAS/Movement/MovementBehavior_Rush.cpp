@@ -25,9 +25,12 @@ void UMovementBehavior_Rush::OnActivate_Implementation()
 	TimeoutTask->OnFinish.AddDynamic(this, &UMovementBehavior_Rush::OnFinished);
 	TimeoutTask->ReadyForActivation();
 
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Rush::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Rush::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Rush::OnEndAbility_Implementation()
@@ -67,6 +70,6 @@ void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
 	for (FHitResult& HitResult : HitResults)
 	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
+		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
 	}
 }

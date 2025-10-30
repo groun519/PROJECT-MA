@@ -44,9 +44,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> MovementDamageEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxJumpDistance = 700.f;

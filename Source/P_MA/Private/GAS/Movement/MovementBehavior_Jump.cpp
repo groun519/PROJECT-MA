@@ -34,10 +34,13 @@ void UMovementBehavior_Jump::OnActivate_Implementation()
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, TargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, TargetActor);
 
-	// 데미지 태그 대기
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Jump::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		// 데미지 태그 대기
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Jump::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Jump::OnEndAbility_Implementation()
@@ -98,7 +101,7 @@ void UMovementBehavior_Jump::OnDamageEventReceived(FGameplayEventData EventData)
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
 	for (FHitResult& HitResult : HitResults)
 	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
+		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
 	}
 }
 

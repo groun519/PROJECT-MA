@@ -35,9 +35,6 @@ private:
 	void OnDamageEventReceived(FGameplayEventData Payload);
 
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> MovementDamageEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxRushDuration = 3.f;

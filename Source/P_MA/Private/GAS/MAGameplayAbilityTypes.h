@@ -24,6 +24,13 @@ enum class EMAAbilityInputID : uint8
 	Cancel				UMETA(DisplayName = "Cancel"),
 };
 
+UENUM(BlueprintType)
+enum class ETraceShape : uint8
+{
+	Box			UMETA(DisplayName = "Box"),
+	Sphere		UMETA(DisplayName = "Sphere"),
+};
+
 USTRUCT(BlueprintType)
 struct FGenericDamageEffectDef
 {

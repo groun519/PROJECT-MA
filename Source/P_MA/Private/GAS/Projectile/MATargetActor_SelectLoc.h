@@ -4,27 +4,27 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
-#include "MATargetActor.generated.h"
+#include "MATargetActor_SelectLoc.generated.h"
 
 class UMaterialParameterCollection;
 /**
  * 
  */
 UCLASS()
-class AMATargetActor : public AGameplayAbilityTargetActor
+class AMATargetActor_SelectLoc : public AGameplayAbilityTargetActor
 {
 	GENERATED_BODY()
 
 public:
-	AMATargetActor();
+	AMATargetActor_SelectLoc();
 	
 	void SetTargetAreaRadius(float NewRadius);
 	FORCEINLINE void SetTargetTraceRange(float NewRange) {Distance=NewRange;}
+	virtual void StartTargeting(UGameplayAbility* Ability) override;
 	
 private:
 	virtual void Tick(float DeltaTime) override;
 	virtual void ConfirmTargetingAndContinue() override;
-	virtual void StartTargeting(UGameplayAbility* Ability) override;
 	
 	
 	UPROPERTY(EditDefaultsOnly)

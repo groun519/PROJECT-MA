@@ -34,10 +34,14 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Charge::OnChargeReleased);
 	InputReleaseTask->ReadyForActivation();
-	//데미지 태그 만나면
-	WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::HitTarget);
-	WaitHitEventTask->ReadyForActivation();
+
+	if (OwningAbility->K2_HasAuthority())
+	{
+		//데미지 태그 만나면
+		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::HitTarget);
+		WaitHitEventTask->ReadyForActivation();
+	}
 }
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()

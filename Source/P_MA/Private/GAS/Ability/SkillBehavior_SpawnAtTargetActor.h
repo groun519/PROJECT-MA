@@ -35,7 +35,7 @@ protected:
 private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMATargetActor> TargetActorClass;
+	TSubclassOf<class AMATargetActor_SelectLoc> TargetActorClass;
 	
 	// 스킬 범위 나타낼 액터
 	UPROPERTY(EditDefaultsOnly)

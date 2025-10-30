@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "GAS/Projectile/MATargetActor.h"
+#include "GAS/Projectile/MATargetActor_SelectLoc.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbility.h"
 #include "Components/DecalComponent.h"
 
 
 
-AMATargetActor::AMATargetActor()
+AMATargetActor_SelectLoc::AMATargetActor_SelectLoc()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -16,7 +16,7 @@ AMATargetActor::AMATargetActor()
 	SkillLocDecal=CreateDefaultSubobject<UDecalComponent>("Decal Component");
 	SkillLocDecal->SetupAttachment(GetRootComponent());
 }
-void AMATargetActor::Tick(float DeltaTime)
+void AMATargetActor_SelectLoc::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -39,7 +39,7 @@ void AMATargetActor::Tick(float DeltaTime)
 	}
 }
 
-void AMATargetActor::ConfirmTargetingAndContinue()
+void AMATargetActor_SelectLoc::ConfirmTargetingAndContinue()
 {
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	// 타겟 히트 위치 저장 데이터
@@ -50,7 +50,7 @@ void AMATargetActor::ConfirmTargetingAndContinue()
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);
 }
 
-void AMATargetActor::StartTargeting(UGameplayAbility* Ability)
+void AMATargetActor_SelectLoc::StartTargeting(UGameplayAbility* Ability)
 {
 	Super::StartTargeting(Ability);
 
@@ -60,7 +60,7 @@ void AMATargetActor::StartTargeting(UGameplayAbility* Ability)
 	}
 }
 
-FVector AMATargetActor::GetTargetPoint() const
+FVector AMATargetActor_SelectLoc::GetTargetPoint() const
 {
 	if (!PrimaryPC)
 		return GetActorLocation();
@@ -73,7 +73,7 @@ FVector AMATargetActor::GetTargetPoint() const
 	return GetActorLocation();
 }
 
-void AMATargetActor::SetTargetAreaRadius(float NewRadius)
+void AMATargetActor_SelectLoc::SetTargetAreaRadius(float NewRadius)
 {
 	TargetAreaRadius = NewRadius;
 	SkillLocDecal->DecalSize = FVector{NewRadius};

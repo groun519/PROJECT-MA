@@ -29,9 +29,12 @@ void UMovementBehavior_Blink::OnActivate_Implementation()
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, SpawnedTargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, SpawnedTargetActor);
 
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Blink::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Blink::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Blink::OnEndAbility_Implementation()
@@ -89,7 +92,7 @@ void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
 	for (FHitResult& HitResult : HitResults)
 	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
+		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
 	}
 }
 

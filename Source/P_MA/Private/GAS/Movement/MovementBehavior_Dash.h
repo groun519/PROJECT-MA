@@ -32,10 +32,10 @@ private:
 	
 	FGameplayTag DashStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Start");
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> MovementDamageEffect;
+	
 	
 	UPROPERTY(EditDefaultsOnly)
 	float UpLaunchForce = 100.f;
+	UPROPERTY(EditDefaultsOnly)
+	float ForwardLaunchForce = 100.f;
 };
