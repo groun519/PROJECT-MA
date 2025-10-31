@@ -31,7 +31,6 @@ private:
 	void OnDamageEventReceived(FGameplayEventData Payload);
 	
 	FGameplayTag DashStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Start");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	
 	
 	UPROPERTY(EditDefaultsOnly)

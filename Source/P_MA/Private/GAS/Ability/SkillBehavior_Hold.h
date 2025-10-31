@@ -48,7 +48,6 @@ protected:
 
 	FGameplayTag ReversePlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay");
 	FGameplayTag ForwardPlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	
 	FTimerHandle ChargeUpdateTimerHandle;
 	float StartTime = 0.f;

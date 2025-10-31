@@ -39,7 +39,6 @@ private:
 	void OnDamageEventReceived(FGameplayEventData EventData);
 	
 	FGameplayTag BlinkTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.Start");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;

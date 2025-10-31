@@ -58,8 +58,6 @@ void UMovementBehavior_Dash::OnDashStartEventReceived(FGameplayEventData Payload
 void UMovementBehavior_Dash::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
 
 class UMAGameplayAbility_SkillBase;
@@ -49,4 +50,6 @@ protected:
 	TObjectPtr<class AMACharacter> Character;
 	UPROPERTY()
 	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
+
+	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };

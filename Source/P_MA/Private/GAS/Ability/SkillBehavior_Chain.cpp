@@ -29,11 +29,9 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 
 	if (OwningAbility->K2_HasAuthority())
 	{
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ComboDamageEventTag);
+		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
 		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::HitTarget);
 		WaitHitEventTask->ReadyForActivation();
-
-
 	}
 	SetupWaitComboInputPress();
 }

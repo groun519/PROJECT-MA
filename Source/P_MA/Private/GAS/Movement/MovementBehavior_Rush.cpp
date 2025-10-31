@@ -68,8 +68,5 @@ void UMovementBehavior_Rush::OnFinished()
 void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
 }

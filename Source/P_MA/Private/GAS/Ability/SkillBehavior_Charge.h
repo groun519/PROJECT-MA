@@ -42,7 +42,6 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
 	FGameplayTag ChargeStartTag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	
 	FTimerHandle ChargeUpdateTimerHandle;
 	float StartTime = 0.f;

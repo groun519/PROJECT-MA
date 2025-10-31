@@ -26,6 +26,4 @@ private:
 
 	UFUNCTION()
 	void HitTarget(FGameplayEventData EventData);
-
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };

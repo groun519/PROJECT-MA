@@ -99,10 +99,8 @@ void UMovementBehavior_Jump::OnJumpEndEventReceived(FGameplayEventData EventData
 void UMovementBehavior_Jump::OnDamageEventReceived(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+
 }
 
 void UMovementBehavior_Jump::TryJump()

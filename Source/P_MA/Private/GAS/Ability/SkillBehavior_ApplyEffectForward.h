@@ -27,6 +27,4 @@ protected:
 
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
-	
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };

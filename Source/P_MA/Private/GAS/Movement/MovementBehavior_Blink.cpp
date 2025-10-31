@@ -90,10 +90,8 @@ void UMovementBehavior_Blink::TargetCancelled(const FGameplayAbilityTargetDataHa
 void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+
 }
 
 void UMovementBehavior_Blink::TryTeleport()

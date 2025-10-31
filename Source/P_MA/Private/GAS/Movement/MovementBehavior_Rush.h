@@ -33,8 +33,6 @@ private:
 	void OnFinished();
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
-
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxRushDuration = 3.f;

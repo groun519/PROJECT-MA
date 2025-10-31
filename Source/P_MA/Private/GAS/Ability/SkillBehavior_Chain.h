@@ -40,7 +40,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
 	
-	FGameplayTag ComboDamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
 	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
 	FGameplayTag ComboClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");

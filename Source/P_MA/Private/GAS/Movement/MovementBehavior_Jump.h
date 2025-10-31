@@ -40,7 +40,6 @@ private:
 	
 	FGameplayTag JumpStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Start");
 	FGameplayTag JumpEndTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.End");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
