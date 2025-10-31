@@ -1,3 +1,5 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -18,7 +20,7 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
-	static FGameplayTag GetComboTargetEventTag();
+	static FGameplayTag GetTargetEventTag();
 	
 protected:
 	UFUNCTION()
@@ -31,13 +33,13 @@ protected:
 	void HitTarget(FGameplayEventData Data);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	UAnimMontage* ChargeSmashMontage;
+	UAnimMontage* GroundAttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effect")
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
 private:
-	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
+	TSubclassOf<UGameplayEffect> GetDamageEffect() const;
 	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
