@@ -5,19 +5,19 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GAS/Ability/MASkillBehavior.h"
-#include "SkillBehavior_SpawnAtTargetActor.generated.h"
+#include "SkillBehavior_SpawnActorAtTarget.generated.h"
 
 /**
  * 지점 액터 스폰
  * 플레이어가 지정한 위치에 설정한 투사체로 공격
  */
 UCLASS()
-class USkillBehavior_SpawnAtTargetActor : public UMASkillBehavior
+class USkillBehavior_SpawnActorAtTarget : public UMASkillBehavior
 {
 	GENERATED_BODY()
 
 public:
-	USkillBehavior_SpawnAtTargetActor();
+	USkillBehavior_SpawnActorAtTarget();
 	
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;

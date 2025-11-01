@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Projectile/MABaseProjectile.h"
+#include "GAS/Projectile/MAProjectileBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
@@ -11,7 +11,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Engine/OverlapResult.h"
 
-AMABaseProjectile::AMABaseProjectile()
+AMAProjectileBase::AMAProjectileBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
@@ -30,7 +30,7 @@ AMABaseProjectile::AMABaseProjectile()
 	ProjectileMovement->SetIsReplicated(true);
 }
 
-void AMABaseProjectile::BeginPlay()
+void AMAProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
 	SetLifeSpan(LifeTime);
@@ -40,7 +40,7 @@ void AMABaseProjectile::BeginPlay()
 		SetupCollision();
 }
 
-void AMABaseProjectile::ApplyAreaDamage(FVector OriginLocation, float DamageRadius, const FHitResult& Hit)
+void AMAProjectileBase::ApplyAreaDamage(FVector OriginLocation, float DamageRadius, const FHitResult& Hit)
 {
 	if (!HasAuthority() || !GetInstigator())
 		return;
@@ -73,7 +73,7 @@ void AMABaseProjectile::ApplyAreaDamage(FVector OriginLocation, float DamageRadi
 	}
 }
 
-void AMABaseProjectile::Multicast_PlayEffects_Implementation(FVector Location)
+void AMAProjectileBase::Multicast_PlayEffects_Implementation(FVector Location)
 {
 	if (ImpactVFX)
 	{
@@ -82,6 +82,6 @@ void AMABaseProjectile::Multicast_PlayEffects_Implementation(FVector Location)
 }
 
 
-void AMABaseProjectile::SetupCollision()
+void AMAProjectileBase::SetupCollision()
 {
 }

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Ability/SkillBehavior_SpawnForwardActor.h"
+#include "GAS/Ability/SkillBehavior_SpawnActorFwd.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -11,7 +11,7 @@
 #include "Character/MACharacter.h"
 
 
-void USkillBehavior_SpawnForwardActor::OnActivate_Implementation()
+void USkillBehavior_SpawnActorFwd::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
 	if (!OwningAbility || !Character || !ProjectileClass)
@@ -19,11 +19,11 @@ void USkillBehavior_SpawnForwardActor::OnActivate_Implementation()
 	
 	//애니메이션에서 발사 노티파이 대기
 	ProjectileEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ProjectileTag);
-	ProjectileEventTask->EventReceived.AddDynamic(this, &USkillBehavior_SpawnForwardActor::OnProjectileEventReceived);
+	ProjectileEventTask->EventReceived.AddDynamic(this, &USkillBehavior_SpawnActorFwd::OnProjectileEventReceived);
 	ProjectileEventTask->ReadyForActivation();
 }
 
-void USkillBehavior_SpawnForwardActor::OnEndAbility_Implementation()
+void USkillBehavior_SpawnActorFwd::OnEndAbility_Implementation()
 {
 	if (ProjectileEventTask.IsValid())
 		ProjectileEventTask->EndTask();
@@ -32,7 +32,7 @@ void USkillBehavior_SpawnForwardActor::OnEndAbility_Implementation()
 }
 
 
-void USkillBehavior_SpawnForwardActor::OnProjectileEventReceived(FGameplayEventData EventData)
+void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData EventData)
 {
 	if (!Character || !ProjectileClass)
 		return;

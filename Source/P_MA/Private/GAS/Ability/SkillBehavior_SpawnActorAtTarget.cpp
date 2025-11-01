@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Ability/SkillBehavior_SpawnAtTargetActor.h"
+#include "GAS/Ability/SkillBehavior_SpawnActorAtTarget.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MACharacter.h"
@@ -11,12 +11,12 @@
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 
-USkillBehavior_SpawnAtTargetActor::USkillBehavior_SpawnAtTargetActor()
+USkillBehavior_SpawnActorAtTarget::USkillBehavior_SpawnActorAtTarget()
 {
 	
 }
 
-void USkillBehavior_SpawnAtTargetActor::OnActivate_Implementation()
+void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
 	if (!OwningAbility || !Character)
@@ -33,8 +33,8 @@ void USkillBehavior_SpawnAtTargetActor::OnActivate_Implementation()
 	}
 	
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwningAbility, NAME_None, EGameplayTargetingConfirmation::UserConfirmed, TargetActorClass);
-	WaitTargetDataTask -> ValidData.AddDynamic(this, &USkillBehavior_SpawnAtTargetActor::TargetConfirmed);
-	WaitTargetDataTask -> Cancelled.AddDynamic(this, &USkillBehavior_SpawnAtTargetActor::TargetCancelled);
+	WaitTargetDataTask -> ValidData.AddDynamic(this, &USkillBehavior_SpawnActorAtTarget::TargetConfirmed);
+	WaitTargetDataTask -> Cancelled.AddDynamic(this, &USkillBehavior_SpawnActorAtTarget::TargetCancelled);
 	WaitTargetDataTask -> ReadyForActivation();
 	
 	AGameplayAbilityTargetActor* TargetActor;
@@ -48,7 +48,7 @@ void USkillBehavior_SpawnAtTargetActor::OnActivate_Implementation()
 	WaitTargetDataTask -> FinishSpawningActor(OwningAbility, TargetActor);
 }
 
-void USkillBehavior_SpawnAtTargetActor::OnEndAbility_Implementation()
+void USkillBehavior_SpawnActorAtTarget::OnEndAbility_Implementation()
 {
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
@@ -63,7 +63,7 @@ void USkillBehavior_SpawnAtTargetActor::OnEndAbility_Implementation()
 
 
 
-void USkillBehavior_SpawnAtTargetActor::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
+void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	FVector TargetPoint;
 	if (Data.Num() >0 && Data.Get(0)->GetHitResult())
@@ -96,14 +96,13 @@ void USkillBehavior_SpawnAtTargetActor::TargetConfirmed(const FGameplayAbilityTa
 		}
 	}
 	
-
 	if (OwningAbility)
 	{
 		OwningAbility->RequestEndAbility();
 	}
 }
 
-void USkillBehavior_SpawnAtTargetActor::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
+void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
 	OwningAbility->RequestEndAbility();
 }

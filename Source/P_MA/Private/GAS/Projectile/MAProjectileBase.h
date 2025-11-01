@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MABaseProjectile.generated.h"
+#include "MAProjectileBase.generated.h"
 
 class USphereComponent;
 class UNiagaraSystem;
@@ -13,12 +13,12 @@ class UProjectileMovementComponent;
 class UGameplayEffect;
 
 UCLASS(Abstract)
-class AMABaseProjectile : public AActor
+class AMAProjectileBase : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	AMABaseProjectile();
+	AMAProjectileBase();
 
 protected:
 	virtual void BeginPlay() override;
