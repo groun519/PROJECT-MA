@@ -12,16 +12,11 @@ AMAAbilityRangeActor::AMAAbilityRangeActor()
 
 	SetRootComponent(CreateDefaultSubobject<USceneComponent>("Root Component"));
 
-	OutlineDecal = CreateDefaultSubobject<UDecalComponent>("Outline Decal");
-	OutlineDecal->SetupAttachment(GetRootComponent());
-
-	InnerDecal = CreateDefaultSubobject<UDecalComponent>("Inner Decal");
-	InnerDecal->SetupAttachment(OutlineDecal);
+	RangeDecal = CreateDefaultSubobject<UDecalComponent>("Outline Decal");
+	RangeDecal->SetupAttachment(GetRootComponent());
 }
 
-void AMAAbilityRangeActor::SetAbilityRange(float NewRange)
+void AMAAbilityRangeActor::SetMaxDistance(float NewRange)
 {
-	AbilityRange = NewRange;
-	OutlineDecal->DecalSize = FVector{NewRange};
-	InnerDecal	->DecalSize = FVector{NewRange};
+	RangeDecal->DecalSize = FVector{NewRange};
 }

@@ -3,6 +3,7 @@
 
 #include "GAS/Ability/SkillBehavior_SpawnActorAtTarget.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MACharacter.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
@@ -13,7 +14,6 @@
 
 USkillBehavior_SpawnActorAtTarget::USkillBehavior_SpawnActorAtTarget()
 {
-	
 }
 
 void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
@@ -28,7 +28,7 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 		if (SpawnedRangeActor)
 		{
 			SpawnedRangeActor->AttachToActor(Character, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			SpawnedRangeActor->SetAbilityRange(MaxRange);
+			SpawnedRangeActor->SetMaxDistance(MaxDistance);
 		}
 	}
 	
@@ -42,8 +42,8 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 	AMATargetActor_SelectLoc* SelectLoc = Cast<AMATargetActor_SelectLoc>(TargetActor);
 	if (SelectLoc)
 	{
-		SelectLoc -> SetTargetAreaRadius(AbilitySize);
-		SelectLoc -> SetTargetTraceRange(MaxRange);
+		SelectLoc -> SetAbilityRadius(AbilityRange);
+		SelectLoc -> SetMaxDistance(MaxDistance);
 	}
 	WaitTargetDataTask -> FinishSpawningActor(OwningAbility, TargetActor);
 }
@@ -60,8 +60,6 @@ void USkillBehavior_SpawnActorAtTarget::OnEndAbility_Implementation()
 	
 	Super::OnEndAbility_Implementation();
 }
-
-
 
 void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
@@ -80,25 +78,13 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 	
 	if (Character && ProjectileClass)
 		Character -> Server_SpawnGroundTargetedAoEProjectile(
-			ProjectileClass, FinalSpawnLoc, FinalSpawnRot, TargetPoint, AbilitySize,DamageEffect);
-	
-	// 기본공격 나가는 현상 막기 편법
-	if (InputLockEffect && OwningAbility)
-	{
-		if (UAbilitySystemComponent* ASC = OwningAbility->GetAbilitySystemComponentFromActorInfo())
-		{
-			FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(InputLockEffect, OwningAbility->GetAbilityLevel(), EffectContext);
-			if (SpecHandle.IsValid())
-			{
-				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-			}
-		}
-	}
+			ProjectileClass, FinalSpawnLoc, FinalSpawnRot, TargetPoint, AbilityRange,DamageEffect);
 	
 	if (OwningAbility)
 	{
-		OwningAbility->RequestEndAbility();
+		UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
+		DelayTask->OnFinish.AddDynamic(this, &USkillBehavior_SpawnActorAtTarget::OnDelayFinished);
+		DelayTask->ReadyForActivation();
 	}
 }
 
@@ -107,3 +93,7 @@ void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTa
 	OwningAbility->RequestEndAbility();
 }
 
+void USkillBehavior_SpawnActorAtTarget::OnDelayFinished()
+{
+	OwningAbility->RequestEndAbility();
+}

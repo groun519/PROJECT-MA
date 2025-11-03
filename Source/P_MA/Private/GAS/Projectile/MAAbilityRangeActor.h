@@ -14,14 +14,9 @@ class AMAAbilityRangeActor : public AActor
 public:	
 	AMAAbilityRangeActor();
 
-	void SetAbilityRange(float NewRange);
+	void SetMaxDistance(float NewRange);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category="Visual")
-	class UDecalComponent* OutlineDecal;
-	UPROPERTY(VisibleAnywhere, Category="Visual")
-	class UDecalComponent* InnerDecal;
-	
-	UPROPERTY(EditDefaultsOnly, Category="Indicator")
-	float AbilityRange;
+	class UDecalComponent* RangeDecal;
 };

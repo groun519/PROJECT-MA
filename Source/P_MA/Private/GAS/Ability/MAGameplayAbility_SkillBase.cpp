@@ -161,3 +161,12 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 		}
 	}
 }
+
+void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,
+	TSubclassOf<UGameplayEffect> DamageEffect)
+{
+	if (!DamageEffect)
+		return;
+
+	BP_ApplyGameplayEffectToTarget(TargetData, DamageEffect, GetAbilityLevel());
+}

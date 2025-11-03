@@ -18,23 +18,21 @@ class AMATargetActor_SelectLoc : public AGameplayAbilityTargetActor
 public:
 	AMATargetActor_SelectLoc();
 	
-	void SetTargetAreaRadius(float NewRadius);
-	FORCEINLINE void SetTargetTraceRange(float NewRange) {Distance=NewRange;}
-	virtual void StartTargeting(UGameplayAbility* Ability) override;
+	void SetAbilityRadius(float NewRadius);
+	FORCEINLINE void SetMaxDistance(float NewRange) {MaxDistance=NewRange;}
 	
 private:
 	virtual void Tick(float DeltaTime) override;
 	virtual void ConfirmTargetingAndContinue() override;
 	
-	
-	UPROPERTY(EditDefaultsOnly)
-	float TargetAreaRadius = 300.f;
-	UPROPERTY(EditDefaultsOnly)
-	float Distance = 2000.f;
+	float AbilityRange;
+	float MaxDistance;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category="Visual")
 	class UDecalComponent* SkillLocDecal;
-
+	
+	/*
+	virtual void StartTargeting(UGameplayAbility* Ability) override;
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> DecalDMI;
 	
@@ -42,6 +40,7 @@ private:
 	FLinearColor InRangeColor = FLinearColor(0.700000,2.600000,5.000000,1.000000);
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	FLinearColor OutOfRangeColor = FLinearColor::Red;
+	*/
 	
 	FVector GetTargetPoint() const;
 };

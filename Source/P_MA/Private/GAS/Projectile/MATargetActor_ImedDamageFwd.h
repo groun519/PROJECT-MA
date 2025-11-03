@@ -18,14 +18,29 @@ public:
 	AMATargetActor_ImedDamageFwd();
 	
 	virtual void Tick(float DeltaTime) override;
+
+	void Initialize(float InMaxDistance, float InMinDistance, float InWidth, float InDepth, float InMaxChargeDuration);
+	FGameplayAbilityTargetDataHandle GetTargetData();
 	
-	UFUNCTION()
-	void HandleChargeValueChanged(float NewChargeRatio);
 private:
+	UPROPERTY(VisibleAnywhere)
+	class USceneComponent* RootComp;
 	UPROPERTY(VisibleAnywhere)
 	class UBoxComponent* CollisionComp;
 
 	UPROPERTY(VisibleAnywhere)
 	class UDecalComponent* SkillDecal;
+	UPROPERTY(VisibleAnywhere)
+	class UDecalComponent* MaxRangeDecal;
+	UPROPERTY(VisibleAnywhere)
+	class UDecalComponent* CurrentRangeDecal;
 
+	float StartTime;
+	float MinDistance;
+	float MaxDistance;
+	float SkillWidth;
+	float DecalDepth;
+	float MaxChargeDuration;
+
+	void HandleUpdate(float InElapsedTime);
 };

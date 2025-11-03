@@ -47,6 +47,7 @@ public:
 	void MontageToOtherSection(FName SectionName);
 	void RequestEndAbility();
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
 
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;

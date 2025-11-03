@@ -19,7 +19,33 @@ AMATargetActor_SelectLoc::AMATargetActor_SelectLoc()
 void AMATargetActor_SelectLoc::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	//범위 나가도 최대 거리 끝에 고정되도록
+	if (!PrimaryPC || !PrimaryPC->IsLocalPlayerController())
+		return;
 
+	const FVector TargetPoint = GetTargetPoint();
+	const FVector CharacterLoc = OwningAbility->GetAvatarActorFromActorInfo()->GetActorLocation();
+	const float CurrentDistance = FVector::Dist2D(TargetPoint, CharacterLoc);
+
+	FVector FinalLoc;
+
+	if (CurrentDistance > MaxDistance)
+	{
+		FVector Direction = TargetPoint - CharacterLoc;
+		Direction.Z=0.f;
+		Direction.Normalize();
+
+		FVector ClampedLoc = CharacterLoc + (Direction * MaxDistance);
+		ClampedLoc.Z = TargetPoint.Z;
+		FinalLoc = ClampedLoc;
+	}
+	else
+	{
+		FinalLoc = TargetPoint;
+	}
+	SetActorLocation(FinalLoc);
+	
+	/* 사정거리 넘으면 데칼 색 변화
 	if (PrimaryPC && PrimaryPC->IsLocalPlayerController())
 		SetActorLocation(GetTargetPoint());
 
@@ -29,7 +55,7 @@ void AMATargetActor_SelectLoc::Tick(float DeltaTime)
 		//캐릭터와 마우스 위치 사이 거리
 		const float CurrentDistance = FVector::Dist2D(CharacterLoc, GetTargetPoint());
 		//마우스가 범위 내
-		if (CurrentDistance < Distance)
+		if (CurrentDistance < MaxDistance)
 		{
 			DecalDMI->SetVectorParameterValue(FName("Color"),InRangeColor);
 		}else
@@ -37,6 +63,7 @@ void AMATargetActor_SelectLoc::Tick(float DeltaTime)
 			DecalDMI->SetVectorParameterValue(FName("Color"),OutOfRangeColor);
 		}
 	}
+	*/
 }
 
 void AMATargetActor_SelectLoc::ConfirmTargetingAndContinue()
@@ -49,17 +76,6 @@ void AMATargetActor_SelectLoc::ConfirmTargetingAndContinue()
 
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);
 }
-
-void AMATargetActor_SelectLoc::StartTargeting(UGameplayAbility* Ability)
-{
-	Super::StartTargeting(Ability);
-
-	if (SkillLocDecal)
-	{
-		DecalDMI = SkillLocDecal -> CreateDynamicMaterialInstance();
-	}
-}
-
 FVector AMATargetActor_SelectLoc::GetTargetPoint() const
 {
 	if (!PrimaryPC)
@@ -73,8 +89,19 @@ FVector AMATargetActor_SelectLoc::GetTargetPoint() const
 	return GetActorLocation();
 }
 
-void AMATargetActor_SelectLoc::SetTargetAreaRadius(float NewRadius)
+void AMATargetActor_SelectLoc::SetAbilityRadius(float NewRadius)
 {
-	TargetAreaRadius = NewRadius;
-	SkillLocDecal->DecalSize = FVector{NewRadius};
+	AbilityRange = NewRadius;
+	SkillLocDecal->DecalSize = FVector(10.f, NewRadius,NewRadius);
 }
+/*
+void AMATargetActor_SelectLoc::StartTargeting(UGameplayAbility* Ability)
+{
+	Super::StartTargeting(Ability);
+
+	if (SkillLocDecal)
+	{
+		DecalDMI = SkillLocDecal -> CreateDynamicMaterialInstance();
+	}
+}
+*/

@@ -28,6 +28,8 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 
 	UFUNCTION()
+	void OnDelayFinished();
+	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
 	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
@@ -46,16 +48,13 @@ private:
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> InputLockEffect;
 	
 	// 스킬 사이즈 (타격 범위)
 	UPROPERTY(EditDefaultsOnly)
-	float AbilitySize = 300.f;
+	float AbilityRange = 300.f;
 	// 스킬 시전 범위
 	UPROPERTY(EditDefaultsOnly)
-	float MaxRange = 2000.f;
+	float MaxDistance = 2000.f;
 	
 	// 타격 액터 생성 변수
 	UPROPERTY(EditDefaultsOnly)
