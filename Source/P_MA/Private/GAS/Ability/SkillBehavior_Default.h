@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
-#include "GameplayTagContainer.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Default.generated.h"
 

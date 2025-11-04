@@ -81,6 +81,8 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 {
 	if (bIsEnd)
 		return;
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	bIsEnd = true;
 	if (OwningAbility)
 		OwningAbility->SetMontagePlayRate(1.f);

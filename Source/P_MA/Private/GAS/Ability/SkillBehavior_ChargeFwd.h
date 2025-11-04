@@ -40,10 +40,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float MaxTraceDistance = 1000.f;
 	
-	//짧은 입력 시에 짧은 쿨타임 적용 (스킬 발동 취소)
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> CooldownEffect;
-	
 	UPROPERTY(EditDefaultsOnly)
 	float SkillWidth = 96.f;
 	UPROPERTY()

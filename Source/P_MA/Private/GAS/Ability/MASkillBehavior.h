@@ -37,6 +37,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffect;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> CooldownGE;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}

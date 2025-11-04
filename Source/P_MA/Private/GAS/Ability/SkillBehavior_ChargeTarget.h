@@ -48,9 +48,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float MinimumTimeToActive = 0.2f;
 
-	//짧은 스킬 사용 시 쿨타임 적용 및 취소
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> CooldownEffect;
 	UPROPERTY(EditDefaultsOnly)
 	float VFXRadius = 100.f;
 

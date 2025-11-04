@@ -16,6 +16,8 @@ void USkillBehavior_Default::OnActivate_Implementation()
 		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Default::HitTarget);
 		WaitHitEventTask->ReadyForActivation();
 	}
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 void USkillBehavior_Default::OnEndAbility_Implementation()

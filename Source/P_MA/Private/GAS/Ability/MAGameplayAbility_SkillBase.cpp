@@ -18,14 +18,13 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
-	/*
+	
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
 		return;
 	}
-*/
+
 	IgnoreTargets.Empty();
 	/*
 	// --- Module 1) Utility ---
@@ -115,6 +114,18 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 		ActiveSkillBehavior = nullptr;
 	}
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() const
+{
+	if (SharedCooldownTag.IsValid())
+	{
+		static FGameplayTagContainer TagContainer;
+		TagContainer.Reset();
+		TagContainer.AddTag(SharedCooldownTag);
+		return &TagContainer;
+	}
+	return Super::GetCooldownTags();
 }
 
 void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)

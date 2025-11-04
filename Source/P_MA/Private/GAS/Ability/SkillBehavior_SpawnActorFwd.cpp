@@ -25,6 +25,8 @@ void USkillBehavior_SpawnActorFwd::OnActivate_Implementation()
 
 void USkillBehavior_SpawnActorFwd::OnEndAbility_Implementation()
 {
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	if (ProjectileEventTask.IsValid())
 		ProjectileEventTask->EndTask();
 	

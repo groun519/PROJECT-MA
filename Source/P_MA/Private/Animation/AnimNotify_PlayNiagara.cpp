@@ -41,7 +41,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 		}
 #endif
 
-		if (OwnerActor->HasAuthority() || OwnerActor->GetLocalRole() == ROLE_AutonomousProxy)
+		if (OwnerActor->HasAuthority())
 		{
 			AMACharacter* Character = Cast<AMACharacter>(OwnerActor);
 			if (Character)
@@ -72,7 +72,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 			return;
 		}
 #endif
-		if (OwnerActor->HasAuthority() || OwnerActor->GetLocalRole() == ROLE_AutonomousProxy)
+		if (OwnerActor->HasAuthority())
 		{
 			AMACharacter* Character = Cast<AMACharacter>(OwnerActor);
 			if (Character)

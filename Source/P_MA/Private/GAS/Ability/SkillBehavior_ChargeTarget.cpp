@@ -109,6 +109,9 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 	UAbilityTask_WaitDelay* AttackBlockTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
 	AttackBlockTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::AttackBlocked);
 	AttackBlockTask->ReadyForActivation();
+
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)

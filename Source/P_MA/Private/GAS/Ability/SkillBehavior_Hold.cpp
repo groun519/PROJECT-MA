@@ -49,6 +49,8 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	
 	if (HoldTimeOut.IsValid())
 		HoldTimeOut->EndTask();

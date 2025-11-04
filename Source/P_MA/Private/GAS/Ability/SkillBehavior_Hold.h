@@ -21,24 +21,16 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 
-protected:
-	UFUNCTION()
-	void OnMaxHold();
-	UFUNCTION()
-	void OnForwardPlay(FGameplayEventData EventData);
-	UFUNCTION()
-	void OnReversePlay(FGameplayEventData EventData);
-	UFUNCTION()
-	void OnHoldReleased(float Time);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
-	
+private:
 	UPROPERTY(EditDefaultsOnly)
 	float MaxHoldDuration = 3.0f;
 	UPROPERTY(EditDefaultsOnly)
 	float ReverseSpeed = -2.f;
 	
 	bool bIsHoldEnd = false;
+	FTimerHandle ChargeUpdateTimerHandle;
+	float StartTime = 0.f;
+	void UpdateChargeUI();
 
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> HoldTimeOut;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitForwardTagTask;
@@ -49,7 +41,14 @@ protected:
 	FGameplayTag ReversePlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay");
 	FGameplayTag ForwardPlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay");
 	
-	FTimerHandle ChargeUpdateTimerHandle;
-	float StartTime = 0.f;
-	void UpdateChargeUI();
+	UFUNCTION()
+	void OnMaxHold();
+	UFUNCTION()
+	void OnForwardPlay(FGameplayEventData EventData);
+	UFUNCTION()
+	void OnReversePlay(FGameplayEventData EventData);
+	UFUNCTION()
+	void OnHoldReleased(float Time);
+	UFUNCTION()
+	void HitTarget(FGameplayEventData EventData);
 };

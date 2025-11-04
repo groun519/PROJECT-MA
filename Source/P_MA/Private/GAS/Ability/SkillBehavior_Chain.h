@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Chain.generated.h"
@@ -22,6 +21,22 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	
 protected:
+
+private:
+	UPROPERTY(EditDefaultsOnly)
+	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
+	
+	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
+	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
+	FGameplayTag ComboClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+	
+	void SetupWaitComboInputPress();
+	void TryCommitCombo();
+
+	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
+	FName NextComboName;
+	bool bIsComboInputBuffered;
+	
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboChangeEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
@@ -35,18 +50,4 @@ protected:
 	void ClearIgnore(FGameplayEventData EventData);
 	UFUNCTION()
 	void HandleInputPress(float Time);
-
-private:
-	UPROPERTY(EditDefaultsOnly)
-	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
-	
-	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
-	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
-	FGameplayTag ComboClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
-	
-	void SetupWaitComboInputPress();
-	void TryCommitCombo();
-	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
-	FName NextComboName;
-	bool bIsComboInputBuffered;
 };

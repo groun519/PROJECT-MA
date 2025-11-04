@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
+#include "GameplayEffect.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/IUserObjectListEntry.h" 
 #include "MAAbilityGauge.generated.h"
@@ -41,7 +43,7 @@ public:
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
-	float CooldownUpdateInterval = 0.1f;
+	float CooldownUpdateInterval = 0.02f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
 	FName IconMaterialParamName = "Icon";
@@ -64,8 +66,15 @@ private:
 	UPROPERTY()
 	class UGameplayAbility* AbilityCDO;
 
-	void AbilityCommitted(UGameplayAbility* Ability);
+	//우리 프로젝트에서 사용할 수 없는 구조
+	//void AbilityCommitted(UGameplayAbility* Ability);
 
+	FGameplayTag SharedCooldownTag;
+	TWeakObjectPtr<class UAbilitySystemComponent> OwnerASC;
+
+	UFUNCTION()
+	void OnCooldownTagChanged(const FGameplayTag CooldownTag, int32 NewCount);
+	
 	void StartCooldown(float CooldownTimeRemaining, float CooldownDuration);
 
 	float CachedCooldownDuration;

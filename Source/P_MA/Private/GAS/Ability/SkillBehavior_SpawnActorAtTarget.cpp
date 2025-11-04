@@ -86,6 +86,8 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 		DelayTask->OnFinish.AddDynamic(this, &USkillBehavior_SpawnActorAtTarget::OnDelayFinished);
 		DelayTask->ReadyForActivation();
 	}
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)

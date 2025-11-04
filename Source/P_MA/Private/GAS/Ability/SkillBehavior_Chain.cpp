@@ -38,6 +38,9 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 
 void USkillBehavior_Chain::OnEndAbility_Implementation()
 {
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
+	
 	if (WaitComboChangeEventTask.IsValid())
 		WaitComboChangeEventTask->EndTask();
 	if (WaitHitEventTask.IsValid())
