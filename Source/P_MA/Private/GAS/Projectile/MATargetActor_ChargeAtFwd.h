@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
-#include "MATargetActor_ImedDamageFwd.generated.h"
+#include "MATargetActor_ChargeAtFwd.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class AMATargetActor_ImedDamageFwd : public AGameplayAbilityTargetActor
+class AMATargetActor_ChargeAtFwd : public AGameplayAbilityTargetActor
 {
 	GENERATED_BODY()
 
 public:
-	AMATargetActor_ImedDamageFwd();
+	AMATargetActor_ChargeAtFwd();
 	
 	virtual void Tick(float DeltaTime) override;
 

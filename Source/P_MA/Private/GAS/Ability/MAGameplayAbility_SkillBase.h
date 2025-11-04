@@ -48,7 +48,8 @@ public:
 	void RequestEndAbility();
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
 	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
-
+	void ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level = 1.0f);
+	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
 };

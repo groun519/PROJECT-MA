@@ -23,17 +23,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override { return true; }
 	virtual bool ShouldLockRotation() const override {return false;}
-	
-protected:
-	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 
-	UFUNCTION()
-	void OnDelayFinished();
-	UFUNCTION()
-	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
-	UFUNCTION()
-	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
-	
 private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY(EditDefaultsOnly)
@@ -62,4 +52,12 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float SpawnHeight = 1500.f;
 
+	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
+
+	UFUNCTION()
+	void OnDelayFinished();
+	UFUNCTION()
+	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
+	UFUNCTION()
+	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
 };

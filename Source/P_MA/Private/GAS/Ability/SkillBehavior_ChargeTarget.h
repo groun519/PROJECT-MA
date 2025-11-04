@@ -17,6 +17,7 @@ class USkillBehavior_ChargeTarget : public UMASkillBehavior
 	GENERATED_BODY()
 
 public:
+	
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 
@@ -44,28 +45,34 @@ private:
 	float MaxHoldDuration = 3.f;
 	UPROPERTY(EditDefaultsOnly)
 	float TimeoutDuration = 4.5f;
-	
+	UPROPERTY(EditDefaultsOnly)
+	float MinimumTimeToActive = 0.2f;
+
+	//짧은 스킬 사용 시 쿨타임 적용 및 취소
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> CooldownEffect;
 	UPROPERTY(EditDefaultsOnly)
 	float VFXRadius = 100.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UNiagaraSystem> ExecutionVFX;
-	
+
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetData;
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> WaitDelay;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> WaitInputRelease;
-	
+
+	UFUNCTION()
+	void AttackBlocked();
+	UFUNCTION()
+	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
+	UFUNCTION()
+	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
 	void OnDelayFinished();
 	UFUNCTION()
 	void OnReleased(float TimeHeld);
-	UFUNCTION()
-	void AttackBlcoking();
-	UFUNCTION()
-	void OnConfirmed(const FGameplayAbilityTargetDataHandle& Data);
-	UFUNCTION()
-	void OnCancelled(const FGameplayAbilityTargetDataHandle& Data);
+	
+	void SpawnVFX(FVector SpawnLoc, float FinalSize);
 
-	void SpawnVFX(FVector SpawnLoc,float FinalSize);
-	FGameplayAbilityTargetDataHandle CachedTargetData;
+	float PressedTime=0.f;
 };

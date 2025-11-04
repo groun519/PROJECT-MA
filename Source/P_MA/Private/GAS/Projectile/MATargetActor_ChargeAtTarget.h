@@ -17,14 +17,9 @@ class AMATargetActor_ChargeAtTarget : public AGameplayAbilityTargetActor
 public:
 	AMATargetActor_ChargeAtTarget();
 
-	virtual void Tick(float DeltaSeconds) override;
 	virtual void ConfirmTargetingAndContinue() override;
+	virtual void Tick(float DeltaSeconds) override;
 	void Initialize(float InMaxDistance, float InMaxSize, float InMinSize, float InMaxHoldDuration);
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector FinalImpactPoint;
-	UPROPERTY(BlueprintReadOnly)
-	float FinalChargeRatio;
 
 private:
 	UPROPERTY(VisibleAnywhere)

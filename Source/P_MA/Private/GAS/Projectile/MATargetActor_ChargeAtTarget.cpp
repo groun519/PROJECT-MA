@@ -4,16 +4,14 @@
 #include "GAS/Projectile/MATargetActor_ChargeAtTarget.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
-#include "GenericTeamAgentInterface.h"
 #include "Abilities/GameplayAbility.h"
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
-#include "Engine/OverlapResult.h"
 
 AMATargetActor_ChargeAtTarget::AMATargetActor_ChargeAtTarget()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
+	
 	SetRootComponent(CreateDefaultSubobject<USceneComponent>("Root Component"));
 
 	CollisionComp = CreateDefaultSubobject<USphereComponent>("Collision Component");
@@ -31,7 +29,7 @@ void AMATargetActor_ChargeAtTarget::Tick(float DeltaSeconds)
 
 	if (!PrimaryPC || !PrimaryPC->IsLocalPlayerController())
 		return;
-	
+
 	const FVector TargetPoint = GetTargetPoint();
 	const FVector CharacterLoc = OwningAbility->GetAvatarActorFromActorInfo()->GetActorLocation();
 	const float CurrentDistance = FVector::Dist2D(TargetPoint, CharacterLoc);
@@ -63,20 +61,15 @@ void AMATargetActor_ChargeAtTarget::Tick(float DeltaSeconds)
 
 void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 {
-	float ElapsedTime = (StartTime == 0.f) ? 0.f : (GetWorld()->GetTimeSeconds() - StartTime);
-	float ChargeRatio = FMath::Clamp(ElapsedTime / MaxHoldDuration, 0.f, 1.f);
-/*
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
+
 	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
 	NewData->HitResult.ImpactPoint = GetActorLocation();
-	NewData->HitResult.Distance = ChargeRatio;
+	NewData->HitResult.Distance = CurrentSize;
 	TargetDataHandle.Add(NewData);
-*/
-	
-	FGameplayAbilityTargetDataHandle TargetDataHandle;
+
 	TArray<AActor*> TargetActors;
 	CollisionComp->GetOverlappingActors(TargetActors);
-
 	if (TargetActors.Num() > 0)
 	{
 		FGameplayAbilityTargetData_ActorArray* TargetData = new FGameplayAbilityTargetData_ActorArray();
@@ -85,47 +78,13 @@ void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 		AActor* OwnerActor = OwningAbility? OwningAbility->GetActorInfo().OwnerActor.Get() : nullptr;
 		for (AActor* Actor : TargetActors)
 		{
-			if (Actor && Actor != OwnerActor)
+			if (Actor && Actor!=OwnerActor)
 			{
 				TargetData->TargetActorArray.Add(Actor);
-				UE_LOG(LogTemp, Warning, TEXT("Target Name = %s"), *Actor->GetName());
 			}
 		}
 		TargetDataHandle.Add(TargetData);
 	}
-	FinalImpactPoint = GetActorLocation();
-	FinalChargeRatio = ChargeRatio;
-	
-	/*
-	TArray<FOverlapResult> OverlapResults;
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-
-	FCollisionShape CollisionShape;
-	CollisionShape.SetSphere(CurrentSize);
-
-	GetWorld()->OverlapMultiByObjectType(OverlapResults, GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape);
-
-	TSet<AActor*> TargetActors;
-	IGenericTeamAgentInterface* OwnerTeamInterface = nullptr;
-	if (OwningAbility)
-	{
-		OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(OwningAbility->GetAvatarActorFromActorInfo());
-	}
-	for (FOverlapResult& OverlapResult : OverlapResults)
-	{
-		if (OwnerTeamInterface && OwnerTeamInterface->GetTeamAttitudeTowards(*OverlapResult.GetActor()) ==ETeamAttitude::Friendly)
-			continue;
-		
-		//if (OwnerTeamInterface && OwnerTeamInterface->GetTeamAttitudeTowards(*OverlapResult.GetActor()) ==ETeamAttitude::Hostile)
-			//continue;
-		
-		TargetActors.Add(OverlapResult.GetActor());
-	}
-	//핸들에는 액터 배열만 담아
-	FGameplayAbilityTargetDataHandle TargetDataHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TargetActors.Array(), false);
-	*/
-	
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);
 }
 

@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Projectile/MATargetActor_ImedDamageFwd.h"
+#include "GAS/Projectile/MATargetActor_ChargeAtFwd.h"
 
 #include "Abilities/GameplayAbility.h"
 #include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
 
-AMATargetActor_ImedDamageFwd::AMATargetActor_ImedDamageFwd()
+AMATargetActor_ChargeAtFwd::AMATargetActor_ChargeAtFwd()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -28,7 +28,7 @@ AMATargetActor_ImedDamageFwd::AMATargetActor_ImedDamageFwd()
 }
 
 
-void AMATargetActor_ImedDamageFwd::Tick(float DeltaTime)
+void AMATargetActor_ChargeAtFwd::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (StartTime == 0.f)
@@ -38,7 +38,7 @@ void AMATargetActor_ImedDamageFwd::Tick(float DeltaTime)
 	HandleUpdate(ElapsedTime);
 }
 
-void AMATargetActor_ImedDamageFwd::Initialize(float InMaxDistance, float InMinDistance, float InWidth, float InDepth, float InMaxChargeDuration)
+void AMATargetActor_ChargeAtFwd::Initialize(float InMaxDistance, float InMinDistance, float InWidth, float InDepth, float InMaxChargeDuration)
 {
 	MinDistance=InMinDistance;
 	MaxDistance=InMaxDistance;
@@ -52,7 +52,7 @@ void AMATargetActor_ImedDamageFwd::Initialize(float InMaxDistance, float InMinDi
 	HandleUpdate(0.f);
 }
 
-FGameplayAbilityTargetDataHandle AMATargetActor_ImedDamageFwd::GetTargetData()
+FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtFwd::GetTargetData()
 {
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 
@@ -77,7 +77,7 @@ FGameplayAbilityTargetDataHandle AMATargetActor_ImedDamageFwd::GetTargetData()
 	return TargetDataHandle;
 }
 
-void AMATargetActor_ImedDamageFwd::HandleUpdate(float InElapsedTime)
+void AMATargetActor_ChargeAtFwd::HandleUpdate(float InElapsedTime)
 {
 	float ChargeRatio = FMath::Clamp(InElapsedTime / MaxChargeDuration,0.f,1.f);
 	float CurrentLength = FMath::Lerp(MinDistance, MaxDistance, ChargeRatio);

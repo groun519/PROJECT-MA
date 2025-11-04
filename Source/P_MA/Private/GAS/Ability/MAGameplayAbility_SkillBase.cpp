@@ -19,12 +19,13 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
+	/*
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
 		return;
 	}
-
+*/
 	IgnoreTargets.Empty();
 	/*
 	// --- Module 1) Utility ---
@@ -42,7 +43,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	}
 	*/
 	
-
+	
 	// Module 3) Behavior	-	동적으로 변한 태그 확인
 	FGameplayTag BehaviorTagToUse;
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
@@ -88,6 +89,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		ActiveSkillBehavior->OwningAbility = this;
 		ActiveSkillBehavior->OnActivate();
 	}
+	
 }
 
 void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
@@ -169,4 +171,11 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 		return;
 
 	BP_ApplyGameplayEffectToTarget(TargetData, DamageEffect, GetAbilityLevel());
+}
+
+void UMAGameplayAbility_SkillBase::ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level)
+{
+	if (!Effect)
+		return;
+	BP_ApplyGameplayEffectToOwner(Effect,Level);
 }

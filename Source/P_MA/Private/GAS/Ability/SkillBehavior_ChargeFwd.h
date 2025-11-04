@@ -4,12 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GAS/Ability/MASkillBehavior.h"
-#include "GAS/Projectile/MATargetActor_ImedDamageFwd.h"
+#include "GAS/Projectile/MATargetActor_ChargeAtFwd.h"
 #include "SkillBehavior_ChargeFwd.generated.h"
 
 
 class UNiagaraSystem;
-class AGameplayAbilityTargetActor;
 /**
  * 
  */
@@ -25,13 +24,11 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
 
-
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AMATargetActor_ImedDamageFwd> TargetActorClass;
+	TSubclassOf<AMATargetActor_ChargeAtFwd> TargetActorClass;
 	UPROPERTY()
-	TObjectPtr<AMATargetActor_ImedDamageFwd> TargetActor;
-
+	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 0.1f;
@@ -42,6 +39,10 @@ private:
 	float MinTraceDistance = 100.f;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxTraceDistance = 1000.f;
+	
+	//짧은 입력 시에 짧은 쿨타임 적용 (스킬 발동 취소)
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> CooldownEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float SkillWidth = 96.f;

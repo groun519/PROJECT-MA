@@ -15,7 +15,7 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	if (!Character || !TargetActorClass)
 		return;
 	
-	TargetActor = GetWorld()->SpawnActor<AMATargetActor_ImedDamageFwd>(TargetActorClass);
+	TargetActor = GetWorld()->SpawnActor<AMATargetActor_ChargeAtFwd>(TargetActorClass);
 	if (TargetActor)
 	{
 		TargetActor->AttachToActor(Character, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -51,6 +51,16 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 {
 	if (!TargetActor || !OwningAbility)
 		return;
+
+	if (TimeHeld < 0.25f)
+	{
+		OwningAbility->ApplyEffectToOwner(CooldownEffect);
+		OwningAbility->RequestEndAbility();
+		return;
+	}else
+	{
+		OwningAbility->K2_CommitAbility();
+	}
 	
 	float ChargeRatio = FMath::Clamp(TimeHeld / MaxChargeDuration, 0.f, 1.f);
 	float FinalLength = FMath::Lerp(MinTraceDistance, MaxTraceDistance, ChargeRatio);
@@ -59,7 +69,7 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	FGameplayAbilityTargetDataHandle TargetDataHandle = TargetActor->GetTargetData();
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle, DamageEffect);
-	
+
 	OwningAbility->RequestEndAbility();
 }
 
