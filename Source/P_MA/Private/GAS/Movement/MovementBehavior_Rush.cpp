@@ -39,8 +39,6 @@ void UMovementBehavior_Rush::OnActivate_Implementation()
 
 void UMovementBehavior_Rush::OnEndAbility_Implementation()
 {
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
-	
 	if (WaitInputRelease.IsValid())
 		WaitInputRelease->EndTask();
 	if (TimeoutTask.IsValid())
@@ -71,6 +69,7 @@ void UMovementBehavior_Rush::OnInputReleased(float TimeHeld)
 			OwningAbility->ApplyEffectToOwner(CooldownGE);
 		}
 	}
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
 }
 
 void UMovementBehavior_Rush::OnFinished()
@@ -86,6 +85,7 @@ void UMovementBehavior_Rush::OnFinished()
 			OwningAbility->ApplyEffectToOwner(CooldownGE);
 		}
 	}
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
 }
 
 void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
