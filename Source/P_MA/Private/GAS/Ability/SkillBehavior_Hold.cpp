@@ -26,15 +26,14 @@ void USkillBehavior_Hold::OnActivate_Implementation()
 	HoldTimeOut = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxHoldDuration);
 	HoldTimeOut->OnFinish.AddDynamic(this, &USkillBehavior_Hold::OnMaxHold);
 	HoldTimeOut->ReadyForActivation();
-	//애니메이션 거꾸로 재생하도록
-	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ReversePlayTag);
-	WaitReverseTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnReversePlay);
-	WaitReverseTagTask->ReadyForActivation();
 	//홀딩 중 키 놓으면
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Hold::OnHoldReleased);
 	InputReleaseTask->ReadyForActivation();
-
+	//Ignore Target 배열 초기화
+	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
+	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::ClearIgnore);
+	WaitClearEventTask->ReadyForActivation();
 	if (OwningAbility->K2_HasAuthority())
 	{
 		//데미지 태그 만나면
@@ -52,42 +51,16 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 	
 	if (HoldTimeOut.IsValid())
 		HoldTimeOut->EndTask();
-	if (WaitForwardTagTask.IsValid())
-		WaitForwardTagTask->EndTask();
-	if (WaitReverseTagTask.IsValid())
-		WaitReverseTagTask->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
 	if (WaitHitEventTask.IsValid())
 		WaitHitEventTask->EndTask();
+	if (WaitClearEventTask.IsValid())
+		WaitClearEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
 
-
-void USkillBehavior_Hold::OnForwardPlay(FGameplayEventData EventData)
-{
-	if (bIsHoldEnd)
-		return;
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(1.f);
-	
-	WaitReverseTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,ReversePlayTag);
-	WaitReverseTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnReversePlay);
-	WaitReverseTagTask->ReadyForActivation();
-}
-
-void USkillBehavior_Hold::OnReversePlay(FGameplayEventData EventData)
-{
-	if (bIsHoldEnd)
-		return;
-	if (OwningAbility)
-	OwningAbility->SetMontagePlayRate(ReverseSpeed);
-	
-	WaitForwardTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ForwardPlayTag);
-	WaitForwardTagTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::OnForwardPlay);
-	WaitForwardTagTask->ReadyForActivation();
-}
 
 void USkillBehavior_Hold::OnHoldReleased(float Time)
 {
@@ -96,29 +69,51 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 
 	if (Time <= 0.2f)
 	{
-		if (ShortCooldownEffect)
-		{
-			OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-			OwningAbility->RequestEndAbility();
-			return;
-		}
+		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		return;
 	}
 	
 	bIsHoldEnd = true;
 	if (OwningAbility)
 	{
-		OwningAbility->SetMontagePlayRate(1.f);
 		OwningAbility->MontageToOtherSection(FName("End"));
+		if (CooldownGE)
+		{
+			OwningAbility->ApplyEffectToOwner(CooldownGE);
+		}
 	}
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
+}
+
+void USkillBehavior_Hold::OnMaxHold()
+{
+	if (bIsHoldEnd)
+		return;
+	bIsHoldEnd = true;
+	if (OwningAbility)
+	{
+		OwningAbility->MontageToOtherSection(FName("End"));
+		if (CooldownGE)
+		{
+			OwningAbility->ApplyEffectToOwner(CooldownGE);
+		}
+	}
 }
 
 void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)
 {
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	if (OwningAbility->K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+		OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	}
+}
 
+void USkillBehavior_Hold::ClearIgnore(FGameplayEventData EventData)
+{
+	if (OwningAbility->K2_HasAuthority())
+	{
+		OwningAbility->IgnoreTargets.Empty();
+	}
 }
 
 void USkillBehavior_Hold::UpdateChargeUI()
@@ -131,17 +126,5 @@ void USkillBehavior_Hold::UpdateChargeUI()
         
 		// UI에게 현재 진행률 방송
 		PlayerCharacter->OnChargeAbilityUpdate.Broadcast(ChargePercentage);
-	}
-}
-
-void USkillBehavior_Hold::OnMaxHold()
-{
-	if (bIsHoldEnd)
-		return;
-	bIsHoldEnd = true;
-	if (OwningAbility)
-	{
-		OwningAbility->SetMontagePlayRate(1.f);
-		OwningAbility->MontageToOtherSection(FName("End"));
 	}
 }

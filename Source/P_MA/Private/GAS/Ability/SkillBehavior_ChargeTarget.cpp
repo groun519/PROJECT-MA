@@ -94,14 +94,14 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		ApplyCooldownAndEndAbility(ShortCooldownEffect);
 		return;
 	}
-	
+	// Data 인덱스 1 : 위치 데이터
 	FVector TargetPoint;
-	if (Data.Num() > 0 && Data.Get(0)->GetHitResult())
+	if (Data.Num() > 1 && Data.Get(1)->GetHitResult())
 	{
-		TargetPoint = Data.Get(0)->GetHitResult()->ImpactPoint;
+		TargetPoint = Data.Get(1)->GetHitResult()->ImpactPoint;
 	}else
 	{
-		TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data,0);
+		TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data,1);
 	}
 	
 	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);

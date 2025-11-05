@@ -4,12 +4,15 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "Character/MACharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "GAS/Movement/MATargetActor_Movement.h"
 
 void UMovementBehavior_Jump::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
+	
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 
 	bJumpTagReceived = false;
 	bHasValidTargetLocation = false;
@@ -45,6 +48,8 @@ void UMovementBehavior_Jump::OnActivate_Implementation()
 
 void UMovementBehavior_Jump::OnEndAbility_Implementation()
 {
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
 	if (WaitJumpStartEventTask.IsValid())

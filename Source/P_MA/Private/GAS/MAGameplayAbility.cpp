@@ -204,7 +204,7 @@ void UMAGameplayAbility::PushSelf(const FVector& PushVel)
 }
 
 //대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
-void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel, FGameplayTag Tag)
+void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 {
 	if (!Target)	return;
 
@@ -214,7 +214,7 @@ void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel, FGam
 	HitResult.ImpactNormal = PushVel;
 	HitData -> HitResult = HitResult;
 	EventData.TargetData.Add(HitData);
-	EventData.EventTag = Tag;
+	EventData.EventTag = UMAAbilitySystemStatics::GetLaunchActivateTag();
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventData.EventTag, EventData);
 }

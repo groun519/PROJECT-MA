@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Hold.generated.h"
@@ -24,8 +23,6 @@ public:
 private:
 	UPROPERTY(EditDefaultsOnly)
 	float MaxHoldDuration = 3.0f;
-	UPROPERTY(EditDefaultsOnly)
-	float ReverseSpeed = -2.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
@@ -36,22 +33,16 @@ private:
 	void UpdateChargeUI();
 
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> HoldTimeOut;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitForwardTagTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitReverseTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
-
-	FGameplayTag ReversePlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ReversePlay");
-	FGameplayTag ForwardPlayTag = FGameplayTag::RequestGameplayTag("Event.Montage.ForwardPlay");
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	
 	UFUNCTION()
 	void OnMaxHold();
 	UFUNCTION()
-	void OnForwardPlay(FGameplayEventData EventData);
-	UFUNCTION()
-	void OnReversePlay(FGameplayEventData EventData);
-	UFUNCTION()
 	void OnHoldReleased(float Time);
 	UFUNCTION()
 	void HitTarget(FGameplayEventData EventData);
+	UFUNCTION()
+	void ClearIgnore(FGameplayEventData EventData);
 };

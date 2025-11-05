@@ -62,12 +62,7 @@ void AMATargetActor_ChargeAtTarget::Tick(float DeltaSeconds)
 void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 {
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
-
-	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
-	NewData->HitResult.ImpactPoint = GetActorLocation();
-	NewData->HitResult.Distance = CurrentSize;
-	TargetDataHandle.Add(NewData);
-
+	
 	TArray<AActor*> TargetActors;
 	CollisionComp->GetOverlappingActors(TargetActors);
 	if (TargetActors.Num() > 0)
@@ -83,8 +78,15 @@ void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 				TargetData->TargetActorArray.Add(Actor);
 			}
 		}
+		//데이터 인덱스 0 : 타겟
 		TargetDataHandle.Add(TargetData);
 	}
+	//데이터 인덱스 1 : 위치
+	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
+	NewData->HitResult.ImpactPoint = GetActorLocation();
+	NewData->HitResult.Distance = CurrentSize;
+	TargetDataHandle.Add(NewData);
+	
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);
 }
 

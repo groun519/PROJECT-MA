@@ -9,6 +9,7 @@
 
 void UMASkillBehavior::OnActivate_Implementation()
 {
+	OwningAbility->IgnoreTargets.Empty();
 	this->Character = GetCharacter();
 	this->PlayerCharacter = Cast<AMAPlayerCharacter>(this->Character);
 }

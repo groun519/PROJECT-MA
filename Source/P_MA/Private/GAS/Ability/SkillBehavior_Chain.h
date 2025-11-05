@@ -19,7 +19,6 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
-	virtual TSubclassOf<UGameplayEffect> GetCooldownEffectOnEndAbility() const override {return CooldownGE;}
 	
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -27,7 +26,6 @@ private:
 	
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
 	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
-	FGameplayTag ComboClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
 	
 	void SetupWaitComboInputPress();
 	void TryCommitCombo();

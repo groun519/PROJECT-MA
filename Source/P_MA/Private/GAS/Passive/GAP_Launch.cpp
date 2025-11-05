@@ -3,12 +3,14 @@
 
 #include "GAS/Passive/GAP_Launch.h"
 
+#include "GAS/MAAbilitySystemStatics.h"
+
 UGAP_Launch::UGAP_Launch()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
-	TriggerData.TriggerTag = FGameplayTag::RequestGameplayTag("Event.Montage.Launch");
+	TriggerData.TriggerTag = UMAAbilitySystemStatics::GetLaunchActivateTag();
 
 	ActivationBlockedTags.RemoveTag(FGameplayTag::RequestGameplayTag("Stats.Stun"));
 	AbilityTriggers.Add(TriggerData);

@@ -2,6 +2,8 @@
 
 
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -64,10 +66,10 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	if (MontageToPlay)
 	{
 		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
-		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
+		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
 		PlayMontageTask->ReadyForActivation();
 	}
 	
@@ -129,21 +131,6 @@ const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() con
 	return Super::GetCooldownTags();
 }
 
-void UMAGameplayAbility_SkillBase::HandleMontageEnded()
-{
-	if (ActiveSkillBehavior)
-	{
-		TSubclassOf<UGameplayEffect> CooldownToApply = ActiveSkillBehavior->GetCooldownEffectOnEndAbility();
-		if (CooldownToApply)
-		{
-			ActiveSkillBehavior->ApplyCooldownAndEndAbility(CooldownToApply);
-		}else
-		{
-			K2_EndAbility();
-		}
-	}
-}
-
 void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)
 {
 	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
@@ -194,15 +181,24 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,
 	TSubclassOf<UGameplayEffect> DamageEffect)
 {
-	if (!DamageEffect)
+	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
 		return;
 
-	BP_ApplyGameplayEffectToTarget(TargetData, DamageEffect, GetAbilityLevel());
+	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData, 0);
+	for (AActor* TargetActor : TargetActors)
+	{
+		if (TargetActor && !IgnoreTargets.Contains(TargetActor))
+		{
+			FGameplayAbilityTargetDataHandle SingleTargetHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
+			BP_ApplyGameplayEffectToTarget(SingleTargetHandle, DamageEffect, GetAbilityLevel());
+			IgnoreTargets.Add(TargetActor);
+		}
+	}
 }
 
 void UMAGameplayAbility_SkillBase::ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level)
 {
-	if (!Effect)
+	if (!Effect || !HasAuthority(&CurrentActivationInfo))
 		return;
 	BP_ApplyGameplayEffectToOwner(Effect,Level);
 }

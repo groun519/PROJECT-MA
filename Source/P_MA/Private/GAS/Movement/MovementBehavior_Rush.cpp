@@ -24,7 +24,11 @@ void UMovementBehavior_Rush::OnActivate_Implementation()
 	TimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxRushDuration);
 	TimeoutTask->OnFinish.AddDynamic(this, &UMovementBehavior_Rush::OnFinished);
 	TimeoutTask->ReadyForActivation();
-
+	
+	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
+	WaitClearEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Rush::ClearIgnore);
+	WaitClearEventTask->ReadyForActivation();
+	
 	if (OwningAbility->K2_HasAuthority())
 	{
 		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,DamageEventTag);
@@ -43,6 +47,8 @@ void UMovementBehavior_Rush::OnEndAbility_Implementation()
 		TimeoutTask->EndTask();
 	if (WaitDamageTagEventTask.IsValid())
 		WaitDamageTagEventTask->EndTask();
+	if (WaitClearEventTask.IsValid())
+		WaitClearEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
@@ -51,9 +57,20 @@ void UMovementBehavior_Rush::OnInputReleased(float TimeHeld)
 {
 	if (bIsEnd)
 		return;
+	if (TimeHeld <= 0.2f)
+	{
+		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		return;
+	}
 	bIsEnd = true;
-	OwningAbility->MontageToOtherSection("End");
-	OwningAbility->RequestEndAbility();
+	if (OwningAbility)
+	{
+		OwningAbility->MontageToOtherSection(FName("End"));
+		if (CooldownGE)
+		{
+			OwningAbility->ApplyEffectToOwner(CooldownGE);
+		}
+	}
 }
 
 void UMovementBehavior_Rush::OnFinished()
@@ -61,12 +78,26 @@ void UMovementBehavior_Rush::OnFinished()
 	if (bIsEnd)
 		return;
 	bIsEnd = true;
-	OwningAbility->MontageToOtherSection("End");
-	OwningAbility->RequestEndAbility();
+	if (OwningAbility)
+	{
+		OwningAbility->MontageToOtherSection(FName("End"));
+		if (CooldownGE)
+		{
+			OwningAbility->ApplyEffectToOwner(CooldownGE);
+		}
+	}
 }
 
 void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
 	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+}
+
+void UMovementBehavior_Rush::ClearIgnore(FGameplayEventData Payload)
+{
+	if (OwningAbility->K2_HasAuthority())
+	{
+		OwningAbility->IgnoreTargets.Empty();
+	}
 }

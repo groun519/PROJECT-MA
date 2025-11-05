@@ -45,8 +45,7 @@ public:
 	virtual bool IsRequirePlayerInput() const {return false;}
 	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
-	//EndAbility 이전에 쿨타임 적용시키기 위해 GE getter
-	virtual TSubclassOf<UGameplayEffect> GetCooldownEffectOnEndAbility() const {return nullptr;}
+
 	//쿨타임 적용 후 0.05초 이후에 EndAbility호출
 	virtual void ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect);
 protected:
@@ -61,4 +60,5 @@ protected:
 	virtual void SafeEndAbility();
 
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
+	FGameplayTag IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 };

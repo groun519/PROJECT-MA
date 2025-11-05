@@ -12,6 +12,11 @@ FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 	return FGameplayTag::RequestGameplayTag("Ability.BasicAttack");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Dead");
@@ -60,6 +65,11 @@ FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Montage.LaunchActivate");
 }
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
