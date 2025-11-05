@@ -20,6 +20,9 @@ public:
 	bool IsActive() const;
 	void Activate();
 	void SetGoal(AActor* Goal);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	float FuryThreshold = 50.f;
 	
 private:
 	virtual void OnRep_TeamID() override;

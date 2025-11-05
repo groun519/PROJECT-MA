@@ -33,6 +33,8 @@ public:
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, AttackSpeed)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Armor)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, ArmorPenetration)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Fury)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MaxFury)
 
 
 private:
@@ -43,6 +45,8 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)		FGameplayAttributeData AttackSpeed;
 	UPROPERTY(ReplicatedUsing = OnRep_Armor)			FGameplayAttributeData Armor;
 	UPROPERTY(ReplicatedUsing = OnRep_ArmorPenetration)	FGameplayAttributeData ArmorPenetration;
+	UPROPERTY(ReplicatedUsing = OnRep_Fury)				FGameplayAttributeData Fury;
+	UPROPERTY(ReplicatedUsing = OnRep_MaxFury)			FGameplayAttributeData MaxFury;
 	
 	UFUNCTION()	void OnRep_Health(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
@@ -51,5 +55,7 @@ private:
 	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Armor(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_ArmorPenetration(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Fury(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_MaxFury(const FGameplayAttributeData& OldValue);
 
 };
