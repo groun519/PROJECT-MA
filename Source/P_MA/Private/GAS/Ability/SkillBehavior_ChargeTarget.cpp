@@ -87,6 +87,14 @@ void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
 
 void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
+	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
+
+	if (HeldTime <= MinimumTimeToActive) 
+	{
+		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		return;
+	}
+	
 	FVector TargetPoint;
 	if (Data.Num() > 0 && Data.Get(0)->GetHitResult())
 	{
@@ -95,8 +103,7 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 	{
 		TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data,0);
 	}
-
-	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
+	
 	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);
 	float FinalSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
 
@@ -105,30 +112,31 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		SpawnVFX(TargetPoint,FinalSize);
 		OwningAbility->ApplyDamageToTargetData(Data, DamageEffect);
 	}
-	
-	UAbilityTask_WaitDelay* AttackBlockTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-	AttackBlockTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::AttackBlocked);
-	AttackBlockTask->ReadyForActivation();
 
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
+	ApplyCooldownAndEndAbility(CooldownGE);
 }
 
 void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
+	if (ShortCooldownEffect)
+		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
 	OwningAbility->RequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnDelayFinished()
 {
-	OwningAbility->RequestEndAbility();
+	if (ShortCooldownEffect)
+	{
+		UAbilityTask_WaitDelay* Fuck = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
+		Fuck->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::SafeEndAbility);
+		Fuck->ReadyForActivation();
+		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
+	}
 }
 
 void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 {
-	OwningAbility->RequestEndAbility();
-}
-void USkillBehavior_ChargeTarget::AttackBlocked()
-{
+	if (ShortCooldownEffect)
+		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
 	OwningAbility->RequestEndAbility();
 }

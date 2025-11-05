@@ -51,6 +51,12 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 {
 	if (!TargetActor || !OwningAbility)
 		return;
+
+	if (TimeHeld <= 0.2f)
+	{
+		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		return;
+	}
 	
 	float ChargeRatio = FMath::Clamp(TimeHeld / MaxChargeDuration, 0.f, 1.f);
 	float FinalLength = FMath::Lerp(MinTraceDistance, MaxTraceDistance, ChargeRatio);
@@ -60,14 +66,12 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle, DamageEffect);
 
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
-	OwningAbility->RequestEndAbility();
+	ApplyCooldownAndEndAbility(CooldownGE);
 }
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
-	OwningAbility->RequestEndAbility();
+	ApplyCooldownAndEndAbility(ShortCooldownEffect);
 }
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)

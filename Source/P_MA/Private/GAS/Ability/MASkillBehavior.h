@@ -45,7 +45,10 @@ public:
 	virtual bool IsRequirePlayerInput() const {return false;}
 	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
-
+	//EndAbility 이전에 쿨타임 적용시키기 위해 GE getter
+	virtual TSubclassOf<UGameplayEffect> GetCooldownEffectOnEndAbility() const {return nullptr;}
+	//쿨타임 적용 후 0.05초 이후에 EndAbility호출
+	virtual void ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect);
 protected:
 	//자식 클래스가 캐릭터 접근 쉽게 하도록 돕는 헬퍼
 	class AMACharacter* GetCharacter() const;
@@ -53,6 +56,9 @@ protected:
 	TObjectPtr<class AMACharacter> Character;
 	UPROPERTY()
 	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
+
+	UFUNCTION()
+	virtual void SafeEndAbility();
 
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 };

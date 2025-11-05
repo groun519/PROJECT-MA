@@ -36,6 +36,9 @@ private:
 	TObjectPtr<class AMATargetActor_ChargeAtTarget> TargetActor;
 
 	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
+
+	UPROPERTY(EditDefaultsOnly)
 	float MaxDistance = 1000.f;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxSize = 500.f;
@@ -57,9 +60,7 @@ private:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetData;
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> WaitDelay;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> WaitInputRelease;
-
-	UFUNCTION()
-	void AttackBlocked();
+	
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()

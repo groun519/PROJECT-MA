@@ -45,6 +45,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveSkillBehavior;
 
+	UFUNCTION()
+	void HandleMontageEnded();
 public:
 	void SetMontagePlayRate(float NewPlayRate);
 	void MontageToOtherSection(FName SectionName);

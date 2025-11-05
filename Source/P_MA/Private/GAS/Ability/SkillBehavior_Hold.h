@@ -26,6 +26,9 @@ private:
 	float MaxHoldDuration = 3.0f;
 	UPROPERTY(EditDefaultsOnly)
 	float ReverseSpeed = -2.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 	
 	bool bIsHoldEnd = false;
 	FTimerHandle ChargeUpdateTimerHandle;

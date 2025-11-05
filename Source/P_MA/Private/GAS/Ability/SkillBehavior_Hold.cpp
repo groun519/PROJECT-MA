@@ -49,8 +49,6 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	
 	if (HoldTimeOut.IsValid())
 		HoldTimeOut->EndTask();
@@ -95,12 +93,25 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 {
 	if (bIsHoldEnd)
 		return;
+
+	if (Time <= 0.2f)
+	{
+		if (ShortCooldownEffect)
+		{
+			OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
+			OwningAbility->RequestEndAbility();
+			return;
+		}
+	}
+	
 	bIsHoldEnd = true;
 	if (OwningAbility)
 	{
 		OwningAbility->SetMontagePlayRate(1.f);
 		OwningAbility->MontageToOtherSection(FName("End"));
 	}
+	if (CooldownGE)
+		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)

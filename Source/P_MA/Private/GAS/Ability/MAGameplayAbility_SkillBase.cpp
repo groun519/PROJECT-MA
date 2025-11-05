@@ -64,10 +64,10 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	if (MontageToPlay)
 	{
 		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
-		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
+		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
+		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
+		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::HandleMontageEnded);
 		PlayMontageTask->ReadyForActivation();
 	}
 	
@@ -110,6 +110,7 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 				PlayerCharacter->SetInputEnabledFromPlayerController(true);
 			}
 		}
+		
 		ActiveSkillBehavior->OnEndAbility();
 		ActiveSkillBehavior = nullptr;
 	}
@@ -126,6 +127,21 @@ const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() con
 		return &TagContainer;
 	}
 	return Super::GetCooldownTags();
+}
+
+void UMAGameplayAbility_SkillBase::HandleMontageEnded()
+{
+	if (ActiveSkillBehavior)
+	{
+		TSubclassOf<UGameplayEffect> CooldownToApply = ActiveSkillBehavior->GetCooldownEffectOnEndAbility();
+		if (CooldownToApply)
+		{
+			ActiveSkillBehavior->ApplyCooldownAndEndAbility(CooldownToApply);
+		}else
+		{
+			K2_EndAbility();
+		}
+	}
 }
 
 void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)

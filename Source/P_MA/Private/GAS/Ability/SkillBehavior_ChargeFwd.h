@@ -29,6 +29,9 @@ private:
 	TSubclassOf<AMATargetActor_ChargeAtFwd> TargetActorClass;
 	UPROPERTY()
 	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 0.1f;

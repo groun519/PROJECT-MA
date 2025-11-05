@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Charge.generated.h"
@@ -33,6 +32,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
     
 	bool bIsEnd = false;
 
