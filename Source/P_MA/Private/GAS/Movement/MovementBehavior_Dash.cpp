@@ -4,27 +4,34 @@
 #include "GAS/Movement/MovementBehavior_Dash.h"
 
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
-#include "Animation/AnimNotify_SendNewPlayerTrans.h"
 #include "Character/MACharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 
 void UMovementBehavior_Dash::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
 
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	
 	WaitDashStartEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DashStartTag);
 	WaitDashStartEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Dash::OnDashStartEventReceived);
 	WaitDashStartEventTask->ReadyForActivation();
 
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Dash::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Dash::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Dash::OnEndAbility_Implementation()
 {
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	
 	if (WaitDashStartEventTask.IsValid())
-		WaitDamageTagEventTask->EndTask();
+		WaitDashStartEventTask->EndTask();
 	if (WaitDamageTagEventTask.IsValid())
 		WaitDamageTagEventTask->EndTask();
 	
@@ -36,15 +43,11 @@ void UMovementBehavior_Dash::OnDashStartEventReceived(FGameplayEventData Payload
 	if (Payload.TargetData.Num() >0)
 	{
 		const FGameplayAbilityTargetData* TargetData = Payload.TargetData.Get(0);
-		if (TargetData && TargetData->GetScriptStruct()->IsChildOf(FDashData::StaticStruct()))
+		if (TargetData)
 		{
-			const FDashData* DashData = static_cast<const FDashData*>(TargetData);
-
-			const float ReceivedDashForce = DashData->DashForce;
-
 			if (Character)
 			{
-				FVector LaunchVelocity = Character->GetActorForwardVector() * ReceivedDashForce;
+				FVector LaunchVelocity = Character->GetActorForwardVector() * ForwardLaunchForce;
 				LaunchVelocity.Z += UpLaunchForce;
 				Character->LaunchCharacter(LaunchVelocity, true,true);
 			}
@@ -55,8 +58,6 @@ void UMovementBehavior_Dash::OnDashStartEventReceived(FGameplayEventData Payload
 void UMovementBehavior_Dash::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+
 }

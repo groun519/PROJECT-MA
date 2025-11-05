@@ -20,7 +20,10 @@ public:
 	UMAGameplayAbility_SkillBase();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-	
+
+	UPROPERTY(EditDefaultsOnly)
+	FGameplayTag SharedCooldownTag;
+	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
@@ -47,7 +50,9 @@ public:
 	void MontageToOtherSection(FName SectionName);
 	void RequestEndAbility();
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
-
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
+	void ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level = 1.0f);
+	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
 };

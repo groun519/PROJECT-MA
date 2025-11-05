@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
 
 class UMAGameplayAbility_SkillBase;
@@ -36,12 +37,17 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffect;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> CooldownGE;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
 	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
 
+	//쿨타임 적용 후 0.05초 이후에 EndAbility호출
+	virtual void ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect);
 protected:
 	//자식 클래스가 캐릭터 접근 쉽게 하도록 돕는 헬퍼
 	class AMACharacter* GetCharacter() const;
@@ -49,4 +55,10 @@ protected:
 	TObjectPtr<class AMACharacter> Character;
 	UPROPERTY()
 	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
+
+	UFUNCTION()
+	virtual void SafeEndAbility();
+
+	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
+	FGameplayTag IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 };

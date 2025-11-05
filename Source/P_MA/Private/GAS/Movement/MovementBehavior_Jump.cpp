@@ -4,12 +4,15 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "Character/MACharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "GAS/Movement/MATargetActor_Movement.h"
 
 void UMovementBehavior_Jump::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
+	
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 
 	bJumpTagReceived = false;
 	bHasValidTargetLocation = false;
@@ -34,14 +37,19 @@ void UMovementBehavior_Jump::OnActivate_Implementation()
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, TargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, TargetActor);
 
-	// 데미지 태그 대기
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Jump::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		// 데미지 태그 대기
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Jump::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Jump::OnEndAbility_Implementation()
 {
+	Character->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
 	if (WaitJumpStartEventTask.IsValid())
@@ -96,10 +104,8 @@ void UMovementBehavior_Jump::OnJumpEndEventReceived(FGameplayEventData EventData
 void UMovementBehavior_Jump::OnDamageEventReceived(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	for (FHitResult& HitResult : HitResults)
-	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
-	}
+	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+
 }
 
 void UMovementBehavior_Jump::TryJump()

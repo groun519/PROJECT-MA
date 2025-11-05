@@ -189,4 +189,6 @@ public:
 		TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, FVector TargetImpactLocation, float DamageRadius,TSubclassOf<UGameplayEffect> DamageEffect);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy);
 };

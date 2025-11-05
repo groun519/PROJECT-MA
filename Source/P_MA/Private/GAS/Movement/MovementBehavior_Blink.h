@@ -39,17 +39,13 @@ private:
 	void OnDamageEventReceived(FGameplayEventData EventData);
 	
 	FGameplayTag BlinkTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.Start");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxBlinkDistance = 500.f;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> MovementDamageEffect;
-
+	
 	/** true면 몽타주 태그가 이미 발동됨 */
 	bool bBlinkTagReceived;
 	/** true면 클라이언트가 마우스 위치를 보냈음 */

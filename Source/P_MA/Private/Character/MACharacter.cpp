@@ -25,6 +25,10 @@
 AMACharacter::AMACharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	USceneComponent* SceneComp = CreateDefaultSubobject<USceneComponent>("Mesh Parent");
+	SceneComp->SetupAttachment(GetRootComponent());
+	SceneComp->SetRelativeLocationAndRotation(FVector(0,0,-90), FRotator(0,-90,0));
+	GetMesh()->SetupAttachment(SceneComp);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Target, ECR_Ignore);
 
@@ -462,7 +466,19 @@ void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTra
 {
 	if (NS)
 	{
-		UNiagaraComponent* SpawnedComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
+	}
+}
+
+void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* NS, FName SocketName, FVector LocOffset,
+	FRotator RotOffset, FVector Scale, bool bAutoDestroy)
+{
+	if (NS && GetMesh())
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS,GetMesh(),SocketName,LocOffset,RotOffset,
+			Scale,EAttachLocation::KeepRelativeOffset,bAutoDestroy, 
+			ENCPoolMethod::None,true);
 	}
 }

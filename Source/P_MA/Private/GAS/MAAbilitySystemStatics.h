@@ -18,6 +18,7 @@ class UMAAbilitySystemStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static FGameplayTag GetBasicAttackAbilityTag();
+	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
 	
@@ -32,6 +33,7 @@ public:
 	static FGameplayTag GetGoldAttributeTag();
 
 	static FGameplayTag GetMontageDamageTag();
+	static FGameplayTag GetLaunchActivateTag();
 
 	static bool IsPlayer(const AActor* ActorToCheck);
 

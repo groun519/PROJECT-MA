@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Projectile/MABaseProjectile.h"
+#include "GAS/Projectile/MAProjectileBase.h"
 #include "MAProjectile_GroundTargetedAOE.generated.h"
 
 /**
  * 바닥 충돌형 투사체 (메테오 타입)
  */
 UCLASS()
-class AMAProjectile_GroundTargetedAOE : public AMABaseProjectile
+class AMAProjectile_GroundTargetedAOE : public AMAProjectileBase
 {
 	GENERATED_BODY()
 

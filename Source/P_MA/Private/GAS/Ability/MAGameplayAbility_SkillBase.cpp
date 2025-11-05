@@ -2,6 +2,8 @@
 
 
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -18,7 +20,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
+	
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
@@ -42,7 +44,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	}
 	*/
 	
-
+	
 	// Module 3) Behavior	-	동적으로 변한 태그 확인
 	FGameplayTag BehaviorTagToUse;
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
@@ -88,6 +90,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		ActiveSkillBehavior->OwningAbility = this;
 		ActiveSkillBehavior->OnActivate();
 	}
+	
 }
 
 void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
@@ -109,10 +112,23 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 				PlayerCharacter->SetInputEnabledFromPlayerController(true);
 			}
 		}
+		
 		ActiveSkillBehavior->OnEndAbility();
 		ActiveSkillBehavior = nullptr;
 	}
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() const
+{
+	if (SharedCooldownTag.IsValid())
+	{
+		static FGameplayTagContainer TagContainer;
+		TagContainer.Reset();
+		TagContainer.AddTag(SharedCooldownTag);
+		return &TagContainer;
+	}
+	return Super::GetCooldownTags();
 }
 
 void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)
@@ -160,4 +176,29 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 			IgnoreTargets.Add(HitActor);
 		}
 	}
+}
+
+void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,
+	TSubclassOf<UGameplayEffect> DamageEffect)
+{
+	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
+		return;
+
+	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData, 0);
+	for (AActor* TargetActor : TargetActors)
+	{
+		if (TargetActor && !IgnoreTargets.Contains(TargetActor))
+		{
+			FGameplayAbilityTargetDataHandle SingleTargetHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
+			BP_ApplyGameplayEffectToTarget(SingleTargetHandle, DamageEffect, GetAbilityLevel());
+			IgnoreTargets.Add(TargetActor);
+		}
+	}
+}
+
+void UMAGameplayAbility_SkillBase::ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level)
+{
+	if (!Effect || !HasAuthority(&CurrentActivationInfo))
+		return;
+	BP_ApplyGameplayEffectToOwner(Effect,Level);
 }

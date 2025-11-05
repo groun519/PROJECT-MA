@@ -45,10 +45,10 @@ protected:
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }
 	
 	ACharacter* GetOwningAvatarCharacter();
-
+public:
 	//== Movement ==//
 	void PushSelf(const FVector& PushVel);
-	void PushTarget(AActor* Target, const FVector& PushVel, FGameplayTag Tag);
+	void PushTarget(AActor* Target, const FVector& PushVel);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
