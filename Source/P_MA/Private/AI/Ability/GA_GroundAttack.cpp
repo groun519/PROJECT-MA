@@ -1,12 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/Golem/GA_GroundAttack.h"
+#include "GA_GroundAttack.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Character.h"
-#include "Animation/AnimInstance.h"
 #include "AbilitySystemGlobals.h"
 
 UGA_GroundAttack::UGA_GroundAttack()
