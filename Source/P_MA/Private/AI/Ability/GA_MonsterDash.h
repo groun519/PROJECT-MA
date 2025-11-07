@@ -13,36 +13,42 @@ UCLASS()
 class UGA_MonsterDash : public UMAGameplayAbility
 {
 	GENERATED_BODY()
-	
+
 public:
 	UGA_MonsterDash();
-	
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-    	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-	
+	virtual void ActivateAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		const FGameplayEventData* TriggerEventData) override;
+
+	virtual void EndAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateEndAbility, bool bWasCancelled) override;
+
+protected:
 	UFUNCTION()
-	void OnMontageCompleted();
+	void OnComboChangeEvent(FGameplayEventData Data);
+
+	UFUNCTION()
+	void OnDamageEvent(FGameplayEventData Data);
+
+	UFUNCTION()
+	void OnClearEvent(FGameplayEventData Data);
 
 	UFUNCTION()
 	void OnEndEventReceived(FGameplayEventData Data);
-
-	UFUNCTION()
-	void HitTarget(FGameplayEventData Data);
-
-	static FGameplayTag GetTargetEventTag();
 	
 private:
-	TSubclassOf<UGameplayEffect> GetDamageEffect() const;
-	
-	UPROPERTY()
-	TArray<AActor*> IgnoreTargets;
-
 	UPROPERTY(EditAnywhere, Category="Animation")
 	UAnimMontage* DashMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effect")
 	TSubclassOf<UGameplayEffect> DamageEffect;
+	
+	UPROPERTY()
+	TArray<AActor*> IgnoreTargets;
 };

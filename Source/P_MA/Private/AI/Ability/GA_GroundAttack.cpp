@@ -35,7 +35,7 @@ void UGA_GroundAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	
 	MontageTask->OnCancelled.AddDynamic(this, &UGA_GroundAttack::OnMontageCompleted);
 	MontageTask->ReadyForActivation();
 	
-	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End")));
+	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
 	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_GroundAttack::OnEndEventReceived);
 	WaitEndEvent->ReadyForActivation();
 

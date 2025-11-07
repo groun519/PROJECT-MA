@@ -38,7 +38,7 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 
 	if (InputToUse == EMAAbilityInputID::Skill1)
 	{
-		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End"));
+		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End"));
 		FGameplayTagContainer TagContainer(EndEventTag);
 
 		FDelegateHandle DelegateHandle = ASC->AddGameplayEventTagContainerDelegate(

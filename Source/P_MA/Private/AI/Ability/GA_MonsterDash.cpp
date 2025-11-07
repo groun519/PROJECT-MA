@@ -3,9 +3,10 @@
 
 #include "AI/Ability/GA_MonsterDash.h"
 
-#include "AbilitySystemGlobals.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
 
 UGA_MonsterDash::UGA_MonsterDash()
@@ -14,56 +15,97 @@ UGA_MonsterDash::UGA_MonsterDash()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 }
 
-void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+	IgnoreTargets.Empty();
+
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
 		return;
 	}
 
-	ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
-	if (!Character || !DashMontage)
+	ACharacter* Monster = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+	if (!Monster || !DashMontage)
 	{
 		K2_EndAbility();
 		return;
 	}
-	
-	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, DashMontage, 1.f);
-	MontageTask->OnCompleted.AddDynamic(this, &UGA_MonsterDash::OnMontageCompleted);
-	MontageTask->OnInterrupted.AddDynamic(this, &UGA_MonsterDash::OnMontageCompleted);
-	MontageTask->OnCancelled.AddDynamic(this, &UGA_MonsterDash::OnMontageCompleted);
-	MontageTask->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End")));
+	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
+	if (!Anim)
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, DashMontage);
+	PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_MonsterDash::K2_EndAbility);
+	PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_MonsterDash::K2_EndAbility);
+	PlayComboMontageTask->OnCompleted.AddDynamic(this, &UGA_MonsterDash::K2_EndAbility);
+	PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_MonsterDash::K2_EndAbility);
+	PlayComboMontageTask->ReadyForActivation();
+
+	// ✅ Combo 변경 이벤트
+	UAbilityTask_WaitGameplayEvent* WaitComboEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change")));
+	WaitComboEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnComboChangeEvent);
+	WaitComboEvent->ReadyForActivation();
+	
+	// ✅ 데미지 이벤트
+	UAbilityTask_WaitGameplayEvent* WaitDamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
+	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnDamageEvent);
+	WaitDamageEvent->ReadyForActivation();
+	
+	// ✅ IgnoreTargets Clear 이벤트
+	UAbilityTask_WaitGameplayEvent* WaitClearEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Clear")));
+	WaitClearEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnClearEvent);
+	WaitClearEvent->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
 	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnEndEventReceived);
 	WaitEndEvent->ReadyForActivation();
+}
 
-	if (K2_HasAuthority())
+
+// ✅ GameplayEvent("Ability.Combo.Change.Combo02") ⇢ 콤보 변경!
+void UGA_MonsterDash::OnComboChangeEvent(FGameplayEventData Data)
+{
+	ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	if (!Monster) return;
+
+	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
+	if (!Anim) return;
+
+	// Tag 에서 섹션 이름 추출
+	TArray<FName> TagParts;
+	UGameplayTagsManager::Get().SplitGameplayTagFName(Data.EventTag, TagParts);
+
+	// ex) Ability.Combo.Change.Combo02 → Combo02 추출
+	FName NextSection = TagParts.Last();
+
+	Anim->Montage_SetNextSection(Anim->Montage_GetCurrentSection(DashMontage),	NextSection, DashMontage);
+}
+
+// ✅ 데미지 이벤트
+void UGA_MonsterDash::OnDamageEvent(FGameplayEventData Data)
+{
+	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
+
+	for (const FHitResult& HitResult : HitResults)
 	{
-		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetTargetEventTag());
-		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_MonsterDash::HitTarget);
-		WaitTargetEventTask->ReadyForActivation();
+		if (IgnoreTargets.Contains(HitResult.GetActor()))
+			continue;
+
+		ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+
+		IgnoreTargets.Add(HitResult.GetActor());
 	}
 }
 
-void UGA_MonsterDash::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+void UGA_MonsterDash::OnClearEvent(FGameplayEventData Data)
 {
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-	
-}
-
-FGameplayTag UGA_MonsterDash::GetTargetEventTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Combo.Damage");
-}
-
-void UGA_MonsterDash::OnMontageCompleted()
-{
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	IgnoreTargets.Empty();
 }
 
 void UGA_MonsterDash::OnEndEventReceived(FGameplayEventData Data)
@@ -71,36 +113,10 @@ void UGA_MonsterDash::OnEndEventReceived(FGameplayEventData Data)
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
-void UGA_MonsterDash::HitTarget(FGameplayEventData Data)
+void UGA_MonsterDash::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+                                 const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
-
-	if (HitResults.Num() == 0)
-		return;
-
-	for (const FHitResult& HitResult : HitResults)
-	{
-		AActor* HitActor = HitResult.GetActor();
-
-		if (!HitActor)
-			continue;
-		
-		UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitActor);
-
-		if (!TargetASC)
-			continue;
-		
-		if (IgnoreTargets.Contains(HitActor))
-			continue;
-		
-		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffect();
-		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
-
-		IgnoreTargets.Add(HitActor);
-	}
-}
-
-TSubclassOf<UGameplayEffect> UGA_MonsterDash::GetDamageEffect() const
-{
-	return DamageEffect;
+	IgnoreTargets.Empty();
+	
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
