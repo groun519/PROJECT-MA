@@ -15,8 +15,6 @@ class UGA_MonsterDash : public UMAGameplayAbility
 	GENERATED_BODY()
 
 public:
-	UGA_MonsterDash();
-
 	virtual void ActivateAbility(
 		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,

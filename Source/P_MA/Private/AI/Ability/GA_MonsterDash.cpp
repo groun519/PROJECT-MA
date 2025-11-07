@@ -9,12 +9,6 @@
 #include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
 
-UGA_MonsterDash::UGA_MonsterDash()
-{
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-}
-
 void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -48,7 +42,7 @@ void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	PlayComboMontageTask->ReadyForActivation();
 
 	// ✅ Combo 변경 이벤트
-	UAbilityTask_WaitGameplayEvent* WaitComboEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change")));
+	UAbilityTask_WaitGameplayEvent* WaitComboEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.Combo02")));
 	WaitComboEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnComboChangeEvent);
 	WaitComboEvent->ReadyForActivation();
 	
