@@ -41,17 +41,14 @@ void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_MonsterDash::K2_EndAbility);
 	PlayComboMontageTask->ReadyForActivation();
 
-	// ✅ Combo 변경 이벤트
 	UAbilityTask_WaitGameplayEvent* WaitComboEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.Combo02")));
 	WaitComboEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnComboChangeEvent);
 	WaitComboEvent->ReadyForActivation();
 	
-	// ✅ 데미지 이벤트
 	UAbilityTask_WaitGameplayEvent* WaitDamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
 	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnDamageEvent);
 	WaitDamageEvent->ReadyForActivation();
 	
-	// ✅ IgnoreTargets Clear 이벤트
 	UAbilityTask_WaitGameplayEvent* WaitClearEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Clear")));
 	WaitClearEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnClearEvent);
 	WaitClearEvent->ReadyForActivation();
@@ -62,7 +59,6 @@ void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 }
 
 
-// ✅ GameplayEvent("Ability.Combo.Change.Combo02") ⇢ 콤보 변경!
 void UGA_MonsterDash::OnComboChangeEvent(FGameplayEventData Data)
 {
 	ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
@@ -71,17 +67,14 @@ void UGA_MonsterDash::OnComboChangeEvent(FGameplayEventData Data)
 	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
 	if (!Anim) return;
 
-	// Tag 에서 섹션 이름 추출
 	TArray<FName> TagParts;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(Data.EventTag, TagParts);
 
-	// ex) Ability.Combo.Change.Combo02 → Combo02 추출
 	FName NextSection = TagParts.Last();
 
 	Anim->Montage_SetNextSection(Anim->Montage_GetCurrentSection(DashMontage),	NextSection, DashMontage);
 }
 
-// ✅ 데미지 이벤트
 void UGA_MonsterDash::OnDamageEvent(FGameplayEventData Data)
 {
 	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
