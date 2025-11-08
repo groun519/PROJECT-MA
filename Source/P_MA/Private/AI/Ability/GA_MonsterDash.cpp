@@ -77,6 +77,8 @@ void UGA_MonsterDash::OnComboChangeEvent(FGameplayEventData Data)
 
 void UGA_MonsterDash::OnDamageEvent(FGameplayEventData Data)
 {
+	IgnoreTargets.Empty();
+	
 	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
 
 	for (const FHitResult& HitResult : HitResults)
