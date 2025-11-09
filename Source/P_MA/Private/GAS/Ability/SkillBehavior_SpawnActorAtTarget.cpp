@@ -22,6 +22,8 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 	if (!OwningAbility || !Character)
 		return;
 
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetAimingTag());
+	
 	if (RangeActorClass)
 	{
 		SpawnedRangeActor = GetWorld()->SpawnActor<AMAAbilityRangeActor>(RangeActorClass);
@@ -50,6 +52,8 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 
 void USkillBehavior_SpawnActorAtTarget::OnEndAbility_Implementation()
 {
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetAimingTag());
+	
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
 	if (SpawnedRangeActor)
@@ -80,14 +84,8 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 		Character -> Server_SpawnGroundTargetedAoEProjectile(
 			ProjectileClass, FinalSpawnLoc, FinalSpawnRot, TargetPoint, AbilityRange,DamageEffect);
 	
-	if (OwningAbility)
-	{
-		UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-		DelayTask->OnFinish.AddDynamic(this, &USkillBehavior_SpawnActorAtTarget::OnDelayFinished);
-		DelayTask->ReadyForActivation();
-	}
 	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
+		ApplyCooldownAndEndAbility(CooldownGE);
 }
 
 void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
@@ -95,7 +93,4 @@ void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTa
 	OwningAbility->RequestEndAbility();
 }
 
-void USkillBehavior_SpawnActorAtTarget::OnDelayFinished()
-{
-	OwningAbility->RequestEndAbility();
-}
+

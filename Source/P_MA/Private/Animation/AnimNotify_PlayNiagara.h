@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "AnimNotify_PlayNiagara.generated.h"
 
@@ -16,9 +17,8 @@ class UAnimNotify_PlayNiagara : public UAnimNotify
 	GENERATED_BODY()
 
 public:
-	/** 재생할 나이아가라 시스템 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-	TObjectPtr<UNiagaraSystem> NiagaraSystem;
+	TObjectPtr<UNiagaraSystem> VFXToSpawn;
 
 	/** 위치/회전의 기준이 될 소켓 이름 (비어있으면 컴포넌트 루트) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")

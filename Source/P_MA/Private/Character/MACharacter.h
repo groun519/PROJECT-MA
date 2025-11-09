@@ -188,7 +188,7 @@ public:
 	void Server_SpawnGroundTargetedAoEProjectile(
 		TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, FVector TargetImpactLocation, float DamageRadius,TSubclassOf<UGameplayEffect> DamageEffect);
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform);
+	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy);
+	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 };

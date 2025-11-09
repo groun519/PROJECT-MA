@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
 
+class UMASkillVFXSet;
 class UMAGameplayAbility_SkillBase;
 class AMACharacter;
 class UAnimMontage;
@@ -49,7 +50,13 @@ public:
 	//쿨타임 적용 후 0.05초 이후에 EndAbility호출
 	virtual void ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect);
 protected:
-	//자식 클래스가 캐릭터 접근 쉽게 하도록 돕는 헬퍼
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
+	UFUNCTION()
+	virtual void HandleVFXSpawnEvent(FGameplayEventData EventData);
+	
 	class AMACharacter* GetCharacter() const;
 	UPROPERTY()
 	TObjectPtr<class AMACharacter> Character;

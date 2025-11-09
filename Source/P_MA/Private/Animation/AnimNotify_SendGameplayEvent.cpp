@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Animation/AnimNotify_SendAbilityBehavior.h"
+#include "Animation/AnimNotify_SendGameplayEvent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
 
 
-void UAnimNotify_SendAbilityBehavior::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                              const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
@@ -24,7 +24,7 @@ void UAnimNotify_SendAbilityBehavior::Notify(USkeletalMeshComponent* MeshComp, U
 	}
 }
 
-FString UAnimNotify_SendAbilityBehavior::GetNotifyName_Implementation() const
+FString UAnimNotify_SendGameplayEvent::GetNotifyName_Implementation() const
 {
 	if (MontageEventTag.IsValid())
 	{

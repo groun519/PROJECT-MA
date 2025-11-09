@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
-#include "AnimNotify_SendAbilityBehavior.generated.h"
+#include "AnimNotify_SendGameplayEvent.generated.h"
 
 
 
@@ -13,7 +13,7 @@
  * 
  */
 UCLASS()
-class UAnimNotify_SendAbilityBehavior : public UAnimNotify
+class UAnimNotify_SendGameplayEvent : public UAnimNotify
 {
 	GENERATED_BODY()
 

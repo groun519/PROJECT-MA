@@ -70,19 +70,23 @@ void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)
 
 void USkillBehavior_Charge::OnMaxCharged()
 {
+	
 	if (bIsEnd)
 		return;
+	bIsEnd = true;
+	
 	if (CooldownGE)
 		OwningAbility->ApplyEffectToOwner(CooldownGE);
-	bIsEnd = true;
 	if (OwningAbility)
 		OwningAbility->SetMontagePlayRate(1.f);
 }
 
 void USkillBehavior_Charge::OnChargeReleased(float Time)
 {
+	
 	if (bIsEnd)
 		return;
+	bIsEnd = true;
 
 	if (Time <= 0.2f)
 	{
@@ -92,7 +96,6 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 	if (CooldownGE)
 		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	
-	bIsEnd = true;
 	if (OwningAbility)
 		OwningAbility->SetMontagePlayRate(1.f);
 }

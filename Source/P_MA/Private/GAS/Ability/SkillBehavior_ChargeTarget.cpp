@@ -72,24 +72,11 @@ void USkillBehavior_ChargeTarget::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
-void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
-{
-	if (!ExecutionVFX || !Character)
-		return;
-	FRotator Rotation = FRotator::ZeroRotator;
-
-	float SafeRadius = (VFXRadius == 0.f) ? 1.f : VFXRadius;
-
-	FVector Scale = FVector (FinalSize / SafeRadius);
-	FTransform SpawnTransform(Rotation,SpawnLoc,Scale);
-	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
-}
-
 void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
 
-	if (HeldTime <= MinimumTimeToActive) 
+	if (HeldTime <= 0.2f) 
 	{
 		ApplyCooldownAndEndAbility(ShortCooldownEffect);
 		return;
@@ -120,23 +107,29 @@ void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDa
 {
 	if (ShortCooldownEffect)
 		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	OwningAbility->RequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnDelayFinished()
 {
 	if (ShortCooldownEffect)
-	{
-		UAbilityTask_WaitDelay* Fuck = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-		Fuck->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::SafeEndAbility);
-		Fuck->ReadyForActivation();
 		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	}
 }
 
 void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 {
 	if (ShortCooldownEffect)
 		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	OwningAbility->RequestEndAbility();
+}
+
+void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
+{
+	if (!ExecutionVFX || !Character)
+		return;
+	FRotator Rotation = FRotator::ZeroRotator;
+
+	float SafeRadius = (VFXRadius == 0.f) ? 1.f : VFXRadius;
+
+	FVector Scale = FVector (FinalSize / SafeRadius);
+	FTransform SpawnTransform(Rotation,SpawnLoc,Scale);
+	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
 }

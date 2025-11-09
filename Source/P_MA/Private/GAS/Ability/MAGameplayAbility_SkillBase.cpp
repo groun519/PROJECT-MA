@@ -28,6 +28,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	}
 
 	IgnoreTargets.Empty();
+
 	/*
 	// --- Module 1) Utility ---
 	if (UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get())
@@ -45,14 +46,21 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	*/
 	
 	
-	// Module 3) Behavior	-	동적으로 변한 태그 확인
-	FGameplayTag BehaviorTagToUse;
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
-	FGameplayTagContainer FilteredTags = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
 	
-	if (FilteredTags.Num() > 0)
+	FGameplayTagContainer AttributeFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
+	//동적 스킬 속성 태그 
+	if (AttributeFilter.Num() > 0)
 	{
-		BehaviorTagToUse = FilteredTags.First();
+		SkillElementTag = AttributeFilter.First();
+	}
+	
+	FGameplayTag BehaviorTagToUse;
+	FGameplayTagContainer BehaviorFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
+	//동적 스킬 행동 태그
+	if (BehaviorFilter.Num() > 0)
+	{
+		BehaviorTagToUse = BehaviorFilter.First();
 	}
 	else
 	{
@@ -62,17 +70,6 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	if (BehaviorTagToUse.IsValid())
 		ActiveSkillBehavior = BehaviorModules.FindRef(BehaviorTagToUse);
 
-	UAnimMontage* MontageToPlay = ActiveSkillBehavior->MontageToPlay;
-	if (MontageToPlay)
-	{
-		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
-		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->ReadyForActivation();
-	}
-	
 	if (ActiveSkillBehavior)
 	{
 		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
@@ -90,6 +87,17 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		ActiveSkillBehavior->OwningAbility = this;
 		ActiveSkillBehavior->OnActivate();
 	}
+	UAnimMontage* MontageToPlay = ActiveSkillBehavior->MontageToPlay;
+	if (MontageToPlay)
+	{
+		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
+		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+		PlayMontageTask->ReadyForActivation();
+	}
+	
 	
 }
 
@@ -97,7 +105,6 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
-	
 	if (ActiveSkillBehavior)
 	{
 		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());

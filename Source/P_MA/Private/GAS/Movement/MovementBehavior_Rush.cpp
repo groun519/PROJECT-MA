@@ -55,18 +55,20 @@ void UMovementBehavior_Rush::OnInputReleased(float TimeHeld)
 {
 	if (bIsEnd)
 		return;
+	bIsEnd = true;
+	
 	if (TimeHeld <= 0.2f)
 	{
 		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
 		return;
 	}
-	bIsEnd = true;
 	if (OwningAbility)
 	{
 		OwningAbility->MontageToOtherSection(FName("End"));
 		if (CooldownGE)
 		{
-			OwningAbility->ApplyEffectToOwner(CooldownGE);
+			ApplyCooldownAndEndAbility(CooldownGE);
 		}
 	}
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
@@ -90,8 +92,11 @@ void UMovementBehavior_Rush::OnFinished()
 
 void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
 {
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	if (OwningAbility->K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
+		OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	}
 }
 
 void UMovementBehavior_Rush::ClearIgnore(FGameplayEventData Payload)

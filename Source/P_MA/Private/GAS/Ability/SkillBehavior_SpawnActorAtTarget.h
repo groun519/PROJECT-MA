@@ -52,10 +52,11 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float SpawnHeight = 1500.f;
 
-	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 
-	UFUNCTION()
-	void OnDelayFinished();
+	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
+	
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()

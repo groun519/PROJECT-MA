@@ -3,6 +3,7 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -182,7 +183,19 @@ void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 
 void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
-	//Aim태그 변경시 -> 이동 속도 느리게
+	if (IsDead()) return;
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp) return;
+	
+	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
+	if (NewCount != 0)
+	{
+		MoveComp->MaxWalkSpeed = MoveSpeed*0.2;
+	}
+	else
+	{
+		MoveComp->MaxWalkSpeed = MoveSpeed;
+	}
 }
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
@@ -462,23 +475,34 @@ void AMACharacter::Server_SpawnGroundTargetedAoEProjectile_Implementation(
 	}
 }
 
-void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform)
+void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor, FLinearColor EffectColor)
 {
-	if (NS)
+	if (HasAuthority())
+		return;
+	
+	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
+	if (SpawnedVFX && bApplyColor)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
+		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
 	}
 }
 
 void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* NS, FName SocketName, FVector LocOffset,
-	FRotator RotOffset, FVector Scale, bool bAutoDestroy)
+	FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor, FLinearColor EffectColor)
 {
-	if (NS && GetMesh())
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAttached(
+	if (HasAuthority())
+		return;
+	
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp) return;
+
+	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS,GetMesh(),SocketName,LocOffset,RotOffset,
 			Scale,EAttachLocation::KeepRelativeOffset,bAutoDestroy, 
 			ENCPoolMethod::None,true);
+	if (SpawnedVFX && bApplyColor)
+	{
+		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
 	}
 }
