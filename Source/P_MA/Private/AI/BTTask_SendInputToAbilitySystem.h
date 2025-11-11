@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "BTTask_SendInputToAbilitySystem.generated.h"
 
 /**

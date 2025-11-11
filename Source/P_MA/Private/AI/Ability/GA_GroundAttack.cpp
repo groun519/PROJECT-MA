@@ -1,12 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/Golem/GA_GroundAttack.h"
+#include "GA_GroundAttack.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Character.h"
-#include "Animation/AnimInstance.h"
 #include "AbilitySystemGlobals.h"
 
 UGA_GroundAttack::UGA_GroundAttack()
@@ -36,7 +35,7 @@ void UGA_GroundAttack::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	
 	MontageTask->OnCancelled.AddDynamic(this, &UGA_GroundAttack::OnMontageCompleted);
 	MontageTask->ReadyForActivation();
 	
-	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End")));
+	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
 	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_GroundAttack::OnEndEventReceived);
 	WaitEndEvent->ReadyForActivation();
 
