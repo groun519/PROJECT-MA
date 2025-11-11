@@ -228,8 +228,18 @@ ACharacter* UMAGameplayAbility::GetOwningAvatarCharacter()
 	return AvatarCharacter;
 }
 
+FGenericTeamId UMAGameplayAbility::GetOwnerTeamId() const
+{
+	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
+	if (OwnerTeamInterface)
+	{
+		return OwnerTeamInterface->GetGenericTeamId();
+	}
+	return FGenericTeamId::NoTeam;
+}
+
 void UMAGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult,
-	TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
+                                                             TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
 {
 	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, Level);
 		

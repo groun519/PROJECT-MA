@@ -77,12 +77,27 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 		TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data, 0);
 	}
 
-	const FVector FinalSpawnLoc = TargetPoint + FVector(0.f, 0.f, SpawnHeight);
-	const FRotator FinalSpawnRot = FRotator(-90.f, 0.f, 0.f);
+	if (OwningAbility->K2_HasAuthority())
+	{
+		const FVector FinalSpawnLoc = TargetPoint + FVector(0.f, 0.f, SpawnHeight);
+		const FRotator FinalSpawnRot = FRotator(-90.f, 0.f, 0.f);
+		const FTransform SpawnTransform(FinalSpawnRot,FinalSpawnLoc);
+
+		AActor* OwnerAvatarActor = OwningAbility->GetAvatarActorFromActorInfo();
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = OwnerAvatarActor;
+		SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AMAProjectile_GroundTargetedAOE* Projectile = GetWorld()->SpawnActor<AMAProjectile_GroundTargetedAOE>(
+			ProjectileClass, SpawnTransform, SpawnParams);
+		if (Projectile)
+		{
+			Projectile->ShootProjectile(ProjectileSpeed,MaxDistance,AbilityRange,
+				OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
+		}
+	}
 	
-	if (Character && ProjectileClass)
-		Character -> Server_SpawnGroundTargetedAoEProjectile(
-			ProjectileClass, FinalSpawnLoc, FinalSpawnRot, TargetPoint, AbilityRange,DamageEffect);
 	
 	if (CooldownGE)
 		ApplyCooldownAndEndAbility(CooldownGE);

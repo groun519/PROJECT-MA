@@ -3,10 +3,12 @@
 
 #include "GAS/Ability/SkillBehavior_ChargeFwd.h"
 
+#include "GameplayTagsManager.h"
 #include "MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Character/MACharacter.h"
+#include "GAS/MASkillVFXSet.h"
 
 
 void USkillBehavior_ChargeFwd::OnActivate_Implementation()
@@ -76,6 +78,7 @@ void USkillBehavior_ChargeFwd::OnSkillTimeout()
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 {
+	/*
 	if (!ExecutionVFX || !Character)
 		return;
 	FVector Location = Character->GetActorLocation();
@@ -87,4 +90,39 @@ void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 	FVector Scale = FVector (FinalLength / SafeLength, SkillWidth/SafeWidth, 1.f);
 	FTransform SpawnTransform(Rotation,Location,Scale);
 	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
+	*/
+
+	if (!OwningAbility || !VFXDataSet ||!Character)
+		return;
+
+	const F_SkillVFX_Info* VFXInfo = VFXDataSet->VFXDataMap.Find(FGameplayTag::RequestGameplayTag("Event.VFX.Attack1"));
+	if (!VFXInfo || !VFXInfo->DefaultVFX)
+		return;
+
+	TObjectPtr<UNiagaraSystem> FinalVFXToSpawn = VFXInfo->DefaultVFX;
+
+	FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
+	if (ElementTag.IsValid())
+	{
+		TArray<FName> TagNames;
+		UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
+		FName LastName = TagNames.Last();
+
+		const TObjectPtr<UNiagaraSystem>* OverrideVFX = VFXInfo->ElementVFXOverride.Find(LastName);
+		//오버라이드할 VFX 설정했다면
+		if (OverrideVFX && *OverrideVFX)
+		{
+			FinalVFXToSpawn = *OverrideVFX;
+		}
+	}
+	FVector Location = Character->GetActorLocation();
+	FRotator Rotation = Character->GetActorRotation();
+
+	float SafeLength = (VFXLength == 0.f) ? 1.f : VFXLength;
+	float SafeWidth = (VFXWidth == 0.f) ? 1.f : VFXWidth;
+
+	FVector Scale = FVector (FinalLength / SafeLength, SkillWidth/SafeWidth, 1.f);
+	FTransform SpawnTransform(Rotation,Location,Scale);
+
+	Character->Multicast_PlayNiagara(FinalVFXToSpawn,SpawnTransform);
 }

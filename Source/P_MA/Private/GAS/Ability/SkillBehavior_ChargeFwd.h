@@ -47,9 +47,7 @@ private:
 	float SkillWidth = 96.f;
 	UPROPERTY()
 	float DecalDepth = 10.f;
-
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UNiagaraSystem> ExecutionVFX;
+	
 	UPROPERTY(EditDefaultsOnly)
 	float VFXLength = 100.f;
 	UPROPERTY(EditDefaultsOnly)

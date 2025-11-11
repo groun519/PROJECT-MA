@@ -36,7 +36,13 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass;
 	
-
+	UPROPERTY(EditDefaultsOnly)
+	float ProjectileSpeed = 700.f;
+	UPROPERTY(EditDefaultsOnly)
+	float ProjectileMaxDist = 3000.f;
+	UPROPERTY(EditDefaultsOnly)
+	float ExplodeRadius = 200.f;
+	
 	UPROPERTY(EditDefaultsOnly)
 	FName MuzzleSocketName;
 

@@ -16,25 +16,12 @@ class AMAProjectile_OverlapAOE : public AMAProjectileBase
 
 public:
 	AMAProjectile_OverlapAOE();
-
-	//폭발 데미지 반경
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ability", meta=(ExposeOnSpawn="true"))
-	float ImpactRadius = 300.f;
-
-protected:
-	virtual void SetupCollision() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	virtual void ShootProjectile(float InSpeed, float InMaxDist, float InExplodeRange,
+		FGenericTeamId InTeamId, FGameplayEffectSpecHandle InHitEffectHandle) override;
 
 private:
-	UFUNCTION()
-	void OnOverlapPawn(
-		UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-		bool bFromSweep, const FHitResult& SweepResult);
-	
 	void Explode(FVector Location, const FHitResult& Hit);
-
-	UPROPERTY(EditDefaultsOnly, Category="Ability")
-	float InitSpeed = 800.f;
-	
+	void TravelMaxDistanceReached();
 };

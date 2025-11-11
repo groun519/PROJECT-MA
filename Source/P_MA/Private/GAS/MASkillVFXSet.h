@@ -18,7 +18,17 @@ struct F_SkillVFX_Info
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
-	TObjectPtr<UNiagaraSystem> VFXToSpawn;
+	TObjectPtr<UNiagaraSystem> DefaultVFX;
+
+	/**재정의할 VFX
+	 * FName = 속성 태그의 마지막 (Fire / Ice)
+	 * 색상 변경 필요없는 경우에만 설정
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX", meta = (EditCondition = "!bUseElementColor"))
+	TMap<FName, TObjectPtr<UNiagaraSystem>> ElementVFXOverride;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
+	bool bUseElementColor = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	FName SocketName;
@@ -39,9 +49,6 @@ struct F_SkillVFX_Info
 	//컴포넌트가 파괴될 때 자동으로 파티클도 제거할지 여부
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX", meta = (EditCondition = "!bSpawnInWorld"))
 	bool bAutoDestroy = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
-	bool bUseElementColor = true;
 };
 
 USTRUCT(BlueprintType)

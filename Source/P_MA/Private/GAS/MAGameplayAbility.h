@@ -46,6 +46,7 @@ protected:
 	
 	ACharacter* GetOwningAvatarCharacter();
 public:
+	FGenericTeamId GetOwnerTeamId() const;
 	//== Movement ==//
 	void PushSelf(const FVector& PushVel);
 	void PushTarget(AActor* Target, const FVector& PushVel);

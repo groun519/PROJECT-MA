@@ -39,10 +39,13 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
 	
+	// 투사체 속도
+	UPROPERTY(EditDefaultsOnly)
+	float ProjectileSpeed = 700.f;
 	// 스킬 사이즈 (타격 범위)
 	UPROPERTY(EditDefaultsOnly)
 	float AbilityRange = 300.f;
-	// 스킬 시전 범위
+	// 스킬 사거리
 	UPROPERTY(EditDefaultsOnly)
 	float MaxDistance = 2000.f;
 	

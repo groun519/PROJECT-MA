@@ -426,55 +426,6 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 /*								Skill						 */
 /*************************************************************/
 
-void AMACharacter::Server_SpawnOverlapAoEProjectile_Implementation(
-	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
-	float NewImpactRadius)
-{
-	if (!ProjectileClass || !HasAuthority())
-		return;
-
-	UWorld* World = GetWorld();
-	if (!World)
-		return;
-
-	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
-	AMAProjectile_OverlapAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_OverlapAOE>(
-		ProjectileClass, SpawnTransform, this, this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-
-	if (SpawnedProjectile)
-	{
-		// ExposeOnSpawn 변수 설정
-		SpawnedProjectile->ImpactRadius = NewImpactRadius;
-		
-		SpawnedProjectile->FinishSpawning(SpawnTransform);
-	}
-}
-
-void AMACharacter::Server_SpawnGroundTargetedAoEProjectile_Implementation(
-	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation,
-	FVector TargetImpactLocation, float DamageRadius, TSubclassOf<UGameplayEffect> DamageEffect)
-{
-	if (!ProjectileClass || !HasAuthority())
-		return;
-
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
-	AMAProjectile_GroundTargetedAOE* SpawnedProjectile = World->SpawnActorDeferred<AMAProjectile_GroundTargetedAOE>(
-		ProjectileClass,SpawnTransform,this,this,ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-
-	if (SpawnedProjectile)
-	{
-		// ExposeOnSpawn 변수 설정
-		SpawnedProjectile->TargetImpactLocation = TargetImpactLocation;
-		SpawnedProjectile->DamageRadius = DamageRadius;
-		SpawnedProjectile->DamageEffect = DamageEffect;
-
-		SpawnedProjectile->FinishSpawning(SpawnTransform);
-	}
-}
-
 void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor, FLinearColor EffectColor)
 {
 	if (HasAuthority())

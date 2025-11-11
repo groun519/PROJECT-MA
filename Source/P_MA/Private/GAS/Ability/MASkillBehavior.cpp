@@ -60,25 +60,41 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 	if (!VFXDataSet)
 		return;
 
+	//Event.VFX.~ 태그와 동일한 Value 구조체를 가져와
 	const F_SkillVFX_Info* VFXInfo = VFXDataSet->VFXDataMap.Find(EventData.EventTag);
-	if (!VFXInfo || !VFXInfo->VFXToSpawn)
+	if (!VFXInfo || !VFXInfo->DefaultVFX)
 		return;
 
+	TObjectPtr<UNiagaraSystem> FinalVFXToSpawn = VFXInfo->DefaultVFX;
 	FLinearColor SpawnColor = FLinearColor::White;
 	bool bApplyColor = false;
+	//속성 태그 - Linear Color 로 구성된 데이터 테이블
 	const UDataTable* ElementDT = OwningAbility->GetElementDataTable();
-	if (VFXInfo->bUseElementColor && ElementDT)
-	{
-		FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
-		if (ElementTag.IsValid())
-		{
-			TArray<FName> TagNames;
-			UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
-			FName LastName = TagNames.Last();
+	//현재 스킬의 속성 태그 가져와
+	FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
+	
+	if (ElementTag.IsValid())
+	{	//속성 태그의 마지막 단어 획득
+		
+		TArray<FName> TagNames;
+		UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
+		FName LastName = TagNames.Last();
 
+		const TObjectPtr<UNiagaraSystem>* OverrideVFX = VFXInfo->ElementVFXOverride.Find(LastName);
+		//오버라이드할 VFX 설정했다면
+		if (OverrideVFX && *OverrideVFX)
+		{
+			FinalVFXToSpawn = *OverrideVFX;
+			bApplyColor = false;
+		}
+		//오버라이드할 VFX 없다면
+		else if (VFXInfo->bUseElementColor && ElementDT)
+		{
+			//가져온 속성 태그에 해당하는 행
 			F_ElementInfoRow* ElementInfo = ElementDT->FindRow<F_ElementInfoRow>(LastName, TEXT("ElementDataLookup"));
 			if (ElementInfo)
 			{
+				//가져온 행에서 색상정보 가져와
 				SpawnColor = ElementInfo->ElementColor;
 				bApplyColor = true;
 			}
@@ -97,12 +113,12 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 		FTransform OffsetTransform(VFXInfo->RotationOffset,VFXInfo->LocationOffset, VFXInfo->Scale);
 		FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
 		
-		Character->Multicast_PlayNiagara(VFXInfo->VFXToSpawn, WorldSpawnTransform, bApplyColor, SpawnColor);
+		Character->Multicast_PlayNiagara(FinalVFXToSpawn, WorldSpawnTransform, bApplyColor, SpawnColor);
 	}
 	else
 	{
 		Character->Multicast_PlayNiagaraAttached(
-			VFXInfo->VFXToSpawn,
+			FinalVFXToSpawn,
 			VFXInfo->SocketName,
 			VFXInfo->LocationOffset,
 			VFXInfo->RotationOffset,

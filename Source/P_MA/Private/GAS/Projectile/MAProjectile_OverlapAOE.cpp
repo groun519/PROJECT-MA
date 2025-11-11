@@ -2,46 +2,51 @@
 
 
 #include "GAS/Projectile/MAProjectile_OverlapAOE.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GameFramework/Actor.h"
 #include "Engine/EngineTypes.h"
-#include "Components/SphereComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
+
+
 
 AMAProjectile_OverlapAOE::AMAProjectile_OverlapAOE()
 {
-	if (ProjectileMovement)
-	{
-		ProjectileMovement->InitialSpeed = InitSpeed;
-		ProjectileMovement->MaxSpeed = InitSpeed;
-		ProjectileMovement->ProjectileGravityScale=0.f;
-	}
+
 }
 
-void AMAProjectile_OverlapAOE::SetupCollision()
-{
-	CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMAProjectile_OverlapAOE::OnOverlapPawn);
-}
 
-void AMAProjectile_OverlapAOE::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void AMAProjectile_OverlapAOE::NotifyActorBeginOverlap(AActor* OtherActor)
 {
-	if (HasAuthority() && !bHasExploded)
-	{
-		Explode(GetActorLocation(), FHitResult());
-	}
-	Super::EndPlay(EndPlayReason);
-}
-
-void AMAProjectile_OverlapAOE::OnOverlapPawn(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!OtherActor || OtherActor==this || OtherActor==GetInstigator() || !Cast<APawn>(OtherActor))
+	if (!OtherActor || OtherActor == GetOwner())
 		return;
-	if (HasAuthority() && !bHasExploded)
+	if (GetTeamAttitudeTowards(*OtherActor) != ETeamAttitude::Hostile)
+		return;
+
+	UAbilitySystemComponent* OtherASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
+	if (OtherASC)
 	{
-		Explode(SweepResult.ImpactPoint, SweepResult);
+		if (HasAuthority() && HitEffectHandle.IsValid())
+		{
+			OtherASC->ApplyGameplayEffectSpecToSelf(*HitEffectHandle.Data.Get());
+			GetWorldTimerManager().ClearTimer(ShootTimerHandle);
+		}
+		FHitResult HitResult;
+		HitResult.ImpactPoint = GetActorLocation();
+		HitResult.ImpactNormal = GetActorForwardVector();
+		SendLocalGameplayCue(OtherActor,HitResult);
+		//Explode(GetActorLocation(),HitResult);
+		ApplyAreaDamage(GetActorLocation(), ExplodeRadius,HitResult);
 		Destroy();
 	}
+}
+
+void AMAProjectile_OverlapAOE::ShootProjectile(float InSpeed, float InMaxDist, float InExplodeRange,
+	FGenericTeamId InTeamId, FGameplayEffectSpecHandle InHitEffectHandle)
+{
+	Super::ShootProjectile(InSpeed, InMaxDist, InExplodeRange, InTeamId, InHitEffectHandle);
+	float TravelMaxTime = InMaxDist / InSpeed;
+	GetWorld()->GetTimerManager().SetTimer(ShootTimerHandle, this, &AMAProjectile_OverlapAOE::TravelMaxDistanceReached, TravelMaxTime);
 }
 
 void AMAProjectile_OverlapAOE::Explode(FVector Location, const FHitResult& Hit)
@@ -50,6 +55,10 @@ void AMAProjectile_OverlapAOE::Explode(FVector Location, const FHitResult& Hit)
 		return;
 	bHasExploded = true;
 
-	ApplyAreaDamage(Location, ImpactRadius, Hit);
-	Multicast_PlayEffects(Location);
+	ApplyAreaDamage(Location, ExplodeRadius, Hit);
+}
+
+void AMAProjectile_OverlapAOE::TravelMaxDistanceReached()
+{
+	Destroy();
 }

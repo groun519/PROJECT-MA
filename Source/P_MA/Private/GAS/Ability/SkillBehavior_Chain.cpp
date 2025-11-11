@@ -68,7 +68,7 @@ void USkillBehavior_Chain::ComboChangedEventReceived(FGameplayEventData EventDat
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag,TagNames);
 	NextComboName = TagNames.Last();
 
-	bIsComboInputBuffered = false;
+	//bIsComboInputBuffered = false;
 }
 
 void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
