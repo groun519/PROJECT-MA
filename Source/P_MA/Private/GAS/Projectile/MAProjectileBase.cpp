@@ -81,12 +81,12 @@ void AMAProjectileBase::ApplyAreaDamage(FVector OriginLocation, float DamageRadi
 		if (TargetActor && TargetActor != GetInstigator())
 		{
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-			if (TargetASC && DamageGameplayEffect)
+			if (TargetASC && AdditionalEffect)
 			{
 				FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
 				if (Hit.IsValidBlockingHit())
 					EffectContext.AddHitResult(Hit);
-				FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f,EffectContext);
+				FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(AdditionalEffect,1.f,EffectContext);
 				if (SpecHandle.IsValid())
 					SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 			}

@@ -35,7 +35,6 @@ void AMAProjectile_OverlapAOE::NotifyActorBeginOverlap(AActor* OtherActor)
 		HitResult.ImpactPoint = GetActorLocation();
 		HitResult.ImpactNormal = GetActorForwardVector();
 		SendLocalGameplayCue(OtherActor,HitResult);
-		//Explode(GetActorLocation(),HitResult);
 		ApplyAreaDamage(GetActorLocation(), ExplodeRadius,HitResult);
 		Destroy();
 	}
@@ -47,15 +46,6 @@ void AMAProjectile_OverlapAOE::ShootProjectile(float InSpeed, float InMaxDist, f
 	Super::ShootProjectile(InSpeed, InMaxDist, InExplodeRange, InTeamId, InHitEffectHandle);
 	float TravelMaxTime = InMaxDist / InSpeed;
 	GetWorld()->GetTimerManager().SetTimer(ShootTimerHandle, this, &AMAProjectile_OverlapAOE::TravelMaxDistanceReached, TravelMaxTime);
-}
-
-void AMAProjectile_OverlapAOE::Explode(FVector Location, const FHitResult& Hit)
-{
-	if (bHasExploded)
-		return;
-	bHasExploded = true;
-
-	ApplyAreaDamage(Location, ExplodeRadius, Hit);
 }
 
 void AMAProjectile_OverlapAOE::TravelMaxDistanceReached()

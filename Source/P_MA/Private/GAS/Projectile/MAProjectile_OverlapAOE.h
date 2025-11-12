@@ -22,6 +22,6 @@ public:
 		FGenericTeamId InTeamId, FGameplayEffectSpecHandle InHitEffectHandle) override;
 
 private:
-	void Explode(FVector Location, const FHitResult& Hit);
+
 	void TravelMaxDistanceReached();
 };

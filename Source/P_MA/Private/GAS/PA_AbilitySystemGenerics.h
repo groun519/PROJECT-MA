@@ -20,7 +20,8 @@ public:
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetDeathEffect() const { return DeathEffect; }
 	FORCEINLINE const TArray<TSubclassOf<UGameplayEffect>>& GetInitialEffects() const { return InitialEffects; }
 	FORCEINLINE const TArray<TSubclassOf<UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
-	FORCEINLINE const UDataTable* GetBaseStatDataTable() const { return BaseStatDataTable; }
+	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
+	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
@@ -36,5 +37,7 @@ private:
 	TArray<TSubclassOf<UGameplayAbility>> PassiveAbilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
-	UDataTable* BaseStatDataTable;
+	UDataTable* PlayerBaseStatDataTable;
+	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
+	UDataTable* MonsterBaseStatDataTable;
 };

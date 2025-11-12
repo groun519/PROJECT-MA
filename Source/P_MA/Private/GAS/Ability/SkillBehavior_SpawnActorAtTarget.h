@@ -7,6 +7,21 @@
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_SpawnActorAtTarget.generated.h"
 
+
+USTRUCT(BlueprintType)
+struct FElementSpawnRule
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	int32 ProjectileCount =1;
+	
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, meta=(EditCondition="ProjectileCount > 1", EditConditionHides))
+	float ProjectileSpawnDelay = 0.f;
+};
 /**
  * 지점 액터 스폰
  * 플레이어가 지정한 위치에 설정한 투사체로 공격
@@ -37,7 +52,9 @@ private:
 	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
+	FElementSpawnRule DefaultProjectile;
+	UPROPERTY(EditDefaultsOnly)
+	TMap<FName, FElementSpawnRule> OverrideProjectiles;
 	
 	// 투사체 속도
 	UPROPERTY(EditDefaultsOnly)
@@ -51,8 +68,6 @@ private:
 	
 	// 타격 액터 생성 변수
 	UPROPERTY(EditDefaultsOnly)
-	FVector SpawnOffset = FVector(-800.f,0.f,0.f);
-	UPROPERTY(EditDefaultsOnly)
 	float SpawnHeight = 1500.f;
 
 	UPROPERTY(EditDefaultsOnly)
@@ -64,4 +79,16 @@ private:
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
 	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
+
+	const FElementSpawnRule* CurrentSpawnRule = nullptr;
+	FTimerHandle SpawnLoopTimer;
+	FVector CachedTargetPoint;
+	int32 SpawnedCount =0;
+
+	void SpawnSingleProjectile(TSubclassOf<AMAProjectile_GroundTargetedAOE> ProjectileClass, const FVector& TargetLocation);
+
+	UFUNCTION()
+	void OnSpawnLoop();
+
+	void CleanUp();
 };

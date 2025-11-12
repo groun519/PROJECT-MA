@@ -34,7 +34,9 @@ protected:
 
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass;
+	TSubclassOf<class AMAProjectile_OverlapAOE> DefaultProjectile;
+	UPROPERTY(EditDefaultsOnly)
+	TMap<FName, TSubclassOf<class AMAProjectile_OverlapAOE>> ProjectileClasses;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float ProjectileSpeed = 700.f;

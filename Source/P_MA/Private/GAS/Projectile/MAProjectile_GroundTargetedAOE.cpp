@@ -31,19 +31,11 @@ void AMAProjectile_GroundTargetedAOE::OnHit(UPrimitiveComponent* HitComp, AActor
 {
 	if (bHasExploded || OtherActor==this || OtherActor == GetInstigator())
 		return;
-
-	Explode(Hit);
+	
+	ApplyAreaDamage(GetActorLocation(), ExplodeRadius, Hit);
+	SendLocalGameplayCue(this, Hit);
 	GetWorldTimerManager().ClearTimer(ShootTimerHandle);
 	Destroy();
 }
 
-void AMAProjectile_GroundTargetedAOE::Explode(const FHitResult& Hit)
-{
-	if (bHasExploded)
-		return;
-	bHasExploded = true;
-
-	ApplyAreaDamage(GetActorLocation(), ExplodeRadius, Hit);
-	SendLocalGameplayCue(this, Hit);
-}
 

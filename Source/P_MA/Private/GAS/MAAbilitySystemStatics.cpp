@@ -42,6 +42,11 @@ FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSlowTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Slow");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");

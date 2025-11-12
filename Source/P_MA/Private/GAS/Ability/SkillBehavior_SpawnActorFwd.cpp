@@ -4,17 +4,18 @@
 #include "GAS/Ability/SkillBehavior_SpawnActorFwd.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayTagsManager.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
-#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "GameFramework/PlayerController.h"
 #include "Character/MACharacter.h"
+#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 
 
 void USkillBehavior_SpawnActorFwd::OnActivate_Implementation()
 {
 	Super::OnActivate_Implementation();
-	if (!OwningAbility || !Character || !ProjectileClass)
+	if (!OwningAbility || !Character || !DefaultProjectile)
 		return;
 
 	FGameplayAbilityActivationInfo ActivationInfo = OwningAbility->GetCurrentActivationInfo();
@@ -39,6 +40,24 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 {
 	if (OwningAbility->K2_HasAuthority())
 	{
+		TSubclassOf<AMAProjectile_OverlapAOE> FinalSpawnProjectile = DefaultProjectile;
+		
+		FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
+		if (ElementTag.IsValid())
+		{
+			TArray<FName> TagNames;
+			UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
+			FName AttributeName = TagNames.Last();
+
+			const TSubclassOf<AMAProjectile_OverlapAOE>* OverrideProjectile = ProjectileClasses.Find(AttributeName);
+			if (OverrideProjectile && *OverrideProjectile)
+			{
+				FinalSpawnProjectile = *OverrideProjectile;
+			}
+		}
+		if (!FinalSpawnProjectile)
+			return;
+		
 		AActor* OwnerAvatarActor = OwningAbility->GetAvatarActorFromActorInfo();
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = OwnerAvatarActor;
@@ -59,7 +78,7 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 		}
 
 		AMAProjectile_OverlapAOE* OverlapProjectile = GetWorld()->SpawnActor<AMAProjectile_OverlapAOE>(
-			ProjectileClass,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
+			FinalSpawnProjectile,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
 		if (OverlapProjectile)
 		{
 			OverlapProjectile->ShootProjectile(ProjectileSpeed, ProjectileMaxDist, ExplodeRadius,

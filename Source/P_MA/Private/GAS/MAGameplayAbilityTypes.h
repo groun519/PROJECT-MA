@@ -52,6 +52,9 @@ FPlayerBaseStats();
 
 	UPROPERTY(EditAnywhere)
 	float BaseAttack;
+
+	UPROPERTY(EditAnywhere)
+	float BaseAttackSpeed;
 	
 	UPROPERTY(EditAnywhere)
 	float BaseAttackRange;
@@ -65,4 +68,37 @@ FPlayerBaseStats();
 	UPROPERTY(EditAnywhere)
 	float BaseArmorPenetration;
 	
+	UPROPERTY(EditAnywhere)
+	float BaseGold;
+};
+
+USTRUCT(BlueprintType)
+struct FMonsterBaseStats : public FTableRowBase
+{
+	GENERATED_BODY()
+	FMonsterBaseStats();
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> Class;
+
+	UPROPERTY(EditAnywhere)
+	float BaseMaxHealth;
+
+	UPROPERTY(EditAnywhere)
+	float BaseAttack;
+
+	UPROPERTY(EditAnywhere)
+	float BaseMoveSpeed;
+
+	UPROPERTY(EditAnywhere)
+	float BaseAttackSpeed;
+
+	UPROPERTY(EditAnywhere)
+	float BaseArmor;
+
+	UPROPERTY(EditAnywhere)
+	float BaseArmorPenetration;
+
+	UPROPERTY(EditAnywhere)
+	float BaseFuryMax;
 };
