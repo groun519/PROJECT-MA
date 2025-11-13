@@ -66,6 +66,7 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 {
 	if (bIsHoldEnd)
 		return;
+	bIsHoldEnd = true;
 
 	if (Time <= 0.2f)
 	{
@@ -73,7 +74,6 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 		return;
 	}
 	
-	bIsHoldEnd = true;
 	if (OwningAbility)
 	{
 		OwningAbility->MontageToOtherSection(FName("End"));

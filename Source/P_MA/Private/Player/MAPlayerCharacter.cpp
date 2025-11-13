@@ -162,17 +162,44 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	}
 }
 // 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
+void AMAPlayerCharacter::SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName)
+{
+	Server_SetSkillAttribute(SkillClassName, AttributeName);
+}
+
+void AMAPlayerCharacter::Server_SetSkillAttribute_Implementation(const FString& SkillClassName,
+	const FString& AttributeName)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
+	if (!SkillClass) return;
+
+	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
+	if (!AbilitySpec) return;
+
+	FGameplayTag AttributeTag = FGameplayTag::RequestGameplayTag("Ability.Attribute");
+	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(AttributeTag)));
+	FGameplayTag NewTag = FGameplayTag::RequestGameplayTag(FName(*AttributeName));
+	if (NewTag.IsValid() && !AttributeName.Equals("None", ESearchCase::IgnoreCase))
+	{
+		AbilitySpec->DynamicAbilityTags.AddTag(NewTag);
+	}
+	ASC->MarkAbilitySpecDirty(*AbilitySpec);
+}
+
 void AMAPlayerCharacter::SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
 {
 	Server_SetSkillBehavior(SkillClassName, BehaviorTagString);
 }
 void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& SkillClassName,
-	const FString& BehaviorTagString)
+                                                                const FString& BehaviorTagString)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *(SkillClassName + "_C"));
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
 	if (!SkillClass) return;
 
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);

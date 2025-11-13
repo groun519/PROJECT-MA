@@ -20,14 +20,26 @@ public:
 	UMAGameplayAbility_SkillBase();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-
-	UPROPERTY(EditDefaultsOnly)
-	FGameplayTag SharedCooldownTag;
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
+
+	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
+	FORCEINLINE FGameplayTag GetSkillElementTag() const {return SkillElementTag;}
+	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
+	FORCEINLINE UDataTable* GetElementDataTable() const {return ElementDataTable;}
+	
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	FGameplayTag SharedCooldownTag;
+	UPROPERTY()
+	FGameplayTag VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
+	
+	UPROPERTY(EditDefaultsOnly, Category="Element")
+	FGameplayTag SkillElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
+	UPROPERTY(EditDefaultsOnly, Category="Element")
+	TObjectPtr<UDataTable> ElementDataTable;
 	/*
 	// 스킬 사용 시 짧은 버프를 부여하는 모듈
 	UPROPERTY(EditDefaultsOnly, Category="Module")
@@ -39,7 +51,7 @@ private:
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
 
 	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그
-	UPROPERTY(EditDefaultsOnly, Category="Module")
+	UPROPERTY(EditDefaultsOnly)
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
 	UPROPERTY()

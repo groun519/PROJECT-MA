@@ -5,8 +5,35 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GAS/Ability/MASkillBehavior.h"
+#include "Engine/DataTable.h"
 #include "SkillBehavior_SpawnActorAtTarget.generated.h"
 
+USTRUCT(BlueprintType)
+struct FElementSpawnRule : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	int32 ProjectileCount =1;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite,meta=(ClampMin="0.1"))
+	float TravelTime = 0.5f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float AbilityRange = 200.f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float MaxDistance = 1000.f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float SpawnHeight = 700.f;
+	
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, meta=(EditCondition="ProjectileCount > 1", EditConditionHides))
+	float ProjectileSpawnDelay = 0.015f;
+};
 /**
  * 지점 액터 스폰
  * 플레이어가 지정한 위치에 설정한 투사체로 공격
@@ -37,27 +64,28 @@ private:
 	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass;
+	TObjectPtr<UDataTable> ElementSpawnRuleTable;
 	
-	// 스킬 사이즈 (타격 범위)
+
 	UPROPERTY(EditDefaultsOnly)
-	float AbilityRange = 300.f;
-	// 스킬 시전 범위
-	UPROPERTY(EditDefaultsOnly)
-	float MaxDistance = 2000.f;
-	
-	// 타격 액터 생성 변수
-	UPROPERTY(EditDefaultsOnly)
-	FVector SpawnOffset = FVector(-800.f,0.f,0.f);
-	UPROPERTY(EditDefaultsOnly)
-	float SpawnHeight = 1500.f;
+	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
-
-	UFUNCTION()
-	void OnDelayFinished();
+	
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
 	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
+
+	const FElementSpawnRule* CurrentSpawnRule = nullptr;
+	FTimerHandle SpawnLoopTimer;
+	FVector CachedTargetPoint;
+	int32 SpawnedCount =0;
+
+	void SpawnSingleProjectile(TSubclassOf<AMAProjectile_GroundTargetedAOE> ProjectileClass, const FVector& TargetLocation);
+
+	UFUNCTION()
+	void OnSpawnLoop();
+
+	void CleanUp();
 };

@@ -74,6 +74,7 @@ private:
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void SlowTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 	
@@ -181,14 +182,10 @@ public:
 	/*								Skill						   */
 	/***************************************************************/
 public:
-	UFUNCTION(Server, Reliable)
-	void Server_SpawnOverlapAoEProjectile(
-		TSubclassOf<class AMAProjectile_OverlapAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, float ImpactRadius);
-	UFUNCTION(Server, Reliable)
-	void Server_SpawnGroundTargetedAoEProjectile(
-		TSubclassOf<class AMAProjectile_GroundTargetedAOE> ProjectileClass, FVector SpawnLocation, FRotator SpawnRotation, FVector TargetImpactLocation, float DamageRadius,TSubclassOf<UGameplayEffect> DamageEffect);
+	//월드에 VFX 출력
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform);
+	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
+	//소켓에 VFX 부착
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy);
+	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 };

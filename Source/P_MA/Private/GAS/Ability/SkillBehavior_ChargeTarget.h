@@ -48,8 +48,6 @@ private:
 	float MaxHoldDuration = 3.f;
 	UPROPERTY(EditDefaultsOnly)
 	float TimeoutDuration = 4.5f;
-	UPROPERTY(EditDefaultsOnly)
-	float MinimumTimeToActive = 0.2f;
 
 	UPROPERTY(EditDefaultsOnly)
 	float VFXRadius = 100.f;
