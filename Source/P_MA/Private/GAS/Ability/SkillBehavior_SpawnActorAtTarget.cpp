@@ -3,7 +3,6 @@
 
 #include "GAS/Ability/SkillBehavior_SpawnActorAtTarget.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "Character/MACharacter.h"
@@ -23,6 +22,28 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 	if (!OwningAbility || !Character)
 		return;
 
+	if (!ElementSpawnRuleTable)
+		return;
+
+	FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
+	if (ElementTag.IsValid())
+	{
+		TArray<FName> TagNames;
+		UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
+		FName AttributeName = TagNames.Last();
+
+		CurrentSpawnRule = ElementSpawnRuleTable->FindRow<FElementSpawnRule>(AttributeName, TEXT("Rule Lookup"));
+	}
+	if (!CurrentSpawnRule)
+	{
+		CurrentSpawnRule = ElementSpawnRuleTable->FindRow<FElementSpawnRule>("Default", TEXT("Rule Lookup"));
+	}
+	if (!CurrentSpawnRule)
+	{
+		OwningAbility->RequestEndAbility();
+		return;
+	}
+
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetAimingTag());
 	
 	if (RangeActorClass)
@@ -31,7 +52,7 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 		if (SpawnedRangeActor)
 		{
 			SpawnedRangeActor->AttachToActor(Character, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			SpawnedRangeActor->SetMaxDistance(MaxDistance);
+			SpawnedRangeActor->SetMaxDistance(CurrentSpawnRule->MaxDistance);
 		}
 	}
 	
@@ -45,25 +66,20 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 	AMATargetActor_SelectLoc* SelectLoc = Cast<AMATargetActor_SelectLoc>(TargetActor);
 	if (SelectLoc)
 	{
-		SelectLoc -> SetAbilityRadius(AbilityRange);
-		SelectLoc -> SetMaxDistance(MaxDistance);
+		SelectLoc -> SetAbilityRadius(CurrentSpawnRule->AbilityRange);
+		SelectLoc -> SetMaxDistance(CurrentSpawnRule->MaxDistance);
 	}
 	WaitTargetDataTask -> FinishSpawningActor(OwningAbility, TargetActor);
 }
 
 void USkillBehavior_SpawnActorAtTarget::OnEndAbility_Implementation()
 {
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetAimingTag());
+	CleanUp();
 	GetWorld()->GetTimerManager().ClearTimer(SpawnLoopTimer);
 	
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
-	if (SpawnedRangeActor)
-	{
-		SpawnedRangeActor->Destroy();
-		SpawnedRangeActor = nullptr;
-	}
-	
+
 	Super::OnEndAbility_Implementation();
 }
 
@@ -83,25 +99,9 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 	
 	if (OwningAbility->K2_HasAuthority())
 	{
-		//기본값으로 세팅
-		CurrentSpawnRule = &DefaultProjectile;
-
-		FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
-		if (ElementTag.IsValid())
-		{
-			TArray<FName> TagNames;
-			UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
-			FName AttributeName = TagNames.Last();
-			//현재 스킬 속성과 같은 Map있으면 덮어씌움
-			const FElementSpawnRule* OverrideProjectile = OverrideProjectiles.Find(AttributeName);
-			if (OverrideProjectile)
-			{
-				CurrentSpawnRule = OverrideProjectile;
-			}
-		}
-		if (!CurrentSpawnRule || CurrentSpawnRule->ProjectileClass == nullptr)
-		{
-			return;
+		if (CooldownGE)
+		{	//쿨다운 즉시 적용
+			OwningAbility->ApplyEffectToOwner(CooldownGE);
 		}
 		
 		SpawnedCount =0;
@@ -112,23 +112,21 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 			for (int32 i=0 ; i<CurrentSpawnRule->ProjectileCount ; ++i)
 			{
 				FVector SpawnTarget = CachedTargetPoint;
-				if (AbilityRange > 0.f)
+				if (CurrentSpawnRule->AbilityRange > 0.f)
 				{
-					FVector2D Offset = FMath::RandPointInCircle(AbilityRange);
+					FVector2D Offset = FMath::RandPointInCircle(CurrentSpawnRule->AbilityRange/2);
 					SpawnTarget += FVector(Offset.X, Offset.Y,0.f);
 				}
 				SpawnSingleProjectile(CurrentSpawnRule->ProjectileClass, SpawnTarget);
 			}
+			ApplyCooldownAndEndAbility(nullptr);
 		}
 		//2발 이상 쏘는 경우
 		else
 		{
-			OnSpawnLoop();
-			GetWorld()->GetTimerManager().SetTimer(SpawnLoopTimer,this,&USkillBehavior_SpawnActorAtTarget::OnSpawnLoop, CurrentSpawnRule->ProjectileSpawnDelay, true);
+			GetWorld()->GetTimerManager().SetTimer(SpawnLoopTimer,this,&USkillBehavior_SpawnActorAtTarget::OnSpawnLoop, CurrentSpawnRule->ProjectileSpawnDelay, true,0.f);
 		}
 	}
-	if (CooldownGE)
-		ApplyCooldownAndEndAbility(CooldownGE);
 }
 
 void USkillBehavior_SpawnActorAtTarget::OnSpawnLoop()
@@ -140,9 +138,9 @@ void USkillBehavior_SpawnActorAtTarget::OnSpawnLoop()
 	}
 
 	FVector SpawnTarget = CachedTargetPoint;
-	if (AbilityRange > 0.f)
+	if (CurrentSpawnRule->AbilityRange > 0.f)
 	{
-		FVector2D Offset = FMath::RandPointInCircle(AbilityRange);
+		FVector2D Offset = FMath::RandPointInCircle(CurrentSpawnRule->AbilityRange/2);
 		SpawnTarget += FVector(Offset.X, Offset.Y, 0.f);
 	}
 	SpawnSingleProjectile(CurrentSpawnRule->ProjectileClass,SpawnTarget);
@@ -151,6 +149,7 @@ void USkillBehavior_SpawnActorAtTarget::OnSpawnLoop()
 	if (SpawnedCount >= CurrentSpawnRule->ProjectileCount)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(SpawnLoopTimer);
+		ApplyCooldownAndEndAbility(nullptr);
 	}
 }
 
@@ -158,12 +157,18 @@ void USkillBehavior_SpawnActorAtTarget::SpawnSingleProjectile(TSubclassOf<AMAPro
 {
 	if (!ProjectileClass)
 		return;
-
-	const FVector FinalSpawnLoc = TargetLocation + FVector(0.f, 0.f, SpawnHeight);
-	const FRotator FinalSpawnRot = FRotator(-90.f, 0.f, 0.f);
-	const FTransform SpawnTransform(FinalSpawnRot,FinalSpawnLoc);
-
 	AActor* OwnerAvatarActor = OwningAbility->GetAvatarActorFromActorInfo();
+	if (!OwnerAvatarActor)
+		return;
+
+	const FVector SpawnLocation = OwnerAvatarActor->GetActorLocation() + FVector(0.f,0.f,CurrentSpawnRule->SpawnHeight);
+	const FVector Direction = (TargetLocation - SpawnLocation).GetSafeNormal();
+	const FRotator SpawnRotation = Direction.Rotation();
+	const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+
+	const float TravelDistance = (TargetLocation - SpawnLocation).Size();
+	const float ProjectileSpeed = TravelDistance/CurrentSpawnRule->TravelTime;
+
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = OwnerAvatarActor;
 	SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
@@ -173,7 +178,7 @@ void USkillBehavior_SpawnActorAtTarget::SpawnSingleProjectile(TSubclassOf<AMAPro
 			ProjectileClass, SpawnTransform, SpawnParams);
 	if (Projectile)
 	{
-		Projectile->ShootProjectile(ProjectileSpeed,MaxDistance,AbilityRange,
+		Projectile->ShootProjectile(ProjectileSpeed,CurrentSpawnRule->MaxDistance,CurrentSpawnRule->AbilityRange,
 			OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
 	}
 }

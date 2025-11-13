@@ -63,5 +63,5 @@ protected:
 
 	FGameplayEffectSpecHandle HitEffectHandle;
 	FTimerHandle ShootTimerHandle;
-	void SendLocalGameplayCue(AActor* CueTargetActor, const FHitResult& HitResult);
+	void SendLocalGameplayCue(const FHitResult& HitResult);
 };

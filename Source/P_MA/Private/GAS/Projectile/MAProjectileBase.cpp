@@ -94,11 +94,15 @@ void AMAProjectileBase::ApplyAreaDamage(FVector OriginLocation, float DamageRadi
 	}
 }
 
-void AMAProjectileBase::SendLocalGameplayCue(AActor* CueTargetActor, const FHitResult& HitResult)
+void AMAProjectileBase::SendLocalGameplayCue(const FHitResult& Hit)
 {
-	FGameplayCueParameters CueParams;
-	CueParams.Location = HitResult.ImpactPoint;
-	CueParams.Normal = HitResult.ImpactNormal;
-
-	UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCue(CueTargetActor, HitGameplayCueTag, EGameplayCueEvent::Executed,CueParams);
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+	if (SourceASC)
+	{
+		FGameplayCueParameters CueParams;
+		CueParams.Location = Hit.ImpactPoint;
+		CueParams.Normal = Hit.ImpactNormal;
+		
+		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
+	}
 }

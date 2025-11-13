@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GAS/Ability/MASkillBehavior.h"
+#include "Engine/DataTable.h"
 #include "SkillBehavior_SpawnActorAtTarget.generated.h"
 
-
 USTRUCT(BlueprintType)
-struct FElementSpawnRule
+struct FElementSpawnRule : public FTableRowBase
 {
 	GENERATED_BODY()
 
@@ -18,9 +18,21 @@ struct FElementSpawnRule
 
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
 	int32 ProjectileCount =1;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite,meta=(ClampMin="0.1"))
+	float TravelTime = 0.5f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float AbilityRange = 200.f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float MaxDistance = 1000.f;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite)
+	float SpawnHeight = 700.f;
 	
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite, meta=(EditCondition="ProjectileCount > 1", EditConditionHides))
-	float ProjectileSpawnDelay = 0.f;
+	float ProjectileSpawnDelay = 0.015f;
 };
 /**
  * 지점 액터 스폰
@@ -52,23 +64,8 @@ private:
 	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
-	FElementSpawnRule DefaultProjectile;
-	UPROPERTY(EditDefaultsOnly)
-	TMap<FName, FElementSpawnRule> OverrideProjectiles;
+	TObjectPtr<UDataTable> ElementSpawnRuleTable;
 	
-	// 투사체 속도
-	UPROPERTY(EditDefaultsOnly)
-	float ProjectileSpeed = 700.f;
-	// 스킬 사이즈 (타격 범위)
-	UPROPERTY(EditDefaultsOnly)
-	float AbilityRange = 300.f;
-	// 스킬 사거리
-	UPROPERTY(EditDefaultsOnly)
-	float MaxDistance = 2000.f;
-	
-	// 타격 액터 생성 변수
-	UPROPERTY(EditDefaultsOnly)
-	float SpawnHeight = 1500.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> ShortCooldownEffect;

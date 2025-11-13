@@ -3,6 +3,8 @@
 
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
 
 
@@ -33,8 +35,7 @@ void AMAProjectile_GroundTargetedAOE::OnHit(UPrimitiveComponent* HitComp, AActor
 		return;
 	
 	ApplyAreaDamage(GetActorLocation(), ExplodeRadius, Hit);
-	SendLocalGameplayCue(this, Hit);
-	GetWorldTimerManager().ClearTimer(ShootTimerHandle);
+	SendLocalGameplayCue(Hit);
 	Destroy();
 }
 
