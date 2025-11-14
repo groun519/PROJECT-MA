@@ -15,9 +15,7 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 	if (!OwningAbility)
 		return;
 	Super::OnActivate_Implementation();
-
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
+	
 	bIsComboInputBuffered = false;
 
 	WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,ComboChangeEventTag,nullptr,false,false);
@@ -67,16 +65,17 @@ void USkillBehavior_Chain::ComboChangedEventReceived(FGameplayEventData EventDat
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag,TagNames);
 	NextComboName = TagNames.Last();
-
-	//bIsComboInputBuffered = false;
 }
 
 void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
 {
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+	if (OwningAbility->K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
 	
-	TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
-	OwningAbility->ApplyDamageToHitResults(HitResults,GameplayEffect);
+		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
+		OwningAbility->ApplyDamageToHitResults(HitResults,GameplayEffect);
+	}
 }
 
 void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
@@ -85,15 +84,11 @@ void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
 	{
 		OwningAbility->IgnoreTargets.Empty();
 	}
-
 	if (bIsComboInputBuffered && NextComboName != NAME_None)
 	{
-		UAnimInstance* OwerAnimInst = OwningAbility->GetOwnerAnimInstance();
-		if (OwerAnimInst)
-		{
-			OwerAnimInst->Montage_JumpToSection(NextComboName, MontageToPlay);
-		}
+		MontageToOtherSection(NextComboName);
 	}
+	
 	bIsComboInputBuffered = false;
 	NextComboName = NAME_None;
 }

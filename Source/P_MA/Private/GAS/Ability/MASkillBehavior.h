@@ -40,15 +40,17 @@ public:
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> CooldownGE;
+	float CooldownDuration = 10.f;
+	UPROPERTY()
+	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
 	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
+	//스킬 사용 직후 쿨타임 적용할지
+	virtual bool IsApplyCooldownImmediate() const {return true;}
 
-	//쿨타임 적용 후 0.05초 이후에 EndAbility호출
-	virtual void ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect);
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;
@@ -65,6 +67,9 @@ protected:
 
 	UFUNCTION()
 	virtual void SafeEndAbility();
+
+	void SetMontagePlayRate(float NewPlayRate);
+	void MontageToOtherSection(FName SectionName);
 
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();

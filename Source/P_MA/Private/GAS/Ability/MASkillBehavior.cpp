@@ -38,19 +38,6 @@ void UMASkillBehavior::OnEndAbility_Implementation()
 	this->PlayerCharacter = nullptr;
 }
 
-void UMASkillBehavior::ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect)
-{
-	if (!OwningAbility)
-		return;
-	if (CooldownEffect)
-	{
-		OwningAbility->ApplyEffectToOwner(CooldownEffect);
-	}
-	UAbilityTask_WaitDelay* EndDelayTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-	EndDelayTask->OnFinish.AddDynamic(this, &UMASkillBehavior::SafeEndAbility);
-	EndDelayTask->ReadyForActivation();
-}
-
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 {
 	FGameplayAbilityActivationInfo ActivationInfo = OwningAbility->GetCurrentActivationInfo();
@@ -132,11 +119,34 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 	}
 }
 
-
 void UMASkillBehavior::SafeEndAbility()
 {
 	if (OwningAbility)
-		OwningAbility->RequestEndAbility();
+		OwningAbility->EndAbility(OwningAbility->GetCurrentAbilitySpecHandle(),OwningAbility->GetCurrentActorInfo(),
+			OwningAbility->GetCurrentActivationInfo(),true,false);
+}
+
+void UMASkillBehavior::SetMontagePlayRate(float NewPlayRate)
+{
+	if (Character)
+	{
+		if (UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance())
+		{
+			UAnimMontage* ActiveMontage  = AnimInstance->GetCurrentActiveMontage();
+			AnimInstance->Montage_SetPlayRate(ActiveMontage ,NewPlayRate);
+		}
+	}
+}
+
+void UMASkillBehavior::MontageToOtherSection(FName SectionName)
+{
+	if (Character)
+	{
+		if (UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance())
+		{
+			AnimInst->Montage_JumpToSection(SectionName,MontageToPlay);
+		}
+	}
 }
 
 class AMACharacter* UMASkillBehavior::GetCharacter() const

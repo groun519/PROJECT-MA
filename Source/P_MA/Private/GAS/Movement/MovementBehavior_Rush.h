@@ -20,7 +20,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
-
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> WaitInputRelease;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;

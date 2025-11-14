@@ -64,25 +64,28 @@ void USkillBehavior_Charge::OnEndAbility_Implementation()
 
 void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)
 {
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(0.01f);
+	SetMontagePlayRate(0.01f);
 }
 
 void USkillBehavior_Charge::OnMaxCharged()
 {
-	
 	if (bIsEnd)
 		return;
 	bIsEnd = true;
-	
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(1.f);
+
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
+
+	OwningAbility->ApplyDefaultCooldownOnce();
+	SetMontagePlayRate(1.f);
 }
 
 void USkillBehavior_Charge::OnChargeReleased(float Time)
 {
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
 	
 	if (bIsEnd)
 		return;
@@ -90,14 +93,11 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 
 	if (Time <= 0.2f)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
-	
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(1.f);
+	OwningAbility->ApplyDefaultCooldownOnce();
+	SetMontagePlayRate(1.f);
 }
 
 void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)

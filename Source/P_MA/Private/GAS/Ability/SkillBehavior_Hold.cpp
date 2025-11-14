@@ -70,18 +70,11 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 
 	if (Time <= 0.2f)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
-	
-	if (OwningAbility)
-	{
-		OwningAbility->MontageToOtherSection(FName("End"));
-		if (CooldownGE)
-		{
-			OwningAbility->ApplyEffectToOwner(CooldownGE);
-		}
-	}
+	OwningAbility->ApplyDefaultCooldownOnce();
+	MontageToOtherSection(FName("End"));
 }
 
 void USkillBehavior_Hold::OnMaxHold()
@@ -89,14 +82,8 @@ void USkillBehavior_Hold::OnMaxHold()
 	if (bIsHoldEnd)
 		return;
 	bIsHoldEnd = true;
-	if (OwningAbility)
-	{
-		OwningAbility->MontageToOtherSection(FName("End"));
-		if (CooldownGE)
-		{
-			OwningAbility->ApplyEffectToOwner(CooldownGE);
-		}
-	}
+	OwningAbility->ApplyDefaultCooldownOnce();
+	MontageToOtherSection(FName("End"));
 }
 
 void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)

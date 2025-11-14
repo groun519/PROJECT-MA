@@ -23,6 +23,7 @@ public:
 
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
 
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -34,9 +35,6 @@ private:
 	TSubclassOf<class AMATargetActor_ChargeAtTarget> TargetActorClass;
 	UPROPERTY()
 	TObjectPtr<class AMATargetActor_ChargeAtTarget> TargetActor;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 
 	UPROPERTY(EditDefaultsOnly)
 	float MaxDistance = 1000.f;

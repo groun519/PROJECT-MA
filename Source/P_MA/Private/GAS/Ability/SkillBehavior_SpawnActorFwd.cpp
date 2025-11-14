@@ -85,9 +85,6 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 				OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
 		}
 	}
-
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 

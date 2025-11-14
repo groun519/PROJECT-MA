@@ -78,9 +78,11 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 
 	if (HeldTime <= 0.2f) 
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
+
+	OwningAbility->ApplyDefaultCooldownOnce();
 	// Data 인덱스 1 : 위치 데이터
 	FVector TargetPoint;
 	if (Data.Num() > 1 && Data.Get(1)->GetHitResult())
@@ -99,26 +101,21 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		SpawnVFX(TargetPoint,FinalSize);
 		OwningAbility->ApplyDamageToTargetData(Data, DamageEffect);
 	}
-
-	ApplyCooldownAndEndAbility(CooldownGE);
 }
 
 void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
-	if (ShortCooldownEffect)
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnDelayFinished()
 {
-	if (ShortCooldownEffect)
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 {
-	if (ShortCooldownEffect)
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)

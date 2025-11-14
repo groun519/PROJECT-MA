@@ -56,9 +56,10 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 
 	if (TimeHeld <= 0.2f)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
+	OwningAbility->ApplyDefaultCooldownOnce();
 	
 	float ChargeRatio = FMath::Clamp(TimeHeld / MaxChargeDuration, 0.f, 1.f);
 	float FinalLength = FMath::Lerp(MinTraceDistance, MaxTraceDistance, ChargeRatio);
@@ -67,31 +68,16 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	FGameplayAbilityTargetDataHandle TargetDataHandle = TargetActor->GetTargetData();
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle, DamageEffect);
-
-	ApplyCooldownAndEndAbility(CooldownGE);
+	
 }
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
-	ApplyCooldownAndEndAbility(ShortCooldownEffect);
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 {
-	/*
-	if (!ExecutionVFX || !Character)
-		return;
-	FVector Location = Character->GetActorLocation();
-	FRotator Rotation = Character->GetActorRotation();
-
-	float SafeLength = (VFXLength == 0.f) ? 1.f : VFXLength;
-	float SafeWidth = (VFXWidth == 0.f) ? 1.f : VFXWidth;
-
-	FVector Scale = FVector (FinalLength / SafeLength, SkillWidth/SafeWidth, 1.f);
-	FTransform SpawnTransform(Rotation,Location,Scale);
-	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
-	*/
-
 	if (!OwningAbility || !VFXDataSet ||!Character)
 		return;
 

@@ -19,6 +19,7 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	
 protected:
 	UFUNCTION()
@@ -32,9 +33,6 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
     
 	bool bIsEnd = false;
 

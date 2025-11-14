@@ -13,6 +13,7 @@ UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 {
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	ActiveBehaviorTag = FGameplayTag();
 }
 
 void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -27,6 +28,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		return;
 	}
 
+	bCooldownApplied = false;
 	IgnoreTargets.Empty();
 
 	/*
@@ -45,7 +47,6 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	}
 	*/
 	
-	
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
 	
 	FGameplayTagContainer AttributeFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
@@ -55,20 +56,20 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		SkillElementTag = AttributeFilter.First();
 	}
 	
-	FGameplayTag BehaviorTagToUse;
+	ActiveBehaviorTag = FGameplayTag();
 	FGameplayTagContainer BehaviorFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
 	//동적 스킬 행동 태그
 	if (BehaviorFilter.Num() > 0)
 	{
-		BehaviorTagToUse = BehaviorFilter.First();
+		ActiveBehaviorTag = BehaviorFilter.First();
 	}
 	else
 	{
-		BehaviorTagToUse = DefaultBehaviorTag;
+		ActiveBehaviorTag = SkillBehaviorTag;
 	}
 
-	if (BehaviorTagToUse.IsValid())
-		ActiveSkillBehavior = BehaviorModules.FindRef(BehaviorTagToUse);
+	if (ActiveBehaviorTag.IsValid())
+		ActiveSkillBehavior = BehaviorModules.FindRef(ActiveBehaviorTag);
 
 	if (ActiveSkillBehavior)
 	{
@@ -83,28 +84,52 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 			{
 				PlayerCharacter->SetInputEnabledFromPlayerController(false);
 			}
+			if (ActiveSkillBehavior->IsApplyCooldownImmediate())
+			{
+				ApplyDefaultCooldownOnce();
+			}
 		}
 		ActiveSkillBehavior->OwningAbility = this;
 		ActiveSkillBehavior->OnActivate();
+
+		UAnimMontage* MontageToPlay = ActiveSkillBehavior->MontageToPlay;
+		if (MontageToPlay)
+		{
+			UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
+			PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+			PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+			PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
+			PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
+			PlayMontageTask->ReadyForActivation();
+		}
 	}
-	UAnimMontage* MontageToPlay = ActiveSkillBehavior->MontageToPlay;
-	if (MontageToPlay)
-	{
-		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay);
-		PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-		PlayMontageTask->ReadyForActivation();
-	}
-	
-	
 }
 
 void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (!bWasCancelled && !bCooldownApplied)
+	{	//취소되지 않고 쿨타임 적용 안됐다면 풀쿨타임
+		bCooldownApplied = true;
+		float CooldownToApply = 10.f;
+		if (ActiveSkillBehavior)
+		{
+			CooldownToApply = ActiveSkillBehavior->CooldownDuration;
+		}
+		ApplyBehaviorCooldown(CooldownToApply);
+	}
+	else if (bWasCancelled && !bCooldownApplied)
+	{	//취소된 스킬이라면 짧은 쿨타임
+		bCooldownApplied = true;
+		float CooldownToApply = 1.f;
+		if (ActiveSkillBehavior)
+		{
+			CooldownToApply = ActiveSkillBehavior->ShortCoolDownDuration;
+		}
+		ApplyBehaviorCooldown(CooldownToApply);
+	}
+	
 	if (ActiveSkillBehavior)
 	{
 		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
@@ -119,55 +144,16 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 				PlayerCharacter->SetInputEnabledFromPlayerController(true);
 			}
 		}
-		
 		ActiveSkillBehavior->OnEndAbility();
 		ActiveSkillBehavior = nullptr;
 	}
+	
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() const
-{
-	if (SharedCooldownTag.IsValid())
-	{
-		static FGameplayTagContainer TagContainer;
-		TagContainer.Reset();
-		TagContainer.AddTag(SharedCooldownTag);
-		return &TagContainer;
-	}
-	return Super::GetCooldownTags();
-}
-
-void UMAGameplayAbility_SkillBase::SetMontagePlayRate(float NewPlayRate)
-{
-	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-	if (Character)
-	{
-		if (UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance())
-		{
-			UAnimMontage* ActiveMontage  = AnimInstance->GetCurrentActiveMontage();
-			AnimInstance->Montage_SetPlayRate(ActiveMontage ,NewPlayRate);
-		}
-	}
-}
-
-void UMAGameplayAbility_SkillBase::MontageToOtherSection(FName SectionName)
-{
-	if (AMAPlayerCharacter* Character = Cast<AMAPlayerCharacter>(CurrentActorInfo->AvatarActor.Get()))
-	{
-		if (UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance())
-		{
-			AnimInst->Montage_JumpToSection(SectionName,ActiveSkillBehavior->MontageToPlay);
-		}
-	}
-}
-
-void UMAGameplayAbility_SkillBase::RequestEndAbility()
-{
-	EndAbility(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(),true,false);
-}
-
-
+/***********************************************************************************/
+/*										Damage									   */
+/***********************************************************************************/
 void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults,
 	TSubclassOf<UGameplayEffect> DamageEffect)
 {
@@ -203,9 +189,68 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 	}
 }
 
-void UMAGameplayAbility_SkillBase::ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level)
+/***********************************************************************************/
+/*										Cooldown								   */
+/***********************************************************************************/
+const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() const
 {
-	if (!Effect || !HasAuthority(&CurrentActivationInfo))
+	if (SharedCooldownTag.IsValid())
+	{
+		static FGameplayTagContainer TagContainer;
+		TagContainer.Reset();
+		TagContainer.AddTag(SharedCooldownTag);
+		return &TagContainer;
+	}
+	return Super::GetCooldownTags();
+}
+UGameplayEffect* UMAGameplayAbility_SkillBase::GetCooldownGameplayEffect() const
+{
+	return nullptr;
+}
+
+void UMAGameplayAbility_SkillBase::ApplyDefaultCooldownOnce()
+{
+	if (bCooldownApplied)
 		return;
-	BP_ApplyGameplayEffectToOwner(Effect,Level);
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	bCooldownApplied = true;
+	float CooldownToApply = 1.0f;
+	if (ActiveSkillBehavior)
+		CooldownToApply = ActiveSkillBehavior->CooldownDuration;
+	ApplyBehaviorCooldown(CooldownToApply);
+}
+
+void UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility()
+{
+	if (bCooldownApplied)
+	{
+		EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,true);
+		return;
+	}
+	bCooldownApplied = true;
+	
+	float CooldownToApply = 0.1f;
+	if (ActiveSkillBehavior)
+		CooldownToApply = ActiveSkillBehavior->ShortCoolDownDuration;
+
+	ApplyBehaviorCooldown(CooldownToApply);
+	
+	EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,true,true);
+}
+
+void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
+{
+	if (!CooldownGE || !HasAuthority(&CurrentActivationInfo))
+		return;
+
+	const float FinalDuration =  CooldownToApply;
+	if (FinalDuration <= 0)
+		return;
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE, GetAbilityLevel());
+	if (SpecHandle.IsValid())
+	{
+		SpecHandle.Data->SetSetByCallerMagnitude(CooldownDurationTag, FinalDuration);
+		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
+	}
 }

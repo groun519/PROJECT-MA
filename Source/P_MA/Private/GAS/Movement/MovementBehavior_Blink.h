@@ -32,8 +32,6 @@ private:
 	void OnBlinkTagReceived(FGameplayEventData Payload);
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
-	UFUNCTION()
-	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
 
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData EventData);

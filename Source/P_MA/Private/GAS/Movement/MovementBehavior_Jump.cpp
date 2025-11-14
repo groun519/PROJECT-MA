@@ -30,7 +30,6 @@ void UMovementBehavior_Jump::OnActivate_Implementation()
 	// 클라이언트에게 마우스 위치 즉시 요청(TargetActor_Movement)
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwningAbility, NAME_None, EGameplayTargetingConfirmation::Instant, TargetActorClass);
 	WaitTargetDataTask->ValidData.AddDynamic(this, &UMovementBehavior_Jump::TargetConfirmed);
-	WaitTargetDataTask->Cancelled.AddDynamic(this, &UMovementBehavior_Jump::TargetCancelled);
 	WaitTargetDataTask->ReadyForActivation();
 
 	AGameplayAbilityTargetActor* TargetActor;
@@ -79,11 +78,6 @@ void UMovementBehavior_Jump::TargetConfirmed(const FGameplayAbilityTargetDataHan
 	CachedJumpLocation = StartLocation + (Direction * Distance);
 	bHasValidTargetLocation = true;
 
-}
-
-void UMovementBehavior_Jump::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
-{
-	OwningAbility->RequestEndAbility();
 }
 
 void UMovementBehavior_Jump::OnJumpStartEventReceived(FGameplayEventData EventData)
