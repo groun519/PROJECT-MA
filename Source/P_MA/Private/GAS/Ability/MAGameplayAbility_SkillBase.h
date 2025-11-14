@@ -31,14 +31,14 @@ public:
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SharedCooldownTag;
 	UPROPERTY()
 	FGameplayTag VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 	
-	UPROPERTY(EditDefaultsOnly, Category="Element")
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SkillElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
-	UPROPERTY(EditDefaultsOnly, Category="Element")
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TObjectPtr<UDataTable> ElementDataTable;
 	/*
 	// 스킬 사용 시 짧은 버프를 부여하는 모듈
@@ -47,11 +47,11 @@ private:
 	*/
 	
 	//스킬 행동 변경 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Module", Instanced)
+	UPROPERTY(EditDefaultsOnly, Category="Behavior Module", Instanced)
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
 
 	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
 	UPROPERTY()
