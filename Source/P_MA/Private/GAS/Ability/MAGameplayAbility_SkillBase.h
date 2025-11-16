@@ -8,6 +8,7 @@
 #include "GAS/MAGameplayAbility.h"
 #include "MAGameplayAbility_SkillBase.generated.h"
 
+class UUtilityModule;
 /**
  * 
  */
@@ -23,7 +24,7 @@ public:
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
-	FORCEINLINE FGameplayTag GetSkillElementTag() const {return SkillElementTag;}
+	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveSkillElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
 	FORCEINLINE UDataTable* GetElementDataTable() const {return ElementDataTable;}
 
@@ -34,35 +35,40 @@ public:
 	/***************************************************************/
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	FGameplayTag SkillBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
+	FGameplayTag DefaultElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	FGameplayTag SkillElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
-	//Default행동의 쿨다운
+	FGameplayTag DefaultUtilityTag = FGameplayTag::RequestGameplayTag("Ability.Utility.Smite");
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
+	
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TSubclassOf<UGameplayEffect> CooldownGE;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	FGameplayTag CooldownDurationTag = FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration");
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SharedCooldownTag;
-	
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TObjectPtr<UDataTable> ElementDataTable;
-	/*
-	// 스킬 사용 시 짧은 버프를 부여하는 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Utility Module")
-	TArray<TSubclassOf<UGameplayEffect>> ModuleUtility;
-	*/
 	
-	//스킬 행동 변경 모듈
+	//속성 모듈
+	UPROPERTY(BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
+	FGameplayTag ActiveSkillElementTag;
+	
+	//유틸리티 모듈
+	UPROPERTY(BlueprintReadOnly, Category="Utility Module", meta=(AllowPrivateAccess="true"))
+	FGameplayTag ActiveUtilityTag;
+	UPROPERTY()
+	TObjectPtr<UUtilityModule> ActiveUtilityModule;
+	
+	//스킬 행동 모듈
 	UPROPERTY(EditDefaultsOnly, Category="Behavior Module", Instanced)
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
-	UPROPERTY(BlueprintReadOnly, Category="Skill Behavior", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(BlueprintReadOnly, Category="Behavior Module", meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveBehaviorTag;
 	UPROPERTY()
-	TObjectPtr<UMASkillBehavior> ActiveSkillBehavior;
-
+	TObjectPtr<UMASkillBehavior> ActiveBehaviorModule;
 	
-	FGameplayTag VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
+	
+	FGameplayTag CooldownDurationTag;
+	FGameplayTag VFXEventRootTag;
 	
 	void ApplyBehaviorCooldown(float Multiplier);
 	bool bCooldownApplied = false;

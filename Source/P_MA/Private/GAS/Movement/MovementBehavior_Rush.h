@@ -39,8 +39,5 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float MaxRushDuration = 3.f;
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
-
 	bool bIsEnd = false;
 };

@@ -179,6 +179,7 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 		{
 			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
+			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
@@ -208,6 +209,7 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 		{
 			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
+			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);

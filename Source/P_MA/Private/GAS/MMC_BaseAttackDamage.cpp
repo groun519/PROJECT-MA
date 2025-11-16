@@ -15,9 +15,15 @@ UMMC_BaseAttackDamage::UMMC_BaseAttackDamage()
 	ArmorPenetrationCaptureDef.AttributeToCapture = UMAAttributeSet::GetArmorPenetrationAttribute();
 	ArmorPenetrationCaptureDef.AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
 
+	DamageVarianceCaptureDef.AttributeToCapture = UMAAttributeSet::GetDamageVarianceAttribute();
+	DamageVarianceCaptureDef.AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
+
 	RelevantAttributesToCapture.Add(DamageCaptureDef);
 	RelevantAttributesToCapture.Add(ArmorCaptureDef);
 	RelevantAttributesToCapture.Add(ArmorPenetrationCaptureDef);
+	RelevantAttributesToCapture.Add(DamageVarianceCaptureDef);
+
+	DamageModifierTag = FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const
@@ -35,12 +41,22 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	float ArmorPenetration = 0.f;
 	GetCapturedAttributeMagnitude(ArmorPenetrationCaptureDef, Spec, EvalParams, ArmorPenetration);
 
+	float DamageVariance = 0.f;
+	GetCapturedAttributeMagnitude(DamageVarianceCaptureDef,Spec, EvalParams, DamageVariance);
+
+	float UtilityBonus = Spec.GetSetByCallerMagnitude(DamageModifierTag, false, 0.f);
+	
 	// 방어력이 0 밑으로 내려가지 않도록 안전장치
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);
-	
-	const float Damage = AttackDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
 
-	return -Damage;
+	const float MinMultiplier = 1.f - DamageVariance;
+	const float MaxMultiplier = 1.f + DamageVariance;
+	const float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * AttackDamage;
+	
+	const float Damage = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
+	const float FinalDamage = Damage * (1.0f + UtilityBonus);
+
+	return -FinalDamage;
 }
 
 
