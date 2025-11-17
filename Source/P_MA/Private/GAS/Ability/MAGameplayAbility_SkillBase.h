@@ -6,8 +6,10 @@
 #include "MASkillBehavior.h"
 #include "GameplayTagContainer.h"
 #include "GAS/MAGameplayAbility.h"
+#include "GAS/MASkillVFXSet.h"
 #include "MAGameplayAbility_SkillBase.generated.h"
 
+class UUtilityModule;
 /**
  * 
  */
@@ -21,49 +23,68 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
+	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
 
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
-	FORCEINLINE FGameplayTag GetSkillElementTag() const {return SkillElementTag;}
+	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveSkillElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	FORCEINLINE UDataTable* GetElementDataTable() const {return ElementDataTable;}
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return BaseDamageEffect;}
+	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
+
+	UDataTable* GetElementDataTable() const;
 	
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
-	FGameplayTag SharedCooldownTag;
-	UPROPERTY()
-	FGameplayTag VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
-	
-	UPROPERTY(EditDefaultsOnly, Category="Element")
-	FGameplayTag SkillElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
-	UPROPERTY(EditDefaultsOnly, Category="Element")
-	TObjectPtr<UDataTable> ElementDataTable;
-	/*
-	// 스킬 사용 시 짧은 버프를 부여하는 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Module")
-	TArray<TSubclassOf<UGameplayEffect>> ModuleUtility;
-	*/
-	
-	//스킬 행동 변경 모듈
-	UPROPERTY(EditDefaultsOnly, Category="Module", Instanced)
-	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
-
-	// 동적 태그가 없을 때 사용할 기본 행동을 지정하는 태그
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	FGameplayTag DefaultElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	FGameplayTag DefaultUtilityTag;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TSubclassOf<UGameplayEffect> BaseDamageEffect;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TSubclassOf<UGameplayEffect> CooldownGE;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	FGameplayTag SharedCooldownTag;
+	
+	//속성 모듈
+	UPROPERTY(BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
+	FGameplayTag ActiveSkillElementTag;
+	
+	//유틸리티 모듈
+	UPROPERTY(BlueprintReadOnly, Category="Utility Module", meta=(AllowPrivateAccess="true"))
+	FGameplayTag ActiveUtilityTag;
 	UPROPERTY()
-	TObjectPtr<UMASkillBehavior> ActiveSkillBehavior;
-
+	TObjectPtr<UUtilityModule> ActiveUtilityModule;
+	
+	//스킬 행동 모듈
+	UPROPERTY(EditDefaultsOnly, Category="Behavior Module", Instanced)
+	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
+	UPROPERTY(BlueprintReadOnly, Category="Behavior Module", meta=(AllowPrivateAccess="true"))
+	FGameplayTag ActiveBehaviorTag;
+	UPROPERTY()
+	TObjectPtr<UMASkillBehavior> ActiveBehaviorModule;
+	
+	FGameplayTag CooldownDurationTag;
+	FGameplayTag ElementalModifierTag;
+	FGameplayTag BehaviorModifierTag;
+	FGameplayTag VFXEventRootTag;
+	
+	void ApplyBehaviorCooldown(float Multiplier);
+	bool bCooldownApplied = false;
 public:
-	void SetMontagePlayRate(float NewPlayRate);
-	void MontageToOtherSection(FName SectionName);
-	void RequestEndAbility();
-	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
-	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
-	void ApplyEffectToOwner(TSubclassOf<UGameplayEffect> Effect, float Level = 1.0f);
+	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);
+	const F_ElementInfoRow* GetActiveElementInfoRow();
+	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults);
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData);
+	UFUNCTION(BlueprintCallable)
+	void ApplyDefaultCooldownOnce();
+	UFUNCTION(BlueprintCallable)
+	void ApplyShortCooldownAndRequestEndAbility();
 	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;

@@ -11,6 +11,7 @@
 #include "GAS/Projectile/MAAbilityRangeActor.h"
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
+#include "GAS/UtilityModule/UtilityModule.h"
 
 USkillBehavior_SpawnActorAtTarget::USkillBehavior_SpawnActorAtTarget()
 {
@@ -40,7 +41,7 @@ void USkillBehavior_SpawnActorAtTarget::OnActivate_Implementation()
 	}
 	if (!CurrentSpawnRule)
 	{
-		OwningAbility->RequestEndAbility();
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
 
@@ -99,12 +100,8 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 	
 	if (OwningAbility->K2_HasAuthority())
 	{
-		if (CooldownGE)
-		{	//쿨다운 즉시 적용
-			OwningAbility->ApplyEffectToOwner(CooldownGE);
-		}
-		
 		SpawnedCount =0;
+		OwningAbility->ApplyDefaultCooldownOnce();
 
 		//딜레이 없거나 1발만 쏘는 경우
 		if (CurrentSpawnRule->ProjectileCount <=1 || CurrentSpawnRule->ProjectileSpawnDelay <= 0.f)
@@ -119,7 +116,7 @@ void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTa
 				}
 				SpawnSingleProjectile(CurrentSpawnRule->ProjectileClass, SpawnTarget);
 			}
-			ApplyCooldownAndEndAbility(nullptr);
+			SafeEndAbility();
 		}
 		//2발 이상 쏘는 경우
 		else
@@ -149,7 +146,7 @@ void USkillBehavior_SpawnActorAtTarget::OnSpawnLoop()
 	if (SpawnedCount >= CurrentSpawnRule->ProjectileCount)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(SpawnLoopTimer);
-		ApplyCooldownAndEndAbility(nullptr);
+		SafeEndAbility();
 	}
 }
 
@@ -174,19 +171,42 @@ void USkillBehavior_SpawnActorAtTarget::SpawnSingleProjectile(TSubclassOf<AMAPro
 	SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
+	FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(OwningAbility->GetBaseDamageEffect());
+
+	//유틸리티 데미지 적용
+	if (OwningAbility->GetActiveUtilityModule())
+	{
+		OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
+	}
+	
+	//속성 데미지 적용
+	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
+	{
+		SpecHandle.Data->SetSetByCallerMagnitude(
+			UMAAbilitySystemStatics::GetElementalMultiplierTag(),
+			ElementInfoRow->ElementalDamageMultiplier);
+	}
+	//행동 데미지 배율
+	SpecHandle.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetBehaviorMultiplierTag(),BehaviorDamageMultiplier);
+
 	AMAProjectile_GroundTargetedAOE* Projectile = GetWorld()->SpawnActor<AMAProjectile_GroundTargetedAOE>(
 			ProjectileClass, SpawnTransform, SpawnParams);
 	if (Projectile)
 	{
+		if (ElementInfoRow->ElementEffect)
+		{	//속성 추가 효과 적용
+			Projectile->AdditionalEffect = ElementInfoRow->ElementEffect;
+		}
 		Projectile->ShootProjectile(ProjectileSpeed,CurrentSpawnRule->MaxDistance,CurrentSpawnRule->AbilityRange,
-			OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
+			OwningAbility->GetOwnerTeamId(),SpecHandle);
 	}
 }
 
 void USkillBehavior_SpawnActorAtTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
-	if (ShortCooldownEffect)
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+	CleanUp();
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_SpawnActorAtTarget::CleanUp()

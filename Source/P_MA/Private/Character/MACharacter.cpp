@@ -149,6 +149,7 @@ void AMACharacter::BindGASChangeDelegates()
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
+		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetChargingTag()).AddUObject(this, &AMACharacter::ChargeTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
@@ -191,6 +192,22 @@ void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	if (NewCount != 0)
 	{
 		MoveComp->MaxWalkSpeed = MoveSpeed*0.2;
+	}
+	else
+	{
+		MoveComp->MaxWalkSpeed = MoveSpeed;
+	}
+}
+
+void AMACharacter::ChargeTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+	if (IsDead()) return;
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp) return;
+	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
+	if (NewCount != 0)
+	{
+		MoveComp->MaxWalkSpeed =0.f;
 	}
 	else
 	{

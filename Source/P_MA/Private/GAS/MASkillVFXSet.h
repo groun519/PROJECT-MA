@@ -8,6 +8,7 @@
 #include "MASkillVFXSet.generated.h"
 
 class UNiagaraSystem;
+class UGameplayEffect;
 
 /**
  * 스킬에서 스폰할 VFX 정보 구조체
@@ -57,6 +58,12 @@ struct F_ElementInfoRow : public FTableRowBase
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Element")
 	FLinearColor ElementColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Element")
+	float ElementalDamageMultiplier = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Element")
+	TSubclassOf<UGameplayEffect> ElementEffect;
 };
 /**
  * 

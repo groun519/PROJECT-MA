@@ -22,7 +22,6 @@ void UMovementBehavior_Blink::OnActivate_Implementation()
 
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwningAbility,NAME_None,EGameplayTargetingConfirmation::Instant,TargetActorClass);
 	WaitTargetDataTask->ValidData.AddDynamic(this, &UMovementBehavior_Blink::TargetConfirmed);
-	WaitTargetDataTask->Cancelled.AddDynamic(this, &UMovementBehavior_Blink::TargetCancelled);
 	WaitTargetDataTask->ReadyForActivation();
 	
 	AGameplayAbilityTargetActor* SpawnedTargetActor;
@@ -55,7 +54,6 @@ void UMovementBehavior_Blink::OnBlinkTagReceived(FGameplayEventData Payload)
 	TryTeleport();
 }
 
-
 void UMovementBehavior_Blink::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	if (!Character)
@@ -81,17 +79,13 @@ void UMovementBehavior_Blink::TargetConfirmed(const FGameplayAbilityTargetDataHa
 	TryTeleport();
 }
 
-void UMovementBehavior_Blink::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
-{
-	OwningAbility->RequestEndAbility();
-}
-
-
 void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData)
 {
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
-
+	if (OwningAbility->K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
+	}
 }
 
 void UMovementBehavior_Blink::TryTeleport()

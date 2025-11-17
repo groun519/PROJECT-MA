@@ -26,11 +26,6 @@ void AMAProjectile_OverlapAOE::NotifyActorBeginOverlap(AActor* OtherActor)
 	UAbilitySystemComponent* OtherASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (OtherASC)
 	{
-		if (HasAuthority() && HitEffectHandle.IsValid())
-		{
-			OtherASC->ApplyGameplayEffectSpecToSelf(*HitEffectHandle.Data.Get());
-			GetWorldTimerManager().ClearTimer(ShootTimerHandle);
-		}
 		DamageAndCue();
 		Destroy();
 	}

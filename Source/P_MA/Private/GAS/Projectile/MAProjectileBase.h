@@ -30,7 +30,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Components")
 	class UNiagaraComponent* NiagaraComp;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ability")
 	TSubclassOf<UGameplayEffect> AdditionalEffect;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;

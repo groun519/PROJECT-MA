@@ -38,17 +38,9 @@ void UMASkillBehavior::OnEndAbility_Implementation()
 	this->PlayerCharacter = nullptr;
 }
 
-void UMASkillBehavior::ApplyCooldownAndEndAbility(TSubclassOf<UGameplayEffect> CooldownEffect)
+float UMASkillBehavior::GetCurrentDamageMultiplier() const
 {
-	if (!OwningAbility)
-		return;
-	if (CooldownEffect)
-	{
-		OwningAbility->ApplyEffectToOwner(CooldownEffect);
-	}
-	UAbilityTask_WaitDelay* EndDelayTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-	EndDelayTask->OnFinish.AddDynamic(this, &UMASkillBehavior::SafeEndAbility);
-	EndDelayTask->ReadyForActivation();
+	return BehaviorDamageMultiplier;
 }
 
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
@@ -91,7 +83,7 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 		else if (VFXInfo->bUseElementColor && ElementDT)
 		{
 			//가져온 속성 태그에 해당하는 행
-			F_ElementInfoRow* ElementInfo = ElementDT->FindRow<F_ElementInfoRow>(LastName, TEXT("ElementDataLookup"));
+			F_ElementInfoRow* ElementInfo = ElementDT->FindRow<F_ElementInfoRow>(LastName, "");
 			if (ElementInfo)
 			{
 				//가져온 행에서 색상정보 가져와
@@ -132,11 +124,34 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 	}
 }
 
-
 void UMASkillBehavior::SafeEndAbility()
 {
 	if (OwningAbility)
-		OwningAbility->RequestEndAbility();
+		OwningAbility->EndAbility(OwningAbility->GetCurrentAbilitySpecHandle(),OwningAbility->GetCurrentActorInfo(),
+			OwningAbility->GetCurrentActivationInfo(),true,false);
+}
+
+void UMASkillBehavior::SetMontagePlayRate(float NewPlayRate)
+{
+	if (Character)
+	{
+		if (UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance())
+		{
+			UAnimMontage* ActiveMontage  = AnimInstance->GetCurrentActiveMontage();
+			AnimInstance->Montage_SetPlayRate(ActiveMontage ,NewPlayRate);
+		}
+	}
+}
+
+void UMASkillBehavior::MontageToOtherSection(FName SectionName)
+{
+	if (Character)
+	{
+		if (UAnimInstance* AnimInst = Character->GetMesh()->GetAnimInstance())
+		{
+			AnimInst->Montage_JumpToSection(SectionName,MontageToPlay);
+		}
+	}
 }
 
 class AMACharacter* UMASkillBehavior::GetCharacter() const

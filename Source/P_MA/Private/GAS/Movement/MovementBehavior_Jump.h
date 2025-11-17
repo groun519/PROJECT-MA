@@ -30,8 +30,6 @@ private:
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
-	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
-	UFUNCTION()
 	void OnJumpStartEventReceived(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnJumpEndEventReceived(FGameplayEventData EventData);

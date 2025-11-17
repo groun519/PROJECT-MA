@@ -23,15 +23,14 @@ public:
 
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AMATargetActor_ChargeAtFwd> TargetActorClass;
 	UPROPERTY()
 	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 0.1f;
@@ -53,7 +52,9 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float VFXWidth = 100.f;
 
+	float CachedChargeDuration;
 	void SpawnVFX(float FinalLength);
+	void CleanUp();
 	
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> SkillTimeoutTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
@@ -62,5 +63,4 @@ private:
 	void OnKeyReleased(float TimeHeld);
 	UFUNCTION()
 	void OnSkillTimeout();
-
 };

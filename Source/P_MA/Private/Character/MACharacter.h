@@ -74,7 +74,7 @@ private:
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void SlowTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void ChargeTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 	

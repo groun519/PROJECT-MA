@@ -3,6 +3,7 @@
 
 #include "GAS/Ability/SkillBehavior_ChargeFwd.h"
 
+#include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -16,7 +17,8 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	Super::OnActivate_Implementation();
 	if (!Character || !TargetActorClass)
 		return;
-	
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	CachedChargeDuration=0.f;
 	TargetActor = GetWorld()->SpawnActor<AMATargetActor_ChargeAtFwd>(TargetActorClass);
 	if (TargetActor)
 	{
@@ -36,62 +38,53 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 
 void USkillBehavior_ChargeFwd::OnEndAbility_Implementation()
 {
+	CleanUp();
+	CachedChargeDuration=0.f;
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
 	if (SkillTimeoutTask.IsValid())
 		SkillTimeoutTask->EndTask();
-	if (TargetActor)
-	{
-		TargetActor->Destroy();
-		TargetActor=nullptr;
-	}
 
 	Super::OnEndAbility_Implementation();
+}
+
+float USkillBehavior_ChargeFwd::GetCurrentDamageMultiplier() const
+{
+	return CachedChargeDuration;
 }
 
 void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 {
 	if (!TargetActor || !OwningAbility)
 		return;
-
 	if (TimeHeld <= 0.2f)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		CleanUp();
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
-	
+	CachedChargeDuration=TimeHeld;
 	float ChargeRatio = FMath::Clamp(TimeHeld / MaxChargeDuration, 0.f, 1.f);
 	float FinalLength = FMath::Lerp(MinTraceDistance, MaxTraceDistance, ChargeRatio);
 	SpawnVFX(FinalLength);
 	
 	FGameplayAbilityTargetDataHandle TargetDataHandle = TargetActor->GetTargetData();
 	if (OwningAbility->K2_HasAuthority())
-		OwningAbility->ApplyDamageToTargetData(TargetDataHandle, DamageEffect);
-
-	ApplyCooldownAndEndAbility(CooldownGE);
+		OwningAbility->ApplyDamageToTargetData(TargetDataHandle);
+	
+	CleanUp();
+	SafeEndAbility();
+	OwningAbility->ApplyDefaultCooldownOnce();
 }
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
-	ApplyCooldownAndEndAbility(ShortCooldownEffect);
+	CleanUp();
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 {
-	/*
-	if (!ExecutionVFX || !Character)
-		return;
-	FVector Location = Character->GetActorLocation();
-	FRotator Rotation = Character->GetActorRotation();
-
-	float SafeLength = (VFXLength == 0.f) ? 1.f : VFXLength;
-	float SafeWidth = (VFXWidth == 0.f) ? 1.f : VFXWidth;
-
-	FVector Scale = FVector (FinalLength / SafeLength, SkillWidth/SafeWidth, 1.f);
-	FTransform SpawnTransform(Rotation,Location,Scale);
-	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
-	*/
-
 	if (!OwningAbility || !VFXDataSet ||!Character)
 		return;
 
@@ -125,4 +118,14 @@ void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 	FTransform SpawnTransform(Rotation,Location,Scale);
 
 	Character->Multicast_PlayNiagara(FinalVFXToSpawn,SpawnTransform);
+}
+
+void USkillBehavior_ChargeFwd::CleanUp()
+{
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	if (TargetActor)
+	{
+		TargetActor->Destroy();
+		TargetActor=nullptr;
+	}
 }

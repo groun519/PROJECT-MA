@@ -50,6 +50,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override { return true; }
 	virtual bool ShouldLockRotation() const override {return false;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
 
 private:
 	// 스킬 타격 범위 선택 액터
@@ -66,9 +67,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UDataTable> ElementSpawnRuleTable;
 	
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
 
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	

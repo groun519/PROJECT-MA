@@ -10,6 +10,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Character/MACharacter.h"
 #include "GAS/Projectile/MAProjectile_OverlapAOE.h"
+#include "GAS/UtilityModule/UtilityModule.h"
 
 
 void USkillBehavior_SpawnActorFwd::OnActivate_Implementation()
@@ -63,6 +64,23 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 		SpawnParams.Owner = OwnerAvatarActor;
 		SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		
+		const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
+		FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(OwningAbility->GetBaseDamageEffect());
+		//유틸리티 데미지 배율
+		if (OwningAbility->GetActiveUtilityModule())
+		{
+			OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
+		}
+		//속성 데미지 배율
+		if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
+		{
+			SpecHandle.Data->SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetElementalMultiplierTag(),
+				ElementInfoRow->ElementalDamageMultiplier);
+		}
+		//행동 데미지 배율
+		SpecHandle.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetBehaviorMultiplierTag(),BehaviorDamageMultiplier);
 
 		USkeletalMeshComponent* Mesh = Character->GetMesh();
 		if (!Mesh)
@@ -81,13 +99,14 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 			FinalSpawnProjectile,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
 		if (OverlapProjectile)
 		{
+			if (ElementInfoRow->ElementEffect)
+			{
+				OverlapProjectile->AdditionalEffect = ElementInfoRow->ElementEffect;
+			}
 			OverlapProjectile->ShootProjectile(ProjectileSpeed, ProjectileMaxDist, ExplodeRadius,
-				OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
+				OwningAbility->GetOwnerTeamId(),SpecHandle);
 		}
 	}
-
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
 }
 
 

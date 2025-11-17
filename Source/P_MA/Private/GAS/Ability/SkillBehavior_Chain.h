@@ -19,10 +19,10 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
-	
+	virtual float GetCurrentDamageMultiplier() const override;
 private:
 	UPROPERTY(EditDefaultsOnly)
-	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
+	TMap<FName, float> DamageMultiplierMap;
 	
 	FGameplayTag ComboChangeEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change");
 	FGameplayTag ComboEndEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Change.End");
@@ -30,7 +30,7 @@ private:
 	void SetupWaitComboInputPress();
 	void TryCommitCombo();
 
-	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
+	float GetDamageMultiplierForCurrentCombo() const;
 	FName NextComboName;
 	bool bIsComboInputBuffered;
 	

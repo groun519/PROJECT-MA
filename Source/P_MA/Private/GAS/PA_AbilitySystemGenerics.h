@@ -3,11 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "PA_AbilitySystemGenerics.generated.h"
 
 class UGameplayEffect;
 class UGameplayAbility;
+class UUtilityModule;
 /**
  * 
  */
@@ -22,6 +24,9 @@ public:
 	FORCEINLINE const TArray<TSubclassOf<UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
 	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
+	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementDataTable;}
+
+	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag) const;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
@@ -40,4 +45,10 @@ private:
 	UDataTable* PlayerBaseStatDataTable;
 	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
 	UDataTable* MonsterBaseStatDataTable;
+
+	UPROPERTY(EditDefaultsOnly, Category="Skill Utility Module", Instanced)
+	TMap<FGameplayTag, TObjectPtr<UUtilityModule>> SkillUtilityModules;
+
+	UPROPERTY(EditDefaultsOnly, Category="Element")
+	TObjectPtr<UDataTable> ElementDataTable;
 };
