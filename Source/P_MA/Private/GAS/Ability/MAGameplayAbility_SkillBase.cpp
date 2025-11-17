@@ -177,6 +177,14 @@ void UMAGameplayAbility_SkillBase::EndAbility(const FGameplayAbilitySpecHandle H
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
+void UMAGameplayAbility_SkillBase::ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle)
+{
+	if (SpecHandle.IsValid())
+	{
+		ApplyGameplayEffectSpecToOwner(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(),SpecHandle);
+	}
+}
+
 /***********************************************************************************/
 /*										Damage									   */
 /***********************************************************************************/
@@ -295,7 +303,7 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	{
 		FinalDuration = ActiveUtilityModule->ModifyCooldownDuration(FinalDuration);
 	}
-	if (FinalDuration <= 0)
+	if (FinalDuration < 0)
 		return;
 	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE, GetAbilityLevel());
 	if (SpecHandle.IsValid())

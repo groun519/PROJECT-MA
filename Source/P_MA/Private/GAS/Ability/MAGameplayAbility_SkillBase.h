@@ -73,6 +73,7 @@ private:
 	void ApplyBehaviorCooldown(float Multiplier);
 	bool bCooldownApplied = false;
 public:
+	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
 	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
 	UFUNCTION(BlueprintCallable)
