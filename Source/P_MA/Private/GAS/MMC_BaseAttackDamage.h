@@ -24,4 +24,5 @@ private:
 	FGameplayEffectAttributeCaptureDefinition DamageVarianceCaptureDef;
 
 	FGameplayTag DamageModifierTag;
+	FGameplayTag ElementalMultiplierTag;
 };

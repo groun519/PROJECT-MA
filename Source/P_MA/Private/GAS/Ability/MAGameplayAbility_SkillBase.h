@@ -6,6 +6,7 @@
 #include "MASkillBehavior.h"
 #include "GameplayTagContainer.h"
 #include "GAS/MAGameplayAbility.h"
+#include "GAS/MASkillVFXSet.h"
 #include "MAGameplayAbility_SkillBase.generated.h"
 
 class UUtilityModule;
@@ -26,9 +27,10 @@ public:
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveSkillElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	FORCEINLINE UDataTable* GetElementDataTable() const {return ElementDataTable;}
+	UDataTable* GetElementDataTable() const;
 
 	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
+	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
 	
 	/***************************************************************/
 	/*						Skill Module						   */
@@ -37,7 +39,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	FGameplayTag DefaultUtilityTag = FGameplayTag::RequestGameplayTag("Ability.Utility.Smite");
+	FGameplayTag DefaultUtilityTag;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
@@ -45,8 +47,6 @@ private:
 	TSubclassOf<UGameplayEffect> CooldownGE;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SharedCooldownTag;
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	TObjectPtr<UDataTable> ElementDataTable;
 	
 	//속성 모듈
 	UPROPERTY(BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
@@ -66,14 +66,15 @@ private:
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveBehaviorModule;
 	
-	
 	FGameplayTag CooldownDurationTag;
+	FGameplayTag ElementalModifierTag;
 	FGameplayTag VFXEventRootTag;
 	
 	void ApplyBehaviorCooldown(float Multiplier);
 	bool bCooldownApplied = false;
 public:
 	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);
+	const F_ElementInfoRow* GetActiveElementInfoRow();
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
 	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
 	UFUNCTION(BlueprintCallable)

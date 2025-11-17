@@ -78,7 +78,7 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 		else if (VFXInfo->bUseElementColor && ElementDT)
 		{
 			//가져온 속성 태그에 해당하는 행
-			F_ElementInfoRow* ElementInfo = ElementDT->FindRow<F_ElementInfoRow>(LastName, TEXT("ElementDataLookup"));
+			F_ElementInfoRow* ElementInfo = ElementDT->FindRow<F_ElementInfoRow>(LastName, "");
 			if (ElementInfo)
 			{
 				//가져온 행에서 색상정보 가져와

@@ -24,6 +24,7 @@ UMMC_BaseAttackDamage::UMMC_BaseAttackDamage()
 	RelevantAttributesToCapture.Add(DamageVarianceCaptureDef);
 
 	DamageModifierTag = FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
+	ElementalMultiplierTag = FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
 }
 
 float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const
@@ -45,6 +46,7 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	GetCapturedAttributeMagnitude(DamageVarianceCaptureDef,Spec, EvalParams, DamageVariance);
 
 	float UtilityBonus = Spec.GetSetByCallerMagnitude(DamageModifierTag, false, 0.f);
+	float ElementBonus = Spec.GetSetByCallerMagnitude(ElementalMultiplierTag, false, 1.f);
 	
 	// 방어력이 0 밑으로 내려가지 않도록 안전장치
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);
@@ -54,7 +56,7 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	const float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * AttackDamage;
 	
 	const float Damage = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
-	const float FinalDamage = Damage * (1.0f + UtilityBonus);
+	const float FinalDamage = Damage * (1.0f + UtilityBonus) * ElementBonus;
 
 	return -FinalDamage;
 }

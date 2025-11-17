@@ -8,7 +8,7 @@ float UUtilityModule_Luck::ModifyCooldownDuration(float OriginalDuration) const
 	float RandNum = FMath::RandRange(1.f,100.f);
 	if (RandNum <= ResetP)
 	{
-		return OriginalDuration * 0.001f;
+		return 0.0f;
 	}
 	return OriginalDuration;
 }

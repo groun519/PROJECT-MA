@@ -36,15 +36,11 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 
 void USkillBehavior_ChargeFwd::OnEndAbility_Implementation()
 {
+	CleanUp();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
 	if (SkillTimeoutTask.IsValid())
 		SkillTimeoutTask->EndTask();
-	if (TargetActor)
-	{
-		TargetActor->Destroy();
-		TargetActor=nullptr;
-	}
 
 	Super::OnEndAbility_Implementation();
 }
@@ -53,13 +49,12 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 {
 	if (!TargetActor || !OwningAbility)
 		return;
-
 	if (TimeHeld <= 0.2f)
 	{
+		CleanUp();
 		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
-	OwningAbility->ApplyDefaultCooldownOnce();
 	
 	float ChargeRatio = FMath::Clamp(TimeHeld / MaxChargeDuration, 0.f, 1.f);
 	float FinalLength = FMath::Lerp(MinTraceDistance, MaxTraceDistance, ChargeRatio);
@@ -68,11 +63,15 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	FGameplayAbilityTargetDataHandle TargetDataHandle = TargetActor->GetTargetData();
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle, DamageEffect);
-	
+
+	MontageToOtherSection("Cast");
+	CleanUp();
+	OwningAbility->ApplyDefaultCooldownOnce();
 }
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
+	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
@@ -111,4 +110,13 @@ void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
 	FTransform SpawnTransform(Rotation,Location,Scale);
 
 	Character->Multicast_PlayNiagara(FinalVFXToSpawn,SpawnTransform);
+}
+
+void USkillBehavior_ChargeFwd::CleanUp()
+{
+	if (TargetActor)
+	{
+		TargetActor->Destroy();
+		TargetActor=nullptr;
+	}
 }

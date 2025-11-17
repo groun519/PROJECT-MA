@@ -5,9 +5,11 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayTagsManager.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MASkillVFXSet.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/UtilityModule/UtilityModule.h"
 #include "Player/MAPlayerCharacter.h"
@@ -18,6 +20,7 @@ UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 
 	CooldownDurationTag = FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration");
+	ElementalModifierTag = FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
 	VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 }
 
@@ -185,21 +188,50 @@ void UMAGameplayAbility_SkillBase::ApplyGESpecToOwner(FGameplayEffectSpecHandle 
 	}
 }
 
+
+UDataTable* UMAGameplayAbility_SkillBase::GetElementDataTable() const
+{
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	if (ASC && ASC->GetSystemGenerics())
+	{
+		return const_cast <UDataTable*>(ASC->GetSystemGenerics()->GetElementDataTable());
+	}
+	return nullptr;
+}
+
 /***********************************************************************************/
 /*										Damage									   */
 /***********************************************************************************/
+const F_ElementInfoRow* UMAGameplayAbility_SkillBase::GetActiveElementInfoRow()
+{
+	const UDataTable* ElementDT = GetElementDataTable();
+	if (ElementDT)
+	{
+		TArray<FName> TagNames;
+		UGameplayTagsManager::Get().SplitGameplayTagFName(ActiveSkillElementTag,TagNames);
+		FName LastName = TagNames.Last();
+		return ElementDT->FindRow<F_ElementInfoRow>(LastName,"");
+	}
+	return nullptr;
+}
 void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults,
 	TSubclassOf<UGameplayEffect> DamageEffect)
 {
 	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
 		return;
 
+	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
+	
 	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffect, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	if (ActiveUtilityModule)
 	{
 		ActiveUtilityModule->ModifyDamageEffectSpec(DamageSpecHandle);
+	}
+	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
+	{
+		DamageSpecHandle.Data->SetSetByCallerMagnitude(ElementalModifierTag,ElementInfoRow->ElementalDamageMultiplier);
 	}
 	
 	for (const FHitResult& Hit : HitResults)
@@ -213,6 +245,16 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 			ApplyGameplayEffectSpecToTarget(
 				CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, DamageSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
+
+			if (ElementInfoRow && ElementInfoRow->ElementEffect)
+			{
+				FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(ElementInfoRow->ElementEffect, GetAbilityLevel());
+				if (SpecHandle.IsValid())
+				{
+					ApplyGameplayEffectSpecToTarget(
+						CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,SpecHandle,UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+				}
+			}
 		}
 	}
 }
@@ -223,12 +265,18 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
 		return;
 	
+	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
+	
 	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffect, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	if (ActiveUtilityModule)
 	{
 		ActiveUtilityModule->ModifyDamageEffectSpec(DamageSpecHandle);
+	}
+	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
+	{
+		DamageSpecHandle.Data->SetSetByCallerMagnitude(ElementalModifierTag,ElementInfoRow->ElementalDamageMultiplier);
 	}
 	
 	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData, 0);
@@ -239,6 +287,16 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 			FGameplayAbilityTargetDataHandle SingleTargetHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
 			ApplyGameplayEffectSpecToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, DamageSpecHandle, SingleTargetHandle);
 			IgnoreTargets.Add(TargetActor);
+
+			if (ElementInfoRow->ElementEffect)
+			{
+				FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(ElementInfoRow->ElementEffect, GetAbilityLevel());
+				if (SpecHandle.IsValid())
+				{
+					ApplyGameplayEffectSpecToTarget(
+						CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,SpecHandle,UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor));
+				}
+			}
 		}
 	}
 }
@@ -257,6 +315,7 @@ const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() con
 	}
 	return Super::GetCooldownTags();
 }
+
 UGameplayEffect* UMAGameplayAbility_SkillBase::GetCooldownGameplayEffect() const
 {
 	return nullptr;
@@ -303,7 +362,7 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	{
 		FinalDuration = ActiveUtilityModule->ModifyCooldownDuration(FinalDuration);
 	}
-	if (FinalDuration < 0)
+	if (FinalDuration <= 0)
 		return;
 	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE, GetAbilityLevel());
 	if (SpecHandle.IsValid())

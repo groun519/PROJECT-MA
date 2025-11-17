@@ -68,9 +68,6 @@ private:
 	TObjectPtr<UDataTable> ElementSpawnRuleTable;
 	
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
-
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	
 	UFUNCTION()

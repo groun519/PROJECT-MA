@@ -10,6 +10,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Character/MACharacter.h"
 #include "GAS/Projectile/MAProjectile_OverlapAOE.h"
+#include "GAS/UtilityModule/UtilityModule.h"
 
 
 void USkillBehavior_SpawnActorFwd::OnActivate_Implementation()
@@ -63,6 +64,20 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 		SpawnParams.Owner = OwnerAvatarActor;
 		SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		
+		const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
+		FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect);
+
+		if (OwningAbility->GetActiveUtilityModule())
+		{
+			OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
+		}
+		if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
+		{
+			SpecHandle.Data->SetSetByCallerMagnitude(
+				FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier"),
+				ElementInfoRow->ElementalDamageMultiplier);
+		}
 
 		USkeletalMeshComponent* Mesh = Character->GetMesh();
 		if (!Mesh)
@@ -81,8 +96,12 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 			FinalSpawnProjectile,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
 		if (OverlapProjectile)
 		{
+			if (ElementInfoRow->ElementEffect)
+			{
+				OverlapProjectile->AdditionalEffect = ElementInfoRow->ElementEffect;
+			}
 			OverlapProjectile->ShootProjectile(ProjectileSpeed, ProjectileMaxDist, ExplodeRadius,
-				OwningAbility->GetOwnerTeamId(),OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect));
+				OwningAbility->GetOwnerTeamId(),SpecHandle);
 		}
 	}
 }

@@ -52,6 +52,7 @@ private:
 	float VFXWidth = 100.f;
 
 	void SpawnVFX(float FinalLength);
+	void CleanUp();
 	
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> SkillTimeoutTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
@@ -60,5 +61,4 @@ private:
 	void OnKeyReleased(float TimeHeld);
 	UFUNCTION()
 	void OnSkillTimeout();
-
 };
