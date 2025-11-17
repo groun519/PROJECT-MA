@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UtilityModule.generated.h"
 
 struct FGameplayEffectSpecHandle;
@@ -16,6 +17,8 @@ class UUtilityModule : public UObject
 	GENERATED_BODY()
 
 public:
+	UUtilityModule();
+	
 	UPROPERTY()
 	TObjectPtr<UMAGameplayAbility_SkillBase> OwningAbility;
 	
@@ -33,4 +36,7 @@ public:
 	virtual float ModifyCooldownDuration(float OriginalDuration) const {return OriginalDuration;}
 	//애니메이션 속도 수정하는 모듈에 사용
 	virtual float ModifyMontagePlayRate(float OriginalPlayRate) const {return OriginalPlayRate;}
+
+protected:
+	FGameplayTag DamageModifierTag;
 };

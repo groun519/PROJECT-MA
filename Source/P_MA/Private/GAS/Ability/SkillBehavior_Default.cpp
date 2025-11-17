@@ -29,6 +29,6 @@ void USkillBehavior_Default::OnEndAbility_Implementation()
 void USkillBehavior_Default::HitTarget(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	OwningAbility->ApplyDamageToHitResults(HitResults);
 
 }

@@ -27,6 +27,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly)
 	float MontagePlayRate = 0.85f;
-
-	FGameplayTag DamageModifierTag;
 };

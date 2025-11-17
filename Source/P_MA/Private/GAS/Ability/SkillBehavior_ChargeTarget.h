@@ -24,6 +24,7 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -67,6 +68,8 @@ private:
 	void OnReleased(float TimeHeld);
 	
 	void SpawnVFX(FVector SpawnLoc, float FinalSize);
-
+	void CleanUp();
+	
 	float PressedTime=0.f;
+	float CachedChargeDuration;
 };

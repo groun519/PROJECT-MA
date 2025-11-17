@@ -24,6 +24,7 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -51,6 +52,7 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float VFXWidth = 100.f;
 
+	float CachedChargeDuration;
 	void SpawnVFX(float FinalLength);
 	void CleanUp();
 	

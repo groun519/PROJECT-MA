@@ -8,7 +8,6 @@
 
 UUtilityModule_Composure::UUtilityModule_Composure()
 {
-	DamageModifierTag=FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 float UUtilityModule_Composure::ModifyCooldownDuration(float OriginalDuration) const

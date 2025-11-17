@@ -85,7 +85,7 @@ void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
 	if (OwningAbility->K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 

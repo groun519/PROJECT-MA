@@ -25,7 +25,7 @@ public:
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
 	static FGameplayTag GetAimingTag();
-	static FGameplayTag GetSlowTag();
+	static FGameplayTag GetChargingTag();
 
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
@@ -35,6 +35,10 @@ public:
 
 	static FGameplayTag GetMontageDamageTag();
 	static FGameplayTag GetLaunchActivateTag();
+
+	static FGameplayTag GetBehaviorMultiplierTag();
+	static FGameplayTag GetElementalMultiplierTag();
+	static FGameplayTag GetUtilityMultiplierTag();
 
 	static bool IsPlayer(const AActor* ActorToCheck);
 

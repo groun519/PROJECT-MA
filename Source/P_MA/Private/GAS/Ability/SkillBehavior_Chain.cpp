@@ -49,6 +49,7 @@ void USkillBehavior_Chain::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+
 void USkillBehavior_Chain::SetupWaitComboInputPress()
 {
 	WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(OwningAbility);
@@ -72,9 +73,7 @@ void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
 	if (OwningAbility->K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	
-		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
-		OwningAbility->ApplyDamageToHitResults(HitResults,GameplayEffect);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 
@@ -99,19 +98,6 @@ void USkillBehavior_Chain::HandleInputPress(float Time)
 	SetupWaitComboInputPress();
 }
 
-TSubclassOf<UGameplayEffect> USkillBehavior_Chain::GetDamageEffectForCurrentCombo() const
-{
-	UAnimInstance* OwnerAnimInstance = OwningAbility->GetOwnerAnimInstance();
-	if (OwnerAnimInstance)
-	{
-		FName CurrentSectionName = OwnerAnimInstance->Montage_GetCurrentSection(MontageToPlay);
-		const TSubclassOf<UGameplayEffect>* FoundEffectPtr = DamageEffectMap.Find(CurrentSectionName);
-		if (FoundEffectPtr)
-			return *FoundEffectPtr;
-	}
-	return DamageEffect;
-}
-
 void USkillBehavior_Chain::TryCommitCombo()
 {
 	if (NextComboName == NAME_None)
@@ -124,3 +110,20 @@ void USkillBehavior_Chain::TryCommitCombo()
 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(MontageToPlay), NextComboName, MontageToPlay);
 }
 
+float USkillBehavior_Chain::GetDamageMultiplierForCurrentCombo() const
+{
+	UAnimInstance* OwnerAnimInst = OwningAbility->GetOwnerAnimInstance();
+	if (OwnerAnimInst)
+	{
+		FName CurrentSectionName = OwnerAnimInst->Montage_GetCurrentSection(MontageToPlay);
+		const float* FoundMultiplier = DamageMultiplierMap.Find(CurrentSectionName);
+		if (FoundMultiplier)
+			return *FoundMultiplier;
+	}
+	return BehaviorDamageMultiplier;
+}
+
+float USkillBehavior_Chain::GetCurrentDamageMultiplier() const
+{
+	return GetDamageMultiplierForCurrentCombo();
+}

@@ -26,6 +26,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly)
 	float DamagePercentAdditive = 0.3f;
-
-	FGameplayTag DamageModifierTag;
 };

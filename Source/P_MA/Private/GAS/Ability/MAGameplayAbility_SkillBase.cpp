@@ -20,7 +20,8 @@ UMAGameplayAbility_SkillBase::UMAGameplayAbility_SkillBase()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 
 	CooldownDurationTag = FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration");
-	ElementalModifierTag = FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
+	BehaviorModifierTag = UMAAbilitySystemStatics::GetBehaviorMultiplierTag();
+	ElementalModifierTag = UMAAbilitySystemStatics::GetElementalMultiplierTag();
 	VFXEventRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 }
 
@@ -214,24 +215,30 @@ const F_ElementInfoRow* UMAGameplayAbility_SkillBase::GetActiveElementInfoRow()
 	}
 	return nullptr;
 }
-void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults,
-	TSubclassOf<UGameplayEffect> DamageEffect)
+void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults)
 {
-	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
+	if (!BaseDamageEffect || !HasAuthority(&CurrentActivationInfo))
 		return;
 
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffect, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(BaseDamageEffect, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
+	//유틸리티 모듈의 데미지 배율
 	if (ActiveUtilityModule)
 	{
 		ActiveUtilityModule->ModifyDamageEffectSpec(DamageSpecHandle);
 	}
+	//속성 모듈 데미지 배율
 	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
 	{
 		DamageSpecHandle.Data->SetSetByCallerMagnitude(ElementalModifierTag,ElementInfoRow->ElementalDamageMultiplier);
+	}
+	//행동 모듈 데미지 배율
+	if (ActiveBehaviorModule)
+	{
+		DamageSpecHandle.Data->SetSetByCallerMagnitude(BehaviorModifierTag,ActiveBehaviorModule->GetCurrentDamageMultiplier());
 	}
 	
 	for (const FHitResult& Hit : HitResults)
@@ -245,7 +252,7 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 			ApplyGameplayEffectSpecToTarget(
 				CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, DamageSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
-
+			//속성 추가 효과 적용 (상태이상)
 			if (ElementInfoRow && ElementInfoRow->ElementEffect)
 			{
 				FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(ElementInfoRow->ElementEffect, GetAbilityLevel());
@@ -259,24 +266,30 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 	}
 }
 
-void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,
-	TSubclassOf<UGameplayEffect> DamageEffect)
+void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData)
 {
-	if (!DamageEffect || !HasAuthority(&CurrentActivationInfo))
+	if (!BaseDamageEffect || !HasAuthority(&CurrentActivationInfo))
 		return;
 	
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffect, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(BaseDamageEffect, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
+	//유틸리티 모듈 데미지 배율
 	if (ActiveUtilityModule)
 	{
 		ActiveUtilityModule->ModifyDamageEffectSpec(DamageSpecHandle);
 	}
+	//속성 모듈 데미지 배율
 	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
 	{
 		DamageSpecHandle.Data->SetSetByCallerMagnitude(ElementalModifierTag,ElementInfoRow->ElementalDamageMultiplier);
+	}
+	//행동 모듈 데미지 배율
+	if (ActiveBehaviorModule)
+	{
+		DamageSpecHandle.Data->SetSetByCallerMagnitude(BehaviorModifierTag,ActiveBehaviorModule->GetCurrentDamageMultiplier());
 	}
 	
 	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData, 0);
@@ -287,7 +300,7 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 			FGameplayAbilityTargetDataHandle SingleTargetHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
 			ApplyGameplayEffectSpecToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, DamageSpecHandle, SingleTargetHandle);
 			IgnoreTargets.Add(TargetActor);
-
+			//속성 상태이상 적용
 			if (ElementInfoRow->ElementEffect)
 			{
 				FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(ElementInfoRow->ElementEffect, GetAbilityLevel());

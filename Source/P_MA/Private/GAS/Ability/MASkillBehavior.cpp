@@ -38,6 +38,11 @@ void UMASkillBehavior::OnEndAbility_Implementation()
 	this->PlayerCharacter = nullptr;
 }
 
+float UMASkillBehavior::GetCurrentDamageMultiplier() const
+{
+	return BehaviorDamageMultiplier;
+}
+
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 {
 	FGameplayAbilityActivationInfo ActivationInfo = OwningAbility->GetCurrentActivationInfo();

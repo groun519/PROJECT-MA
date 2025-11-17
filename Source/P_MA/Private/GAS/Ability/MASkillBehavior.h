@@ -35,9 +35,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> MontageToPlay;
-
+	
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DamageEffect;
+	float BehaviorDamageMultiplier=1.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	float CooldownDuration = 10.f;
@@ -50,6 +50,8 @@ public:
 	virtual bool ShouldLockRotation() const {return true;}
 	//스킬 사용 직후 쿨타임 적용할지
 	virtual bool IsApplyCooldownImmediate() const {return true;}
+
+	virtual float GetCurrentDamageMultiplier() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly)

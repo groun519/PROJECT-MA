@@ -8,7 +8,6 @@
 
 UUtilityModule_Smite::UUtilityModule_Smite()
 {
-	DamageModifierTag=FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 void UUtilityModule_Smite::ModifyDamageEffectSpec(FGameplayEffectSpecHandle& SpecHandle) const

@@ -20,6 +20,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 	
 protected:
 	UFUNCTION()
@@ -33,7 +34,8 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
-    
+
+	float CachedChargeDuration;
 	bool bIsEnd = false;
 
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> ChargeTimeoutTask;

@@ -84,7 +84,7 @@ void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData
 	if (OwningAbility->K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 

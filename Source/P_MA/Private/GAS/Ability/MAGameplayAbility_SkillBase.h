@@ -23,14 +23,15 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
+	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
 
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveSkillElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	UDataTable* GetElementDataTable() const;
-
-	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return BaseDamageEffect;}
 	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
+
+	UDataTable* GetElementDataTable() const;
 	
 	/***************************************************************/
 	/*						Skill Module						   */
@@ -43,6 +44,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
 	
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TSubclassOf<UGameplayEffect> BaseDamageEffect;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TSubclassOf<UGameplayEffect> CooldownGE;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
@@ -68,6 +71,7 @@ private:
 	
 	FGameplayTag CooldownDurationTag;
 	FGameplayTag ElementalModifierTag;
+	FGameplayTag BehaviorModifierTag;
 	FGameplayTag VFXEventRootTag;
 	
 	void ApplyBehaviorCooldown(float Multiplier);
@@ -75,8 +79,8 @@ private:
 public:
 	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);
 	const F_ElementInfoRow* GetActiveElementInfoRow();
-	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, TSubclassOf<UGameplayEffect> DamageEffect);
-	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, TSubclassOf<UGameplayEffect> DamageEffect);
+	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults);
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData);
 	UFUNCTION(BlueprintCallable)
 	void ApplyDefaultCooldownOnce();
 	UFUNCTION(BlueprintCallable)

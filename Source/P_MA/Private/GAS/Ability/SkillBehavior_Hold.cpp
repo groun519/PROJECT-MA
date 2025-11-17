@@ -64,6 +64,9 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 
 void USkillBehavior_Hold::OnHoldReleased(float Time)
 {
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
 	if (bIsHoldEnd)
 		return;
 	bIsHoldEnd = true;
@@ -79,6 +82,9 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 
 void USkillBehavior_Hold::OnMaxHold()
 {
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
 	if (bIsHoldEnd)
 		return;
 	bIsHoldEnd = true;
@@ -91,7 +97,7 @@ void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)
 	if (OwningAbility->K2_HasAuthority())
 	{
 		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 

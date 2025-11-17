@@ -66,18 +66,21 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		
 		const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
-		FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect);
-
+		FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(OwningAbility->GetBaseDamageEffect());
+		//유틸리티 데미지 배율
 		if (OwningAbility->GetActiveUtilityModule())
 		{
 			OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
 		}
+		//속성 데미지 배율
 		if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
 		{
 			SpecHandle.Data->SetSetByCallerMagnitude(
-				FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier"),
+				UMAAbilitySystemStatics::GetElementalMultiplierTag(),
 				ElementInfoRow->ElementalDamageMultiplier);
 		}
+		//행동 데미지 배율
+		SpecHandle.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetBehaviorMultiplierTag(),BehaviorDamageMultiplier);
 
 		USkeletalMeshComponent* Mesh = Character->GetMesh();
 		if (!Mesh)

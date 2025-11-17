@@ -25,6 +25,4 @@ public:
 
 	virtual void ModifyDamageEffectSpec(FGameplayEffectSpecHandle& SpecHandle) const override;
 
-private:
-	FGameplayTag DamageModifierTag;
 };

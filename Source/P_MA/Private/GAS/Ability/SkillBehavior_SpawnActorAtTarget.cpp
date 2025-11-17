@@ -172,19 +172,23 @@ void USkillBehavior_SpawnActorAtTarget::SpawnSingleProjectile(TSubclassOf<AMAPro
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
-	FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(DamageEffect);
+	FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(OwningAbility->GetBaseDamageEffect());
 
+	//유틸리티 데미지 적용
 	if (OwningAbility->GetActiveUtilityModule())
-	{	//유틸리티 데미지 적용
+	{
 		OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
 	}
 	
+	//속성 데미지 적용
 	if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
-	{	//속성 데미지 적용
+	{
 		SpecHandle.Data->SetSetByCallerMagnitude(
-			FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier"),
+			UMAAbilitySystemStatics::GetElementalMultiplierTag(),
 			ElementInfoRow->ElementalDamageMultiplier);
 	}
+	//행동 데미지 배율
+	SpecHandle.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetBehaviorMultiplierTag(),BehaviorDamageMultiplier);
 
 	AMAProjectile_GroundTargetedAOE* Projectile = GetWorld()->SpawnActor<AMAProjectile_GroundTargetedAOE>(
 			ProjectileClass, SpawnTransform, SpawnParams);

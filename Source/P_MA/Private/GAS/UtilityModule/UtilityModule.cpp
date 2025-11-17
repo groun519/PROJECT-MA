@@ -3,6 +3,13 @@
 
 #include "GAS/UtilityModule/UtilityModule.h"
 
+#include "GAS/MAAbilitySystemStatics.h"
+
+UUtilityModule::UUtilityModule()
+{
+	DamageModifierTag=UMAAbilitySystemStatics::GetUtilityMultiplierTag();
+}
+
 void UUtilityModule::OnAbilityActivate_Implementation()
 {
 }

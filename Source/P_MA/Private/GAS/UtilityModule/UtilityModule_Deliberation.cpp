@@ -8,7 +8,6 @@
 
 UUtilityModule_Deliberation::UUtilityModule_Deliberation()
 {
-	DamageModifierTag=FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 void UUtilityModule_Deliberation::ModifyDamageEffectSpec(FGameplayEffectSpecHandle& SpecHandle) const

@@ -98,7 +98,7 @@ void UMovementBehavior_Jump::OnJumpEndEventReceived(FGameplayEventData EventData
 void UMovementBehavior_Jump::OnDamageEventReceived(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	OwningAbility->ApplyDamageToHitResults(HitResults);
 
 }
 
