@@ -62,9 +62,22 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	{
 		ActiveUtilityTag = UtilityFilter.First();
 	}
-	if (ASC && ASC->GetSystemGenerics())
+	if (ActiveUtilityTag.IsValid())
 	{
-		ActiveUtilityModule = ASC->GetSystemGenerics()->FindSkillUtilityModuleByTag(ActiveUtilityTag);
+		if (TObjectPtr<UUtilityModule>* FoundModule = CachedUtilityModules.Find(ActiveUtilityTag))
+		{	//캐시에 있다면 재사용
+			ActiveUtilityModule = *FoundModule;
+		}else
+		{	//없었다면 새로 생성 및 저장
+			if (ASC && ASC->GetSystemGenerics())
+			{
+				ActiveUtilityModule = ASC->GetSystemGenerics()->FindSkillUtilityModuleByTag(ActiveUtilityTag,this);
+				if (ActiveUtilityModule)
+				{
+					CachedUtilityModules.Add(ActiveUtilityTag, ActiveUtilityModule);
+				}
+			}
+		}
 	}
 	
 	//행동 모듈 태그 결정

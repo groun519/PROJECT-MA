@@ -61,7 +61,8 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	
 	const float Damage = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
 	const float FinalDamage = Damage * (1.0f + UtilityBonus) * ElementBonus * BehaviorBonus;
-
+	//const float FinalDamage = Damage * ElementBonus * BehaviorBonus * (UtilityBonus+1.f);
+	UE_LOG(LogTemp, Warning, TEXT("Damage: %f"), FinalDamage);
 	return -FinalDamage;
 }
 
