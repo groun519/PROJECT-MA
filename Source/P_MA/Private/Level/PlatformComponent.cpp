@@ -12,7 +12,6 @@ UPlatformComponent::UPlatformComponent()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(
 	TEXT("/Engine/BasicShapes/Cube.Cube")
 	);
-
 	if (CubeMesh.Succeeded())
 	{
 		UStaticMeshComponent::SetStaticMesh(CubeMesh.Object);
