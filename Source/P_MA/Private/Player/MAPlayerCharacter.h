@@ -71,6 +71,7 @@ private:
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
+	void SnapRotationToMouse();
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:

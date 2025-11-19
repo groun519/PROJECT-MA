@@ -108,6 +108,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		{
 			if (ActiveBehaviorModule->ShouldLockRotation())
 			{
+				PlayerCharacter->SnapRotationToMouse();;
 				GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
 			}
 			if (!ActiveBehaviorModule->IsRequirePlayerInput())
