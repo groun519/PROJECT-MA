@@ -30,8 +30,6 @@ private:
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
 	UFUNCTION()
-	void TargetCancelled(const FGameplayAbilityTargetDataHandle& Data);
-	UFUNCTION()
 	void OnJumpStartEventReceived(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnJumpEndEventReceived(FGameplayEventData EventData);
@@ -40,13 +38,9 @@ private:
 	
 	FGameplayTag JumpStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Start");
 	FGameplayTag JumpEndTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.End");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> MovementDamageEffect;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxJumpDistance = 700.f;

@@ -1,3 +1,6 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
 #include "AI/BTTask_SendInputToAbilitySystem.h"
 #include "AI/Golem/Monster.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -28,17 +31,29 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 
 	const float Fury = Attr->GetFury();
 	const float Threshold = Monster->FuryThreshold;
-	const EMAAbilityInputID InputToUse = (Fury >= Threshold)
-		? EMAAbilityInputID::Skill1
-		: EMAAbilityInputID::Attack;
+	EMAAbilityInputID InputToUse;
+
+	if (Fury >= Threshold)
+	{
+		const int32 RandomValue = FMath::RandRange(0, 1);
+
+		if (RandomValue == 0)
+			InputToUse = EMAAbilityInputID::Skill1;
+		else
+			InputToUse = EMAAbilityInputID::Skill2;
+	}
+	else
+	{
+		InputToUse = EMAAbilityInputID::Attack;
+	}
 
 	const TCHAR* InputName = (InputToUse == EMAAbilityInputID::Skill1) ? TEXT("Skill1") : TEXT("Attack");
 
 	ASC->PressInputID(static_cast<int32>(InputToUse));
 
-	if (InputToUse == EMAAbilityInputID::Skill1)
+	if (InputToUse == EMAAbilityInputID::Skill1 || InputToUse == EMAAbilityInputID::Skill2)
 	{
-		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Change.End"));
+		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End"));
 		FGameplayTagContainer TagContainer(EndEventTag);
 
 		FDelegateHandle DelegateHandle = ASC->AddGameplayEventTagContainerDelegate(

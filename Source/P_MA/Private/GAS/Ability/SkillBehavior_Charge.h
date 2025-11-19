@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Ability/MASkillBehavior.h"
 #include "SkillBehavior_Charge.generated.h"
@@ -20,6 +19,8 @@ public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 	
 protected:
 	UFUNCTION()
@@ -33,7 +34,8 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
-    
+
+	float CachedChargeDuration;
 	bool bIsEnd = false;
 
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> ChargeTimeoutTask;
@@ -42,7 +44,6 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
 	FGameplayTag ChargeStartTag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
-	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	
 	FTimerHandle ChargeUpdateTimerHandle;
 	float StartTime = 0.f;

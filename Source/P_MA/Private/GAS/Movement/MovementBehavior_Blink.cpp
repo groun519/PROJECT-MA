@@ -22,16 +22,18 @@ void UMovementBehavior_Blink::OnActivate_Implementation()
 
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwningAbility,NAME_None,EGameplayTargetingConfirmation::Instant,TargetActorClass);
 	WaitTargetDataTask->ValidData.AddDynamic(this, &UMovementBehavior_Blink::TargetConfirmed);
-	WaitTargetDataTask->Cancelled.AddDynamic(this, &UMovementBehavior_Blink::TargetCancelled);
 	WaitTargetDataTask->ReadyForActivation();
 	
 	AGameplayAbilityTargetActor* SpawnedTargetActor;
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, SpawnedTargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, SpawnedTargetActor);
 
-	WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-	WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Blink::OnDamageEventReceived);
-	WaitDamageTagEventTask->ReadyForActivation();
+	if (OwningAbility->K2_HasAuthority())
+	{
+		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Blink::OnDamageEventReceived);
+		WaitDamageTagEventTask->ReadyForActivation();
+	}
 }
 
 void UMovementBehavior_Blink::OnEndAbility_Implementation()
@@ -51,7 +53,6 @@ void UMovementBehavior_Blink::OnBlinkTagReceived(FGameplayEventData Payload)
 	bBlinkTagReceived = true;
 	TryTeleport();
 }
-
 
 void UMovementBehavior_Blink::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
@@ -78,18 +79,12 @@ void UMovementBehavior_Blink::TargetConfirmed(const FGameplayAbilityTargetDataHa
 	TryTeleport();
 }
 
-void UMovementBehavior_Blink::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
-{
-	OwningAbility->RequestEndAbility();
-}
-
-
 void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData)
 {
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	for (FHitResult& HitResult : HitResults)
+	if (OwningAbility->K2_HasAuthority())
 	{
-		OwningAbility->ApplyGameplayEffectToHitResultActor(HitResult, MovementDamageEffect, OwningAbility->GetAbilityLevel());
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 

@@ -12,6 +12,11 @@ FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 	return FGameplayTag::RequestGameplayTag("Ability.BasicAttack");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Dead");
@@ -37,6 +42,11 @@ FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetChargingTag()
+{
+	return FGameplayTag::RequestGameplayTag("Player.State.Charging");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");
@@ -60,6 +70,26 @@ FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Montage.LaunchActivate");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetElementalMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)

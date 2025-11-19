@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
 
+class UMASkillVFXSet;
 class UMAGameplayAbility_SkillBase;
 class AMACharacter;
 class UAnimMontage;
@@ -33,20 +35,44 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UAnimMontage> MontageToPlay;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float BehaviorDamageMultiplier=1.f;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DamageEffect;
+	float CooldownDuration = 10.f;
+	UPROPERTY()
+	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
 	//스킬 사용 중 캐릭터 회전 막기
 	virtual bool ShouldLockRotation() const {return true;}
+	//스킬 사용 직후 쿨타임 적용할지
+	virtual bool IsApplyCooldownImmediate() const {return true;}
+
+	virtual float GetCurrentDamageMultiplier() const;
 
 protected:
-	//자식 클래스가 캐릭터 접근 쉽게 하도록 돕는 헬퍼
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
+	UFUNCTION()
+	virtual void HandleVFXSpawnEvent(FGameplayEventData EventData);
+	
 	class AMACharacter* GetCharacter() const;
 	UPROPERTY()
 	TObjectPtr<class AMACharacter> Character;
 	UPROPERTY()
 	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
+
+	UFUNCTION()
+	virtual void SafeEndAbility();
+
+	void SetMontagePlayRate(float NewPlayRate);
+	void MontageToOtherSection(FName SectionName);
+
+	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
+	FGameplayTag IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 };
