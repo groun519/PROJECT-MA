@@ -32,6 +32,10 @@
 		{
 			"Name": "ToonShadingPlugin",
 			"Enabled": true
+		},
+		{
+			"Name": "SkeletalMeshModelingTools",
+			"Enabled": true
 		}
 	]
 }

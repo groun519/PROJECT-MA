@@ -25,6 +25,6 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/** Matrix **/
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UPlatformMatrixComponent* PlatformMatrixComponent;
 };
