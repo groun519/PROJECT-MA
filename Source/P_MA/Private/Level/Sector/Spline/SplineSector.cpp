@@ -62,7 +62,6 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
             Spline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
         }
     }
-
 }
 
 void ASplineSector::SetRandomSeed(int MaxValue)
