@@ -10,7 +10,8 @@ public class P_MA : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput","Paper2D","Niagara"
+			"Core", "CoreUObject", "Engine", "InputCore", 
+			"EnhancedInput","Paper2D","Niagara", "PCG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

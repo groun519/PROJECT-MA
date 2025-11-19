@@ -30,11 +30,22 @@ ASplineSector::ASplineSector()
         FVector(GetSectorBound().X,0.f,GetSectorBound().Z)
     );
     Arrow->SetArrowColor(FColor::Green);
+
+    /** PCG **/
+    PCGComponent = CreateDefaultSubobject<UPCGComponent>(TEXT("PCGComponent"));
+    PCGComponent->InputType = EPCGComponentInput::Actor;
+    PCGComponent->bParseActorComponents = true;
 }
 
 void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (PCGComponent && PCGComponent->GetGraph())
+    {
+        PCGComponent->Seed = FMath::RandRange(1, INT32_MAX);
+        PCGComponent->GenerateLocal(true);
+    }
 }
 
 void ASplineSector::OnConstruction(const FTransform& Transform)
@@ -42,7 +53,7 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
     Super::OnConstruction(Transform);
 
     if (bRandomAtSpawn) SetRandomSeed();
-    
+
     if (Spline)
     {
         FVector StartPoint =
