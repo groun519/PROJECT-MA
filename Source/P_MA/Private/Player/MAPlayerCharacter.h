@@ -76,6 +76,7 @@ private:
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
+	void SnapRotationToMouse();
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:

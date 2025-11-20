@@ -35,3 +35,14 @@ FMonsterBaseStats::FMonsterBaseStats()
 	BaseFuryMax{0.f}
 {
 }
+
+FSkillUtilityModule::FSkillUtilityModule()
+	:UtilityTag{FGameplayTag::RequestGameplayTag("Ability.Utility")},
+	DamagePercentAdditive{0.f},
+	MontagePlayRate{1.f},
+	CooldownMultiplier{1.f},
+	ChanceToReset{0.f},
+	BuffGEOnActive{nullptr},
+	BuffGEOnEnd{nullptr}
+{
+}

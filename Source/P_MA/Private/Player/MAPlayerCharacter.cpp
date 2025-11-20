@@ -290,6 +290,19 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 	}
 }
 
+void AMAPlayerCharacter::SnapRotationToMouse()
+{
+	FVector LookDir;
+	if (GetLookDirectionToMouse(LookDir))
+	{
+		SetActorRotation(FRotator(0, LookDir.Rotation().Yaw, 0));
+		if (!HasAuthority())
+		{
+			Server_SetRotation(LookDir);
+		}
+	}
+}
+
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {

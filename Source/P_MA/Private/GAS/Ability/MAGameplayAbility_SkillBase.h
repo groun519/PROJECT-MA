@@ -60,6 +60,8 @@ private:
 	FGameplayTag ActiveUtilityTag;
 	UPROPERTY()
 	TObjectPtr<UUtilityModule> ActiveUtilityModule;
+	UPROPERTY()
+	TMap<FGameplayTag, TObjectPtr<UUtilityModule>> CachedUtilityModules;
 	
 	//스킬 행동 모듈
 	UPROPERTY(EditDefaultsOnly, Category="Behavior Module", Instanced)
