@@ -9,6 +9,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAplayerAttributeSet.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
+#include "Player/MAPlayerCharacter.h"
 
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
@@ -149,31 +150,72 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 
 void UMAAbilitySystemComponent::InitializeBaseAttributes()
 {
-	if (!AbilitySystemGenerics || ! AbilitySystemGenerics->GetBaseStatDataTable() || !GetOwner())
+	AActor* Owner = GetOwner();
+	if (!AbilitySystemGenerics || !GetOwner())
 	{
 		return;
 	}
-
-	const UDataTable* BaseStatDataTable = AbilitySystemGenerics->GetBaseStatDataTable();
-	const FPlayerBaseStats* BaseStats = nullptr;
-
-	for (const TPair<FName, uint8*>& DataPair : BaseStatDataTable->GetRowMap())
+	
+	const UDataTable* TableToUse = nullptr;
+	
+	//플레이어인 경우 플레이어 데이터 테이블로 초기화
+	if (Cast<AMAPlayerCharacter>(Owner))
 	{
-		BaseStats = BaseStatDataTable->FindRow<FPlayerBaseStats>(DataPair.Key, "");
-		if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+		if (!AbilitySystemGenerics->GetPlayerBaseStatDataTable())
+			return;
+		TableToUse = AbilitySystemGenerics->GetPlayerBaseStatDataTable();
+		
+		const FPlayerBaseStats* BaseStats = nullptr;
+		for (const TPair<FName, uint8*>& DataPair : TableToUse->GetRowMap())
 		{
-			break;
+			BaseStats = TableToUse->FindRow<FPlayerBaseStats>(DataPair.Key, "");
+			if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+			{
+				break;
+			}
+		}
+
+		if (BaseStats)
+		{
+			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
+			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
+			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
+			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
+			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
+			SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
+			SetNumericAttributeBase(UMAPlayerAttributeSet::GetGoldAttribute(), BaseStats->BaseGold);
 		}
 	}
-
-	if (BaseStats)
+	//몬스터인 경우 몬스터 데이터 테이블로 초기화
+	else
 	{
-		SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
-		SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
-		SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
-		SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
-		SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
-		SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
+		if (!AbilitySystemGenerics->GetMonsterBaseStatDataTable())
+			return;
+		TableToUse = AbilitySystemGenerics->GetMonsterBaseStatDataTable();
+
+		const FMonsterBaseStats* BaseStats = nullptr;
+		for (const TPair<FName, uint8*>& DataPair : TableToUse->GetRowMap())
+		{
+			BaseStats = TableToUse->FindRow<FMonsterBaseStats>(DataPair.Key, "");
+			if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+			{
+				break;
+			}
+		}
+
+		if (BaseStats)
+		{
+			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
+			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
+			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
+			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
+			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
+			SetNumericAttributeBase(UMAAttributeSet::GetMaxFuryAttribute(), BaseStats->BaseFuryMax);
+		}
 	}
 }
 

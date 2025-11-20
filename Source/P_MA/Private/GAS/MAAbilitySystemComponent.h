@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectTypes.h"
+#include "PA_AbilitySystemGenerics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
@@ -22,6 +23,7 @@ public:
 	void ServerSideInit();
 	void ApplyFullStatEffect();
 	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 	
 private:
 	void ApplyInitialEffects();
@@ -36,5 +38,5 @@ private:
 	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	class UPA_AbilitySystemGenerics* AbilitySystemGenerics;
+	UPA_AbilitySystemGenerics* AbilitySystemGenerics;
 };

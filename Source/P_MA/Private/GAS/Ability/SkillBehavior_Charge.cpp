@@ -2,6 +2,8 @@
 
 
 #include "GAS/Ability/SkillBehavior_Charge.h"
+
+#include "AbilitySystemComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -20,7 +22,9 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 		StartTime = GetWorld()->GetTimeSeconds();
 		GetWorld()->GetTimerManager().SetTimer(ChargeUpdateTimerHandle,this, &USkillBehavior_Charge::UpdateChargeUI,0.02f, true);
 	}
+	CachedChargeDuration=0.f;
 	bIsEnd = false;
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
 	
 	//최대 차지 시간
 	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration);
@@ -46,10 +50,12 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()
 {
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
-	
+
+	CachedChargeDuration=0.f;
 	if (ChargeTimeoutTask.IsValid())
 		ChargeTimeoutTask->EndTask();
 	if (WaitSlowTagTask.IsValid())
@@ -62,45 +68,56 @@ void USkillBehavior_Charge::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+float USkillBehavior_Charge::GetCurrentDamageMultiplier() const
+{
+	return CachedChargeDuration;
+}
+
 void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)
 {
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(0.01f);
+	SetMontagePlayRate(0.01f);
 }
 
 void USkillBehavior_Charge::OnMaxCharged()
 {
 	if (bIsEnd)
 		return;
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
 	bIsEnd = true;
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(1.f);
+	CachedChargeDuration=MaxChargeDuration;
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
+
+	OwningAbility->ApplyDefaultCooldownOnce();
+	SetMontagePlayRate(1.f);
 }
 
 void USkillBehavior_Charge::OnChargeReleased(float Time)
 {
+	
 	if (bIsEnd)
 		return;
+	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
+	if (PlayerCharacter)
+		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	bIsEnd = true;
 
 	if (Time <= 0.2f)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 		return;
 	}
-	if (CooldownGE)
-		OwningAbility->ApplyEffectToOwner(CooldownGE);
-	
-	bIsEnd = true;
-	if (OwningAbility)
-		OwningAbility->SetMontagePlayRate(1.f);
+	CachedChargeDuration = Time;
+	OwningAbility->ApplyDefaultCooldownOnce();
+	SetMontagePlayRate(1.f);
 }
 
 void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults, DamageEffect);
+	OwningAbility->ApplyDamageToHitResults(HitResults);
 }
 
 void USkillBehavior_Charge::UpdateChargeUI()

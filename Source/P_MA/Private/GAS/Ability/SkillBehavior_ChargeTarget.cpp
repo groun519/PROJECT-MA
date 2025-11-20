@@ -4,12 +4,14 @@
 #include "GAS/Ability/SkillBehavior_ChargeTarget.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "Character/MACharacter.h"
 #include "GAS/Projectile/MATargetActor_ChargeAtTarget.h"
+#include "Player/MAPlayerController.h"
 
 void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 {
@@ -18,7 +20,9 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 	if (!OwningAbility)
 		return;
 
+	CachedChargeDuration=0.f;
 	PressedTime = GetWorld()->GetTimeSeconds();
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
 
 	if (MaxDistanceActorClass)
 	{
@@ -54,22 +58,78 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 
 void USkillBehavior_ChargeTarget::OnEndAbility_Implementation()
 {
+	CachedChargeDuration=0.f;
 	if (WaitDelay.IsValid())
 		WaitDelay->EndTask();
 	if (WaitInputRelease.IsValid())
 		WaitInputRelease->EndTask();
-
-	if (DistanceActor)
-	{
-		DistanceActor->Destroy();
-		DistanceActor=nullptr;
-	}
-	if (TargetActor)
-	{
-		TargetActor->Destroy();
-		TargetActor=nullptr;
-	}
+	
 	Super::OnEndAbility_Implementation();
+}
+
+float USkillBehavior_ChargeTarget::GetCurrentDamageMultiplier() const
+{
+	return CachedChargeDuration;
+}
+
+void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
+{
+	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+
+	if (HeldTime <= 0.2f) 
+	{
+		OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+		return;
+	}
+	CachedChargeDuration = HeldTime;
+	OwningAbility->ApplyDefaultCooldownOnce();
+	// Data 인덱스 1 : 위치 데이터
+	FVector TargetPoint = FVector::ZeroVector;
+	const int32 LocationDataIndex = Data.Num()-1;
+	if (LocationDataIndex >=0 && Data.Get(LocationDataIndex))
+	{
+		const FHitResult* HitResult = Data.Get(LocationDataIndex)->GetHitResult();
+		if (HitResult)
+		{
+			TargetPoint = HitResult->ImpactPoint;
+		}else
+		{
+			TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data,LocationDataIndex);
+		}
+	}
+	
+	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);
+	float FinalSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
+
+	if (OwningAbility->K2_HasAuthority())
+	{
+		SpawnVFX(TargetPoint,FinalSize);
+		OwningAbility->ApplyDamageToTargetData(Data);
+	}
+	CleanUp();
+
+	UAbilityTask_WaitDelay* WaitEndTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.02f);
+	WaitEndTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::SafeEndAbility);
+	WaitEndTask->ReadyForActivation();
+}
+
+void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
+{
+	CleanUp();
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+}
+
+void USkillBehavior_ChargeTarget::OnDelayFinished()
+{
+	CleanUp();
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+}
+
+void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
+{
+	CleanUp();
+	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
@@ -85,58 +145,17 @@ void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
 	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
 }
 
-void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
+void USkillBehavior_ChargeTarget::CleanUp()
 {
-	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
-
-	if (HeldTime <= MinimumTimeToActive) 
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	if (DistanceActor)
 	{
-		ApplyCooldownAndEndAbility(ShortCooldownEffect);
-		return;
+		DistanceActor->Destroy();
+		DistanceActor=nullptr;
 	}
-	// Data 인덱스 1 : 위치 데이터
-	FVector TargetPoint;
-	if (Data.Num() > 1 && Data.Get(1)->GetHitResult())
+	if (TargetActor)
 	{
-		TargetPoint = Data.Get(1)->GetHitResult()->ImpactPoint;
-	}else
-	{
-		TargetPoint = UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(Data,1);
+		TargetActor->Destroy();
+		TargetActor=nullptr;
 	}
-	
-	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);
-	float FinalSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		SpawnVFX(TargetPoint,FinalSize);
-		OwningAbility->ApplyDamageToTargetData(Data, DamageEffect);
-	}
-
-	ApplyCooldownAndEndAbility(CooldownGE);
-}
-
-void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
-{
-	if (ShortCooldownEffect)
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	OwningAbility->RequestEndAbility();
-}
-
-void USkillBehavior_ChargeTarget::OnDelayFinished()
-{
-	if (ShortCooldownEffect)
-	{
-		UAbilityTask_WaitDelay* Fuck = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.05f);
-		Fuck->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::SafeEndAbility);
-		Fuck->ReadyForActivation();
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	}
-}
-
-void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
-{
-	if (ShortCooldownEffect)
-		OwningAbility->ApplyEffectToOwner(ShortCooldownEffect);
-	OwningAbility->RequestEndAbility();
 }

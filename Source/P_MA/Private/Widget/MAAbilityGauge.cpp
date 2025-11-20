@@ -35,7 +35,7 @@ void UMAAbilityGauge::NativeOnListItemObjectSet(UObject* ListItemObject)
 	UMAGameplayAbility_SkillBase* SkillCDO = Cast<UMAGameplayAbility_SkillBase>(AbilityCDO);
 	if (SkillCDO && OwnerASC.IsValid())
 	{
-		SharedCooldownTag = SkillCDO->SharedCooldownTag;
+		SharedCooldownTag = SkillCDO->GetSharedCooldownTag();
 		if (SharedCooldownTag.IsValid())
 		{
 			OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);

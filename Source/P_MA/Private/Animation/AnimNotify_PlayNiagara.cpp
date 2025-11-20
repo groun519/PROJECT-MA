@@ -2,6 +2,9 @@
 
 
 #include "Animation/AnimNotify_PlayNiagara.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Character/MACharacter.h"
@@ -9,14 +12,8 @@
 void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
-	if (!NiagaraSystem || !MeshComp)
-	{
-		Super::Notify(MeshComp, Animation, EventReference);
-		return;
-	}
-
 	AActor* OwnerActor = MeshComp->GetOwner();
-	if (!OwnerActor)
+	if (!OwnerActor || !MeshComp)
 	{
 		Super::Notify(MeshComp, Animation, EventReference);
 		return;
@@ -33,7 +30,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 			FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
 
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				World,NiagaraSystem,	WorldSpawnTransform.GetLocation(),WorldSpawnTransform.Rotator(),
+				World,VFXToSpawn,	WorldSpawnTransform.GetLocation(),WorldSpawnTransform.Rotator(),
 				WorldSpawnTransform.GetScale3D(),true);
 
 			Super::Notify(MeshComp, Animation, EventReference);
@@ -53,7 +50,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 				FTransform OffsetTransform(RotationOffset, LocationOffset, Scale);
 				FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
 
-				Character->Multicast_PlayNiagara(NiagaraSystem, WorldSpawnTransform);
+				Character->Multicast_PlayNiagara(VFXToSpawn, WorldSpawnTransform);
 			}
 		}
 	}
@@ -64,7 +61,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 		if (World && World->WorldType == EWorldType::EditorPreview)
 		{
 			UNiagaraFunctionLibrary::SpawnSystemAttached(
-				NiagaraSystem, MeshComp, SocketName, LocationOffset, RotationOffset, Scale,
+				VFXToSpawn, MeshComp, SocketName, LocationOffset, RotationOffset, Scale,
 				EAttachLocation::KeepRelativeOffset, bAutoDestroy, ENCPoolMethod::None, true
 			);
 			
@@ -78,7 +75,7 @@ void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 			if (Character)
 			{
 				Character->Multicast_PlayNiagaraAttached(
-					NiagaraSystem,
+					VFXToSpawn,
 					SocketName,
 					LocationOffset,
 					RotationOffset,

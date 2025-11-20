@@ -4,51 +4,72 @@
 #include "GAS/Projectile/MAProjectileBase.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "GameplayCueManager.h"
 #include "Components/SphereComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "GameFramework/Actor.h"
 #include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
 #include "Engine/OverlapResult.h"
+#include "Net/UnrealNetwork.h"
 
 AMAProjectileBase::AMAProjectileBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
-
-	CollisionComponent = CreateDefaultSubobject<USphereComponent>("Collision Component");
-	SetRootComponent(CollisionComponent);
-	CollisionComponent->SetCollisionProfileName("Projectile");
-	CollisionComponent->SetIsReplicated(true);
+	PrimaryActorTick.bCanEverTick = true;
 	
-	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>("Niagara Component");
-	NiagaraComponent -> SetupAttachment(GetRootComponent());
-	NiagaraComponent -> SetIsReplicated(true);
+	CollisionComp = CreateDefaultSubobject<USphereComponent>("CollisionComponent");
+	SetRootComponent(CollisionComp);
 
-	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("Projectile Movement");
-	ProjectileMovement->bRotationFollowsVelocity = true;
-	ProjectileMovement->SetIsReplicated(true);
+	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>("NiagaraComponent");
+	NiagaraComp->SetupAttachment(CollisionComp);
+	
+	bReplicates=true;
 }
 
 void AMAProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
-	SetLifeSpan(LifeTime);
-	if (NiagaraComponent)
-		NiagaraComponent->Activate();
-	if (HasAuthority())
-		SetupCollision();
+}
+
+void AMAProjectileBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	//bSweep은 루트컴포넌트의 충돌만 감지 -> Root가 SceneComponent면 충돌 무시
+	SetActorLocation(GetActorLocation() + MoveDir * DeltaTime * ProjectileSpeed, true);
+}
+
+void AMAProjectileBase::ShootProjectile(float InSpeed, float InMaxDist, float InExplodeRange, FGenericTeamId InTeamId,
+	FGameplayEffectSpecHandle InHitEffectHandle)
+{
+	ProjectileSpeed = InSpeed;
+	HitEffectHandle = InHitEffectHandle;
+	ExplodeRadius = InExplodeRange;
+	MoveDir = GetActorRotation().Vector();
+	
+	SetGenericTeamId(InTeamId);
+}
+
+void AMAProjectileBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAProjectileBase, MoveDir);
+	DOREPLIFETIME(AMAProjectileBase, TeamId);
+	DOREPLIFETIME(AMAProjectileBase, ProjectileSpeed);
+	DOREPLIFETIME(AMAProjectileBase, ExplodeRadius);
 }
 
 void AMAProjectileBase::ApplyAreaDamage(FVector OriginLocation, float DamageRadius, const FHitResult& Hit)
 {
-	if (!HasAuthority() || !GetInstigator())
+	if (!HasAuthority())
 		return;
-
+	if (!GetInstigator())
+	{
+		UE_LOG(LogTemp,Warning,TEXT("Not Instigator"));
+	}
 	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
 	if (!SourceASC)
+	{
 		return;
-
+	}
 	TArray<FOverlapResult> Overlaps;
 	FCollisionObjectQueryParams ObjectQueryParams(ECC_Pawn);
 	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(DamageRadius);
@@ -60,28 +81,35 @@ void AMAProjectileBase::ApplyAreaDamage(FVector OriginLocation, float DamageRadi
 		if (TargetActor && TargetActor != GetInstigator())
 		{
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-			if (TargetASC && DamageGameplayEffect)
+			if (TargetASC)
 			{
-				FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
-				if (Hit.IsValidBlockingHit())
-					EffectContext.AddHitResult(Hit);
-				FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageGameplayEffect,1.f,EffectContext);
-				if (SpecHandle.IsValid())
-					SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+				if (HitEffectHandle.IsValid())
+				{
+					TargetASC->ApplyGameplayEffectSpecToSelf(*HitEffectHandle.Data.Get());
+				}
+				if (AdditionalEffect)
+				{
+					FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+					if (Hit.IsValidBlockingHit())
+						EffectContext.AddHitResult(Hit);
+					FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(AdditionalEffect,1.f,EffectContext);
+					if (SpecHandle.IsValid())
+						SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+				}
 			}
 		}
 	}
 }
 
-void AMAProjectileBase::Multicast_PlayEffects_Implementation(FVector Location)
+void AMAProjectileBase::SendLocalGameplayCue(const FHitResult& Hit)
 {
-	if (ImpactVFX)
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+	if (SourceASC)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactVFX, Location);
+		FGameplayCueParameters CueParams;
+		CueParams.Location = Hit.ImpactPoint;
+		CueParams.Normal = Hit.ImpactNormal;
+		
+		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
 	}
-}
-
-
-void AMAProjectileBase::SetupCollision()
-{
 }

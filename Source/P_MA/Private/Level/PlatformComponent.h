@@ -15,16 +15,9 @@ class P_MA_API UPlatformComponent : public UStaticMeshComponent
 
 public:
 	UPlatformComponent();
-
-protected:
-	virtual void BeginPlay() override;
-
-public:
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
+	
 	void EnablePlatform();
 
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UNiagaraSystem> SpawnEffect;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
+	TObjectPtr<UNiagaraSystem> EnableEffect;
 };

@@ -23,6 +23,8 @@ public:
 
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
+	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual float GetCurrentDamageMultiplier() const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -36,9 +38,6 @@ private:
 	TObjectPtr<class AMATargetActor_ChargeAtTarget> TargetActor;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> ShortCooldownEffect;
-
-	UPROPERTY(EditDefaultsOnly)
 	float MaxDistance = 1000.f;
 	UPROPERTY(EditDefaultsOnly)
 	float MaxSize = 500.f;
@@ -48,8 +47,6 @@ private:
 	float MaxHoldDuration = 3.f;
 	UPROPERTY(EditDefaultsOnly)
 	float TimeoutDuration = 4.5f;
-	UPROPERTY(EditDefaultsOnly)
-	float MinimumTimeToActive = 0.2f;
 
 	UPROPERTY(EditDefaultsOnly)
 	float VFXRadius = 100.f;
@@ -71,6 +68,8 @@ private:
 	void OnReleased(float TimeHeld);
 	
 	void SpawnVFX(FVector SpawnLoc, float FinalSize);
-
+	void CleanUp();
+	
 	float PressedTime=0.f;
+	float CachedChargeDuration;
 };

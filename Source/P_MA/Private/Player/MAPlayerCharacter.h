@@ -33,6 +33,10 @@ public:
 	void SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	UFUNCTION(Server, Reliable)
 	void Server_SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	UFUNCTION(Exec)
+	void SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName);
+	UFUNCTION(Server, Reliable)
+	void Server_SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName);
 	
 private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
