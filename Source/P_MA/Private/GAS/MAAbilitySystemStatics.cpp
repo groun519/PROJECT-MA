@@ -104,3 +104,66 @@ float UMAAbilitySystemStatics::GetStaticCostForAbility(const UGameplayAbility* A
 	CostEffect->Modifiers[0].ModifierMagnitude.GetStaticMagnitudeIfPossible(1, Cost);
 	return FMath::Abs(Cost);
 }
+
+bool UMAAbilitySystemStatics::CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC)
+{
+	const UGameplayAbility* AbilityCDO = AbilitySpec.Ability;
+	if (AbilityCDO)
+	{
+		return AbilityCDO->CheckCost(AbilitySpec.Handle, ASC.AbilityActorInfo.Get());
+	}
+
+	return false;
+}
+
+bool UMAAbilitySystemStatics::CheckAbilityCostStatic(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC)
+{
+	if (AbilityCDO)
+	{
+		return AbilityCDO->CheckCost(FGameplayAbilitySpecHandle(), ASC.AbilityActorInfo.Get());
+	}
+
+	return false;
+}
+
+float UMAAbilitySystemStatics::GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel)
+{
+	float CooldownDuration = 0.f;
+	if (AbilityCDO)
+	{
+		UGameplayEffect* CooldownEffect = AbilityCDO->GetCooldownGameplayEffect();
+		if (CooldownEffect)
+		{
+			FGameplayEffectSpecHandle EffectSpec = ASC.MakeOutgoingSpec(CooldownEffect->GetClass(), AbilityLevel, ASC.MakeEffectContext());
+			CooldownEffect->DurationMagnitude.AttemptCalculateMagnitude(*EffectSpec.Data.Get(), CooldownDuration);
+		}
+	}
+
+	return FMath::Abs(CooldownDuration);
+}
+
+float UMAAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC)
+{
+	if (!AbilityCDO)
+		return 0;
+
+	UGameplayEffect* CooldownEffect = AbilityCDO->GetCooldownGameplayEffect();
+	if (!CooldownEffect)
+		return 0;
+
+	FGameplayEffectQuery CooldownEffectQuery;
+	CooldownEffectQuery.EffectDefinition = CooldownEffect->GetClass();
+
+	float CooldownRemaining = 0.f;
+	FJsonSerializableArrayFloat CooldownTimeRemainings = ASC.GetActiveEffectsTimeRemaining(CooldownEffectQuery);
+
+	for (float Remaining : CooldownTimeRemainings)
+	{
+		if (Remaining > CooldownRemaining)
+		{
+			CooldownRemaining = Remaining;
+		}
+	}
+
+	return CooldownRemaining;
+}

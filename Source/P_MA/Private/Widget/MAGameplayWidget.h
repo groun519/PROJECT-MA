@@ -18,8 +18,11 @@ class UMAGameplayWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
+
+	class USkillBookWidget* GetSkillBookWidget() const { return SkillBookWidget; }
 	
 	void ToggleShop();
+	void ToggleSkillBook();
 	
 	void SetOwinigPawnInputEnabled(bool bPawnInputEnabled);
 protected:
@@ -56,8 +59,13 @@ protected:
 	class UShopWidget* ShopWidget;
 
 	UPROPERTY(meta=(BindWidget))
-	class UButton *ShopButton;
+	class UInventoryWidget* InventoryWidget;
 
+	UPROPERTY(meta=(BindWidget))
+	class UButton *ShopButton;
+	
+	UPROPERTY(meta=(BindWidget))
+	class USkillBookWidget* SkillBookWidget;
 private:
 	// void CreateSkillSlots(int32 NumSlots);
 	// void CreatePassiveSlots(int32 NumSlots);

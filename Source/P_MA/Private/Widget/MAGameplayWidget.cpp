@@ -8,6 +8,7 @@
 #include "Widget/MAAbilityListView.h"
 #include "Widget/MAValueGauge.h"
 #include "Widget/ShopWidget.h"
+#include "Widget/SkillBookWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
@@ -128,4 +129,22 @@ void UMAGameplayWidget::SetOwinigPawnInputEnabled(bool bPawnInputEnabled)
 void UMAGameplayWidget::OnShopButtonClicked()
 {
     ToggleShop();
+}
+
+void UMAGameplayWidget::ToggleSkillBook()
+{
+    if (!SkillBookWidget) return;
+
+    if (SkillBookWidget->GetVisibility() == ESlateVisibility::Visible)
+    {
+        // 켜져 있으면 -> 끔
+        SkillBookWidget->SetVisibility(ESlateVisibility::Hidden);
+        SetOwinigPawnInputEnabled(true); // 게임 조작 활성화
+    }
+    else
+    {
+        // 꺼져 있으면 -> 켬
+        SkillBookWidget->SetVisibility(ESlateVisibility::Visible);
+        SetOwinigPawnInputEnabled(false); // 게임 조작 비활성화 (UI 모드)
+    }
 }
