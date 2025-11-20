@@ -56,7 +56,7 @@ float UUtilityModule::ModifyCooldownDuration(float OriginalDuration) const
 {
 	if (CooldownMultiplier == 0.f)
 	{
-		float RandNum = FMath::RandRange(1.f, 100.f);
+		float RandNum = FMath::RandRange(0.f, 1.f);
 		if (RandNum <= ChanceToReset)
 		{
 			return 0.f;
