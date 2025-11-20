@@ -37,6 +37,16 @@ bool UMAAssetManager::GetLoadedShopItems(TArray<const UPA_ShopItem*>& OutItems) 
 	return bLoaded;
 }
 
+const FItemCollection* UMAAssetManager::GetCombinationForItem(const UPA_ShopItem* Item) const
+{
+	return CombinationMap.Find(Item);
+}
+
+const FItemCollection* UMAAssetManager::GetIngredientForItem(const UPA_ShopItem* Item) const
+{
+	return IngredientMap.Find(Item);
+}
+
 void UMAAssetManager::ShopItemLoadFinished(FStreamableDelegate Callback)
 {
 	Callback.ExecuteIfBound();
