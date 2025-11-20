@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ArrowComponent.h"
 #include "Components/SplineComponent.h"
+#include "PCGComponent.h"
 #include "SplineSector.generated.h"
 
 
@@ -42,6 +43,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UArrowComponent> Arrow;
 
+	/** PCG **/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UPCGComponent> PCGComponent;
+	
 protected:
 	virtual void BeginPlay() override;
 	void OnConstruction(const FTransform& Transform) override;

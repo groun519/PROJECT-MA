@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widget/ItemWidget.h"
 #include "Blueprint/IUserObjectListEntry.h"
+#include "Widget/ItemWidget.h"
 #include "ShopItemWidget.generated.h"
 
 class UPA_ShopItem;
@@ -20,15 +20,15 @@ class UShopItemWidget : public UItemWidget, public IUserObjectListEntry
 {
 	GENERATED_BODY()
 public:
-	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-	FORCEINLINE const UPA_ShopItem* GetShopItem() const { return ShopItem; }
-
 	FOnItemPurchaseIssused OnItemPurchaseIssued;
 	FOnShopItemSelected OnShopItemClicked;
+
+	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
+	FORCEINLINE const UPA_ShopItem* GetShopItem() const { return ShopItem; }
 private:
 	UPROPERTY()
 	const UPA_ShopItem* ShopItem;
-
+	
 	virtual void RightButtonClicked() override;
 	virtual void LeftButtonClicked() override;
 };

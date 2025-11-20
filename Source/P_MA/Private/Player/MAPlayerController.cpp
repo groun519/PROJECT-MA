@@ -135,3 +135,11 @@ void AMAPlayerController::ToggleShop()
 		GameplayWidget->ToggleShop();
 	}
 }
+
+void AMAPlayerController::ToggleSkillBook()
+{	
+	if(GameplayWidget)
+	{
+		GameplayWidget->ToggleSkillBook(); // (MAGameplayWidget에 이 함수 만들어뒀었죠?)
+	}
+}

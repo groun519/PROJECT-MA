@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAPlayerAttributeSet.h"
+#include "Inventory/SkillBookComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
@@ -51,6 +52,8 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
+
+	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 	
 	/** Create SKCs **//*
 	 * - Child Relationship : Mesh - Handle
@@ -159,6 +162,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 		}
+		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
 // 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
@@ -350,3 +354,10 @@ void AMAPlayerCharacter::OnGhostMode()
 {
 	
 }
+
+void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
+{
+	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
+	InventoryComponent->TryActivateItemInSlot(Value-1);
+}
+

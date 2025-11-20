@@ -40,9 +40,12 @@ public:
 	TSubclassOf<class UGameplayEffect> GetEquippedEffect() const { return EquippedEffect; }
 	TSubclassOf<class UGameplayEffect> GetConsumeEffect() const { return ConsumeEffect; }
 	TSubclassOf<class UGameplayAbility> GetGrantedAbility() const { return GrantedAbility; }
+	class UGameplayAbility* GetGrantedAbilityCDO() const;
 	bool GetIsStackable() const { return bIsStackable; }
 	bool GetIsConsumable() const { return bIsConsumable; }
 	int GetMaxStackCount() const { return MaxStackCount; }
+
+	bool GetIsSkill() const { return bIsSkill; }
 	const TArray<TSoftObjectPtr<UPA_ShopItem>>& GetIngredients() const { return IngredientItems; }
 
 private:
@@ -60,6 +63,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "ShopItem")
 	bool bIsConsumable;
+
+	UPROPERTY(EditDefaultsOnly, Category = "ShopItem")
+	bool bIsSkill;
 
 	UPROPERTY(EditDefaultsOnly, Category = "ShopItem")
 	TSubclassOf<class UGameplayEffect> EquippedEffect;

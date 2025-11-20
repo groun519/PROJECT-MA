@@ -6,6 +6,7 @@
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "Inventory/SkillBookComponent.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -56,6 +57,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* InteractInputAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* UseInventoryItemAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
@@ -69,6 +73,7 @@ private:
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
+	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
@@ -106,8 +111,12 @@ private:
 	/*************************************************************/
 	/*                      Inventory                            */
 	/*************************************************************/
+	
 private:
 	class UInventoryComponent* InventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Skill")
+	class USkillBookComponent* SkillBookComponent;
 
 	/*************************************************************/
 	/**								SKILL						**/
@@ -118,6 +127,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "State")
 	FGameplayTag RushingTag;
+
+	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 
 	// Charge스킬을 위한 코드
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
