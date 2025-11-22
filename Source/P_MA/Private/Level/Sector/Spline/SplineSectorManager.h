@@ -17,7 +17,8 @@ public:
 	ASplineSectorManager();
 
 	TObjectPtr<APlatformRoot> PlatformRoot;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<ASplineSector>> Sectors;
 	int32 PreSectorIndex = 0;
 

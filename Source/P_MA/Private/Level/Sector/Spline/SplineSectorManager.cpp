@@ -23,9 +23,13 @@ void ASplineSectorManager::BeginPlay()
 bool ASplineSectorManager::IsClosePreSectorZeroVector()
 {
 	if (!PlatformRoot) return false;
+
+	FVector PlatformLoc = PlatformRoot->GetActorLocation();
+	PlatformLoc.X = 0;
+	FVector FinalSectorLoc = Sectors[Sectors.Num() - 1]->GetActorLocation();
+	FinalSectorLoc.X = 0;
 	
-	float CenterDistance =
-		(PlatformRoot->GetActorLocation() - NextSector->GetActorLocation()).Length();
+	float CenterDistance = (PlatformLoc - FinalSectorLoc).Length();
 
 	UE_LOG(LogTemp, Display, TEXT("CenterDistance: %f"), CenterDistance);
 	
@@ -39,7 +43,7 @@ void ASplineSectorManager::GoBackToFirstSector()
 	int32 LastSectorIndex = Sectors.Num() - 1;
 	if (PreSectorIndex == LastSectorIndex)
 	{
-		Sectors[LastSectorIndex]->GetSeed
+		Sectors[0]->SetSeed(Sectors[LastSectorIndex]->GetSectorSeed());
 		PlatformRoot->SetActorLocation(Sectors[0]->GetActorLocation());
 	}
 }

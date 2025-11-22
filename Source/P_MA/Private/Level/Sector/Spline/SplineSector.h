@@ -25,9 +25,11 @@ public:
 	TObjectPtr<UStaticMeshComponent> GroundBox;
 
 	/** Seed and Sector **/
+	void SetSeed(int InSeed = 0);
 	void SetRandomSeed(int MaxValue = INT32_MAX);
-	FVector GetSectorBound() ;
+	FVector GetSectorBound();
 	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
+	
 	
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

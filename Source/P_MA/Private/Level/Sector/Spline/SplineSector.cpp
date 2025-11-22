@@ -37,6 +37,8 @@ ASplineSector::ASplineSector()
     PCGComponent->bParseActorComponents = true;
 }
 
+
+
 void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
@@ -80,6 +82,11 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
     }
 }
 
+void ASplineSector::SetSeed(int InSeed)
+{
+    SectorSeed = InSeed;
+}
+
 void ASplineSector::SetRandomSeed(int MaxValue)
 {
     SectorSeed = FMath::RandRange(1, MaxValue);
@@ -87,7 +94,7 @@ void ASplineSector::SetRandomSeed(int MaxValue)
 
 FVector ASplineSector::GetSectorBound()
 {
-    return GroundBox->GetStaticMesh()->GetBounds().BoxExtent;
+    return FVector(100.f, 100.f, 1.f);
 }
 
 
