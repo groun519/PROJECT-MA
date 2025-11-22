@@ -41,9 +41,14 @@ void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
 
+    InitPCGComponent();
+}
+
+void ASplineSector::InitPCGComponent()
+{
     if (PCGComponent && PCGComponent->GetGraph())
     {
-        PCGComponent->Seed = FMath::RandRange(1, INT32_MAX);
+        PCGComponent->Seed = SectorSeed;
         PCGComponent->GenerateLocal(true);
     }
 }
@@ -64,7 +69,7 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
         Spline->ClearSplinePoints(false);
         Spline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
         
-        FRandomStream Stream(SplineSeed);
+        FRandomStream Stream(SectorSeed);
         
         for (int i = 1; i <= SplineNum - 1; ++i)
         {
@@ -77,10 +82,12 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
 
 void ASplineSector::SetRandomSeed(int MaxValue)
 {
-    SplineSeed = FMath::RandRange(1, MaxValue);
+    SectorSeed = FMath::RandRange(1, MaxValue);
 }
 
 FVector ASplineSector::GetSectorBound()
 {
     return GroundBox->GetStaticMesh()->GetBounds().BoxExtent;
 }
+
+

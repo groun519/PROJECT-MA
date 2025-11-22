@@ -13,6 +13,10 @@ UCLASS()
 class P_MA_API ASplineSector : public AActor
 {
 	GENERATED_BODY()
+	
+protected:
+	virtual void BeginPlay() override;
+	void OnConstruction(const FTransform& Transform) override;
 
 public:
 	ASplineSector();
@@ -20,15 +24,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UStaticMeshComponent> GroundBox;
 
+	/** Seed and Sector **/
+	void SetRandomSeed(int MaxValue = INT32_MAX);
+	FVector GetSectorBound() ;
+	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
+	
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USplineComponent> Spline;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 SplineNum = 7;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SplineSeed = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SplineOffset = 7.f;
@@ -46,12 +52,8 @@ public:
 	/** PCG **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UPCGComponent> PCGComponent;
-	
-protected:
-	virtual void BeginPlay() override;
-	void OnConstruction(const FTransform& Transform) override;
 
-public:
-	void SetRandomSeed(int MaxValue = INT32_MAX);
-	FVector GetSectorBound() ;
+private:
+	int32 SectorSeed = 0;
+	void InitPCGComponent();
 };

@@ -15,59 +15,9 @@ void ASplineSectorManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector SpawnLoc = GetActorLocation();
-	ASplineSector* NewPreSector =
-			GetWorld()->SpawnActor<ASplineSector>(
-				SectorClass,
-				SpawnLoc,
-				FRotator::ZeroRotator
-			);
-	PreSector = NewPreSector;
-
-	SpawnLoc.X += (NewPreSector->GetSectorBound().X * 100);
-	ASplineSector* NewNextSector =
-			GetWorld()->SpawnActor<ASplineSector>(
-				SectorClass,
-				SpawnLoc,
-				FRotator::ZeroRotator
-			);
-	NextSector = NewNextSector;
-
 	PlatformRoot = Cast<APlatformRoot>(
 	UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass())
-);
-}
-
-void ASplineSectorManager::SwapNextSector()
-{
-	if (!SectorClass) return;
-
-	ASplineSector* TempPreSector = PreSector;
-
-	PreSector->AddActorWorldOffset(
-		PreSector->GetActorForwardVector() * (PreSector->GetSectorBound().X * 100 * 2)
-		);
-	PreSector->SetRandomSeed();
-
-	PreSector = NextSector;
-	NextSector = TempPreSector;
-
-	TryRebaseWorld();
-}
-
-void ASplineSectorManager::TryRebaseWorld()
-{
-	if (!PreSector) return;
-
-	const FVector Pos = PreSector->GetActorLocation();
-
-	const FIntVector NewOrigin(
-		(int32)Pos.X,
-		(int32)Pos.Y,
-		0
-	);
-
-	GetWorld()->SetNewWorldOrigin(NewOrigin);
+	);	
 }
 
 bool ASplineSectorManager::IsClosePreSectorZeroVector()
@@ -84,13 +34,23 @@ bool ASplineSectorManager::IsClosePreSectorZeroVector()
 	return false;
 }
 
+void ASplineSectorManager::GoBackToFirstSector()
+{
+	int32 LastSectorIndex = Sectors.Num() - 1;
+	if (PreSectorIndex == LastSectorIndex)
+	{
+		Sectors[LastSectorIndex]->GetSeed
+		PlatformRoot->SetActorLocation(Sectors[0]->GetActorLocation());
+	}
+}
+
 void ASplineSectorManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	if (IsClosePreSectorZeroVector())
 	{
-		SwapNextSector();
+		GoBackToFirstSector();
 	}
 }
 

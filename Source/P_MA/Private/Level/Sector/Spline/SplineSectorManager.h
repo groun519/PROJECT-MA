@@ -16,16 +16,13 @@ class P_MA_API ASplineSectorManager : public AActor
 public:
 	ASplineSectorManager();
 
-	APlatformRoot* PlatformRoot;
-	ASplineSector* PreSector;
-	ASplineSector* NextSector;
+	TObjectPtr<APlatformRoot> PlatformRoot;
 	
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ASplineSector> SectorClass;
+	TArray<TObjectPtr<ASplineSector>> Sectors;
+	int32 PreSectorIndex = 0;
 
-	void SwapNextSector();
-	void TryRebaseWorld();
 	bool IsClosePreSectorZeroVector();
+	void GoBackToFirstSector();
 
 protected:
 	virtual void BeginPlay() override;
