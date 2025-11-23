@@ -34,8 +34,7 @@ void UGA_SuicideAttack::ActivateAbility(
 		K2_EndAbility();
 		return;
 	}
-
-	// 반복 거리 체크 시작
+	
 	UAbilityTask_WaitDelay* DistanceCheckTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
 	DistanceCheckTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
 	DistanceCheckTask->ReadyForActivation();
@@ -63,8 +62,7 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 	{
 		Target = Cast<AActor>(AICon->GetBlackboardComponent()->GetValueAsObject("Target"));
 	}
-
-	// 타겟 없음 → 계속 체크
+	
 	if (!Target)
 	{
 		UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
@@ -72,8 +70,7 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 		LoopTask->ReadyForActivation();
 		return;
 	}
-
-	// 거리 계산
+	
 	FVector ML = Monster->GetActorLocation();
 	FVector TL = Target->GetActorLocation();
 	ML.Z = TL.Z = 0;
@@ -91,10 +88,9 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 			}
 		}
 	}
-
+	
 	const float VisualDist = RawDist - CapsuleOffset;
-
-	// ★ 트리거 범위 진입 → 폭발 모션 + 데미지 이벤트 대기
+	
 	if (VisualDist <= TriggerRange)
 	{
 		UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
@@ -103,11 +99,8 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 			K2_EndAbility();
 			return;
 		}
-
-		// 몽타주 재생
-		auto* PlayTask =
-			UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-				this, NAME_None, SuicideMontage);
+		
+		auto* PlayTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SuicideMontage);
 
 		PlayTask->OnCompleted.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
 		PlayTask->OnCancelled.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
@@ -115,21 +108,16 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 		PlayTask->OnBlendOut.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
 
 		PlayTask->ReadyForActivation();
-
-		// ★ DamageEvent 대기
-		auto* DamageEvent =
-			UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-				this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
+		
+		auto* DamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
 
 		DamageEvent->EventReceived.AddDynamic(this, &UGA_SuicideAttack::OnDamageEvent);
 		DamageEvent->ReadyForActivation();
 
 		return;
 	}
-
-	// 계속 체크 루프
-	UAbilityTask_WaitDelay* LoopTask =
-		UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
+	
+	UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
 
 	LoopTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
 	LoopTask->ReadyForActivation();
@@ -144,23 +132,16 @@ void UGA_SuicideAttack::OnDamageEvent(FGameplayEventData Data)
 		if (IgnoreTargets.Contains(Hit.GetActor()))
 			continue;
 
-		ApplyGameplayEffectToHitResultActor(
-			Hit,
-			DamageEffect,
-			GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo)
-		);
+		ApplyGameplayEffectToHitResultActor(Hit, DamageEffect,GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 
 		IgnoreTargets.Add(Hit.GetActor());
 	}
-
-	// ★★★ Destroy() 제거 ★★★
-	// 몬스터는 Barrack 풀로 되돌아가야 함
 
 	if (CurrentActorInfo && CurrentActorInfo->AvatarActor.IsValid())
 	{
 		if (AMonster* Monster = Cast<AMonster>(CurrentActorInfo->AvatarActor.Get()))
 		{
-			Monster->Deactivate();   // Barrack 풀 방식
+			Monster->Deactivate();
 		}
 	}
 
