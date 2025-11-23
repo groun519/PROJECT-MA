@@ -19,13 +19,10 @@ public:
 
 protected:
 	UFUNCTION()
-	void OnRandomDelayFinished();
-
-	UFUNCTION()
 	void OnDamageEvent(FGameplayEventData Data);
 
 	UFUNCTION()
-	void OnEndEventReceived(FGameplayEventData Data);
+	void OnDistanceCheckTick();
 	
 private:
 	UPROPERTY(EditAnywhere, Category="Animation")
@@ -36,4 +33,10 @@ private:
 	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
+
+	UPROPERTY(EditAnywhere, Category="Suicide")
+	float TriggerRange = 400.f;
+	
+	UPROPERTY(EditAnywhere, Category="Suicide")
+	float CheckInterval = 0.1f;
 };
