@@ -5,14 +5,26 @@
 #include "Inventory/InventoryItem.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
-#include "Inventory/PA_ShopItem.h"
 #include "Widget/InventoryItemDragDropOp.h"
 #include "Widget/ItemToolTip.h"
+#include "Inventory/MAItemTypes.h"      // [필수] 구조체 정보
+#include "Widget/MAInventoryListView.h" // [필수] DataObject 캐스팅용
 
 void UInventoryItemWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	EmptySlot();
+}
+
+// [+++ 추가] 리스트 뷰(TileView)에서 데이터를 받을 때 호출됨
+void UInventoryItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
+{
+	UMAInventorySlotDataObject* DataObj = Cast<UMAInventorySlotDataObject>(ListItemObject);
+	if (DataObj)
+	{
+		// 데이터 객체 안에 있는 실제 아이템 인스턴스로 UI 업데이트
+		UpdateInventoryItem(DataObj->InventoryItemInstance);
+	}
 }
 
 bool UInventoryItemWidget::IsEmpty() const
@@ -30,20 +42,31 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 	UnBindCanCastAbilityDelegate();
 	
 	InventoryItem = Item;
+	
+	// [변경] 아이템 유효성 검사 (ShopItem 체크 제거 -> IsValid 사용)
 	if (!InventoryItem || !InventoryItem->IsValid() || InventoryItem->GetStackCount() <= 0)
 	{
 		EmptySlot();
 		return;
 	}
 	
-	SetIcon(Item->GetShopItem()->GetIcon());
-	UItemToolTip* ToolTip = SetToolTipWidget(InventoryItem->GetShopItem());
-	if (ToolTip)
+	// [변경] 헬퍼 함수로 아이콘 설정
+	SetIcon(InventoryItem->GetIcon());
+
+	// [변경] 툴팁 설정 (데이터 테이블 기반)
+	if (const FBaseItemData* BaseData = InventoryItem->GetBaseData())
 	{
-		ToolTip->SetPrice(InventoryItem->GetShopItem()->GetSellPrice());
+		// 주의: 부모 클래스(UItemWidget)의 SetToolTipWidget도 구조체(FBaseItemData)를 받도록 수정해야 합니다.
+		// 일단은 데이터 접근이 가능하다는 것을 보여줍니다.
+		// UItemToolTip* ToolTip = SetToolTipWidget(BaseData); 
+		// if (ToolTip)
+		// {
+		//    ToolTip->SetPrice(BaseData->Price / 2.f);
+		// }
 	}
 
-	if (InventoryItem->GetShopItem()->GetIsStackable())
+	// [변경] 스택 가능 여부 확인
+	if (InventoryItem->IsStackable())
 	{
 		StackCountText->SetVisibility(ESlateVisibility::Visible);
 		UpdateStackCount();
@@ -55,6 +78,7 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 
 	ClearCooldown();
 
+	// [유지] GAS 관련 로직은 InventoryItem 내부에서 잘 추상화되어 있으므로 그대로 사용
 	if (InventoryItem->IsGrantingAnyAbility())
 	{
 		UpdateCanCastDisplay(InventoryItem->CanCastAbility());
@@ -66,7 +90,6 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 			StartCooldown(AbilityCooldownDuration, AbilityCooldownRemaining);
 		}
 		
-
 		CooldownDurationText->SetVisibility(AbilityCooldownDuration == 0.f? ESlateVisibility::Hidden : ESlateVisibility::Visible);
 		CooldownDurationText->SetText(FText::AsNumber(AbilityCooldownDuration));
 		BindCanCastAbilityDelegate();
@@ -77,7 +100,6 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 		CooldownDurationText->SetVisibility(ESlateVisibility::Hidden);
 		CooldownCountText->SetVisibility(ESlateVisibility::Hidden);
 	}
-	
 }
 
 void UInventoryItemWidget::EmptySlot()
@@ -103,9 +125,10 @@ void UInventoryItemWidget::UpdateStackCount()
 
 UTexture2D* UInventoryItemWidget::GetIconTexture() const
 {
-	if (InventoryItem && InventoryItem->GetShopItem())
+	// [변경] 헬퍼 함수 사용
+	if (InventoryItem)
 	{
-		return InventoryItem->GetShopItem()->GetIcon();
+		return InventoryItem->GetIcon();
 	}
 
 	return nullptr;
@@ -113,9 +136,11 @@ UTexture2D* UInventoryItemWidget::GetIconTexture() const
 
 void UInventoryItemWidget::UpdateCanCastDisplay(bool bCanCast)
 {
-	GetItemIcon()->GetDynamicMaterial()->SetScalarParameterValue(CanCastDynamicMaterialParamName, bCanCast ? 1.f : 0.f);
+	if (GetItemIcon())
+	{
+		GetItemIcon()->GetDynamicMaterial()->SetScalarParameterValue(CanCastDynamicMaterialParamName, bCanCast ? 1.f : 0.f);
+	}
 }
-
 
 FInventoryItemHandle UInventoryItemWidget::GetItemHandle() const
 {
