@@ -1,0 +1,150 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "AI/Ability/GA_GiantSwing.h"
+
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "GameplayTagsManager.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+void UGA_GiantSwing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+{
+	IgnoreTargets.Empty();
+
+	if (!K2_CommitAbility())
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	ACharacter* Monster = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+	if (!Monster || !GiantSwingMontage)
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
+	if (!Anim)
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, GiantSwingMontage);
+	PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_GiantSwing::K2_EndAbility);
+	PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_GiantSwing::K2_EndAbility);
+	PlayComboMontageTask->OnCompleted.AddDynamic(this, &UGA_GiantSwing::K2_EndAbility);
+	PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_GiantSwing::K2_EndAbility);
+	PlayComboMontageTask->ReadyForActivation();
+	
+	UAbilityTask_WaitGameplayEvent* WaitDamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
+	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnDamageEvent);
+	WaitDamageEvent->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
+	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnEndEventReceived);
+	WaitEndEvent->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitGrabEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Grab")));
+	WaitGrabEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnGrabEvent);
+	WaitGrabEvent->ReadyForActivation();
+}
+
+void UGA_GiantSwing::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	ACharacter* Monster = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+    if (Monster)
+    {
+        if (GrabbedTarget)
+        {
+            GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+            GrabbedTarget = nullptr;
+        }
+
+        UAnimInstance* Anim = Monster->GetMesh() ? Monster->GetMesh()->GetAnimInstance() : nullptr;
+        if (Anim && GiantSwingMontage)
+        {
+            if (Anim->Montage_IsPlaying(GiantSwingMontage))
+            {
+                Anim->Montage_Stop(0.1f, GiantSwingMontage);
+            }
+        }
+
+        if (UCharacterMovementComponent* Move = Monster->GetCharacterMovement())
+        {
+            Move->SetMovementMode(MOVE_Walking);
+        }
+
+        if (AAIController* AI = Cast<AAIController>(Monster->GetController()))
+        {
+            if (AI->BrainComponent)
+            {
+                AI->BrainComponent->RestartLogic();
+            }
+        }
+        Monster->EnableInput(nullptr);
+    }
+	
+    Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+void UGA_GiantSwing::OnDamageEvent(FGameplayEventData Data)
+{
+	IgnoreTargets.Empty();
+	
+	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
+
+	for (const FHitResult& HitResult : HitResults)
+	{
+		if (IgnoreTargets.Contains(HitResult.GetActor()))
+			continue;
+
+		ApplyGameplayEffectToHitResultActor(HitResult, DamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+
+		IgnoreTargets.Add(HitResult.GetActor());
+	}
+}
+
+void UGA_GiantSwing::OnEndEventReceived(FGameplayEventData Data)
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+}
+
+void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
+{
+	ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	if (!Monster) return;
+
+	USkeletalMeshComponent* Mesh = Monster->GetMesh();
+	if (!Mesh || !Mesh->DoesSocketExist(GrabSocketName))
+		return;
+
+	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
+
+	if (HitResults.Num() == 0)
+		return;
+	
+
+	ACharacter* Target = Cast<ACharacter>(HitResults[0].GetActor());
+	if (!Target)
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+		return;
+	}
+
+	GrabbedTarget = Target;
+
+	Target->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, GrabSocketName);
+
+	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
+	if (Anim && GiantSwingMontage)
+	{
+		Anim->Montage_JumpToSection(TEXT("Swing"), GiantSwingMontage);
+	}
+}
