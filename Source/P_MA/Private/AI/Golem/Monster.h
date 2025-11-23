@@ -20,6 +20,7 @@ public:
 	bool IsActive() const;
 	void Activate();
 	void SetGoal(AActor* Goal);
+	void Deactivate();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float FuryThreshold = 50.f;
@@ -27,6 +28,9 @@ public:
 private:
 	virtual void OnRep_TeamID() override;
 
+	UPROPERTY()
+	bool bActiveInPool = true;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	FName GoalBlackboardKeyName = "Goal";
 };
