@@ -5,31 +5,42 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Inventory/InventoryComponent.h"
+#include "Components/ScrollBox.h" // ScrollBox 필요
+#include "Widget/ShopCategoryWidget.h"
 #include "ShopWidget.generated.h"
 
-class UPA_ShopItem;
 class UTileView;
 class UShopItemWidget;
-/**
- * 
- */
+class UDataTable; 
+class UShopItemDataObject; 
+
 UCLASS()
 class UShopWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
 	virtual void NativeConstruct() override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Shop")
+	void InitShop(const TArray<UDataTable*>& InDataTables);
+
 private:
+	// [변경] TileView 삭제 -> 카테고리들을 담을 스크롤 박스 추가
 	UPROPERTY(meta=(BindWidget))
-	UTileView* ShopItemList;
+	class UScrollBox* CategoryContainer; 
 
-	void LoadShopItems();
-	void ShopItemLoadFinished();
-	void ShopItemWidgetGenerated(UUserWidget& NewWidget);
+	// [추가] 생성할 카테고리 위젯 클래스 (WBP_ShopCategory)
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UShopCategoryWidget> CategoryWidgetClass;
 
-	UPROPERTY()
-	TMap<const UPA_ShopItem*, const UShopItemWidget*> ItemsMap;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (AllowPrivateAccess = "true"))
+	TArray<UDataTable*> ShopDataTables;
 
 	UPROPERTY()
 	UInventoryComponent* OwnerInventoryComponent;
+
+	void LoadShopCategories(); // 함수 이름 변경
+
+	UFUNCTION()
+	void OnPurchaseRequested(const UShopItemDataObject* ItemDataObject);
 };
