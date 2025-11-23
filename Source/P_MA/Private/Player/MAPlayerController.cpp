@@ -138,27 +138,20 @@ void AMAPlayerController::ToggleShop()
 	}
 }
 
-// MAPlayerController.cpp
-
 void AMAPlayerController::ToggleSkillBook()
 {
-	// 1. 함수 호출 확인 (입력 바인딩 성공 여부)
 	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
 
 	if (!GameplayWidget)
 	{
-		// 2. 메인 UI(GameplayWidget)가 없는 경우
 		UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
 		return;
 	}
-
-	// 3. 메인 UI는 찾음 -> 스킬북 위젯 찾기 시도
+	
 	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
-    
-	// GameplayWidget의 ToggleSkillBook() 호출 (내부 로그는 없으므로 여기서 결과 추측)
+	
 	GameplayWidget->ToggleSkillBook();
-
-	// 4. 실제 스킬북 위젯 상태 확인 (GameplayWidget을 통해 접근)
+	
 	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
 	{
 		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
@@ -167,7 +160,6 @@ void AMAPlayerController::ToggleSkillBook()
 	}
 	else
 	{
-		// 5. 스킬북 위젯이 없는 경우 (BindWidget 이름 불일치 등)
 		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
 	}
 }

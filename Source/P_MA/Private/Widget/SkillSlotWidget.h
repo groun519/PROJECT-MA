@@ -5,11 +5,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Abilities/GameplayAbility.h"
-#include "Inventory/MAItemTypes.h" // [필수] 이제 이 헤더를 사용합니다!
+#include "Inventory/MAItemTypes.h" 
 #include "SkillSlotWidget.generated.h"
-
-// FAbilityWidgetData 전방 선언 제거
-// class UDataTable; // 아래에 포함되어 있으므로 생략 가능
 
 UCLASS()
 class USkillSlotWidget : public UUserWidget
@@ -23,8 +20,7 @@ public:
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnSkillSet(TSubclassOf<UGameplayAbility> NewSkillClass);
-
-	// [변경] 반환 타입 수정: FAbilityWidgetData -> FSkillItemData
+	
 	const struct FSkillItemData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
 
 private:
@@ -33,8 +29,7 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	class UImage* SkillIcon;
-
-	// 에디터에서 DT_Skills를 넣어줄 변수
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Data")
 	class UDataTable* AbilityDataTable;
     

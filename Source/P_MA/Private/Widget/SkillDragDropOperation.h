@@ -13,7 +13,6 @@ class USkillDragDropOperation : public UDragDropOperation
 	GENERATED_BODY()
 
 public:
-	// 드래그 중인 스킬 클래스 정보
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = "true"))
 	TSubclassOf<UGameplayAbility> SkillClass;
 };
