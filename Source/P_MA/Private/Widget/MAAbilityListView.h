@@ -4,8 +4,27 @@
 
 #include "CoreMinimal.h"
 #include "Components/ListView.h"
-#include "Gas/MAGameplayAbilityTypes.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilityListView.generated.h"
+
+class UGameplayAbility;
+
+/**
+ * 
+ * 
+ */
+UCLASS()
+class UMAAbilitySlotDataObject : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(BlueprintReadOnly, Category = "Data")
+	EMAAbilityInputID InputID;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Data")
+	TSubclassOf<UGameplayAbility> AbilityClass;
+};
 
 /**
  * 
@@ -16,14 +35,6 @@ class UMAAbilityListView : public UListView
 	GENERATED_BODY()
 
 public:
-	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
-
-private:
-	UPROPERTY(EditAnywhere, Category = "Data")
-	UDataTable* AbilityDataTable;
-
-	void AbilityGaugeGenerated(UUserWidget& Widget);
-
-	const struct FAbilityWidgetData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
-
+	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& Abilities);
+	
 };

@@ -26,7 +26,7 @@ public:
 	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementDataTable;}
 
-	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag) const;
+	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag, UObject* Outer) const;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
@@ -46,8 +46,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
 	UDataTable* MonsterBaseStatDataTable;
 
-	UPROPERTY(EditDefaultsOnly, Category="Skill Utility Module", Instanced)
-	TMap<FGameplayTag, TObjectPtr<UUtilityModule>> SkillUtilityModules;
+	UPROPERTY(EditDefaultsOnly, Category="Skill Utility Module")
+	UDataTable* UtilityModuleDataTable;
 
 	UPROPERTY(EditDefaultsOnly, Category="Element")
 	TObjectPtr<UDataTable> ElementDataTable;

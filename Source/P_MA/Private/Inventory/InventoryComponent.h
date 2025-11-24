@@ -4,11 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Inventory/InventoryItem.h"
+#include "Widget/MAAbilityGauge.h"
+#include "Inventory/MAItemTypes.h" // [필수] 구조체 정의 포함
 #include "InventoryComponent.generated.h"
 
-
 class UAbilitySystemComponent;
-class UPA_ShopItem;
+class UDataTable;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemAddedDelegate, const UInventoryItem* /*NewItem*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnItemRemovedDelegate, const FInventoryItemHandle& /*ItemHandle*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnItemStackCountChangeDelegate, const FInventoryItemHandle&, int /*NewCount*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnItemAbilityCommitted, const FInventoryItemHandle&, float /*CooldownDuration*/, float /*CooldownTimeRemaining*/);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UInventoryComponent : public UActorComponent
@@ -16,25 +23,80 @@ class UInventoryComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
 	UInventoryComponent();
 
-	void TryPurchase(const UPA_ShopItem* ItemToPurchase);
+	FOnItemAddedDelegate OnItemAdded;
+	FOnItemRemovedDelegate OnItemRemoved;
+	FOnItemStackCountChangeDelegate OnItemStackCountChanged;
+	FOnItemAbilityCommitted OnItemAbilityCommitted;
+	
+	void TryActivateItem(const FInventoryItemHandle& ItemHandle);
+	void SellItem(const FInventoryItemHandle& ItemHandle);
+	
+	void TryPurchaseItem(FName ItemRowName, UDataTable* SourceTable);
+	
+	void TryPurchaseSkill(FName SkillRowName, UDataTable* SourceTable);
+
 	float GetGold() const;
+	FORCEINLINE int GetCapacity() const { return Capacity; }
+
+	void ItemSlotChanged(const FInventoryItemHandle& Handle, int NewSlotNumber);
+	UInventoryItem* GetInventoryItemByHandle(const FInventoryItemHandle& Handle) const;
+	
+	bool IsFullFor(FName ItemRowName, UDataTable* SourceTable) const;
+	bool IsAllSlotOccupied() const;
+	
+	UInventoryItem* GetAvaliableStackFor(FName ItemRowName, UDataTable* SourceTable) const;
+
+	void TryActivateItemInSlot(int SlotNumber);
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
+	
+	UFUNCTION(Server, Reliable, WithValidation) 
+	void Server_PurchaseSkill(FName SkillRowName, UDataTable* SourceTable);
 
 private:	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	int Capacity = 6;
+
 	UPROPERTY()
 	UAbilitySystemComponent* OwnerAbilitySystemComponent;
 
-		
+	UPROPERTY()
+	TMap<FInventoryItemHandle, UInventoryItem*> InventoryMap;
+
+	void AbilityCommitted(class UGameplayAbility* CommittedAbility);
+
 	/*********************************************************/
-	/*                   Server                              */
+	/* Server                              */
 	/*********************************************************/
+	
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Purchase(const UPA_ShopItem* ItemToPurchase);
-		
+	void Server_PurchaseItem(FName ItemRowName, UDataTable* SourceTable);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_ActivateItem(FInventoryItemHandle ItemHandle);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SellItem(FInventoryItemHandle ItemHandle);
+	
+	void GrantItem(FName ItemRowName, UDataTable* SourceTable);
+
+	void ConsumeItem(UInventoryItem* Item);
+	void RemoveItem(UInventoryItem* Item);
+	
+
+	/*********************************************************/
+	/* Client                              */
+	/*********************************************************/
+private:
+	UFUNCTION(Client, Reliable)
+	void Client_ItemAdded(FInventoryItemHandle AssignedHandle, FName ItemRowName, UDataTable* SourceTable);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ItemRemoved(FInventoryItemHandle ItemHandle);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ItemStackCountChanged(FInventoryItemHandle Handle, int NewCount);
 };

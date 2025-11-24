@@ -53,9 +53,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputAction* ShopToggleInputAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* SkillBookToggleInputAction;
+
 	UFUNCTION()
 	void ToggleShop();
-
+	
+	UFUNCTION()
+	void ToggleSkillBook();
 	// 마우스 커서 관련 여기 코드는 강의에는 없는 별도 코드입니다.
 	bool bOnMouseCursorRecord = false;
 	void CheckMouseCursorShape();

@@ -3,16 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ActiveGameplayEffectHandle.h"
-#include "GameplayEffect.h"
 #include "Blueprint/UserWidget.h"
+#include "GAS/MAGameplayAbilityTypes.h" 
+#include "Engine/DataTable.h"
+#include "Widget/MAAbilityListView.h"
 #include "Blueprint/IUserObjectListEntry.h" 
 #include "MAAbilityGauge.generated.h"
+
+class UGameplayAbility;
+class UImage;
+class UTextBlock;
 
 /**
  * 
  */
-
 USTRUCT(BlueprintType)
 struct FAbilityWidgetData : public FTableRowBase
 {
@@ -29,8 +33,15 @@ struct FAbilityWidgetData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Description;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shop")
+	float Price = 0.0f;
 };
 
+/**
+ * 
+ * 
+ */
 UCLASS()
 class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
 {
@@ -39,8 +50,21 @@ class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
 public:
 	virtual void NativeConstruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-	void ConfigureWithWidgetData(const FAbilityWidgetData* WidgetData);
 	
+	void UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass);
+	
+	const struct FAbilityWidgetData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
+
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
+	EMAAbilityInputID AssignedInputID;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Data")
+	class UDataTable* AbilityDataTable;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
 	float CooldownUpdateInterval = 0.02f;
@@ -62,12 +86,9 @@ private:
 
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* CostText;
-
+	
 	UPROPERTY()
 	class UGameplayAbility* AbilityCDO;
-
-	//우리 프로젝트에서 사용할 수 없는 구조
-	//void AbilityCommitted(UGameplayAbility* Ability);
 
 	FGameplayTag SharedCooldownTag;
 	TWeakObjectPtr<class UAbilitySystemComponent> OwnerASC;
@@ -76,6 +97,10 @@ private:
 	void OnCooldownTagChanged(const FGameplayTag CooldownTag, int32 NewCount);
 	
 	void StartCooldown(float CooldownTimeRemaining, float CooldownDuration);
+	void CooldownFinished();
+	void UpdateCooldown();
+	
+	void InitializeAbility(TSubclassOf<UGameplayAbility> NewAbilityClass);
 
 	float CachedCooldownDuration;
 	float CachedCooldownTimeRemaining;
@@ -85,8 +110,4 @@ private:
 
 	FNumberFormattingOptions WholeNumberFormattionOptions;
 	FNumberFormattingOptions TwoDigitNumberFormattingOptions;
-
-	void CooldownFinished();
-	void UpdateCooldown();
-	
 };
