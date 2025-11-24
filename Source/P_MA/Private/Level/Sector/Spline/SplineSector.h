@@ -22,11 +22,11 @@ public:
 	ASplineSector();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UStaticMeshComponent> GroundBox;
+	TObjectPtr<UStaticMeshComponent> PCGExtentBox;
 
 	/** Seed and Sector **/
-	void SetSeed(int InSeed = 0);
-	void SetRandomSeed(int MaxValue = INT32_MAX);
+	void SetSectorSeed(int32 InSeed = 0);
+	void SetRandomSeed(int32 MaxValue = INT32_MAX);
 	FVector GetSectorBound();
 	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
 	
@@ -57,5 +57,6 @@ public:
 
 private:
 	int32 SectorSeed = 0;
-	void InitPCGComponent();
+	void UpdatePCGComponent();
+	void UpdateSeed();
 };

@@ -20,7 +20,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<ASplineSector>> Sectors;
-	int32 PreSectorIndex = 0;
 
 	bool IsClosePreSectorZeroVector();
 	void GoBackToFirstSector();

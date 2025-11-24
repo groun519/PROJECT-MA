@@ -6,14 +6,14 @@
 ASplineSector::ASplineSector()
 {
     /** Ground **/
-    GroundBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
-    SetRootComponent(GroundBox);
+    PCGExtentBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
+    SetRootComponent(PCGExtentBox);
     
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh
     (TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (CubeMesh.Succeeded())
     {
-        GroundBox->SetStaticMesh(CubeMesh.Object);
+        PCGExtentBox->SetStaticMesh(CubeMesh.Object);
     }
 
     /** Spline **/
@@ -37,21 +37,52 @@ ASplineSector::ASplineSector()
     PCGComponent->bParseActorComponents = true;
 }
 
-
-
 void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
-
-    InitPCGComponent();
+    //PCGComponent->Cleanup();
+    SetRandomSeed();
 }
 
-void ASplineSector::InitPCGComponent()
+void ASplineSector::UpdatePCGComponent()
 {
     if (PCGComponent && PCGComponent->GetGraph())
     {
         PCGComponent->Seed = SectorSeed;
-        PCGComponent->GenerateLocal(true);
+		UE_LOG(LogTemp, Warning, TEXT("PCG Sector Seed Updated!: %d"), SectorSeed);
+        PCGComponent->Generate(true);
+    }
+}
+
+void ASplineSector::UpdateSeed()
+{
+    if (Spline)
+    {
+        FVector StartPoint =
+            FVector(
+                -GetSectorBound().X,0.f,GetSectorBound().Z
+                );
+
+        FVector EndPoint =
+            FVector(
+                GetSectorBound().X,0.f,GetSectorBound().Z
+                );
+
+        Spline->ClearSplinePoints(false);
+        Spline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
+        
+        FRandomStream Stream(SectorSeed);
+        
+        for (int i = 1; i <= SplineNum-1; ++i)
+        {
+            float RandYBySplineSeed = Stream.FRandRange(-SplineOffset, SplineOffset);
+            FVector Point = StartPoint + FVector(GetSectorBound().X * 2.f / SplineNum * i, RandYBySplineSeed, 0.f);
+            Spline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
+        }
+
+        Spline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
+
+        Spline->ScaleVisualizationWidth = 300.f;
     }
 }
 
@@ -60,41 +91,28 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
     Super::OnConstruction(Transform);
 
     if (bRandomAtSpawn) SetRandomSeed();
-
-    if (Spline)
-    {
-        FVector StartPoint =
-            FVector(
-                -GetSectorBound().X,0.f,GetSectorBound().Z
-                );
-
-        Spline->ClearSplinePoints(false);
-        Spline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
-        
-        FRandomStream Stream(SectorSeed);
-        
-        for (int i = 1; i <= SplineNum - 1; ++i)
-        {
-            float RandYBySplineSeed = Stream.FRandRange(-SplineOffset, SplineOffset);
-            FVector Point = StartPoint + FVector(GetSectorBound().X * 2.f / SplineNum * i, RandYBySplineSeed, 0.f);
-            Spline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
-        }
-    }
 }
 
-void ASplineSector::SetSeed(int InSeed)
+
+
+void ASplineSector::SetSectorSeed(int32 InSeed)
 {
     SectorSeed = InSeed;
+    UE_LOG(LogTemp, Warning, TEXT("Copied New Seed at Last Sector!: %d"), InSeed);
+    UpdateSeed();
+    UpdatePCGComponent();
 }
 
-void ASplineSector::SetRandomSeed(int MaxValue)
+void ASplineSector::SetRandomSeed(int32 MaxValue)
 {
     SectorSeed = FMath::RandRange(1, MaxValue);
+    UpdateSeed();
+    UpdatePCGComponent();
 }
 
 FVector ASplineSector::GetSectorBound()
 {
-    return FVector(100.f, 100.f, 1.f);
+    return PCGExtentBox->GetStaticMesh()->GetBounds().BoxExtent;
 }
 
 
