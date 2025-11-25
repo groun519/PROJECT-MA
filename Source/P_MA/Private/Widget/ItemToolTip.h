@@ -4,20 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Inventory/MAItemTypes.h" 
 #include "ItemToolTip.generated.h"
 
-class UPA_ShopItem;
-/**
- * 
- */
+
 UCLASS()
 class UItemToolTip : public UUserWidget
 {
 	GENERATED_BODY()
 	
 public:
-	void SetItem(const UPA_ShopItem* Item);
+	void SetItemData(const FBaseItemData* ItemData);
+	
 	void SetPrice(float newPrice);
+
 private:
 	UPROPERTY(meta=(BindWidget))
 	class UImage* IconImage;

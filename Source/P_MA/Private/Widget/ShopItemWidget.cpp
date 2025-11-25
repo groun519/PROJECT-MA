@@ -6,7 +6,7 @@
 void UShopItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	ItemDataObject = Cast<UShopItemDataObject>(ListItemObject);
-    
+	
 	if (!ItemDataObject || !ItemDataObject->CachedItemData)
 	{
 		return;
@@ -17,6 +17,7 @@ void UShopItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 		SetIcon(IconTexture);
 	}
 	
+	SetToolTipWidget(ItemDataObject->CachedItemData);
 }
 
 void UShopItemWidget::RightButtonClicked()

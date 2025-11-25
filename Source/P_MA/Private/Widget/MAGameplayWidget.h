@@ -23,8 +23,6 @@ public:
 	
 	void ToggleShop();
 	void ToggleSkillBook();
-	
-	void SetOwinigPawnInputEnabled(bool bPawnInputEnabled);
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
@@ -34,6 +32,9 @@ protected:
 
 	UPROPERTY(Transient, meta=(BindWidgetAnim))
 	class UWidgetAnimation* ShopPopupAnimation;
+
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
+	class UWidgetAnimation* SkillBookPopupAnimation;
 
 	void PlayShopPopupAnimation(bool bPlayForward);
 

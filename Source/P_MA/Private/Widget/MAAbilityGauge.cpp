@@ -10,10 +10,10 @@
 #include "Components/TextBlock.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 
-// [추가] 드래그 앤 드롭 및 플레이어 관련 헤더
 #include "Widget/SkillDragDropOperation.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Inventory/SkillBookComponent.h"
+#include "Inventory/MAItemTypes.h" // [필수]
 
 void UMAAbilityGauge::NativeConstruct()
 {
@@ -28,7 +28,7 @@ void UMAAbilityGauge::NativeConstruct()
 
 	WholeNumberFormattionOptions.MaximumFractionalDigits = 0;
 	TwoDigitNumberFormattingOptions.MaximumFractionalDigits = 1;
-	
+
 	if (Icon)
 	{
 		Icon->GetDynamicMaterial(); 
@@ -42,11 +42,11 @@ void UMAAbilityGauge::NativeOnListItemObjectSet(UObject* ListItemObject)
 	if (DataItem)
 	{
 		this->AssignedInputID = DataItem->InputID;
-		
 		UpdateSlot(DataItem->AbilityClass);
 	}
 }
 
+// [통합] 드롭 이벤트
 bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	USkillDragDropOperation* SkillOp = Cast<USkillDragDropOperation>(InOperation);
@@ -60,9 +60,7 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 				if (USkillBookComponent* SkillBook = MAChar->GetSkillBookComponent())
 				{
 					SkillBook->EquipSkill(SkillOp->SkillClass, AssignedInputID);
-					
 					UpdateSlot(SkillOp->SkillClass);
-                    
 					return true;
 				}
 			}
@@ -74,23 +72,53 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
 
 void UMAAbilityGauge::UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
-	const FAbilityWidgetData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
+	// [변경] 새로운 구조체 FSkillItemData 사용
+	const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
 
 	if (WidgetData && Icon)
 	{
+		// 부모 구조체(FBaseItemData)에 Icon이 있으므로 접근 가능
 		UTexture2D* Texture = WidgetData->Icon.LoadSynchronous();
 		if (Texture)
 		{
 			Icon->GetDynamicMaterial()->SetTextureParameterValue(IconMaterialParamName, Texture);
-			Icon->SetVisibility(ESlateVisibility::Visible); 
-			
+			Icon->SetVisibility(ESlateVisibility::Visible);
 			Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.f);
 		}
 	}
-	
+	else
+	{
+		// 스킬이 없거나 데이터가 없으면...
+		if (Icon) 
+		{
+			// 빈 슬롯 처리 (투명하게 하거나 기본 아이콘 설정)
+			// Icon->SetVisibility(ESlateVisibility::Hidden); // 필요 시 주석 해제
+		}
+	}
+
 	InitializeAbility(NewSkillClass);
 }
 
+// [핵심 변경] 데이터 테이블 검색 로직
+const FSkillItemData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
+{
+	if (!AbilityDataTable) return nullptr;
+
+	for (auto& RowPair : AbilityDataTable->GetRowMap())
+	{
+		// FSkillItemData로 캐스팅
+		const FSkillItemData* Data = reinterpret_cast<const FSkillItemData*>(RowPair.Value);
+		
+		// GrantedAbility가 찾는 스킬과 같은지 확인
+		if (Data && Data->GrantedAbility == AbilityClass)
+		{
+			return Data;
+		}
+	}
+	return nullptr;
+}
+
+// ... (InitializeAbility, Cooldown 관련 함수들은 기존 로직 그대로 유지) ...
 void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbilityClass)
 {
 	if (!NewAbilityClass)
@@ -100,7 +128,7 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 	}
 
 	AbilityCDO = NewAbilityClass->GetDefaultObject<UGameplayAbility>();
-	
+
 	UMAGameplayAbility_SkillBase* SkillCDO = Cast<UMAGameplayAbility_SkillBase>(AbilityCDO);
 	if (SkillCDO && OwnerASC.IsValid())
 	{
@@ -110,7 +138,7 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 			OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);
 		}
 	}
-	
+
 	float CooldownDuration = UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(AbilityCDO);
 	float Cost = UMAAbilitySystemStatics::GetStaticCostForAbility(AbilityCDO);
 
@@ -118,13 +146,11 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 	if(CostText) CostText->SetText(FText::AsNumber(Cost));
 }
 
-
 void UMAAbilityGauge::OnCooldownTagChanged(const FGameplayTag CooldownTag, int32 NewCount)
 {
 	if (NewCount > 0)
 	{
-		if (!OwnerASC.IsValid())
-			return;
+		if (!OwnerASC.IsValid()) return;
 		
 		FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(FGameplayTagContainer(SharedCooldownTag));
 
@@ -184,19 +210,4 @@ void UMAAbilityGauge::UpdateCooldown()
 	{
 		Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.0f - CachedCooldownTimeRemaining / CachedCooldownDuration);
 	}
-}
-
-const FAbilityWidgetData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
-{
-	if (!AbilityDataTable) return nullptr;
-
-	for (auto& RowPair : AbilityDataTable->GetRowMap())
-	{
-		const FAbilityWidgetData* Data = reinterpret_cast<const FAbilityWidgetData*>(RowPair.Value);
-		if (Data && Data->AbilityClass == AbilityClass)
-		{
-			return Data;
-		}
-	}
-	return nullptr;
 }

@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "Widget/MovableWindowWidget.h"
 #include "Inventory/InventoryComponent.h"
-#include "Components/ScrollBox.h" // ScrollBox 필요
+#include "Components/ScrollBox.h"
 #include "Widget/ShopCategoryWidget.h"
 #include "ShopWidget.generated.h"
 
@@ -15,7 +15,7 @@ class UDataTable;
 class UShopItemDataObject; 
 
 UCLASS()
-class UShopWidget : public UUserWidget
+class UShopWidget : public UMovableWindowWidget
 {
 	GENERATED_BODY()
 public:

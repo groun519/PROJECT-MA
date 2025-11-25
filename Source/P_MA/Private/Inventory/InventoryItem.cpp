@@ -5,8 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAAttributeSet.h" // 님의 AttributeSet 클래스
-#include "Inventory/PA_ShopItem.h"
+#include "GAS/MAAttributeSet.h"
 
 FInventoryItemHandle::FInventoryItemHandle()
     : HandleId{GetInvalidId()}
@@ -198,32 +197,59 @@ void UInventoryItem::RemoveGASModifications()
 {
     if (!OwnerAbilitySystemComponent) return;
 
+    // 권한 확인 (서버에서만 이펙트 제거)
     if (OwnerAbilitySystemComponent->GetOwner()->HasAuthority())
     {
+        // 1. 저장해둔 장비 이펙트 핸들이 유효하다면?
         if (AppliedEquipedEffectHandle.IsValid())
-           OwnerAbilitySystemComponent->RemoveActiveGameplayEffect(AppliedEquipedEffectHandle);
+        {
+            // 2. 이펙트 제거!
+            OwnerAbilitySystemComponent->RemoveActiveGameplayEffect(AppliedEquipedEffectHandle);
+            
+            // 3. 핸들 초기화 (더 이상 유효하지 않음)
+            AppliedEquipedEffectHandle.Invalidate();
+        }
     
+        // (스킬 제거 로직 기존 유지)
         if (GrantedAbiltiySpecHandle.IsValid())
-           OwnerAbilitySystemComponent->SetRemoveAbilityOnEnd(GrantedAbiltiySpecHandle);
+        {
+            OwnerAbilitySystemComponent->SetRemoveAbilityOnEnd(GrantedAbiltiySpecHandle);
+            GrantedAbiltiySpecHandle = FGameplayAbilitySpecHandle();
+        }
     }
 }
 
 void UInventoryItem::ApplyGASModifications()
 {
+    // 1. 주인(ASC)이 없으면 중단
     if (!OwnerAbilitySystemComponent) return;
-    if (!OwnerAbilitySystemComponent->GetOwner() || !OwnerAbilitySystemComponent->GetOwner()->HasAuthority()) return;
-    
+
+    // 2. 장비 아이템인지 확인 (데이터 테이블 접근)
     if (const FEquipmentItemData* EquipData = GetEquipmentData())
     {
+        // 3. 적용할 이펙트(GE)가 있는지 확인
         if (EquipData->EquipEffect)
         {
-            AppliedEquipedEffectHandle = OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(EquipData->EquipEffect, 1, OwnerAbilitySystemComponent->MakeEffectContext());
+            // 4. 이펙트 적용 컨텍스트 생성
+            FGameplayEffectContextHandle EffectContext = OwnerAbilitySystemComponent->MakeEffectContext();
+            EffectContext.AddSourceObject(this);
+
+            // 5. [핵심] 플레이어에게 이펙트 적용하고, 그 '증명서(Handle)'를 저장해둠!
+            AppliedEquipedEffectHandle = OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(
+                EquipData->EquipEffect, 
+                1.0f, 
+                EffectContext
+            );
+
+            // (로그) 적용 확인용
+            // UE_LOG(LogTemp, Warning, TEXT("Equip Effect Applied: %s"), *EquipData->DisplayName.ToString());
         }
     }
-    
+
+    // (스킬북 로직은 기존 유지)
     if (TSubclassOf<UGameplayAbility> AbilityToGrant = GetGrantedAbility())
     {
-       GrantedAbiltiySpecHandle = OwnerAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityToGrant));
+        GrantedAbiltiySpecHandle = OwnerAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityToGrant));
     }
 }
 

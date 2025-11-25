@@ -76,6 +76,22 @@ void AMAPlayerController::SpawnGameplayWidget()
 /** 여기에는 강의에는 없는 별도 코드입니다 **/
 void AMAPlayerController::CheckMouseCursorShape()
 {
+	// [수정] UI가 켜져서 마우스가 보일 때는, 무조건 '기본 화살표'로 고정해야 합니다.
+	if (bShowMouseCursor)
+	{
+		// 현재 커서가 기본이 아니라면(크로스헤어 등), 기본으로 돌려놓고 함수 종료
+		if (CurrentMouseCursor != EMouseCursor::Default)
+		{
+			CurrentMouseCursor = EMouseCursor::Default;
+            
+			// 커서 상태 기록용 변수도 초기화 (기존 코드 스타일에 맞춤)
+			bOnMouseCursorRecord = false; 
+		}
+		return;
+	}
+
+	// --- 아래는 기존 로직 그대로 유지 ---
+
 	FHitResult mouseHitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, mouseHitResult);
 
@@ -93,7 +109,6 @@ void AMAPlayerController::CheckMouseCursorShape()
 			return;
 		}
 
-		// 다른 액터지만 몬스터가 아닐 때 → 기본 커서로
 		if (bOnMouseCursorRecord)
 		{
 			bOnMouseCursorRecord = false;
@@ -102,7 +117,6 @@ void AMAPlayerController::CheckMouseCursorShape()
 	}
 	else
 	{
-		// 아무 것도 안 맞았을 때도 기본 커서로 돌려주기
 		if (bOnMouseCursorRecord)
 		{
 			bOnMouseCursorRecord = false;

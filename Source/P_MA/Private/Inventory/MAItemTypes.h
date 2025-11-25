@@ -85,8 +85,6 @@ public:
 	{
 		ItemType = EMAItemType::Equipment;
 	}
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	FGameplayTag EquipSlotTag; 
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
 	TSubclassOf<UGameplayEffect> EquipEffect; 

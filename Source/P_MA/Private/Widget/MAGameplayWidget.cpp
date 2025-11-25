@@ -11,6 +11,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
+#include "GameFramework/PlayerController.h" // [필수] InputMode 설정을 위해 추가
 
 void UMAGameplayWidget::NativeConstruct()
 {
@@ -26,7 +27,6 @@ void UMAGameplayWidget::NativeConstruct()
     {
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
     }
-    
 }
 
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
@@ -34,20 +34,20 @@ void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubcla
     AbilityListView->ConfigureAbilities(Abilities);
 }
 
-
 void UMAGameplayWidget::ToggleShop()
 {
+    // 기존 HitTestInvisible 로직 유지하되 InputMode 변경 적용
     if (ShopWidget->GetVisibility() == ESlateVisibility::HitTestInvisible)
     {
+        // 상점 열기
         ShopWidget->SetVisibility(ESlateVisibility::Visible);
         PlayShopPopupAnimation(true);
-        SetOwinigPawnInputEnabled(false);
     }
     else
     {
+        // 상점 닫기
         ShopWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
         PlayShopPopupAnimation(false);
-        SetOwinigPawnInputEnabled(true);
     }
 }
 
@@ -62,17 +62,6 @@ void UMAGameplayWidget::PlayShopPopupAnimation(bool bPlayForward)
         PlayAnimationReverse(ShopPopupAnimation);
     }
 }
-void UMAGameplayWidget::SetOwinigPawnInputEnabled(bool bPawnInputEnabled)
-{
-    if (bPawnInputEnabled)
-    {
-        GetOwningPlayerPawn()->EnableInput(GetOwningPlayer());
-    }
-    else
-    {
-        GetOwningPlayerPawn()->DisableInput(GetOwningPlayer());
-    }
-}
 
 void UMAGameplayWidget::OnShopButtonClicked()
 {
@@ -85,12 +74,23 @@ void UMAGameplayWidget::ToggleSkillBook()
 
     if (SkillBookWidget->GetVisibility() == ESlateVisibility::Visible)
     {
+        // 스킬북 닫기
+        if(SkillBookPopupAnimation)
+        {
+            PlayAnimationReverse(SkillBookPopupAnimation);
+        }
+        
         SkillBookWidget->SetVisibility(ESlateVisibility::Hidden);
-        SetOwinigPawnInputEnabled(true);
     }
     else
     {
+        // 스킬북 열기
         SkillBookWidget->SetVisibility(ESlateVisibility::Visible);
-        SetOwinigPawnInputEnabled(false); 
+        
+        if(SkillBookPopupAnimation)
+        {
+            PlayAnimationForward(SkillBookPopupAnimation);
+        }
+        
     }
 }

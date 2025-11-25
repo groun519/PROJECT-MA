@@ -20,13 +20,31 @@ void UShopCategoryWidget::NativeConstruct()
 void UShopCategoryWidget::InitCategory(UDataTable* InDataTable)
 {
 	if (!InDataTable || !CategoryItemList || !CategoryTitleText) return;
-	
+
+	// 1. 테이블 이름 가져오기
 	FString TableName = InDataTable->GetName();
-	TableName.RemoveFromStart("DT_"); 
-	CategoryTitleText->SetText(FText::FromString(TableName));
-	
+	FString KoreanTitle = TableName; // 기본값
+
+	// 2. [수정] 이름에 따라 한글로 변환 (하드코딩 방식)
+	if (TableName.Contains("Consumables"))
+	{
+		KoreanTitle = TEXT("소비 아이템");
+	}
+	else if (TableName.Contains("Equipments"))
+	{
+		KoreanTitle = TEXT("장비 아이템");
+	}
+	else if (TableName.Contains("Skills"))
+	{
+		KoreanTitle = TEXT("스킬");
+	}
+    
+	// 3. 변환된 이름 설정
+	CategoryTitleText->SetText(FText::FromString(KoreanTitle));
+
+	// 4. 리스트 채우기 (기존 코드 유지)
 	CategoryItemList->ClearListItems();
-	
+    
 	for (const auto& RowPair : InDataTable->GetRowMap())
 	{
 		FName RowName = RowPair.Key;

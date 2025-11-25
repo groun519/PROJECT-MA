@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "Widget/MovableWindowWidget.h"
 #include "Abilities/GameplayAbility.h"
 #include "SkillBookWidget.generated.h"
 
@@ -12,7 +12,7 @@ class USkillSlotWidget;
 class USkillBookComponent;
 
 UCLASS()
-class USkillBookWidget : public UUserWidget
+class USkillBookWidget : public UMovableWindowWidget
 {
 	GENERATED_BODY()
 
