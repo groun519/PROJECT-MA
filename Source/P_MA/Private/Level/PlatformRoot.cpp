@@ -5,6 +5,7 @@
 #include "PlatformComponent.h"
 #include "PlatformMatrixComponent.h"
 #include "Components/ArrowComponent.h"
+#include "Sector/Spline/SplineSectorManager.h"
 
 APlatformRoot::APlatformRoot()
 {
@@ -31,6 +32,39 @@ void APlatformRoot::BeginPlay()
 void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
+	if (!Manager) return;
+
+	if (Manager->Sectors.Num() == 0) return;
+
+	USplineComponent* CurSpline = Manager->Sectors[CurSector]->Spline;
+	float Len = CurSpline->GetSplineLength();
+
+	Distance += MoveSpeed * DeltaTime;
+
+	if (Distance >= Len)
+	{
+		Distance -= Len;
+		CurSector++;
+
+		if (CurSector >= Manager->Sectors.Num())
+		{
+			CurSector = 0;
+			Distance  = 0.f;
+		}
+
+		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
+		Manager->Sectors[NewSectorIndex]->SetRandomSeed();
+		
+		CurSpline = Manager->Sectors[CurSector]->Spline;
+	}
+
+	FVector Loc = CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+	FRotator Rot = CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	SetActorLocation(Loc);
+	SetActorRotation(Rot);
 }
 
 void APlatformRoot::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

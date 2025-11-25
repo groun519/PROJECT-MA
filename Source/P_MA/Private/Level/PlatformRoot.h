@@ -12,19 +12,23 @@ UCLASS()
 class P_MA_API APlatformRoot : public ACharacter
 {
 	GENERATED_BODY()
-
-public:
-	APlatformRoot();
-
+	
 protected:
 	virtual void BeginPlay() override;
-
-public:
 	virtual void Tick(float DeltaTime) override;
-
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+public:
+	APlatformRoot();
 
 	/** Matrix **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UPlatformMatrixComponent* PlatformMatrixComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MoveSpeed = 1000.f;
+	
+private:
+	int32 CurSector = 0;
+	float Distance = 0.f;
 };

@@ -58,20 +58,27 @@ void ASplineSectorManager::GoBackToFirstSector()
 	PlatformRoot->SetActorLocation(FirstSectorLoc);
 }
 
+int32 ASplineSectorManager::GetNextSectorIndex(int32 CurSectorIndex)
+{
+	int32 LastSectorIndex = Sectors.Num() - 1;
+	return CurSectorIndex == LastSectorIndex ? 0 : CurSectorIndex + 1;
+}
+
+ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* World)
+{
+	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());
+	ASplineSectorManager* SSM = Cast<ASplineSectorManager>(Found);
+	return SSM;
+}
+
 void ASplineSectorManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (IsClosePreSectorZeroVector())
-	{
-		GoBackToFirstSector();
-	}
-
-	if (Sectors.Num() > 0)
-	{
-		int32 Sector0Seed = Sectors[0]->GetSectorSeed();
-		UE_LOG(LogTemp, Display, TEXT("Sector0Seed: %d"), Sector0Seed);
-	}
+	// if (IsClosePreSectorZeroVector())
+	// {
+	// 	GoBackToFirstSector();
+	// }
 }
 
 

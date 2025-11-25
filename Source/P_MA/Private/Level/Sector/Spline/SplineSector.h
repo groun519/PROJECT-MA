@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FVector> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SplineWidth = 500.f;
+
 	/** Arrow **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UArrowComponent> Arrow;

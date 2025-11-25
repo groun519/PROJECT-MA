@@ -16,6 +16,7 @@ class P_MA_API ASplineSectorManager : public AActor
 public:
 	ASplineSectorManager();
 
+	UPROPERTY()
 	TObjectPtr<APlatformRoot> PlatformRoot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -23,6 +24,9 @@ public:
 
 	bool IsClosePreSectorZeroVector();
 	void GoBackToFirstSector();
+
+	int32 GetNextSectorIndex(int32 CurSectorIndex);
+	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
 protected:
 	virtual void BeginPlay() override;

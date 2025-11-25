@@ -82,7 +82,10 @@ void ASplineSector::UpdateSeed()
 
         Spline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
 
-        Spline->ScaleVisualizationWidth = 300.f;
+        Spline->ScaleVisualizationWidth = SplineWidth;
+        int32 LastIndex = Spline->GetNumberOfSplinePoints() - 1;
+        Spline->SetTangentAtSplinePoint(LastIndex, FVector(1,0,0), ESplineCoordinateSpace::Local);
+        Spline->SetTangentAtSplinePoint(0, FVector(1,0,0), ESplineCoordinateSpace::Local);
     }
 }
 
