@@ -53,6 +53,10 @@ void UGA_GiantSwing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, co
 	UAbilityTask_WaitGameplayEvent* WaitGrabEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Grab")));
 	WaitGrabEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnGrabEvent);
 	WaitGrabEvent->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitSwingEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Swing")));
+	WaitSwingEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnSwingEvent);
+	WaitSwingEvent->ReadyForActivation();
 }
 
 void UGA_GiantSwing::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -120,16 +124,15 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 {
 	ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	if (!Monster) return;
-
+	
 	USkeletalMeshComponent* Mesh = Monster->GetMesh();
-	if (!Mesh || !Mesh->DoesSocketExist(GrabSocketName))
+	if (!Mesh || !Mesh->DoesSocketExist(MonsterGrabSocketName))
 		return;
 
 	TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Data.TargetData);
 
 	if (HitResults.Num() == 0)
 		return;
-	
 
 	ACharacter* Target = Cast<ACharacter>(HitResults[0].GetActor());
 	if (!Target)
@@ -140,11 +143,22 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 
 	GrabbedTarget = Target;
 
-	Target->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, GrabSocketName);
-
+	Target->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, MonsterGrabSocketName);
+	
 	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
 	if (Anim && GiantSwingMontage)
 	{
 		Anim->Montage_JumpToSection(TEXT("Swing"), GiantSwingMontage);
+	}
+}
+
+void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
+{
+	if (GrabbedTarget)
+	{
+		GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
+			Character->LaunchCharacter(ImpulseDirection + UpwardImpulse, true, true);
 	}
 }

@@ -30,6 +30,9 @@ protected:
 	
 	UFUNCTION()
 	void OnGrabEvent(FGameplayEventData Data);
+
+	UFUNCTION()
+	void OnSwingEvent(FGameplayEventData Data);
 	
 private:
 	UPROPERTY(EditAnywhere, Category="Animation")
@@ -42,8 +45,17 @@ private:
 	TArray<AActor*> IgnoreTargets;
 	
 	UPROPERTY(EditAnywhere, Category="Socket")
-	FName GrabSocketName = "Hand_R_Grab";
+	FName MonsterGrabSocketName = "Hand_R_Grab";
 
+	UPROPERTY(EditAnywhere, Category="Socket")
+	FName PlayerGrabSocketName = "Grab_R";
+	
 	UPROPERTY()
 	ACharacter* GrabbedTarget = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Impulse")
+	FVector ImpulseDirection = FVector(5000.f, 0.f, 0.f);  // 기본 값 설정 (앞쪽 방향으로 밀어내는 힘)
+
+	UPROPERTY(EditAnywhere, Category = "Impulse")
+	FVector UpwardImpulse = FVector(0.f, 0.f, 2000.f);
 };
