@@ -34,6 +34,7 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
+	float TimeoutDuration = 4.5f;
 
 	float CachedChargeDuration;
 	bool bIsEnd = false;

@@ -27,7 +27,7 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
 	
 	//최대 차지 시간
-	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration);
+	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
 	ChargeTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_Charge::OnMaxCharged);
 	ChargeTimeoutTask->ReadyForActivation();
 	//차징 시작

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MASkillTemplate.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
@@ -53,6 +54,7 @@ public:
 
 	virtual float GetCurrentDamageMultiplier() const;
 
+	virtual void InitFromData(const FSkillDefinitionDT& Data);
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;

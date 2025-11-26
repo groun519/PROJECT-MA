@@ -48,6 +48,6 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	FName MuzzleSocketName;
 
-	UPROPERTY(EditDefaultsOnly)
-	float AbilitySize = 300.f;
+	int32 ProjectileCount;
+	float SpawnDelay;
 };

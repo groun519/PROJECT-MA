@@ -66,7 +66,13 @@ private:
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UDataTable> ElementSpawnRuleTable;
-	
+
+	float TravelTime;
+	float MaxDistance;
+	float AbilityRange;
+	float SpawnHeight;
+	int32 ProjectileCount;
+	float SpawnDelay;
 
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	
