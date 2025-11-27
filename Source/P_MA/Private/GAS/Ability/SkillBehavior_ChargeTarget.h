@@ -40,7 +40,7 @@ private:
 	float MaxDistance;
 	float MaxSize;
 	float MinSize;
-	float MaxHoldDuration;
+	float MaxChargeDuration;
 	float TimeoutDuration;
 	float VFXRadius;
 	

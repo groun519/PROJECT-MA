@@ -34,7 +34,7 @@ private:
 	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
 	
 	float MaxChargeDuration;
-	float SkillTimeoutDuration;
+	float TimeoutDuration;
 	float MinTraceDistance;
 	float MaxTraceDistance;
 

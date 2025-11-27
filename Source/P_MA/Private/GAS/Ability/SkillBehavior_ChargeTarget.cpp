@@ -43,7 +43,7 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 	TargetActor = Cast<AMATargetActor_ChargeAtTarget>(TA);
 	if (TargetActor)
 	{
-		TargetActor->Initialize(MaxDistance,MaxSize,MinSize,MaxHoldDuration);
+		TargetActor->Initialize(MaxDistance,MaxSize,MinSize,MaxChargeDuration);
 	}
 	WaitTargetData->FinishSpawningActor(OwningAbility, TA);
 
@@ -75,8 +75,15 @@ float USkillBehavior_ChargeTarget::GetCurrentDamageMultiplier() const
 void USkillBehavior_ChargeTarget::InitFromData(const FSkillDefinitionDT& Data)
 {
 	Super::InitFromData(Data);
+	MontageToPlay = Data.ChargeTargetData.MontageToPlay;
+	VFXDataSet = Data.ChargeTargetData.VFXDataSet;
+	
 	if (Data.ChargeTargetData.RangeActorClass)		MaxDistanceActorClass = Data.ChargeTargetData.RangeActorClass;
 	if (Data.ChargeTargetData.TargetActorClass)		TargetActorClass = Data.ChargeTargetData.TargetActorClass;
+	
+	if (Data.ChargeTargetData.CooldownDuration>0.f)		CooldownDuration = Data.ChargeTargetData.CooldownDuration;
+	if (Data.ChargeTargetData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeTargetData.MaxChargeDuration;
+	if (Data.ChargeTargetData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeTargetData.TimeoutDuration;
 	
 	if (Data.ChargeTargetData.MaxDistance>0.f)		MaxDistance = Data.ChargeTargetData.MaxDistance;
 	if (Data.ChargeTargetData.MinRadius>0.f)		MinSize = Data.ChargeTargetData.MinRadius;
@@ -111,7 +118,7 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		}
 	}
 	
-	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);
+	float ChargeRatio = FMath::Clamp(HeldTime / MaxChargeDuration, 0.f, 1.f);
 	float FinalSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
 
 	if (OwningAbility->K2_HasAuthority())

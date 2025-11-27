@@ -25,9 +25,8 @@ public:
 protected:
 	bool bCanMoveWhileHolding = false;
 	
+	float MaxHoldDuration;
 private:
-	UPROPERTY(EditDefaultsOnly)
-	float MaxHoldDuration = 3.0f;
 	
 	bool bIsHoldEnd = false;
 	FTimerHandle ChargeUpdateTimerHandle;

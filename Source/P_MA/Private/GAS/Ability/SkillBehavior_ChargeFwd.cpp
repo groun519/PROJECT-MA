@@ -31,7 +31,7 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_ChargeFwd::OnKeyReleased);
 	InputReleaseTask->ReadyForActivation();
 
-	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, SkillTimeoutDuration);
+	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
 	SkillTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeFwd::OnSkillTimeout);
 	SkillTimeoutTask->ReadyForActivation();
 }
@@ -56,6 +56,14 @@ float USkillBehavior_ChargeFwd::GetCurrentDamageMultiplier() const
 void USkillBehavior_ChargeFwd::InitFromData(const FSkillDefinitionDT& Data)
 {
 	Super::InitFromData(Data);
+
+	MontageToPlay=Data.ChargeFwdData.MontageToPlay;
+	VFXDataSet=Data.ChargeFwdData.VFXDataSet;
+	
+	if (Data.ChargeFwdData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeFwdData.CooldownDuration;
+	if (Data.ChargeFwdData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeFwdData.MaxChargeDuration;
+	if (Data.ChargeFwdData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeFwdData.TimeoutDuration;
+	
 	if (Data.ChargeFwdData.TargetActorClass)		TargetActorClass = Data.ChargeFwdData.TargetActorClass;
 	if (Data.ChargeFwdData.MinDistance>0.f)			MinTraceDistance = Data.ChargeFwdData.MinDistance;
 	if (Data.ChargeFwdData.MaxDistance>0.f)			MaxTraceDistance = Data.ChargeFwdData.MaxDistance;
