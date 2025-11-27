@@ -77,7 +77,6 @@ void USkillBehavior_ChargeTarget::InitFromData(const FSkillDefinitionDT& Data)
 	Super::InitFromData(Data);
 	if (Data.ChargeTargetData.RangeActorClass)		MaxDistanceActorClass = Data.ChargeTargetData.RangeActorClass;
 	if (Data.ChargeTargetData.TargetActorClass)		TargetActorClass = Data.ChargeTargetData.TargetActorClass;
-	if (Data.ChargeTargetData.ExecutionVFX)			ExecutionVFX = Data.ChargeTargetData.ExecutionVFX;
 	
 	if (Data.ChargeTargetData.MaxDistance>0.f)		MaxDistance = Data.ChargeTargetData.MaxDistance;
 	if (Data.ChargeTargetData.MinRadius>0.f)		MinSize = Data.ChargeTargetData.MinRadius;
@@ -147,15 +146,22 @@ void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 
 void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
 {
-	if (!ExecutionVFX || !Character)
+	if (!OwningAbility || !VFXDataSet || !Character)
 		return;
-	FRotator Rotation = FRotator::ZeroRotator;
+	
+	const F_SkillVFX_Info* VFXInfo = VFXDataSet->VFXDataMap.Find(FGameplayTag::RequestGameplayTag("Event.VFX.Attack1"));
+	if (!VFXInfo || !VFXInfo->DefaultVFX)
+		return;
 
+	TObjectPtr<UNiagaraSystem> FinalVFXToSpawn = VFXInfo->DefaultVFX;
+	
 	float SafeRadius = (VFXRadius == 0.f) ? 1.f : VFXRadius;
-
+	
+	FRotator Rotation = FRotator::ZeroRotator;
 	FVector Scale = FVector (FinalSize / SafeRadius);
 	FTransform SpawnTransform(Rotation,SpawnLoc,Scale);
-	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
+	
+	Character->Multicast_PlayNiagara(FinalVFXToSpawn,SpawnTransform);
 }
 
 void USkillBehavior_ChargeTarget::CleanUp()

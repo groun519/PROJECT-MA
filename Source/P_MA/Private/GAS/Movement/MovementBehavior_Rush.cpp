@@ -51,6 +51,16 @@ void UMovementBehavior_Rush::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void UMovementBehavior_Rush::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+
+	MontageToPlay = Data.RushData.MontageToPlay;
+	if (Data.RushData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.RushData.DamageMultiplier;
+	if (Data.RushData.CooldownDuration>0.f)	CooldownDuration = Data.RushData.CooldownDuration;
+	if (Data.RushData.MaxRushDuration>0.f)	MaxRushDuration = Data.RushData.MaxRushDuration;
+}
+
 void UMovementBehavior_Rush::OnInputReleased(float TimeHeld)
 {
 	if (bIsEnd)

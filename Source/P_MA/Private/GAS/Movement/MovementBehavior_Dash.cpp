@@ -38,6 +38,18 @@ void UMovementBehavior_Dash::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void UMovementBehavior_Dash::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+
+	MontageToPlay=Data.DashData.MontageToPlay;
+	
+	if (Data.DashData.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.DashData.DamageMultiplier;
+	if (Data.DashData.CooldownDuration>0.f)		CooldownDuration = Data.DashData.CooldownDuration;
+	if (Data.DashData.ForwardLaunchForce>0.f)	ForwardLaunchForce = Data.DashData.ForwardLaunchForce;
+	if (Data.DashData.UpLaunchForce>0.f)		UpLaunchForce = Data.DashData.UpLaunchForce;
+}
+
 void UMovementBehavior_Dash::OnDashStartEventReceived(FGameplayEventData Payload)
 {
 	if (Payload.TargetData.Num() >0)
@@ -59,5 +71,4 @@ void UMovementBehavior_Dash::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
 	OwningAbility->ApplyDamageToHitResults(HitResults);
-
 }

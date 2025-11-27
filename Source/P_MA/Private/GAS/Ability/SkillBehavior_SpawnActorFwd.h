@@ -34,23 +34,17 @@ protected:
 	void OnProjectileEventReceived(FGameplayEventData EventData);
 
 private:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMAProjectile_OverlapAOE> DefaultProjectile;
-	UPROPERTY(EditDefaultsOnly)
-	TMap<FName, TSubclassOf<class AMAProjectile_OverlapAOE>> ProjectileClasses;
-	
+	UPROPERTY()
+	TSubclassOf<AMAProjectile_OverlapAOE> DefaultProjectile;
+	UPROPERTY()
 	TMap<FName, TSubclassOf<AMAProjectile_OverlapAOE>> ElementalProjectiles;
+	UPROPERTY()
+	TSubclassOf<AMAProjectile_OverlapAOE> ProjectileToSpawn;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float ProjectileSpeed = 700.f;
-	UPROPERTY(EditDefaultsOnly)
-	float ProjectileMaxDist = 3000.f;
-	UPROPERTY(EditDefaultsOnly)
-	float ExplodeRadius = 200.f;
-	
-	UPROPERTY(EditDefaultsOnly)
-	FName MuzzleSocketName;
-
-	int32 ProjectileCount;
+	float ProjectileSpeed;
+	float ProjectileMaxDist;
+	float ExplodeRadius;
 	float SpawnDelay;
+	int32 ProjectileCount;
+	FName MuzzleSocketName;
 };

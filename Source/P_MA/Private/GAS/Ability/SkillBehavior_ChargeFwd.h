@@ -33,25 +33,16 @@ private:
 	UPROPERTY()
 	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float MaxChargeDuration = 0.1f;
-	UPROPERTY(EditDefaultsOnly)
-	float SkillTimeoutDuration = 2.f;
+	float MaxChargeDuration;
+	float SkillTimeoutDuration;
+	float MinTraceDistance;
+	float MaxTraceDistance;
 
-	UPROPERTY(EditDefaultsOnly)
-	float MinTraceDistance = 100.f;
-	UPROPERTY(EditDefaultsOnly)
-	float MaxTraceDistance = 1000.f;
-	
-	UPROPERTY(EditDefaultsOnly)
-	float SkillWidth = 96.f;
-	UPROPERTY()
+	float SkillWidth;
 	float DecalDepth = 10.f;
-	
-	UPROPERTY(EditDefaultsOnly)
-	float VFXLength = 100.f;
-	UPROPERTY(EditDefaultsOnly)
-	float VFXWidth = 100.f;
+
+	float VFXLength;
+	float VFXWidth;
 
 	float CachedChargeDuration;
 	void SpawnVFX(float FinalLength);

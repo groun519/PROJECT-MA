@@ -76,8 +76,8 @@ float USkillBehavior_Charge::GetCurrentDamageMultiplier() const
 void USkillBehavior_Charge::InitFromData(const FSkillDefinitionDT& Data)
 {
 	Super::InitFromData(Data);
-	if (Data.ChargeData.MontageToPlay)	MontageToPlay = Data.ChargeData.MontageToPlay;
-	if (Data.ChargeData.VFXDataSet)		VFXDataSet = Data.ChargeData.VFXDataSet;
+	if (Data.ChargeData.MontageToPlay)			MontageToPlay = Data.ChargeData.MontageToPlay;
+	if (Data.ChargeData.VFXDataSet)				VFXDataSet = Data.ChargeData.VFXDataSet;
 	if (Data.ChargeData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeData.MaxChargeDuration;
 	if (Data.ChargeData.TimeoutDuration>0.f)	TimeoutDuration = Data.ChargeData.TimeoutDuration;
 	if (Data.ChargeData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeData.CooldownDuration;

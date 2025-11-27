@@ -73,11 +73,11 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 
 	
 	//속성 모듈 태그 결정
-	ActiveSkillElementTag = SkillData->ElementModuleTag;
+	ActiveElementTag = SkillData->ElementModuleTag;
 	FGameplayTagContainer AttributeFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
 	if (AttributeFilter.Num() > 0)
 	{
-		ActiveSkillElementTag = AttributeFilter.First();
+		ActiveElementTag = AttributeFilter.First();
 	}
 	
 	//유틸리티 모듈 태그 결정
@@ -146,13 +146,14 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 				PlayerCharacter->SetInputEnabledFromPlayerController(false);
 			}
 		}
-
 		if (ActiveUtilityModule)
-		{	//스킬 시전 즉시 발동할 모듈
+		{
+			//유틸리티 모듈 활성화
 			ActiveUtilityModule->OwningAbility = this;
 			ActiveUtilityModule->OnAbilityActivate();
 		}
-
+		
+		//행동 모듈 활성화
 		ActiveBehaviorModule->OnActivate();
 
 		UAnimMontage* MontageToPlay = ActiveBehaviorModule->MontageToPlay;
@@ -248,11 +249,14 @@ UDataTable* UMAGameplayAbility_SkillBase::GetElementDataTable() const
 /***********************************************************************************/
 const F_ElementInfoRow* UMAGameplayAbility_SkillBase::GetActiveElementInfoRow()
 {
+	if (!ActiveElementTag.IsValid())
+		return nullptr;
+	
 	const UDataTable* ElementDT = GetElementDataTable();
 	if (ElementDT)
 	{
 		TArray<FName> TagNames;
-		UGameplayTagsManager::Get().SplitGameplayTagFName(ActiveSkillElementTag,TagNames);
+		UGameplayTagsManager::Get().SplitGameplayTagFName(ActiveElementTag,TagNames);
 		FName LastName = TagNames.Last();
 		return ElementDT->FindRow<F_ElementInfoRow>(LastName,"");
 	}
