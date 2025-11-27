@@ -158,7 +158,24 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 	{
 		GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
+		ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+		if (!Monster) return;
+
+		FRotator MonsterRotation = Monster->GetActorRotation();
+        
+		FVector ForwardDirection = MonsterRotation.Vector();
+		FVector LeftDirection = MonsterRotation.Quaternion().GetAxisX();
+
+		FVector Impulse = -(ForwardDirection * 0.5f + LeftDirection * 0.5f) * 750.f;
+
+		FRotator AngleOffset(0.f, 15.f, 0.f);
+		Impulse = AngleOffset.RotateVector(Impulse);
+
+		Impulse.Z += 500.f;
+
 		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
-			Character->LaunchCharacter(ImpulseDirection + UpwardImpulse, true, true);
+		{
+			Character->LaunchCharacter(Impulse, true, true);
+		}
 	}
 }

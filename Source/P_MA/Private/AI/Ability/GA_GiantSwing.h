@@ -52,10 +52,4 @@ private:
 	
 	UPROPERTY()
 	ACharacter* GrabbedTarget = nullptr;
-
-	UPROPERTY(EditAnywhere, Category = "Impulse")
-	FVector ImpulseDirection = FVector(5000.f, 0.f, 0.f);  // 기본 값 설정 (앞쪽 방향으로 밀어내는 힘)
-
-	UPROPERTY(EditAnywhere, Category = "Impulse")
-	FVector UpwardImpulse = FVector(0.f, 0.f, 2000.f);
 };
