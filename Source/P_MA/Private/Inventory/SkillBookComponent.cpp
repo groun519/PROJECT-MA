@@ -51,8 +51,7 @@ void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, E
 {
 	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
 	if (!ASC || !SkillClass) return;
-
-	// 1. 해당 슬롯(InputID)에 이미 장착된 스킬이 있다면 제거
+	
 	if (EquippedSkills.Contains(SlotInputID))
 	{
 		FGameplayAbilitySpecHandle OldHandle = EquippedSkills[SlotInputID];
@@ -62,14 +61,14 @@ void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, E
 		}
 		EquippedSkills.Remove(SlotInputID);
 	}
-
-	// 2. 새 스킬 부여
+	
 	FGameplayAbilitySpec Spec(SkillClass, 1, static_cast<int32>(SlotInputID), GetOwner());
+	
 	FGameplayAbilitySpecHandle NewHandle = ASC->GiveAbility(Spec);
 
-	// 3. 추적용 맵에 저장
 	if (NewHandle.IsValid())
 	{
 		EquippedSkills.Add(SlotInputID, NewHandle);
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Equipped Skill [%s] to InputID [%d]"), *SkillClass->GetName(), (int32)SlotInputID);
 }

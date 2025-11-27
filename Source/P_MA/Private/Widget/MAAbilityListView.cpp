@@ -7,36 +7,27 @@
 
 void UMAAbilityListView::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& Abilities)
 {
-	OnEntryWidgetGenerated().AddUObject(this, &UMAAbilityListView::AbilityGaugeGenerated);
-	for (const TPair<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
+	ClearListItems();
+	
+	TArray<EMAAbilityInputID> TargetSlots = { 
+		EMAAbilityInputID::Skill1, 
+		EMAAbilityInputID::Skill2, 
+		EMAAbilityInputID::Skill3 
+	};
+
+	for (EMAAbilityInputID TargetInputID : TargetSlots)
 	{
-		AddItem(AbilityPair.Value.GetDefaultObject());
-	}
-}
+		UMAAbilitySlotDataObject* DataItem = NewObject<UMAAbilitySlotDataObject>(this);
+		DataItem->InputID = TargetInputID;
 
-void UMAAbilityListView::AbilityGaugeGenerated(UUserWidget& Widget)
-{
-	UMAAbilityGauge* AbilityGauge = Cast<UMAAbilityGauge>(&Widget);
-
-	if (AbilityGauge)
-	{
-		AbilityGauge->ConfigureWithWidgetData(FindWidgetDataForAbility(AbilityGauge->GetListItem<UGameplayAbility>()->GetClass()));
-	}
-}
-
-const FAbilityWidgetData* UMAAbilityListView::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
-{
-	if (!AbilityDataTable)
-		return nullptr;
-
-	for (auto& AbilityWidgetDataPair : AbilityDataTable->GetRowMap())
-	{
-		const FAbilityWidgetData* WidgetData = AbilityDataTable->FindRow<FAbilityWidgetData>(AbilityWidgetDataPair.Key, "");
-		if (WidgetData->AbilityClass == AbilityClass)
+		if (Abilities.Contains(TargetInputID))
 		{
-			return WidgetData;
+			DataItem->AbilityClass = Abilities[TargetInputID];
 		}
+		else
+		{
+			DataItem->AbilityClass = nullptr;
+		}
+		AddItem(DataItem);
 	}
-
-	return nullptr;
 }

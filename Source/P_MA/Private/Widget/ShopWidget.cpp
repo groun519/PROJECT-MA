@@ -1,48 +1,67 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Widget/ShopWidget.h"
-#include "Framework/MAAssetManager.h"
+#include "Widget/ShopCategoryWidget.h"
 #include "Widget/ShopItemWidget.h"
 #include "Inventory/InventoryComponent.h"
-#include "Components/TileView.h"
+#include "Components/ScrollBox.h"
+#include "Engine/DataTable.h"
+#include "Inventory/MAItemTypes.h"
 
 void UShopWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	SetIsFocusable(true);
-	LoadShopItems();
-	ShopItemList->OnEntryWidgetGenerated().AddUObject(this, &UShopWidget::ShopItemWidgetGenerated);
+
 	if (APawn* OwnerPawn = GetOwningPlayerPawn())
 	{
 		OwnerInventoryComponent = OwnerPawn->GetComponentByClass<UInventoryComponent>();
 	}
+
+	// 바로 로드 시도
+	LoadShopCategories();
 }
 
-void UShopWidget::LoadShopItems()
+void UShopWidget::InitShop(const TArray<UDataTable*>& InDataTables)
 {
-	UMAAssetManager::Get().LoadShopItems(FStreamableDelegate::CreateUObject(this, &UShopWidget::ShopItemLoadFinished));
+	ShopDataTables = InDataTables;
+	LoadShopCategories();
 }
 
-void UShopWidget::ShopItemLoadFinished()
+void UShopWidget::LoadShopCategories()
 {
-	TArray<const UPA_ShopItem*> ShopItems;
-	UMAAssetManager::Get().GetLoadedShopItems(ShopItems);
-	for (const UPA_ShopItem* ShopItem : ShopItems)
+	if (!CategoryContainer || !CategoryWidgetClass) return;
+
+	CategoryContainer->ClearChildren();
+
+	UE_LOG(LogTemp, Warning, TEXT("[ShopWidget] Creating Categories from %d Tables"), ShopDataTables.Num());
+	
+	for (UDataTable* Table : ShopDataTables)
 	{
-		ShopItemList->AddItem(const_cast<UPA_ShopItem*>(ShopItem));
+		if (!Table) continue;
+		
+		UShopCategoryWidget* NewCategory = CreateWidget<UShopCategoryWidget>(this, CategoryWidgetClass);
+		
+		if (NewCategory)
+		{
+			NewCategory->InitCategory(Table);
+			
+			NewCategory->OnCategoryPurchaseRequested.AddDynamic(this, &UShopWidget::OnPurchaseRequested);
+
+			CategoryContainer->AddChild(NewCategory);
+		}
 	}
 }
 
-void UShopWidget::ShopItemWidgetGenerated(UUserWidget& NewWidget)
+void UShopWidget::OnPurchaseRequested(const UShopItemDataObject* ItemDataObject)
 {
-	UShopItemWidget* ItemWidget = Cast<UShopItemWidget>(&NewWidget);
-	if (ItemWidget)
+	if (OwnerInventoryComponent && ItemDataObject && ItemDataObject->CachedItemData)
 	{
-		if (OwnerInventoryComponent)
+		if (ItemDataObject->CachedItemData->ItemType == EMAItemType::Skill)
 		{
-			ItemWidget->OnItemPurchaseIssued.AddUObject(OwnerInventoryComponent, &UInventoryComponent::TryPurchase);
+			OwnerInventoryComponent->TryPurchaseSkill(ItemDataObject->ItemRowName, ItemDataObject->SourceDataTable);
 		}
-		ItemsMap.Add(ItemWidget->GetShopItem(), ItemWidget);
+		else
+		{
+			OwnerInventoryComponent->TryPurchaseItem(ItemDataObject->ItemRowName, ItemDataObject->SourceDataTable);
+		}
 	}
 }

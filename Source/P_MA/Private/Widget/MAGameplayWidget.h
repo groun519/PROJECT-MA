@@ -23,32 +23,18 @@ public:
 	
 	void ToggleShop();
 	void ToggleSkillBook();
-	
-	void SetOwinigPawnInputEnabled(bool bPawnInputEnabled);
 protected:
-	// 체력바와 같은 기존 UI 요소 유지
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
-
-	// // 스킬 슬롯 위젯 클래스와 바인딩
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	// TSubclassOf<UMASkillSlotWidget> SkillSlotWidgetClass;
-	//
-	// UPROPERTY(meta = (BindWidget))
-	// UHorizontalBox* HorizontalBox_SkillSlots;
-	//
-	// // 패시브 슬롯 위젯 클래스와 바인딩
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	// TSubclassOf<UMAPassiveSlotWidget> PassiveSlotWidgetClass;
-	//
-	// UPROPERTY(meta = (BindWidget))
-	// UHorizontalBox* HorizontalBox_PassiveSlots;
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
 
 	UPROPERTY(Transient, meta=(BindWidgetAnim))
 	class UWidgetAnimation* ShopPopupAnimation;
+
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
+	class UWidgetAnimation* SkillBookPopupAnimation;
 
 	void PlayShopPopupAnimation(bool bPlayForward);
 
@@ -67,9 +53,7 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	class USkillBookWidget* SkillBookWidget;
 private:
-	// void CreateSkillSlots(int32 NumSlots);
-	// void CreatePassiveSlots(int32 NumSlots);
-	
+
 	UFUNCTION()
 	void OnShopButtonClicked();
 };

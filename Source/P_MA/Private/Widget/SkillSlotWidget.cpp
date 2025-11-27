@@ -2,16 +2,47 @@
 
 #include "Widget/SkillSlotWidget.h"
 #include "Components/Image.h"
-#include "Widget/SkillDragDropOperation.h" // 헤더 추가
-#include "Blueprint/WidgetBlueprintLibrary.h" // 헤더 추가
+#include "Engine/DataTable.h"
+#include "Widget/SkillDragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Inventory/MAItemTypes.h" // [필수]
 
 void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
 	SkillClass = NewSkillClass;
+	
+	const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
+
+	if (WidgetData && SkillIcon)
+	{
+		UTexture2D* Texture = WidgetData->Icon.LoadSynchronous();
+		if (Texture)
+		{
+			SkillIcon->SetBrushFromTexture(Texture);
+			SkillIcon->SetVisibility(ESlateVisibility::Visible);
+		}
+	}
+
 	OnSkillSet(NewSkillClass);
 }
 
-// [+++ 추가 +++] 좌클릭 시 드래그 감지 요청
+const FSkillItemData* USkillSlotWidget::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
+{
+	if (!AbilityDataTable) return nullptr;
+	
+	for (auto& RowPair : AbilityDataTable->GetRowMap())
+	{
+		const FSkillItemData* Data = reinterpret_cast<const FSkillItemData*>(RowPair.Value);
+		
+		if (Data && Data->GrantedAbility == AbilityClass)
+		{
+			return Data;
+		}
+	}
+	return nullptr;
+}
+
+
 FReply USkillSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
@@ -21,7 +52,6 @@ FReply USkillSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, co
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-// [+++ 추가 +++] 드래그 시작 시 오퍼레이션 생성
 void USkillSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation)
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
@@ -31,11 +61,9 @@ void USkillSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const F
 		USkillDragDropOperation* DragOp = NewObject<USkillDragDropOperation>();
 		DragOp->SkillClass = SkillClass;
 
-		if (DragVisualClass)
+		if (SkillIcon) 
 		{
-			UUserWidget* DragVisual = CreateWidget<UUserWidget>(GetWorld(), DragVisualClass);
-			// 필요하다면 여기서 DragVisual에 아이콘 등을 세팅 (ex: DragVisual->SetIcon(...))
-			DragOp->DefaultDragVisual = DragVisual;
+			DragOp->DefaultDragVisual = this;
 			DragOp->Pivot = EDragPivot::CenterCenter;
 		}
 

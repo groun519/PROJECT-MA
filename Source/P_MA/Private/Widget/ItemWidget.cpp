@@ -4,6 +4,7 @@
 #include "Widget/ItemWidget.h"
 #include "Widget/ItemToolTip.h"
 #include "Components/Image.h"
+#include "Inventory/MAItemTypes.h"
 
 void UItemWidget::NativeConstruct()
 {
@@ -63,9 +64,9 @@ void UItemWidget::LeftButtonClicked()
 	UE_LOG(LogTemp, Warning, TEXT("Left mouse button clicked"));
 }
 
-UItemToolTip* UItemWidget::SetToolTipWidget(const UPA_ShopItem* Item)
+UItemToolTip* UItemWidget::SetToolTipWidget(const FBaseItemData* ItemData)
 {
-	if (!Item)
+	if (!ItemData)
 		return nullptr;
 
 	if (GetOwningPlayer() && ItemToolTipClass)
@@ -73,7 +74,7 @@ UItemToolTip* UItemWidget::SetToolTipWidget(const UPA_ShopItem* Item)
 		UItemToolTip* ToolTip = CreateWidget<UItemToolTip>(GetOwningPlayer(), ItemToolTipClass);
 		if (ToolTip)
 		{
-			ToolTip->SetItem(Item);
+			ToolTip->SetItemData(ItemData);
 			SetToolTip(ToolTip);
 		}
 

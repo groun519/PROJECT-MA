@@ -7,7 +7,7 @@
 #include "ItemWidget.generated.h"
 
 class UItemToolTip;
-class UPA_ShopItem;
+struct FBaseItemData;
 
 /**
  * 
@@ -21,7 +21,7 @@ public:
 	virtual void SetIcon(UTexture2D* IconTexture);
 
 protected:
-	UItemToolTip* SetToolTipWidget(const UPA_ShopItem* Item);
+	UItemToolTip* SetToolTipWidget(const FBaseItemData* ItemData);
 	class UImage* GetItemIcon() const { return ItemIcon; }
 private:
 	UPROPERTY(meta=(BindWidget))

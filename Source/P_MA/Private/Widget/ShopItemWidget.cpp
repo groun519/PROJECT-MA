@@ -1,29 +1,34 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Widget/ShopItemWidget.h"
-#include "Inventory/PA_ShopItem.h"
-
+#include "Components/Image.h" 
 
 void UShopItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
-	ShopItem = Cast<UPA_ShopItem>(ListItemObject);
+	ItemDataObject = Cast<UShopItemDataObject>(ListItemObject);
 	
-	if (!ShopItem)
+	if (!ItemDataObject || !ItemDataObject->CachedItemData)
 	{
 		return;
 	}
-
-	SetIcon(ShopItem->GetIcon());
-	SetToolTipWidget(ShopItem);
+	
+	if (UTexture2D* IconTexture = ItemDataObject->CachedItemData->Icon.LoadSynchronous())
+	{
+		SetIcon(IconTexture);
+	}
+	
+	SetToolTipWidget(ItemDataObject->CachedItemData);
 }
 
 void UShopItemWidget::RightButtonClicked()
 {
-	OnItemPurchaseIssued.Broadcast(GetShopItem());
+	if (ItemDataObject)
+	{
+		OnItemPurchaseIssued.Broadcast(ItemDataObject);
+	}
 }
 
 void UShopItemWidget::LeftButtonClicked()
 {
-	OnShopItemClicked.Broadcast(this);
+	
 }

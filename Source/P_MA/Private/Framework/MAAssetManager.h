@@ -3,7 +3,6 @@
 
 #include "CoreMinimal.h"
 #include "Engine/AssetManager.h"
-#include "Inventory/PA_ShopItem.h"
 #include "MAAssetManager.generated.h"
 
 /**
@@ -15,17 +14,7 @@ class UMAAssetManager : public UAssetManager
 	GENERATED_BODY()
 public:
 	static UMAAssetManager& Get();
-	void LoadShopItems(const FStreamableDelegate& LoadFinishedCallback);
-	bool GetLoadedShopItems(TArray<const UPA_ShopItem*>& OutItems) const;
-	const FItemCollection* GetCombinationForItem(const UPA_ShopItem* Item) const;
-	const FItemCollection* GetIngredientForItem(const UPA_ShopItem* Item) const;
-private:
-	void ShopItemLoadFinished(FStreamableDelegate Callback);
-	void BuildItemMaps();
-	void AddToCombinationMap(const UPA_ShopItem* Ingredient, const UPA_ShopItem* CombinationItem);
 
-	UPROPERTY()
-	TMap<const UPA_ShopItem*, FItemCollection> CombinationMap;
-	UPROPERTY()
-	TMap<const UPA_ShopItem*, FItemCollection> IngredientMap;
+	// 나중에 데이터 테이블 비동기 로드 등이 필요하면 여기에 추가
+	virtual void StartInitialLoading() override;
 };

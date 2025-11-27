@@ -3,33 +3,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ActiveGameplayEffectHandle.h"
-#include "GameplayEffect.h"
 #include "Blueprint/UserWidget.h"
-#include "Blueprint/IUserObjectListEntry.h" 
+#include "GAS/MAGameplayAbilityTypes.h" 
+#include "Engine/DataTable.h"
+#include "Widget/MAAbilityListView.h"
+#include "Blueprint/IUserObjectListEntry.h"
+#include "Inventory/MAItemTypes.h" // [필수] 새로운 구조체 사용
 #include "MAAbilityGauge.generated.h"
 
-/**
- * 
- */
+class UGameplayAbility;
+class UImage;
+class UTextBlock;
 
+// [삭제] FAbilityWidgetData 구조체는 이제 MAItemTypes.h의 FSkillItemData로 대체됩니다.
+/*
 USTRUCT(BlueprintType)
 struct FAbilityWidgetData : public FTableRowBase
 {
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<class UGameplayAbility> AbilityClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName AbilityName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSoftObjectPtr<UTexture2D> Icon;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText Description;
+   ...
 };
+*/
 
 UCLASS()
 class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
@@ -39,8 +32,22 @@ class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
 public:
 	virtual void NativeConstruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-	void ConfigureWithWidgetData(const FAbilityWidgetData* WidgetData);
-	
+    
+	void UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass);
+    
+	// [변경] 반환 타입 수정: FAbilityWidgetData -> FSkillItemData
+	const struct FSkillItemData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
+
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
+	EMAAbilityInputID AssignedInputID;
+    
+	UPROPERTY(EditDefaultsOnly, Category = "Data")
+	class UDataTable* AbilityDataTable; // 여기에 DT_Skills를 넣게 됩니다.
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Cooldown")
 	float CooldownUpdateInterval = 0.02f;
@@ -62,20 +69,21 @@ private:
 
 	UPROPERTY(meta=(BindWidget))
 	class UTextBlock* CostText;
-
+    
 	UPROPERTY()
 	class UGameplayAbility* AbilityCDO;
-
-	//우리 프로젝트에서 사용할 수 없는 구조
-	//void AbilityCommitted(UGameplayAbility* Ability);
 
 	FGameplayTag SharedCooldownTag;
 	TWeakObjectPtr<class UAbilitySystemComponent> OwnerASC;
 
 	UFUNCTION()
 	void OnCooldownTagChanged(const FGameplayTag CooldownTag, int32 NewCount);
-	
+    
 	void StartCooldown(float CooldownTimeRemaining, float CooldownDuration);
+	void CooldownFinished();
+	void UpdateCooldown();
+    
+	void InitializeAbility(TSubclassOf<UGameplayAbility> NewAbilityClass);
 
 	float CachedCooldownDuration;
 	float CachedCooldownTimeRemaining;
@@ -85,8 +93,4 @@ private:
 
 	FNumberFormattingOptions WholeNumberFormattionOptions;
 	FNumberFormattingOptions TwoDigitNumberFormattingOptions;
-
-	void CooldownFinished();
-	void UpdateCooldown();
-	
 };

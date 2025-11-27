@@ -5,14 +5,24 @@
 #include "Inventory/InventoryItem.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
-#include "Inventory/PA_ShopItem.h"
 #include "Widget/InventoryItemDragDropOp.h"
 #include "Widget/ItemToolTip.h"
+#include "Inventory/MAItemTypes.h"     
+#include "Widget/MAInventoryListView.h" 
 
 void UInventoryItemWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	EmptySlot();
+}
+
+void UInventoryItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
+{
+	UMAInventorySlotDataObject* DataObj = Cast<UMAInventorySlotDataObject>(ListItemObject);
+	if (DataObj)
+	{
+		UpdateInventoryItem(DataObj->InventoryItemInstance);
+	}
 }
 
 bool UInventoryItemWidget::IsEmpty() const
@@ -30,20 +40,31 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 	UnBindCanCastAbilityDelegate();
 	
 	InventoryItem = Item;
+	
 	if (!InventoryItem || !InventoryItem->IsValid() || InventoryItem->GetStackCount() <= 0)
 	{
 		EmptySlot();
 		return;
 	}
 	
-	SetIcon(Item->GetShopItem()->GetIcon());
-	UItemToolTip* ToolTip = SetToolTipWidget(InventoryItem->GetShopItem());
-	if (ToolTip)
+	SetIcon(InventoryItem->GetIcon());
+	
+	if (const FBaseItemData* BaseData = InventoryItem->GetBaseData())
 	{
-		ToolTip->SetPrice(InventoryItem->GetShopItem()->GetSellPrice());
+		SetToolTipWidget(BaseData); 
 	}
-
-	if (InventoryItem->GetShopItem()->GetIsStackable())
+	
+	if (InventoryItem->IsStackable())
+	{
+		StackCountText->SetVisibility(ESlateVisibility::Visible);
+		UpdateStackCount();
+	}
+	else
+	{
+		StackCountText->SetVisibility(ESlateVisibility::Hidden);
+	}
+	
+	if (InventoryItem->IsStackable())
 	{
 		StackCountText->SetVisibility(ESlateVisibility::Visible);
 		UpdateStackCount();
@@ -54,7 +75,7 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 	}
 
 	ClearCooldown();
-
+	
 	if (InventoryItem->IsGrantingAnyAbility())
 	{
 		UpdateCanCastDisplay(InventoryItem->CanCastAbility());
@@ -66,7 +87,6 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 			StartCooldown(AbilityCooldownDuration, AbilityCooldownRemaining);
 		}
 		
-
 		CooldownDurationText->SetVisibility(AbilityCooldownDuration == 0.f? ESlateVisibility::Hidden : ESlateVisibility::Visible);
 		CooldownDurationText->SetText(FText::AsNumber(AbilityCooldownDuration));
 		BindCanCastAbilityDelegate();
@@ -77,7 +97,6 @@ void UInventoryItemWidget::UpdateInventoryItem(const UInventoryItem* Item)
 		CooldownDurationText->SetVisibility(ESlateVisibility::Hidden);
 		CooldownCountText->SetVisibility(ESlateVisibility::Hidden);
 	}
-	
 }
 
 void UInventoryItemWidget::EmptySlot()
@@ -103,9 +122,10 @@ void UInventoryItemWidget::UpdateStackCount()
 
 UTexture2D* UInventoryItemWidget::GetIconTexture() const
 {
-	if (InventoryItem && InventoryItem->GetShopItem())
+	// [변경] 헬퍼 함수 사용
+	if (InventoryItem)
 	{
-		return InventoryItem->GetShopItem()->GetIcon();
+		return InventoryItem->GetIcon();
 	}
 
 	return nullptr;
@@ -113,9 +133,11 @@ UTexture2D* UInventoryItemWidget::GetIconTexture() const
 
 void UInventoryItemWidget::UpdateCanCastDisplay(bool bCanCast)
 {
-	GetItemIcon()->GetDynamicMaterial()->SetScalarParameterValue(CanCastDynamicMaterialParamName, bCanCast ? 1.f : 0.f);
+	if (GetItemIcon())
+	{
+		GetItemIcon()->GetDynamicMaterial()->SetScalarParameterValue(CanCastDynamicMaterialParamName, bCanCast ? 1.f : 0.f);
+	}
 }
-
 
 FInventoryItemHandle UInventoryItemWidget::GetItemHandle() const
 {

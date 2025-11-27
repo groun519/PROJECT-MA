@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
+#include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Net/UnrealNetwork.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
@@ -75,6 +76,22 @@ void AMAPlayerController::SpawnGameplayWidget()
 /** 여기에는 강의에는 없는 별도 코드입니다 **/
 void AMAPlayerController::CheckMouseCursorShape()
 {
+	// [수정] UI가 켜져서 마우스가 보일 때는, 무조건 '기본 화살표'로 고정해야 합니다.
+	if (bShowMouseCursor)
+	{
+		// 현재 커서가 기본이 아니라면(크로스헤어 등), 기본으로 돌려놓고 함수 종료
+		if (CurrentMouseCursor != EMouseCursor::Default)
+		{
+			CurrentMouseCursor = EMouseCursor::Default;
+            
+			// 커서 상태 기록용 변수도 초기화 (기존 코드 스타일에 맞춤)
+			bOnMouseCursorRecord = false; 
+		}
+		return;
+	}
+
+	// --- 아래는 기존 로직 그대로 유지 ---
+
 	FHitResult mouseHitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, mouseHitResult);
 
@@ -92,7 +109,6 @@ void AMAPlayerController::CheckMouseCursorShape()
 			return;
 		}
 
-		// 다른 액터지만 몬스터가 아닐 때 → 기본 커서로
 		if (bOnMouseCursorRecord)
 		{
 			bOnMouseCursorRecord = false;
@@ -101,7 +117,6 @@ void AMAPlayerController::CheckMouseCursorShape()
 	}
 	else
 	{
-		// 아무 것도 안 맞았을 때도 기본 커서로 돌려주기
 		if (bOnMouseCursorRecord)
 		{
 			bOnMouseCursorRecord = false;
@@ -125,6 +140,7 @@ void AMAPlayerController::SetupInputComponent()
 	if (EnhancedInputComp)
 	{
 		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
+		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 	}
 }
 
@@ -137,9 +153,27 @@ void AMAPlayerController::ToggleShop()
 }
 
 void AMAPlayerController::ToggleSkillBook()
-{	
-	if(GameplayWidget)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
+
+	if (!GameplayWidget)
 	{
-		GameplayWidget->ToggleSkillBook(); // (MAGameplayWidget에 이 함수 만들어뒀었죠?)
+		UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
+	
+	GameplayWidget->ToggleSkillBook();
+	
+	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
+	{
+		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
+		FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
+		UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
 	}
 }

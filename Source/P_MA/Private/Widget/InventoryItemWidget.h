@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Widget/ItemWidget.h"
 #include "Inventory/InventoryItem.h"
+#include "Blueprint/IUserObjectListEntry.h" // [필수] 리스트 뷰 인터페이스
+#include "Widget/MAInventoryListView.h"     // [필수] 데이터 객체 인식
 #include "InventoryItemWidget.generated.h"
 
 class UInventoryItem;
@@ -12,21 +14,30 @@ class UInventoryItemWidget;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemDropped, UInventoryItemWidget* /*DestionationWidget*/, UInventoryItemWidget* /*SourceWidget*/);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnButtonClick, const FInventoryItemHandle& /*ItemHandle*/);
+
 /**
- * 
+ * 인벤토리 슬롯 위젯
  */
 UCLASS()
-class UInventoryItemWidget : public UItemWidget
+class UInventoryItemWidget : public UItemWidget, public IUserObjectListEntry
 {
 	GENERATED_BODY()
+
 public:
+	virtual void NativeConstruct() override;
+
+	// [+++ 추가] 리스트 뷰 인터페이스 구현 (이게 없어서 에러가 났습니다)
+	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
+
+	// [+++ 추가] 아이템 업데이트 함수
+	void UpdateInventoryItem(const UInventoryItem* Item);
+
 	FOnInventoryItemDropped OnInventoryItemDropped;
 	FOnButtonClick OnLeftBttonClicked;
 	FOnButtonClick OnRightBttonClicked;
-	virtual void NativeConstruct() override;
+	
 	bool IsEmpty() const;
 	void SetSlotNumber(int NewSlotNumber);
-	void UpdateInventoryItem(const UInventoryItem* Item);
 	void EmptySlot();
 	FORCEINLINE int GetSlotNumber() const { return SlotNumber; }
 	void UpdateStackCount();
@@ -36,7 +47,6 @@ public:
 	FInventoryItemHandle GetItemHandle() const;
 
 private:
-
 	void UpdateCanCastDisplay(bool bCanCast);
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Visual")
@@ -58,8 +68,9 @@ private:
 
 	virtual void RightButtonClicked() override;
 	virtual void LeftButtonClicked() override;
+
 	/******************************************/
-	/*           Drag Drop                    */
+	/* Drag Drop                    */
 	/******************************************/
 private:
 	virtual void NativeOnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation ) override;
@@ -69,7 +80,7 @@ private:
 	TSubclassOf<class UInventoryItemDragDropOp> DragDropOpClass;
 
 	/******************************************/
-	/*            GAS                         */
+	/* GAS                         */
 	/******************************************/
 
 public:
