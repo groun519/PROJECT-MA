@@ -15,10 +15,15 @@ ASplineSector::ASplineSector()
     {
         PCGExtentBox->SetStaticMesh(CubeMesh.Object);
     }
+    
+    PCGExtentBox->SetWorldScale3D(FVector(63.f));
+    PCGExtentBox->SetCollisionResponseToAllChannels(ECR_Ignore);
     PCGExtentBox->SetVisibility(false);
     PCGExtentBox->SetGenerateOverlapEvents(false);
-    PCGExtentBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
+    PCGExtentBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    PCGExtentBox->SetCollisionObjectType(ECC_WorldStatic);
+    PCGExtentBox->CanCharacterStepUpOn = ECB_No;
+    
     /** Spline **/
     RoadSpline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
     RoadSpline->SetupAttachment(RootComponent);
@@ -39,6 +44,7 @@ ASplineSector::ASplineSector()
     PCGComponent = CreateDefaultSubobject<UPCGComponent>(TEXT("PCGComponent"));
     PCGComponent->InputType = EPCGComponentInput::Actor;
     PCGComponent->bParseActorComponents = true;
+    PCGComponent->SetIsPartitioned(false);
 }
 
 void ASplineSector::BeginPlay()
@@ -118,7 +124,6 @@ void ASplineSector::SetRandomSeed(int32 MaxValue)
 
 FVector ASplineSector::GetSectorBound()
 {
+    if (!PCGExtentBox || !PCGExtentBox->GetStaticMesh()) return  FVector::ZeroVector;
     return PCGExtentBox->GetStaticMesh()->GetBounds().BoxExtent;
 }
-
-
