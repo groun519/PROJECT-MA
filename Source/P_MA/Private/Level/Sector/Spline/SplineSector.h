@@ -16,7 +16,7 @@ class P_MA_API ASplineSector : public AActor
 	
 protected:
 	virtual void BeginPlay() override;
-	void OnConstruction(const FTransform& Transform) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	ASplineSector();
@@ -33,13 +33,13 @@ public:
 	
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<USplineComponent> Spline;
+	TObjectPtr<USplineComponent> RoadSpline;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SplineNum = 7;
+	int32 SplineNum = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SplineOffset = 7.f;
+	float SplineOffset = 12.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bRandomAtSpawn = false;

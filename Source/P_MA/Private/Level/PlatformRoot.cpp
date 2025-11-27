@@ -38,7 +38,7 @@ void APlatformRoot::Tick(float DeltaTime)
 
 	if (Manager->Sectors.Num() == 0) return;
 
-	USplineComponent* CurSpline = Manager->Sectors[CurSector]->Spline;
+	USplineComponent* CurSpline = Manager->Sectors[CurSector]->RoadSpline;
 	float Len = CurSpline->GetSplineLength();
 
 	Distance += MoveSpeed * DeltaTime;
@@ -57,7 +57,7 @@ void APlatformRoot::Tick(float DeltaTime)
 		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
 		Manager->Sectors[NewSectorIndex]->SetRandomSeed();
 		
-		CurSpline = Manager->Sectors[CurSector]->Spline;
+		CurSpline = Manager->Sectors[CurSector]->RoadSpline;
 	}
 
 	FVector Loc = CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);

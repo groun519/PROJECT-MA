@@ -15,10 +15,14 @@ ASplineSector::ASplineSector()
     {
         PCGExtentBox->SetStaticMesh(CubeMesh.Object);
     }
+    PCGExtentBox->SetVisibility(false);
+    PCGExtentBox->SetGenerateOverlapEvents(false);
+    PCGExtentBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     /** Spline **/
-    Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
-    Spline->SetupAttachment(RootComponent);
+    RoadSpline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
+    RoadSpline->SetupAttachment(RootComponent);
+    RoadSpline->ComponentTags.Add(FName("Road"));
 
     /** Arrow **/
     Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
@@ -49,14 +53,13 @@ void ASplineSector::UpdatePCGComponent()
     if (PCGComponent && PCGComponent->GetGraph())
     {
         PCGComponent->Seed = SectorSeed;
-		UE_LOG(LogTemp, Warning, TEXT("PCG Sector Seed Updated!: %d"), SectorSeed);
         PCGComponent->Generate(true);
     }
 }
 
 void ASplineSector::UpdateSeed()
 {
-    if (Spline)
+    if (RoadSpline)
     {
         FVector StartPoint =
             FVector(
@@ -68,8 +71,8 @@ void ASplineSector::UpdateSeed()
                 GetSectorBound().X,0.f,GetSectorBound().Z
                 );
 
-        Spline->ClearSplinePoints(false);
-        Spline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
+        RoadSpline->ClearSplinePoints(false);
+        RoadSpline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
         
         FRandomStream Stream(SectorSeed);
         
@@ -77,15 +80,15 @@ void ASplineSector::UpdateSeed()
         {
             float RandYBySplineSeed = Stream.FRandRange(-SplineOffset, SplineOffset);
             FVector Point = StartPoint + FVector(GetSectorBound().X * 2.f / SplineNum * i, RandYBySplineSeed, 0.f);
-            Spline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
+            RoadSpline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
         }
 
-        Spline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
+        RoadSpline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
 
-        Spline->ScaleVisualizationWidth = SplineWidth;
-        int32 LastIndex = Spline->GetNumberOfSplinePoints() - 1;
-        Spline->SetTangentAtSplinePoint(LastIndex, FVector(1,0,0), ESplineCoordinateSpace::Local);
-        Spline->SetTangentAtSplinePoint(0, FVector(1,0,0), ESplineCoordinateSpace::Local);
+        RoadSpline->ScaleVisualizationWidth = SplineWidth;
+        int32 LastIndex = RoadSpline->GetNumberOfSplinePoints() - 1;
+        RoadSpline->SetTangentAtSplinePoint(LastIndex, FVector(1,0,0), ESplineCoordinateSpace::Local);
+        RoadSpline->SetTangentAtSplinePoint(0, FVector(1,0,0), ESplineCoordinateSpace::Local);
     }
 }
 
