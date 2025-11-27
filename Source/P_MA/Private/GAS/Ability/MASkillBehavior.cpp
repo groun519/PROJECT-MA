@@ -43,6 +43,10 @@ float UMASkillBehavior::GetCurrentDamageMultiplier() const
 	return BehaviorDamageMultiplier;
 }
 
+void UMASkillBehavior::InitFromData(const FSkillDefinitionDT& Data)
+{
+}
+
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 {
 	FGameplayAbilityActivationInfo ActivationInfo = OwningAbility->GetCurrentActivationInfo();

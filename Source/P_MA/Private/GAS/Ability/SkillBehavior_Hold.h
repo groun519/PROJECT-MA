@@ -20,10 +20,13 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 
+protected:
+	bool bCanMoveWhileHolding = false;
+	
+	float MaxHoldDuration;
 private:
-	UPROPERTY(EditDefaultsOnly)
-	float MaxHoldDuration = 3.0f;
 	
 	bool bIsHoldEnd = false;
 	FTimerHandle ChargeUpdateTimerHandle;

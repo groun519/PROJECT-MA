@@ -61,6 +61,25 @@ void UMovementBehavior_Jump::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void UMovementBehavior_Jump::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+
+	MontageToPlay = Data.JumpData.MontageToPlay;
+	TargetActorClass=Data.JumpData.TargetActorClass;
+	VFXDataSet=Data.JumpData.VFXDataSet;
+	
+	if (Data.JumpData.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.JumpData.DamageMultiplier;
+	if (Data.JumpData.CooldownDuration>0.f)		CooldownDuration = Data.JumpData.CooldownDuration;
+	
+	if (Data.JumpData.MaxJumpDistance>0.f)		MaxJumpDistance = Data.JumpData.MaxJumpDistance;
+	if (Data.JumpData.MinJumpDistance>0.f)		MinJumpDistance = Data.JumpData.MinJumpDistance;
+	if (Data.JumpData.MaxJumpForce>0.f)			MaxJumpForce = Data.JumpData.MaxJumpForce;
+	if (Data.JumpData.MinJumpForce>0.f)			MinJumpForce = Data.JumpData.MinJumpForce;
+	if (Data.JumpData.VerticalLaunchForce>0.f)	VerticalLaunchForce = Data.JumpData.VerticalLaunchForce;
+	if (Data.JumpData.SlamForce>0.f)			SlamForce = Data.JumpData.SlamForce;
+}
+
 void UMovementBehavior_Jump::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	if (!Character)

@@ -25,6 +25,7 @@ public:
 	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementDataTable;}
+	FORCEINLINE const UDataTable* GetSkillDefinitionTable() const {return SkillDefinitionTable;}
 
 	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag, UObject* Outer) const;
 
@@ -51,4 +52,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Element")
 	TObjectPtr<UDataTable> ElementDataTable;
+
+	UPROPERTY(EditDefaultsOnly, Category="Skill Behavior Module")
+	TObjectPtr<UDataTable> SkillDefinitionTable;
 };

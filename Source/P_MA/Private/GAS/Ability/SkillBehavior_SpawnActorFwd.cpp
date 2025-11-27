@@ -36,13 +36,33 @@ void USkillBehavior_SpawnActorFwd::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void USkillBehavior_SpawnActorFwd::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.SpawnAtFwdData.MontageToPlay)			MontageToPlay = Data.SpawnAtFwdData.MontageToPlay;
+
+	if (Data.SpawnAtFwdData.DefaultProjectile)		DefaultProjectile=Data.SpawnAtFwdData.DefaultProjectile;
+	ElementalProjectiles=Data.SpawnAtFwdData.ElementalProjectiles;
+
+	if (Data.SpawnAtFwdData.ProjectileSpeed>0.f)	ProjectileSpeed=Data.SpawnAtFwdData.ProjectileSpeed;
+	if (Data.SpawnAtFwdData.MaxDistance>0.f)		ProjectileMaxDist=Data.SpawnAtFwdData.MaxDistance;
+	if (Data.SpawnAtFwdData.ExplodeRadius>0.f)		ExplodeRadius=Data.SpawnAtFwdData.ExplodeRadius;
+	if (Data.SpawnAtFwdData.SpawnDelay>0.f)			SpawnDelay=Data.SpawnAtFwdData.SpawnDelay;
+	if (Data.SpawnAtFwdData.ProjectileCount>0)		ProjectileCount=Data.SpawnAtFwdData.ProjectileCount;
+
+	if (Data.SpawnAtFwdData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.SpawnAtFwdData.DamageMultiplier;
+	if (Data.SpawnAtFwdData.CooldownDuration>0.f)	CooldownDuration = Data.SpawnAtFwdData.CooldownDuration;
+	
+	MuzzleSocketName = Data.SpawnAtFwdData.MuzzleSocketName;
+}
+
 
 void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData EventData)
 {
 	if (OwningAbility->K2_HasAuthority())
 	{
-		TSubclassOf<AMAProjectile_OverlapAOE> FinalSpawnProjectile = DefaultProjectile;
-		
+		//속성별 투사체 설정
+		ProjectileToSpawn = DefaultProjectile;
 		FGameplayTag ElementTag = OwningAbility->GetSkillElementTag();
 		if (ElementTag.IsValid())
 		{
@@ -50,14 +70,11 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 			UGameplayTagsManager::Get().SplitGameplayTagFName(ElementTag, TagNames);
 			FName AttributeName = TagNames.Last();
 
-			const TSubclassOf<AMAProjectile_OverlapAOE>* OverrideProjectile = ProjectileClasses.Find(AttributeName);
-			if (OverrideProjectile && *OverrideProjectile)
+			if (ElementalProjectiles.FindRef(AttributeName))
 			{
-				FinalSpawnProjectile = *OverrideProjectile;
+				ProjectileToSpawn = ElementalProjectiles.FindRef(AttributeName);
 			}
 		}
-		if (!FinalSpawnProjectile)
-			return;
 		
 		AActor* OwnerAvatarActor = OwningAbility->GetAvatarActorFromActorInfo();
 		FActorSpawnParameters SpawnParams;
@@ -65,14 +82,15 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 		SpawnParams.Instigator = Cast<APawn>(OwnerAvatarActor);
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		
-		const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
 		FGameplayEffectSpecHandle SpecHandle = OwningAbility->MakeOutgoingGameplayEffectSpec(OwningAbility->GetBaseDamageEffect());
+
 		//유틸리티 데미지 배율
 		if (OwningAbility->GetActiveUtilityModule())
 		{
 			OwningAbility->GetActiveUtilityModule()->ModifyDamageEffectSpec(SpecHandle);
 		}
 		//속성 데미지 배율
+		const F_ElementInfoRow* ElementInfoRow = OwningAbility->GetActiveElementInfoRow();
 		if (ElementInfoRow && ElementInfoRow->ElementalDamageMultiplier != 1.f)
 		{
 			SpecHandle.Data->SetSetByCallerMagnitude(
@@ -95,16 +113,14 @@ void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData 
 			MuzzleLocation = Mesh->GetSocketTransform(MuzzleSocketName).GetLocation();
 		}
 
-		AMAProjectile_OverlapAOE* OverlapProjectile = GetWorld()->SpawnActor<AMAProjectile_OverlapAOE>(
-			FinalSpawnProjectile,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
+		AMAProjectile_OverlapAOE* OverlapProjectile = GetWorld()->SpawnActor<AMAProjectile_OverlapAOE>(ProjectileToSpawn,MuzzleLocation, OwnerAvatarActor->GetActorRotation(), SpawnParams);
 		if (OverlapProjectile)
 		{
 			if (ElementInfoRow->ElementEffect)
-			{
+			{	//속성 추가 효과 적용
 				OverlapProjectile->AdditionalEffect = ElementInfoRow->ElementEffect;
 			}
-			OverlapProjectile->ShootProjectile(ProjectileSpeed, ProjectileMaxDist, ExplodeRadius,
-				OwningAbility->GetOwnerTeamId(),SpecHandle);
+			OverlapProjectile->ShootProjectile(ProjectileSpeed, ProjectileMaxDist, ExplodeRadius,OwningAbility->GetOwnerTeamId(),SpecHandle);
 		}
 	}
 }

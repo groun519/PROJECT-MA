@@ -21,7 +21,7 @@ public:
 	virtual void ShootProjectile(float InSpeed, float InMaxDist, float InExplodeRange,
 		FGenericTeamId InTeamId, FGameplayEffectSpecHandle InHitEffectHandle) override;
 
-private:
+protected:
 	void DamageAndCue();
 	void TravelMaxDistanceReached();
 };

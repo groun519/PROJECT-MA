@@ -21,6 +21,7 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> WaitInputRelease;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;

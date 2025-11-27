@@ -23,6 +23,7 @@ class USkillBehavior_SpawnActorFwd : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> ProjectileEventTask;
@@ -33,21 +34,17 @@ protected:
 	void OnProjectileEventReceived(FGameplayEventData EventData);
 
 private:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class AMAProjectile_OverlapAOE> DefaultProjectile;
-	UPROPERTY(EditDefaultsOnly)
-	TMap<FName, TSubclassOf<class AMAProjectile_OverlapAOE>> ProjectileClasses;
+	UPROPERTY()
+	TSubclassOf<AMAProjectile_OverlapAOE> DefaultProjectile;
+	UPROPERTY()
+	TMap<FName, TSubclassOf<AMAProjectile_OverlapAOE>> ElementalProjectiles;
+	UPROPERTY()
+	TSubclassOf<AMAProjectile_OverlapAOE> ProjectileToSpawn;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float ProjectileSpeed = 700.f;
-	UPROPERTY(EditDefaultsOnly)
-	float ProjectileMaxDist = 3000.f;
-	UPROPERTY(EditDefaultsOnly)
-	float ExplodeRadius = 200.f;
-	
-	UPROPERTY(EditDefaultsOnly)
+	float ProjectileSpeed;
+	float ProjectileMaxDist;
+	float ExplodeRadius;
+	float SpawnDelay;
+	int32 ProjectileCount;
 	FName MuzzleSocketName;
-
-	UPROPERTY(EditDefaultsOnly)
-	float AbilitySize = 300.f;
 };

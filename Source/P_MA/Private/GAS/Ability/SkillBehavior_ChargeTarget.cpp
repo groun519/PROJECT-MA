@@ -22,7 +22,7 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 
 	CachedChargeDuration=0.f;
 	PressedTime = GetWorld()->GetTimeSeconds();
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 
 	if (MaxDistanceActorClass)
 	{
@@ -43,7 +43,7 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 	TargetActor = Cast<AMATargetActor_ChargeAtTarget>(TA);
 	if (TargetActor)
 	{
-		TargetActor->Initialize(MaxDistance,MaxSize,MinSize,MaxHoldDuration);
+		TargetActor->Initialize(MaxDistance,MaxSize,MinSize,MaxChargeDuration);
 	}
 	WaitTargetData->FinishSpawningActor(OwningAbility, TA);
 
@@ -72,10 +72,29 @@ float USkillBehavior_ChargeTarget::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
+void USkillBehavior_ChargeTarget::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	MontageToPlay = Data.ChargeTargetData.MontageToPlay;
+	VFXDataSet = Data.ChargeTargetData.VFXDataSet;
+	
+	if (Data.ChargeTargetData.RangeActorClass)		MaxDistanceActorClass = Data.ChargeTargetData.RangeActorClass;
+	if (Data.ChargeTargetData.TargetActorClass)		TargetActorClass = Data.ChargeTargetData.TargetActorClass;
+	
+	if (Data.ChargeTargetData.CooldownDuration>0.f)		CooldownDuration = Data.ChargeTargetData.CooldownDuration;
+	if (Data.ChargeTargetData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeTargetData.MaxChargeDuration;
+	if (Data.ChargeTargetData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeTargetData.TimeoutDuration;
+	
+	if (Data.ChargeTargetData.MaxDistance>0.f)		MaxDistance = Data.ChargeTargetData.MaxDistance;
+	if (Data.ChargeTargetData.MinRadius>0.f)		MinSize = Data.ChargeTargetData.MinRadius;
+	if (Data.ChargeTargetData.MaxRadius>0.f)		MaxSize = Data.ChargeTargetData.MaxRadius;
+	if (Data.ChargeTargetData.DefaultVFXRadius>0.f)	VFXRadius = Data.ChargeTargetData.DefaultVFXRadius;
+}
+
 void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 
 	if (HeldTime <= 0.2f) 
 	{
@@ -99,7 +118,7 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		}
 	}
 	
-	float ChargeRatio = FMath::Clamp(HeldTime / MaxHoldDuration, 0.f, 1.f);
+	float ChargeRatio = FMath::Clamp(HeldTime / MaxChargeDuration, 0.f, 1.f);
 	float FinalSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
 
 	if (OwningAbility->K2_HasAuthority())
@@ -134,20 +153,27 @@ void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 
 void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
 {
-	if (!ExecutionVFX || !Character)
+	if (!OwningAbility || !VFXDataSet || !Character)
 		return;
-	FRotator Rotation = FRotator::ZeroRotator;
+	
+	const F_SkillVFX_Info* VFXInfo = VFXDataSet->VFXDataMap.Find(FGameplayTag::RequestGameplayTag("Event.VFX.Attack1"));
+	if (!VFXInfo || !VFXInfo->DefaultVFX)
+		return;
 
+	TObjectPtr<UNiagaraSystem> FinalVFXToSpawn = VFXInfo->DefaultVFX;
+	
 	float SafeRadius = (VFXRadius == 0.f) ? 1.f : VFXRadius;
-
+	
+	FRotator Rotation = FRotator::ZeroRotator;
 	FVector Scale = FVector (FinalSize / SafeRadius);
 	FTransform SpawnTransform(Rotation,SpawnLoc,Scale);
-	Character->Multicast_PlayNiagara(ExecutionVFX,SpawnTransform);
+	
+	Character->Multicast_PlayNiagara(FinalVFXToSpawn,SpawnTransform);
 }
 
 void USkillBehavior_ChargeTarget::CleanUp()
 {
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	if (DistanceActor)
 	{
 		DistanceActor->Destroy();

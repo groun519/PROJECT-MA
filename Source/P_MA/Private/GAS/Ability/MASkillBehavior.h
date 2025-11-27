@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MASkillTemplate.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
@@ -33,15 +34,11 @@ public:
 	void OnEndAbility();
 	virtual void OnEndAbility_Implementation();
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	TObjectPtr<UAnimMontage> MontageToPlay;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float BehaviorDamageMultiplier=1.f;
-
-	UPROPERTY(EditDefaultsOnly)
-	float CooldownDuration = 10.f;
-	UPROPERTY()
+	float BehaviorDamageMultiplier;
+	float CooldownDuration;
 	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지
@@ -53,8 +50,10 @@ public:
 
 	virtual float GetCurrentDamageMultiplier() const;
 
+	virtual void InitFromData(const FSkillDefinitionDT& Data);
+	
 protected:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
