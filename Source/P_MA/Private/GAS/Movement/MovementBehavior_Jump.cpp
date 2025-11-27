@@ -67,6 +67,7 @@ void UMovementBehavior_Jump::InitFromData(const FSkillDefinitionDT& Data)
 
 	MontageToPlay = Data.JumpData.MontageToPlay;
 	TargetActorClass=Data.JumpData.TargetActorClass;
+	VFXDataSet=Data.JumpData.VFXDataSet;
 	
 	if (Data.JumpData.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.JumpData.DamageMultiplier;
 	if (Data.JumpData.CooldownDuration>0.f)		CooldownDuration = Data.JumpData.CooldownDuration;

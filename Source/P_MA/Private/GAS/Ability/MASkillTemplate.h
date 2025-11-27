@@ -175,6 +175,8 @@ struct FMovement
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float DamageMultiplier = 1.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;

@@ -43,6 +43,7 @@ void UMovementBehavior_Dash::InitFromData(const FSkillDefinitionDT& Data)
 	Super::InitFromData(Data);
 
 	MontageToPlay=Data.DashData.MontageToPlay;
+	VFXDataSet=Data.DashData.VFXDataSet;
 	
 	if (Data.DashData.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.DashData.DamageMultiplier;
 	if (Data.DashData.CooldownDuration>0.f)		CooldownDuration = Data.DashData.CooldownDuration;
