@@ -127,3 +127,13 @@ float USkillBehavior_Chain::GetCurrentDamageMultiplier() const
 {
 	return GetDamageMultiplierForCurrentCombo();
 }
+
+void USkillBehavior_Chain::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+
+	if (Data.ChainData.MontageToPlay)			MontageToPlay = Data.ChainData.MontageToPlay;
+	if (Data.ChainData.VFXDataSet)				VFXDataSet = Data.ChainData.VFXDataSet;
+	if (Data.ChainData.CooldownDuration>0.f)	CooldownDuration = Data.ChainData.CooldownDuration;
+	DamageMultiplierMap = Data.ChainData.ComboDamageMultipliers;
+}

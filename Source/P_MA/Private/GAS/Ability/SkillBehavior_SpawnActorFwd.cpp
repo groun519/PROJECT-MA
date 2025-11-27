@@ -36,6 +36,26 @@ void USkillBehavior_SpawnActorFwd::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void USkillBehavior_SpawnActorFwd::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.SpawnAtFwdData.MontageToPlay)			MontageToPlay = Data.SpawnAtFwdData.MontageToPlay;
+
+	if (Data.SpawnAtFwdData.DefaultProjectile)		DefaultProjectile=Data.SpawnAtFwdData.DefaultProjectile;
+	ElementalProjectiles=Data.SpawnAtFwdData.ElementalProjectiles;
+
+	if (Data.SpawnAtFwdData.ProjectileSpeed>0.f)	ProjectileSpeed=Data.SpawnAtFwdData.ProjectileSpeed;
+	if (Data.SpawnAtFwdData.MaxDistance>0.f)		ProjectileMaxDist=Data.SpawnAtFwdData.MaxDistance;
+	if (Data.SpawnAtFwdData.ExplodeRadius>0.f)		ExplodeRadius=Data.SpawnAtFwdData.ExplodeRadius;
+	if (Data.SpawnAtFwdData.SpawnDelay>0.f)			SpawnDelay=Data.SpawnAtFwdData.SpawnDelay;
+	if (Data.SpawnAtFwdData.ProjectileCount>0)		ProjectileCount=Data.SpawnAtFwdData.ProjectileCount;
+
+	if (Data.SpawnAtFwdData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.SpawnAtFwdData.DamageMultiplier;
+	if (Data.SpawnAtFwdData.CooldownDuration>0.f)	CooldownDuration = Data.SpawnAtFwdData.CooldownDuration;
+	
+	MuzzleSocketName = Data.SpawnAtFwdData.MuzzleSocketName;
+}
+
 
 void USkillBehavior_SpawnActorFwd::OnProjectileEventReceived(FGameplayEventData EventData)
 {

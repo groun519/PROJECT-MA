@@ -2,6 +2,8 @@
 
 
 #include "GAS/Ability/SkillBehavior_Hold.h"
+
+#include "AbilitySystemComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -19,6 +21,10 @@ void USkillBehavior_Hold::OnActivate_Implementation()
 		PlayerCharacter->OnChargeAbilityStarted.Broadcast();
 		StartTime = GetWorld()->GetTimeSeconds();
 		GetWorld()->GetTimerManager().SetTimer(ChargeUpdateTimerHandle, this, &USkillBehavior_Hold::UpdateChargeUI,0.02f, true);
+	}
+	if (!bCanMoveWhileHolding)
+	{
+		PlayerCharacter->GetAbilitySystemComponent()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	}
 	bIsHoldEnd = false;
 
@@ -47,7 +53,10 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 {
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
+	{
+		PlayerCharacter->GetAbilitySystemComponent()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
+	}
 	
 	if (HoldTimeOut.IsValid())
 		HoldTimeOut->EndTask();
@@ -59,6 +68,18 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 		WaitClearEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
+}
+
+void USkillBehavior_Hold::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.HoldData.MontageToPlay)		MontageToPlay = Data.HoldData.MontageToPlay;
+	if (Data.HoldData.MaxHoldDuration>0.f)	MaxHoldDuration = Data.HoldData.MaxHoldDuration;
+	if (Data.HoldData.VFXDataSet)			VFXDataSet = Data.HoldData.VFXDataSet;
+	if (Data.HoldData.CooldownDuration>0.f)	CooldownDuration = Data.HoldData.CooldownDuration;
+	if (Data.HoldData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.HoldData.DamageMultiplier;
+	
+	bCanMoveWhileHolding = Data.HoldData.bCanMove;
 }
 
 

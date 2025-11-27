@@ -30,24 +30,50 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-	
 	if (!K2_CommitAbility())
 	{
 		K2_EndAbility();
 		return;
 	}
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	if (!ASC || !ASC->GetSystemGenerics())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not ASC or cant find Generics"))
+		K2_EndAbility();
+		return;
+	}
+	const UDataTable* SkillTable = ASC->GetSystemGenerics()->GetSkillDefinitionTable();
+	if (!SkillTable)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Not Have Skill Definition Table"))
+		K2_EndAbility();
+		return;
+	}
+	if (SkillName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Skill Name isn't Set (%s)"),*GetName());
+		K2_EndAbility();
+		return;
+	}
+	const FSkillDefinitionDT* SkillData = SkillTable->FindRow<FSkillDefinitionDT>(SkillName,"");
+	if (!SkillData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cant find Row by (%s)"),*SkillName.ToString());
+		K2_EndAbility();
+		return;
+	}
+	//캐시 저장
+	CachedSkillTemplate = SkillData->SkillTemplate;
+	CachedCooldownTag = SkillData->CooldownTag;
 
 	bCooldownApplied = false;
 	IgnoreTargets.Empty();
 	
 	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
-	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
 
-	ActiveBehaviorModule = nullptr;
-	ActiveUtilityModule = nullptr;
 	
 	//속성 모듈 태그 결정
-	ActiveSkillElementTag = DefaultElementTag;
+	ActiveSkillElementTag = SkillData->ElementModuleTag;
 	FGameplayTagContainer AttributeFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
 	if (AttributeFilter.Num() > 0)
 	{
@@ -55,7 +81,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 	}
 	
 	//유틸리티 모듈 태그 결정
-	ActiveUtilityTag = DefaultUtilityTag;
+	ActiveUtilityTag = SkillData->UtilityModuleTag;
 	ActiveUtilityModule = nullptr;
 	FGameplayTagContainer UtilityFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Utility")));
 	if (UtilityFilter.Num() > 0)
@@ -68,35 +94,39 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		{	//캐시에 있다면 재사용
 			ActiveUtilityModule = *FoundModule;
 		}else
-		{	//없었다면 새로 생성 및 저장
-			if (ASC && ASC->GetSystemGenerics())
+		{
+			//없었다면 새로 생성 및 저장
+			ActiveUtilityModule = ASC->GetSystemGenerics()->FindSkillUtilityModuleByTag(ActiveUtilityTag,this);
+			if (ActiveUtilityModule)
 			{
-				ActiveUtilityModule = ASC->GetSystemGenerics()->FindSkillUtilityModuleByTag(ActiveUtilityTag,this);
-				if (ActiveUtilityModule)
-				{
-					CachedUtilityModules.Add(ActiveUtilityTag, ActiveUtilityModule);
-				}
+				CachedUtilityModules.Add(ActiveUtilityTag, ActiveUtilityModule);
 			}
 		}
 	}
 	
 	//행동 모듈 태그 결정
-	ActiveBehaviorTag = DefaultBehaviorTag;
+	ActiveBehaviorTag = SkillData->BehaviorModuleTag;
 	FGameplayTagContainer BehaviorFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
 	if (BehaviorFilter.Num() > 0)
 	{
 		ActiveBehaviorTag = BehaviorFilter.First();
 	}
-	ActiveBehaviorModule = BehaviorModules.FindRef(ActiveBehaviorTag);
-	if (!ActiveBehaviorModule)
+	//결정된 태그로 템플릿에서 행동 모듈 찾기
+	TSubclassOf<UMASkillBehavior> ModuleClass = CachedSkillTemplate->BehaviorModuleMap.FindRef(ActiveBehaviorTag);
+	if (!ModuleClass)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Module Class not found for Tag: %s"), *ActiveBehaviorTag.ToString());
 		K2_EndAbility();
 		return;
 	}
-
-	//모듈 실행
+	
+	//모듈 생성 및 데이터 삽입
+	ActiveBehaviorModule = nullptr;
+	ActiveBehaviorModule = NewObject<UMASkillBehavior>(this, ModuleClass);
 	if (ActiveBehaviorModule)
 	{
+		ActiveBehaviorModule->OwningAbility=this;
+		ActiveBehaviorModule->InitFromData(*SkillData);
 		//즉시 쿨타임 적용
 		if (ActiveBehaviorModule->IsApplyCooldownImmediate())
 		{
@@ -122,8 +152,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 			ActiveUtilityModule->OwningAbility = this;
 			ActiveUtilityModule->OnAbilityActivate();
 		}
-		
-		ActiveBehaviorModule->OwningAbility = this;
+
 		ActiveBehaviorModule->OnActivate();
 
 		UAnimMontage* MontageToPlay = ActiveBehaviorModule->MontageToPlay;
@@ -231,12 +260,12 @@ const F_ElementInfoRow* UMAGameplayAbility_SkillBase::GetActiveElementInfoRow()
 }
 void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults)
 {
-	if (!BaseDamageEffect || !HasAuthority(&CurrentActivationInfo))
+	if (!CachedSkillTemplate || !CachedSkillTemplate->DamageGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(BaseDamageEffect, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->DamageGEClass, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	//유틸리티 모듈의 데미지 배율
@@ -282,12 +311,12 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 
 void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData)
 {
-	if (!BaseDamageEffect || !HasAuthority(&CurrentActivationInfo))
+	if (!CachedSkillTemplate || !CachedSkillTemplate->DamageGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 	
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(BaseDamageEffect, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->DamageGEClass, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	//유틸리티 모듈 데미지 배율
@@ -381,7 +410,7 @@ void UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility()
 
 void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 {
-	if (!CooldownGE || !HasAuthority(&CurrentActivationInfo))
+	if (!CachedSkillTemplate || !CachedSkillTemplate->CooldownGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 
 	float FinalDuration =  CooldownToApply;
@@ -391,10 +420,14 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	}
 	if (FinalDuration <= 0)
 		return;
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE, GetAbilityLevel());
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->CooldownGEClass, GetAbilityLevel());
 	if (SpecHandle.IsValid())
 	{
 		SpecHandle.Data->SetSetByCallerMagnitude(CooldownDurationTag, FinalDuration);
+		if (CachedCooldownTag.IsValid())
+		{
+			SpecHandle.Data->DynamicGrantedTags.AddTag(CachedCooldownTag);
+		}
 		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
 	}
 }

@@ -45,9 +45,6 @@ float UMASkillBehavior::GetCurrentDamageMultiplier() const
 
 void UMASkillBehavior::InitFromData(const FSkillDefinitionDT& Data)
 {
-	if (Data.MontageToPlay)				MontageToPlay = Data.MontageToPlay;
-	if (Data.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.DamageMultiplier;
-	if (Data.CooldownDuration>=0.f)		CooldownDuration = Data.CooldownDuration;
 }
 
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)

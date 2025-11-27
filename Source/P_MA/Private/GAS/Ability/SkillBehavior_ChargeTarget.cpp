@@ -22,7 +22,7 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 
 	CachedChargeDuration=0.f;
 	PressedTime = GetWorld()->GetTimeSeconds();
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 
 	if (MaxDistanceActorClass)
 	{
@@ -72,10 +72,23 @@ float USkillBehavior_ChargeTarget::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
+void USkillBehavior_ChargeTarget::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.ChargeTargetData.RangeActorClass)		MaxDistanceActorClass = Data.ChargeTargetData.RangeActorClass;
+	if (Data.ChargeTargetData.TargetActorClass)		TargetActorClass = Data.ChargeTargetData.TargetActorClass;
+	if (Data.ChargeTargetData.ExecutionVFX)			ExecutionVFX = Data.ChargeTargetData.ExecutionVFX;
+	
+	if (Data.ChargeTargetData.MaxDistance>0.f)		MaxDistance = Data.ChargeTargetData.MaxDistance;
+	if (Data.ChargeTargetData.MinRadius>0.f)		MinSize = Data.ChargeTargetData.MinRadius;
+	if (Data.ChargeTargetData.MaxRadius>0.f)		MaxSize = Data.ChargeTargetData.MaxRadius;
+	if (Data.ChargeTargetData.DefaultVFXRadius>0.f)	VFXRadius = Data.ChargeTargetData.DefaultVFXRadius;
+}
+
 void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
 	float HeldTime = GetWorld()->GetTimeSeconds() - PressedTime;
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 
 	if (HeldTime <= 0.2f) 
 	{
@@ -147,7 +160,7 @@ void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)
 
 void USkillBehavior_ChargeTarget::CleanUp()
 {
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	if (DistanceActor)
 	{
 		DistanceActor->Destroy();

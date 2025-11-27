@@ -42,9 +42,9 @@ FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
 	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetChargingTag()
+FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()
 {
-	return FGameplayTag::RequestGameplayTag("Player.State.Charging");
+	return FGameplayTag::RequestGameplayTag("Player.State.MoveBlocked");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()

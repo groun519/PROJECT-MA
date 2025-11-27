@@ -51,7 +51,7 @@ public:
 	virtual bool IsRequirePlayerInput() const override { return true; }
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
-
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY(EditDefaultsOnly)
@@ -62,6 +62,11 @@ private:
 	TSubclassOf<class AMAAbilityRangeActor> RangeActorClass;
 	UPROPERTY()
 	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AMAProjectile_GroundTargetedAOE> DefaultProjectile;
+	UPROPERTY(EditDefaultsOnly)
+	TMap<FName, TSubclassOf<AMAProjectile_GroundTargetedAOE>> ElementalProjectiles;
 	
 	// 투사체 클래스
 	UPROPERTY(EditDefaultsOnly)

@@ -42,7 +42,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	float CooldownDuration = 10.f;
-	UPROPERTY()
+
 	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지

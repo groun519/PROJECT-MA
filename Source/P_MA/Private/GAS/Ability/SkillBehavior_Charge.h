@@ -21,7 +21,7 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
-	
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 protected:
 	UFUNCTION()
 	void OnChargeEventReceived(FGameplayEventData EventData);

@@ -20,6 +20,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual float GetCurrentDamageMultiplier() const override;
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, float> DamageMultiplierMap;

@@ -38,6 +38,14 @@ void USkillBehavior_HoldWithLaunch::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
+void USkillBehavior_HoldWithLaunch::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.HoldLaunchData.FirstLaunchForce>0.f)	FirstLaunchSpeed = Data.HoldLaunchData.FirstLaunchForce;
+	if (Data.HoldLaunchData.OtherLaunchForce>0.f)	OtherLaunchSpeed = Data.HoldLaunchData.OtherLaunchForce;
+	if (Data.HoldLaunchData.SmashForce>0.f)			SmashSpeed = Data.HoldLaunchData.SmashForce;
+}
+
 void USkillBehavior_HoldWithLaunch::StartLaunch(FGameplayEventData Payload)
 {
 	if (OwningAbility->K2_HasAuthority())

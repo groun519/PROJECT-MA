@@ -23,6 +23,7 @@ class USkillBehavior_SpawnActorFwd : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
 	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> ProjectileEventTask;
@@ -37,6 +38,8 @@ private:
 	TSubclassOf<class AMAProjectile_OverlapAOE> DefaultProjectile;
 	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, TSubclassOf<class AMAProjectile_OverlapAOE>> ProjectileClasses;
+	
+	TMap<FName, TSubclassOf<AMAProjectile_OverlapAOE>> ElementalProjectiles;
 	
 	UPROPERTY(EditDefaultsOnly)
 	float ProjectileSpeed = 700.f;

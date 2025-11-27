@@ -8,10 +8,29 @@
 #include "Engine/DataAsset.h"
 #include "MASkillTemplate.generated.h"
 
+class UMASkillVFXSet;
+class AMAProjectile_OverlapAOE;
+class AMAProjectile_GroundTargetedAOE;
 class UNiagaraSystem;
 class AMAAbilityRangeActor;
 class AGameplayAbilityTargetActor;
 class UMASkillBehavior;
+
+USTRUCT(BlueprintType)
+struct FDefaultData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float DamageMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float CooldownDuration=0.f;
+};
 
 USTRUCT(BlueprintType)
 struct FChainData
@@ -19,6 +38,13 @@ struct FChainData
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FName, float> ComboDamageMultipliers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -26,8 +52,14 @@ struct FHoldData
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float MaxHoldDuration = 2.5f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float ShortCoolDownDuration = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float DamageMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		bool bCanMove = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 };
 
 USTRUCT(BlueprintType)
@@ -46,7 +78,12 @@ struct FChargeData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float MaxChargeDuration = 3.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float TimeoutDuration = 4.5f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float ShortCoolDownDuration = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 };
 
 USTRUCT(BlueprintType)
@@ -91,16 +128,22 @@ struct FSpawnAtFwdData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> DefaultProjectile;
+	TSubclassOf<AMAProjectile_OverlapAOE> DefaultProjectile;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, TSubclassOf<AActor>> ElementalProjectiles;
+	TMap<FName, TSubclassOf<AMAProjectile_OverlapAOE>> ElementalProjectiles;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float DamageMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float ProjectileSpeed = 700.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float MaxDistance = 2000.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float ExplodeRadius = 200.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		FName MuzzleSocketName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		int32 ProjectileCount = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float SpawnDelay = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
 };
 
 USTRUCT(BlueprintType)
@@ -114,16 +157,22 @@ struct FSpawnAtTargetData
 	TSubclassOf<AMAAbilityRangeActor> RangeActorClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> DefaultProjectile;
+	TSubclassOf<AMAProjectile_GroundTargetedAOE> DefaultProjectile;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, TSubclassOf<AActor>> ElementalProjectiles;
+	TMap<FName, TSubclassOf<AMAProjectile_GroundTargetedAOE>> ElementalProjectiles;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float TravelTime = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float DamageMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)		float CooldownDuration=0.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float MaxDistance = 1000.f;
 	UPROPERTY(EditAnyWhere, BlueprintReadWrite)		float AbilityRange = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float TravelTime = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float SpawnHeight = 700.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		int32 ProjectileCount = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)		float SpawnDelay = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> MontageToPlay;
 };
 
 /**
@@ -139,6 +188,8 @@ public:
 	TMap<FGameplayTag, TSubclassOf<UMASkillBehavior>> BehaviorModuleMap;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Common")
+	TSubclassOf<UGameplayEffect> DamageGEClass;
+	UPROPERTY(EditDefaultsOnly, Category="Common")
 	TSubclassOf<UGameplayEffect> CooldownGEClass;
 };
 
@@ -152,17 +203,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Setup")
 	TObjectPtr<UMASkillTemplate> SkillTemplate;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Setup")
+	FGameplayTag ElementModuleTag;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Setup")
+	FGameplayTag UtilityModuleTag;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Setup")
 	FGameplayTag BehaviorModuleTag;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Setup")
 	FGameplayTag CooldownTag;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Common")
-	TObjectPtr<UAnimMontage> MontageToPlay;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Common")
-	float DamageMultiplier = 1.f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Common")
-	float CooldownDuration = 0.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Module | Default")
+	FDefaultData DefaultData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Module | Chain")
 	FChainData ChainData;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Module | Hold")

@@ -28,7 +28,7 @@ public:
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveSkillElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return BaseDamageEffect;}
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return CachedSkillTemplate->DamageGEClass;}
 	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
 
 	UDataTable* GetElementDataTable() const;
@@ -37,19 +37,26 @@ public:
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
+	/*
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultElementTag = FGameplayTag::RequestGameplayTag("Ability.Attribute.Default");
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultUtilityTag;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag DefaultBehaviorTag = FGameplayTag::RequestGameplayTag("Ability.Behavior.Attack.Default");
-	
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TSubclassOf<UGameplayEffect> BaseDamageEffect;
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	TSubclassOf<UGameplayEffect> CooldownGE;
+	*/
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SharedCooldownTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Skill Name")
+	FName SkillName;
+	UPROPERTY()
+	TObjectPtr<UMASkillTemplate> CachedSkillTemplate;
+	FGameplayTag CachedCooldownTag;
 	
 	//속성 모듈
 	UPROPERTY(BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
@@ -64,8 +71,10 @@ private:
 	TMap<FGameplayTag, TObjectPtr<UUtilityModule>> CachedUtilityModules;
 	
 	//스킬 행동 모듈
+	/*
 	UPROPERTY(EditDefaultsOnly, Category="Behavior Module", Instanced)
 	TMap<FGameplayTag,TObjectPtr<UMASkillBehavior>> BehaviorModules;
+	*/
 	UPROPERTY(BlueprintReadOnly, Category="Behavior Module", meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveBehaviorTag;
 	UPROPERTY()

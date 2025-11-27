@@ -24,7 +24,7 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	}
 	CachedChargeDuration=0.f;
 	bIsEnd = false;
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	
 	//최대 차지 시간
 	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
@@ -50,7 +50,7 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()
 {
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
@@ -73,6 +73,16 @@ float USkillBehavior_Charge::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
+void USkillBehavior_Charge::InitFromData(const FSkillDefinitionDT& Data)
+{
+	Super::InitFromData(Data);
+	if (Data.ChargeData.MontageToPlay)	MontageToPlay = Data.ChargeData.MontageToPlay;
+	if (Data.ChargeData.VFXDataSet)		VFXDataSet = Data.ChargeData.VFXDataSet;
+	if (Data.ChargeData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeData.MaxChargeDuration;
+	if (Data.ChargeData.TimeoutDuration>0.f)	TimeoutDuration = Data.ChargeData.TimeoutDuration;
+	if (Data.ChargeData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeData.CooldownDuration;
+}
+
 void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)
 {
 	SetMontagePlayRate(0.01f);
@@ -84,7 +94,7 @@ void USkillBehavior_Charge::OnMaxCharged()
 		return;
 	bIsEnd = true;
 	CachedChargeDuration=MaxChargeDuration;
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
@@ -101,7 +111,7 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 	GetWorld()->GetTimerManager().ClearTimer(ChargeUpdateTimerHandle);
 	if (PlayerCharacter)
 		PlayerCharacter->OnChargeAbilityEnded.Broadcast();
-	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetChargingTag());
+	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	bIsEnd = true;
 
 	if (Time <= 0.2f)
