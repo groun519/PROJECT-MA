@@ -92,6 +92,21 @@ FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetAirborneTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Airborne");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetKnockdownTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Knockdown");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetRecoveryTag()
+{
+	return FGameplayTag::RequestGameplayTag("Stats.Recovery");
+}
+
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
 {
 	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);

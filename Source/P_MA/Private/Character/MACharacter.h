@@ -77,6 +77,10 @@ private:
 	void ChargeTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
+
+	void AirborneTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void RecoveryTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
@@ -188,4 +192,20 @@ public:
 	//소켓에 VFX 부착
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
+
+	/** Airborne **/
+public:
+	virtual void Landed(const FHitResult& Hit) override;
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
+	UAnimMontage* AirborneMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
+	UAnimMontage* KnockdownMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
+	UAnimMontage* RecoveryMontage;
+	
+	bool bIsAirborne = false;
 };

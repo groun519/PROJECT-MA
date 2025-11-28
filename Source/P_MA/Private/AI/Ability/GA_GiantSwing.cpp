@@ -3,13 +3,15 @@
 
 #include "AI/Ability/GA_GiantSwing.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "AIController.h"
 #include "BrainComponent.h"
-#include "GameplayTagsManager.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 
 void UGA_GiantSwing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -154,28 +156,64 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 
 void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 {
-	if (GrabbedTarget)
-	{
-		GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] OnSwingEvent Called"));
 
-		ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-		if (!Monster) return;
-		
-		FRotator MonsterRotation = Monster->GetActorRotation();
+    if (GrabbedTarget)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] GrabbedTarget = %s"), *GrabbedTarget->GetName());
+
+        GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+        ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+        if (!Monster)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] Monster is nullptr"));
+            return;
+        }
         
-		FVector ForwardDirection = MonsterRotation.Vector();
-		FVector LeftDirection = MonsterRotation.Quaternion().GetAxisX();
+        FRotator MonsterRotation = Monster->GetActorRotation();
+        FVector ForwardDirection = MonsterRotation.Vector();
+        FVector LeftDirection = MonsterRotation.Quaternion().GetAxisX();
 
-		FVector Impulse = -(ForwardDirection * 0.5f + LeftDirection * 0.5f) * 750.f;
+        FVector Impulse = -(ForwardDirection * 0.5f + LeftDirection * 0.5f) * 750.f;
 
-		FRotator AngleOffset(0.f, 15.f, 0.f);
-		Impulse = AngleOffset.RotateVector(Impulse);
+        FRotator AngleOffset(0.f, 15.f, 0.f);
+        Impulse = AngleOffset.RotateVector(Impulse);
+        Impulse.Z += 700.f;
 
-		Impulse.Z += 700.f;
+        UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GrabbedTarget);
+        if (TargetASC)
+        {
+            const FGameplayTag AirborneTag = UMAAbilitySystemStatics::GetAirborneTag();
+            const bool bHadTagBefore = TargetASC->HasMatchingGameplayTag(AirborneTag);
 
-		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
-		{
-			Character->LaunchCharacter(Impulse, true, true);
-		}
-	}
+            UE_LOG(LogTemp, Warning,
+                TEXT("[GiantSwing] TargetASC Found. Before AddLooseGameplayTag Airborne=%d"),
+                bHadTagBefore ? 1 : 0);
+
+            TargetASC->AddLooseGameplayTag(AirborneTag);
+
+            const bool bHasTagAfter = TargetASC->HasMatchingGameplayTag(AirborneTag);
+            UE_LOG(LogTemp, Warning,
+                TEXT("[GiantSwing] After AddLooseGameplayTag Airborne=%d"),
+                bHasTagAfter ? 1 : 0);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning,
+                TEXT("[GiantSwing] TargetASC NOT FOUND on %s"),
+                *GrabbedTarget->GetName());
+        }
+        
+        if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] LaunchCharacter called"));
+            Character->LaunchCharacter(Impulse, true, true);
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] OnSwingEvent but GrabbedTarget is nullptr"));
+    }
 }
+
