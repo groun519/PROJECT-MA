@@ -40,3 +40,7 @@ AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) cons
 
 	return nullptr;
 }
+
+
+/** Map **/
+
