@@ -156,20 +156,14 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 
 void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 {
-    UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] OnSwingEvent Called"));
-
     if (GrabbedTarget)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] GrabbedTarget = %s"), *GrabbedTarget->GetName());
-
         GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
         ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
         if (!Monster)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] Monster is nullptr"));
             return;
-        }
+        
         
         FRotator MonsterRotation = Monster->GetActorRotation();
         FVector ForwardDirection = MonsterRotation.Vector();
@@ -184,36 +178,20 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
         UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GrabbedTarget);
         if (TargetASC)
         {
-            const FGameplayTag AirborneTag = UMAAbilitySystemStatics::GetAirborneTag();
-            const bool bHadTagBefore = TargetASC->HasMatchingGameplayTag(AirborneTag);
+        	const FGameplayTag AirborneTag  = UMAAbilitySystemStatics::GetAirborneTag();
+        	const FGameplayTag KnockdownTag = UMAAbilitySystemStatics::GetKnockdownTag();
+        	const FGameplayTag RecoveryTag  = UMAAbilitySystemStatics::GetRecoveryTag();
 
-            UE_LOG(LogTemp, Warning,
-                TEXT("[GiantSwing] TargetASC Found. Before AddLooseGameplayTag Airborne=%d"),
-                bHadTagBefore ? 1 : 0);
-
+        	TargetASC->RemoveLooseGameplayTag(KnockdownTag);
+        	TargetASC->RemoveLooseGameplayTag(RecoveryTag);
+        	TargetASC->RemoveLooseGameplayTag(AirborneTag);
             TargetASC->AddLooseGameplayTag(AirborneTag);
-
-            const bool bHasTagAfter = TargetASC->HasMatchingGameplayTag(AirborneTag);
-            UE_LOG(LogTemp, Warning,
-                TEXT("[GiantSwing] After AddLooseGameplayTag Airborne=%d"),
-                bHasTagAfter ? 1 : 0);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning,
-                TEXT("[GiantSwing] TargetASC NOT FOUND on %s"),
-                *GrabbedTarget->GetName());
         }
         
         if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
         {
-            UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] LaunchCharacter called"));
             Character->LaunchCharacter(Impulse, true, true);
         }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[GiantSwing] OnSwingEvent but GrabbedTarget is nullptr"));
     }
 }
 

@@ -230,6 +230,8 @@ void AMACharacter::AirborneTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	{
 		bIsAirborne = true;
 
+		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+		
 		if (AirborneMontage && GetMesh()->GetAnimInstance())
 		{
 			GetMesh()->GetAnimInstance()->Montage_Play(AirborneMontage);
@@ -249,12 +251,14 @@ void AMACharacter::KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	{
 		if (KnockdownMontage && GetMesh()->GetAnimInstance())
 		{
-			GetMesh()->GetAnimInstance()->Montage_Play(KnockdownMontage);
+			float Duration = GetMesh()->GetAnimInstance()->Montage_Play(KnockdownMontage);
+
+			FTimerHandle TimerHandle;
+			GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+			{
+				MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRecoveryTag());
+			}, Duration, false);
 		}
-	}
-	else
-	{
-		MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRecoveryTag());
 	}
 }
 
@@ -488,10 +492,11 @@ void AMACharacter::Landed(const FHitResult& Hit)
 		{
 			MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetKnockdownTag());
 		}
-	
+
 		bIsAirborne = false;
 	}
 }
+
 
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
