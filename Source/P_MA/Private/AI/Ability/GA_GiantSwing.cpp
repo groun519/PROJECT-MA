@@ -59,6 +59,10 @@ void UGA_GiantSwing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, co
 	UAbilityTask_WaitGameplayEvent* WaitSwingEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Swing")));
 	WaitSwingEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnSwingEvent);
 	WaitSwingEvent->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitRecoveryEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Stats.Recovery.End")));
+	WaitSwingEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnRecoveryEnd);
+	WaitSwingEvent->ReadyForActivation();
 }
 
 void UGA_GiantSwing::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -145,6 +149,11 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 
 	GrabbedTarget = Target;
 
+	if (APlayerController* PC = Cast<APlayerController>(Target->GetController()))
+	{
+		Target->DisableInput(PC);
+	}
+	
 	Target->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, MonsterGrabSocketName);
 	
 	UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance();
@@ -193,5 +202,18 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
             Character->LaunchCharacter(Impulse, true, true);
         }
     }
+}
+
+void UGA_GiantSwing::OnRecoveryEnd(FGameplayEventData Data)
+{
+	if (GrabbedTarget)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GrabbedTarget->GetController()))
+		{
+			GrabbedTarget->EnableInput(PC);
+		}
+
+		GrabbedTarget = nullptr;
+	}
 }
 

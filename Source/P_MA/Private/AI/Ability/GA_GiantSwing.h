@@ -34,6 +34,9 @@ protected:
 	UFUNCTION()
 	void OnSwingEvent(FGameplayEventData Data);
 	
+	UFUNCTION()
+	void OnRecoveryEnd(FGameplayEventData Data);
+	
 private:
 	UPROPERTY(EditAnywhere, Category="Animation")
 	UAnimMontage* GiantSwingMontage = nullptr;
