@@ -160,7 +160,7 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 
 		ACharacter* Monster = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 		if (!Monster) return;
-
+		
 		FRotator MonsterRotation = Monster->GetActorRotation();
         
 		FVector ForwardDirection = MonsterRotation.Vector();
@@ -171,7 +171,7 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 		FRotator AngleOffset(0.f, 15.f, 0.f);
 		Impulse = AngleOffset.RotateVector(Impulse);
 
-		Impulse.Z += 500.f;
+		Impulse.Z += 700.f;
 
 		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
 		{
