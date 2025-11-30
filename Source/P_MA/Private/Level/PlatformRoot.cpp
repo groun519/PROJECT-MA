@@ -33,9 +33,11 @@ void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	/** Get SSManager **/
 	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
 	if (!Manager) return;
 
+	/** if Loop **/
 	if (Manager->Sectors.Num() == 0) return;
 
 	USplineComponent* CurSpline = Manager->Sectors[CurSector]->RoadSpline;
@@ -65,6 +67,7 @@ void APlatformRoot::Tick(float DeltaTime)
 
 	SetActorLocation(Loc);
 	SetActorRotation(Rot);
+	/****/
 }
 
 void APlatformRoot::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

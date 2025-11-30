@@ -3,6 +3,7 @@
 
 #include "SplineSectorManager.h"
 #include "DrawDebugHelpers.h"
+#include "Framework/MAGameMode.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -75,11 +76,61 @@ void ASplineSectorManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	MAGameState = GetCurMAGameState();
+	SetSplinesWithMAGameState(MAGameState);
+	
 	// if (IsClosePreSectorZeroVector())
 	// {
 	// 	GoBackToFirstSector();
 	// }
 }
 
+EMAGameState ASplineSectorManager::GetCurMAGameState()
+{
+	AMAGameMode* MAGM = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (!MAGM) return EMAGameState::None;
 
+	EMAGameState MAGS = MAGM->GetMAGameState();
+	return MAGS;
+}
 
+void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
+{
+	if (InMAGS == EMAGameState::None) return;
+
+	if (InMAGS == EMAGameState::Start)
+	{
+		return;
+		// TODO : 스타트 지점
+	}
+
+	if (InMAGS == EMAGameState::InBattle)
+	{
+		Sectors = InBattleSectors;
+		return;
+	}
+	
+	if (InMAGS == EMAGameState::Battle)
+	{
+		Sectors.Empty();
+		return;
+	}
+	
+	if (InMAGS == EMAGameState::EndBattle)
+	{
+		Sectors.Empty();
+		return;
+	}
+	
+	if (InMAGS == EMAGameState::OutBattle)
+	{
+		Sectors = OutBattleSectors;
+		return;
+	}
+	
+	if (InMAGS == EMAGameState::Loop)
+	{
+		Sectors = LoopSectors;
+		return;
+	}
+}

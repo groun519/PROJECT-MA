@@ -11,6 +11,7 @@
 UENUM()
 enum class EMAGameState : uint8
 {
+	None,		// 초기화 값
 	Start,		// 게임 시작 단계
 
 	/** Inf Loop **/

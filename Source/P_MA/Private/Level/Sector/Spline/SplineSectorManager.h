@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SplineSector.h"
+#include "Framework/MAGameMode.h"
 #include "GameFramework/Actor.h"
 #include "Level/PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
@@ -12,7 +13,11 @@ UCLASS()
 class P_MA_API ASplineSectorManager : public AActor
 {
 	GENERATED_BODY()
-
+	
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	
 public:
 	ASplineSectorManager();
 
@@ -22,14 +27,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<ASplineSector>> Sectors;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<ASplineSector>> InBattleSectors;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<ASplineSector>> OutBattleSectors;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<ASplineSector>> LoopSectors;
+	
 	bool IsClosePreSectorZeroVector();
 	void GoBackToFirstSector();
 
 	int32 GetNextSectorIndex(int32 CurSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-
+	FORCEINLINE EMAGameState GetMAGameState(){ return MAGameState; }
+private:
+	EMAGameState GetCurMAGameState();
+	void SetSplinesWithMAGameState(EMAGameState InMAGS);
+	EMAGameState MAGameState;
 };

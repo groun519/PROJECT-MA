@@ -16,14 +16,6 @@ public:
 	ABattleSector();
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
-	
-	/** Spline **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<USplineComponent> InnerSpline;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float InnerSplineRadius = 2000.f;
 
 private:
-	void UpdateInnerSpline(int32 NumPoints = 8);
 };
