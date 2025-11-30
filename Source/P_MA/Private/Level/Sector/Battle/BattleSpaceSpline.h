@@ -21,10 +21,10 @@ public:
 
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<USplineComponent> InnerSpline;
+	TObjectPtr<USplineComponent> SpaceSpline;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float InnerSplineRadius = 2000.f;
+	float InnerSplineRadius = 1750.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bRandomAtSpawn = false;

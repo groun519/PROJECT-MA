@@ -8,11 +8,11 @@
 ABattleSpaceSpline::ABattleSpaceSpline()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	Tags.Add(FName("BattleSpace"));
 
-	InnerSpline = CreateDefaultSubobject<USplineComponent>(TEXT("InnerSpline"));
-	InnerSpline->SetupAttachment(RootComponent);
-	InnerSpline->ComponentTags.Add(FName("Battle"));
-	InnerSpline->SetClosedLoop(true);
+	SpaceSpline = CreateDefaultSubobject<USplineComponent>(TEXT("SpaceSpline"));
+	SpaceSpline->SetupAttachment(RootComponent);
+	SpaceSpline->SetClosedLoop(true);
 }
 
 void ABattleSpaceSpline::BeginPlay()
@@ -29,12 +29,12 @@ void ABattleSpaceSpline::OnConstruction(const FTransform& Transform)
 
 void ABattleSpaceSpline::UpdateInnerSpline(int32 NumPoints)
 {
-	InnerSpline->ClearSplinePoints();
+	SpaceSpline->ClearSplinePoints();
 	for (int32 i = 0; i < NumPoints; ++i)
 	{
 		float Angle = FMath::DegreesToRadians(i * (360.f / NumPoints));
 		FVector PointOnCircle = FVector(FMath::Cos(Angle) * InnerSplineRadius, FMath::Sin(Angle) * InnerSplineRadius, 0.f);
-		InnerSpline->AddSplinePoint(PointOnCircle, ESplineCoordinateSpace::Local);
+		SpaceSpline->AddSplinePoint(PointOnCircle, ESplineCoordinateSpace::Local);
 	}
-	InnerSpline->UpdateSpline();
+	SpaceSpline->UpdateSpline();
 }
