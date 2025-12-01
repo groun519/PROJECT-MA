@@ -11,15 +11,23 @@
 UENUM()
 enum class EMAGameState : uint8
 {
-	None,		// 초기화 값
-	Start,		// 게임 시작 단계
+	// 멈춤
+	Wait,
+	// 게임 시작 단계
+	Start,		
 
 	/** Inf Loop **/
-	InBattle,	// 전투 섹터 진입
-	Battle,		// 전투 중(웨이브)
-	EndBattle,	// 전투 완료 후 모두 플랫폼에 올라타기 전까지 대기 단계
-	OutBattle,	// 전투 섹터 빠져나가고 루프 진입까지
-	Loop,		// 스플라인 섹터 무한반복하며 정비
+
+	// 전투 섹터 진입
+	InBattle,
+	// 전투 중(웨이브)
+	Battle,
+	// 전투 완료 후 모두 플랫폼에 올라타기 전까지 대기 단계
+	EndBattle,
+	// 전투 섹터 빠져나가고 루프 진입까지
+	OutBattle,
+	// 스플라인 섹터 무한반복하며 정비
+	Loop,		
 };
 
 
@@ -46,6 +54,8 @@ public:
 	FORCEINLINE EMAGameState GetMAGameState() const { return MAGameState; } 
 	FORCEINLINE void SetMAGameState(EMAGameState InState) { MAGameState = InState; } 
 
-private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMAGameState MAGameState;
+private:
+	
 };

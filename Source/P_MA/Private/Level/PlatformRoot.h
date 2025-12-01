@@ -9,14 +9,13 @@
 class UPlatformMatrixComponent;
 
 UCLASS()
-class P_MA_API APlatformRoot : public ACharacter
+class P_MA_API APlatformRoot : public AActor
 {
 	GENERATED_BODY()
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 public:
 	APlatformRoot();

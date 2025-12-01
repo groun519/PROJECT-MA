@@ -28,6 +28,9 @@ public:
 	TArray<TObjectPtr<ASplineSector>> Sectors;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<ASplineSector>> StartSectors;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<TObjectPtr<ASplineSector>> InBattleSectors;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -42,9 +45,11 @@ public:
 	int32 GetNextSectorIndex(int32 CurSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
-	FORCEINLINE EMAGameState GetMAGameState(){ return MAGameState; }
-private:
-	EMAGameState GetCurMAGameState();
 	void SetSplinesWithMAGameState(EMAGameState InMAGS);
-	EMAGameState MAGameState;
+
+	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
+private:
+	EMAGameState CachedPrevMAGameState = EMAGameState::Wait;
+	AMAGameMode* CachedMAGameMode;
+	void CachingMAGameMode();
 };

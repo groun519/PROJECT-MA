@@ -12,9 +12,11 @@ class P_MA_API UPlatformMatrixComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
+protected:
+	virtual void BeginPlay() override;
+	
 public:
 	UPlatformMatrixComponent();
-	void OnRegister();
 
 	void SetPlatformEnable(int32 X, int32 Y);
 	FORCEINLINE int32 GetIndex(int32 X, int32 Y) const { return Y * Cols + X; }
@@ -22,6 +24,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Grid")
 	int32 Cols = 9;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Grid")
+	UPROPERTY(Transient)
 	TArray<UPlatformComponent*> Platforms;
 };

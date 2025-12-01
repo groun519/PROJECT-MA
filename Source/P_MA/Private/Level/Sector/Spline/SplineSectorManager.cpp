@@ -19,7 +19,10 @@ void ASplineSectorManager::BeginPlay()
 
 	PlatformRoot = Cast<APlatformRoot>(
 	UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass())
-	);	
+	);
+
+	CachingMAGameMode();
+	SetSplinesWithMAGameState(CachedMAGameMode->GetMAGameState());
 }
 
 bool ASplineSectorManager::IsClosePreSectorZeroVector()
@@ -76,61 +79,72 @@ void ASplineSectorManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	MAGameState = GetCurMAGameState();
-	SetSplinesWithMAGameState(MAGameState);
-	
-	// if (IsClosePreSectorZeroVector())
-	// {
-	// 	GoBackToFirstSector();
-	// }
 }
 
-EMAGameState ASplineSectorManager::GetCurMAGameState()
+void ASplineSectorManager::CachingMAGameMode()
 {
 	AMAGameMode* MAGM = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (!MAGM) return EMAGameState::None;
-
-	EMAGameState MAGS = MAGM->GetMAGameState();
-	return MAGS;
+	if (MAGM) CachedMAGameMode = MAGM;
 }
 
 void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 {
-	if (InMAGS == EMAGameState::None) return;
-
-	if (InMAGS == EMAGameState::Start)
-	{
-		return;
-		// TODO : 스타트 지점
-	}
-
-	if (InMAGS == EMAGameState::InBattle)
-	{
-		Sectors = InBattleSectors;
-		return;
-	}
+	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
+	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedPrevMAGameState);
+	const FString CurrName = EnumPtr->GetNameStringByValue((int64)InMAGS);
+	UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
+	UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
+	UE_LOG(LogTemp, Display, TEXT("- - - - -"));
 	
-	if (InMAGS == EMAGameState::Battle)
+	if (InMAGS == EMAGameState::Wait)
 	{
 		Sectors.Empty();
-		return;
 	}
-	
-	if (InMAGS == EMAGameState::EndBattle)
+	else if (InMAGS == EMAGameState::Start)
+	{
+		if (CachedPrevMAGameState == EMAGameState::Start)
+		{
+			CachedPrevMAGameState = InMAGS;
+			SetSplinesWithMAGameState(EMAGameState::InBattle);
+			CachedMAGameMode->SetMAGameState(EMAGameState::InBattle);
+			return;
+		}
+		else Sectors = StartSectors;
+	}
+	else if (InMAGS == EMAGameState::InBattle)
+	{
+		if (CachedPrevMAGameState == EMAGameState::InBattle)
+		{
+			CachedPrevMAGameState = InMAGS;
+			SetSplinesWithMAGameState(EMAGameState::Battle);
+			CachedMAGameMode->SetMAGameState(EMAGameState::Battle);
+			return;
+		}
+		else Sectors = InBattleSectors;
+	}
+	else if (InMAGS == EMAGameState::Battle)
 	{
 		Sectors.Empty();
-		return;
 	}
-	
-	if (InMAGS == EMAGameState::OutBattle)
+	else if (InMAGS == EMAGameState::EndBattle)
 	{
-		Sectors = OutBattleSectors;
-		return;
+		Sectors.Empty();
 	}
-	
-	if (InMAGS == EMAGameState::Loop)
+	else if (InMAGS == EMAGameState::OutBattle)
+	{
+		if (CachedPrevMAGameState == EMAGameState::OutBattle)
+		{
+			CachedPrevMAGameState = InMAGS;
+			SetSplinesWithMAGameState(EMAGameState::Loop);
+			CachedMAGameMode->SetMAGameState(EMAGameState::Loop);
+			return;
+		}
+		else Sectors = OutBattleSectors;
+	}
+	else if (InMAGS == EMAGameState::Loop)
 	{
 		Sectors = LoopSectors;
-		return;
 	}
+
+	CachedPrevMAGameState = InMAGS;
 }
