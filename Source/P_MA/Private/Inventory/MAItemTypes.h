@@ -62,19 +62,19 @@ struct FConsumableItemData : public FBaseItemData
 public:
 	FConsumableItemData()
 	{
-		ItemType = EMAItemType::Consumable; // 기본값 설정
+		ItemType = EMAItemType::Consumable;
 	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable")
 	int32 MaxStackCount = 99;
 	
+	// [변경] 단일 변수 -> 배열 (Array)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable")
-	TSubclassOf<UGameplayEffect> ConsumeEffect; 
+	TArray<TSubclassOf<UGameplayEffect>> ConsumeEffects; 
 };
 
 /**
- * 
- */
+ * */
 USTRUCT(BlueprintType)
 struct FEquipmentItemData : public FBaseItemData
 {
@@ -86,8 +86,9 @@ public:
 		ItemType = EMAItemType::Equipment;
 	}
 	
+	// [변경] 단일 변수 -> 배열 (Array)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
-	TSubclassOf<UGameplayEffect> EquipEffect; 
+	TArray<TSubclassOf<UGameplayEffect>> EquipEffects; 
 };
 
 /**
