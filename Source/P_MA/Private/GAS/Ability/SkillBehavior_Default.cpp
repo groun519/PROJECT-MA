@@ -11,25 +11,9 @@ void USkillBehavior_Default::OnActivate_Implementation()
 	Super::OnActivate_Implementation();
 
 	OwningAbility->ApplyDefaultCooldownOnce();
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Default::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
 }
 
 void USkillBehavior_Default::OnEndAbility_Implementation()
 {
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 	Super::OnEndAbility_Implementation();
-}
-
-
-void USkillBehavior_Default::HitTarget(FGameplayEventData EventData)
-{
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults);
-
 }

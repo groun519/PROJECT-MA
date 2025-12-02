@@ -83,6 +83,7 @@ void USkillBehavior_SpawnActorAtTarget::InitFromConfig(const FInstancedStruct& C
 	const FConfig_SpawnActorAtTarget* ConfigSpawn = ConfigPayload.GetPtr<FConfig_SpawnActorAtTarget>();
 	if (ConfigSpawn)
 	{
+		DefaultProjectile = ConfigSpawn->DefaultProjectile;
 		TargetActorClass = ConfigSpawn->TargetActorClass;
 		RangeActorClass = ConfigSpawn->RangeActorClass;
 		ElementalProjectiles = ConfigSpawn->ElementalProjectiles;

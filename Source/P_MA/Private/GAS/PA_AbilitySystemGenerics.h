@@ -20,25 +20,30 @@ class UPA_AbilitySystemGenerics : public UPrimaryDataAsset
 public:
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetFullStatEffect() const { return FullStatEffect; }
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetDeathEffect() const { return DeathEffect; }
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetDamageEffect() const { return DamageGEClass; }
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetCooldownEffect() const { return CooldownGEClass; }
 	FORCEINLINE const TArray<TSubclassOf<UGameplayEffect>>& GetInitialEffects() const { return InitialEffects; }
 	FORCEINLINE const TArray<TSubclassOf<UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
 	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
-	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementDataTable;}
-	FORCEINLINE UDataTable* GetSkillBehaviorRegistry() const {return SkillBehaviorRegistry;}
-
+	
 	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag, UObject* Outer) const;
+	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementModuleDataTable;}
+	FORCEINLINE const UDataTable* GetBehaviorDataTable() const {return BehaviorModuleDataTable;}
+	FORCEINLINE const UDataTable* GetSkillInformationTableTable() const { return SkillInformationDT; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TSubclassOf<UGameplayEffect> FullStatEffect;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TSubclassOf<UGameplayEffect> DeathEffect;
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effects")
+	TSubclassOf<UGameplayEffect> DamageGEClass;
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effects")
+	TSubclassOf<UGameplayEffect> CooldownGEClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TArray<TSubclassOf<UGameplayEffect>> InitialEffects;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TArray<TSubclassOf<UGameplayAbility>> PassiveAbilities;
 
@@ -46,13 +51,13 @@ private:
 	UDataTable* PlayerBaseStatDataTable;
 	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
 	UDataTable* MonsterBaseStatDataTable;
-
-	UPROPERTY(EditDefaultsOnly, Category="Skill Utility Module")
+	
+	UPROPERTY(EditDefaultsOnly, Category="Module")
 	UDataTable* UtilityModuleDataTable;
-
-	UPROPERTY(EditDefaultsOnly, Category="Element")
-	TObjectPtr<UDataTable> ElementDataTable;
-
-	UPROPERTY(EditDefaultsOnly, Category="Skill Behavior Module")
-	TObjectPtr<UDataTable> SkillBehaviorRegistry;
+	UPROPERTY(EditDefaultsOnly, Category="Module")
+	TObjectPtr<UDataTable> ElementModuleDataTable;
+	UPROPERTY(EditDefaultsOnly, Category="Module")
+	TObjectPtr<UDataTable> BehaviorModuleDataTable;
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	TObjectPtr<UDataTable> SkillInformationDT;
 };

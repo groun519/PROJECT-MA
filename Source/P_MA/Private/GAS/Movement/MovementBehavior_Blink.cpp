@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Ability/SkillBehaviorConfig.h"
 #include "GAS/Movement/MATargetActor_Movement.h"
 #include "Player/MAPlayerCharacter.h"
 
@@ -28,24 +29,30 @@ void UMovementBehavior_Blink::OnActivate_Implementation()
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, SpawnedTargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, SpawnedTargetActor);
 
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Blink::OnDamageEventReceived);
-		WaitDamageTagEventTask->ReadyForActivation();
-	}
+
 }
 
 void UMovementBehavior_Blink::OnEndAbility_Implementation()
 {
 	if (WaitBlinkTagEventTask.IsValid())
 		WaitBlinkTagEventTask->EndTask();
-	if (WaitDamageTagEventTask.IsValid())
-		WaitDamageTagEventTask->EndTask();
 	if (WaitTargetDataTask.IsValid())
 		WaitTargetDataTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
+}
+
+void UMovementBehavior_Blink::InitFromConfig(const FInstancedStruct& ConfigPayload)
+{
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Blink* BlinkConfig = ConfigPayload.GetPtr<FConfig_Blink>();
+	if (BlinkConfig)
+	{
+		MontageToPlay=BlinkConfig->MontageToPlay;
+		MaxBlinkDistance = BlinkConfig->MaxBlinkDistance;
+		TargetActorClass = BlinkConfig->TargetActorClass;
+		VFXDataSet=BlinkConfig->VFXDataSet;
+	}
 }
 
 void UMovementBehavior_Blink::OnBlinkTagReceived(FGameplayEventData Payload)
@@ -77,15 +84,6 @@ void UMovementBehavior_Blink::TargetConfirmed(const FGameplayAbilityTargetDataHa
 
 	// 3. "위치"와 "타이밍"이 모두 준비되었는지 확인
 	TryTeleport();
-}
-
-void UMovementBehavior_Blink::OnDamageEventReceived(FGameplayEventData EventData)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
 }
 
 void UMovementBehavior_Blink::TryTeleport()

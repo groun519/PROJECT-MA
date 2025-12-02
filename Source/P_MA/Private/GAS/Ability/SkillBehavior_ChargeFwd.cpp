@@ -8,6 +8,7 @@
 #include "MAGameplayAbility_SkillBase.h"
 #include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Character/MACharacter.h"
 #include "GAS/MASkillVFXSet.h"
@@ -32,6 +33,10 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_ChargeFwd::OnKeyReleased);
 	InputReleaseTask->ReadyForActivation();
 
+	WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ChargeStartTag);
+	WaitSlowTagTask->EventReceived.AddDynamic(this, &USkillBehavior_ChargeFwd::OnChargeEventReceived);
+	WaitSlowTagTask->ReadyForActivation();
+	
 	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	SkillTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeFwd::OnSkillTimeout);
 	SkillTimeoutTask->ReadyForActivation();
@@ -45,6 +50,8 @@ void USkillBehavior_ChargeFwd::OnEndAbility_Implementation()
 		InputReleaseTask->EndTask();
 	if (SkillTimeoutTask.IsValid())
 		SkillTimeoutTask->EndTask();
+	if (WaitSlowTagTask.IsValid())
+		WaitSlowTagTask->EndTask();
 
 	Super::OnEndAbility_Implementation();
 }
@@ -86,6 +93,7 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle);
 	
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	SafeEndAbility();
 	OwningAbility->ApplyDefaultCooldownOnce();
@@ -93,8 +101,14 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+}
+
+void USkillBehavior_ChargeFwd::OnChargeEventReceived(FGameplayEventData Payload)
+{
+	SetMontagePlayRate(0.01f);
 }
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)

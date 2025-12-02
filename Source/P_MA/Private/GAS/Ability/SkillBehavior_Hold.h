@@ -35,15 +35,12 @@ private:
 
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> HoldTimeOut;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	
 	UFUNCTION()
 	void OnMaxHold();
 	UFUNCTION()
 	void OnHoldReleased(float Time);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData EventData);
 	UFUNCTION()

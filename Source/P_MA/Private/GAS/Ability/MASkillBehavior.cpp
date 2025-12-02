@@ -9,7 +9,6 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "SkillBehaviorConfig.h"
-#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/PlayerController.h"
@@ -24,13 +23,21 @@ void UMASkillBehavior::OnActivate_Implementation()
 	FGameplayTag RootTag = OwningAbility->GetVFXRootTag();
 	if (OwningAbility && RootTag.IsValid())
 	{
-		WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,RootTag,nullptr,false,false);
-		WaitVFXEventTask->EventReceived.AddDynamic(this, &UMASkillBehavior::HandleVFXSpawnEvent);
-		WaitVFXEventTask->ReadyForActivation();
+		if (IsUseVFXNotify())
+		{
+			WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,RootTag,nullptr,false,false);
+			WaitVFXEventTask->EventReceived.AddDynamic(this, &UMASkillBehavior::HandleVFXSpawnEvent);
+			WaitVFXEventTask->ReadyForActivation();
+		}
 	}
-	if (OwningAbility)
+	if (OwningAbility->K2_HasAuthority())
 	{
-		MontageToPlay = OwningAbility->GetSkillMontage();
+		if (IsUseDamageNotify())
+		{
+			WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
+			WaitHitEventTask->EventReceived.AddDynamic(this, &UMASkillBehavior::HitTarget);
+			WaitHitEventTask->ReadyForActivation();
+		}
 	}
 }
 
@@ -38,7 +45,8 @@ void UMASkillBehavior::OnEndAbility_Implementation()
 {
 	if (WaitVFXEventTask.IsValid())
 		WaitVFXEventTask->EndTask();
-	
+	if (WaitHitEventTask.IsValid())
+		WaitHitEventTask->EndTask();
 	this->Character = nullptr;
 	this->PlayerCharacter = nullptr;
 }
@@ -50,12 +58,6 @@ float UMASkillBehavior::GetCurrentDamageMultiplier() const
 
 void UMASkillBehavior::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	const FSkillBehaviorConfigBase* BaseConfig = ConfigPayload.GetPtr<FSkillBehaviorConfigBase>();
-	if (BaseConfig)
-	{
-		CooldownDuration = BaseConfig->CooldownDuration;
-		DamageMultiplier = BaseConfig->DamageMultiplier;
-	}
 }
 
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
@@ -136,6 +138,15 @@ void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)
 	if (SpawnedVFX && bApplyColor)
 	{
 		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),SpawnColor);
+	}
+}
+
+void UMASkillBehavior::HitTarget(FGameplayEventData EventData)
+{
+	if (OwningAbility->K2_HasAuthority())
+	{
+		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
+		OwningAbility->ApplyDamageToHitResults(HitResults);
 	}
 }
 

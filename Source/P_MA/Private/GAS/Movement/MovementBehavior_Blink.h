@@ -22,27 +22,23 @@ class UMovementBehavior_Blink : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-	
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitBlinkTagEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;
 	
 	UFUNCTION()
 	void OnBlinkTagReceived(FGameplayEventData Payload);
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
-
-	UFUNCTION()
-	void OnDamageEventReceived(FGameplayEventData EventData);
 	
 	FGameplayTag BlinkTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Teleport.Start");
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float MaxBlinkDistance = 500.f;
+	UPROPERTY()
+	float MaxBlinkDistance;
 	
 	/** true면 몽타주 태그가 이미 발동됨 */
 	bool bBlinkTagReceived;

@@ -7,6 +7,7 @@
 #include "Character/MACharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Ability/SkillBehaviorConfig.h"
 
 void UMovementBehavior_Dash::OnActivate_Implementation()
 {
@@ -18,12 +19,7 @@ void UMovementBehavior_Dash::OnActivate_Implementation()
 	WaitDashStartEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Dash::OnDashStartEventReceived);
 	WaitDashStartEventTask->ReadyForActivation();
 
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Dash::OnDamageEventReceived);
-		WaitDamageTagEventTask->ReadyForActivation();
-	}
+
 }
 
 void UMovementBehavior_Dash::OnEndAbility_Implementation()
@@ -32,10 +28,21 @@ void UMovementBehavior_Dash::OnEndAbility_Implementation()
 	
 	if (WaitDashStartEventTask.IsValid())
 		WaitDashStartEventTask->EndTask();
-	if (WaitDamageTagEventTask.IsValid())
-		WaitDamageTagEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
+}
+
+void UMovementBehavior_Dash::InitFromConfig(const FInstancedStruct& ConfigPayload)
+{
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Dash* DashConfig = ConfigPayload.GetPtr<FConfig_Dash>();
+	if (DashConfig)
+	{
+		MontageToPlay=DashConfig->MontageToPlay;
+		UpLaunchForce = DashConfig->UpLaunchForce;
+		ForwardLaunchForce = DashConfig->ForwardLaunchForce;
+		VFXDataSet=DashConfig->VFXDataSet;
+	}
 }
 
 
@@ -54,10 +61,4 @@ void UMovementBehavior_Dash::OnDashStartEventReceived(FGameplayEventData Payload
 			}
 		}
 	}
-}
-
-void UMovementBehavior_Dash::OnDamageEventReceived(FGameplayEventData Payload)
-{
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults);
 }

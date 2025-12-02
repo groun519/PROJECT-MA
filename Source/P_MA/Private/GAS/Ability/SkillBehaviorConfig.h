@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MAGameplayAbility_SkillBase.h"
 #include "Engine/DataTable.h"
 #include "StructUtils/Public/InstancedStruct.h"
 #include "SkillBehaviorConfig.generated.h"
@@ -12,17 +13,11 @@ class AMAProjectile_OverlapAOE;
 class AMAProjectile_GroundTargetedAOE;
 class AMAAbilityRangeActor;
 class AMATargetActor_ChargeAtFwd;
-class UMASkillVFXSet;
 
 USTRUCT(BlueprintType)
 struct FSkillBehaviorConfigBase
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
-	float CooldownDuration = 0.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
-	float DamageMultiplier = 1.f;
 };
 
 USTRUCT(BlueprintType)
@@ -95,7 +90,9 @@ struct FConfig_SpawnActorAtTarget : public FSkillBehaviorConfigBase
 	TSubclassOf<class AMATargetActor_SelectLoc> TargetActorClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<class AMAAbilityRangeActor> RangeActorClass;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AMAProjectile_GroundTargetedAOE> DefaultProjectile;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FName, TSubclassOf<AMAProjectile_GroundTargetedAOE>> ElementalProjectiles;
 	
@@ -115,6 +112,8 @@ struct FConfig_SpawnActorAtFwd : public FSkillBehaviorConfigBase
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AMAProjectile_OverlapAOE> DefaultProjectile;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FName, TSubclassOf<AMAProjectile_OverlapAOE>> ElementalProjectiles;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -132,6 +131,78 @@ struct FConfig_SpawnActorAtFwd : public FSkillBehaviorConfigBase
 };
 
 USTRUCT(BlueprintType)
+struct FConfig_Blink : public FSkillBehaviorConfigBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxBlinkDistance = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+};
+
+USTRUCT(BlueprintType)
+struct FConfig_Dash : public FSkillBehaviorConfigBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ForwardLaunchForce = 500.f;
+	float UpLaunchForce = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+};
+
+USTRUCT(BlueprintType)
+struct FConfig_Jump : public FSkillBehaviorConfigBase
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxJumpDistance = 700.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinJumpDistance = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxJumpForce = 1000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinJumpForce = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float VerticalLaunchForce = 400.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SlamForce = -2000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+};
+
+USTRUCT(BlueprintType)
+struct FConfig_Rush : public FSkillBehaviorConfigBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxRushDuration = 3.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+};
+
+USTRUCT(BlueprintType)
 struct FSkillBehaviorRegistryRow : public FTableRowBase
 {
 	GENERATED_BODY()
@@ -144,4 +215,39 @@ struct FSkillBehaviorRegistryRow : public FTableRowBase
 	// 에디터에서 BehaviorClass를 선택하고, 그에 맞는 구조체(FConfig_SpawnAtTarget 등)를 선택해서 넣게 됩니다.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BaseStruct = "SkillBehaviorConfigBase"))
 	FInstancedStruct BehaviorConfig;
+};
+
+USTRUCT(BlueprintType)
+struct FSkillInformationDT : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UMAGameplayAbility_SkillBase> GrantedAbility;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Description;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAnimMontage> SkillMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BaseDamageMultiplier = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BaseCooldownDuration = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Behavior"))
+	FGameplayTag DefaultBehaviorTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Attribute"))
+	FGameplayTag DefaultElementalTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Utility"))
+	FGameplayTag DefaultUtilityTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"))
+	FGameplayTag CooldownTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 };

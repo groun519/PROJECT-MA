@@ -8,6 +8,7 @@
 #include "MAGameplayAbility_SkillBase.h"
 #include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "Character/MACharacter.h"
@@ -52,6 +53,10 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 	WaitDelay->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::OnDelayFinished);
 	WaitDelay->ReadyForActivation();
 
+	WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ChargeStartTag);
+	WaitSlowTagTask->EventReceived.AddDynamic(this, &USkillBehavior_ChargeTarget::OnChargeEventReceived);
+	WaitSlowTagTask->ReadyForActivation();
+	
 	WaitInputRelease = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	WaitInputRelease->OnRelease.AddDynamic(this, &USkillBehavior_ChargeTarget::OnReleased);
 	WaitInputRelease->ReadyForActivation();
@@ -64,6 +69,8 @@ void USkillBehavior_ChargeTarget::OnEndAbility_Implementation()
 		WaitDelay->EndTask();
 	if (WaitInputRelease.IsValid())
 		WaitInputRelease->EndTask();
+	if (WaitSlowTagTask.IsValid())
+		WaitSlowTagTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
@@ -123,6 +130,7 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 		SpawnVFX(TargetPoint,FinalSize);
 		OwningAbility->ApplyDamageToTargetData(Data);
 	}
+	SetMontagePlayRate(1.f);
 	CleanUp();
 
 	UAbilityTask_WaitDelay* WaitEndTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, 0.02f);
@@ -132,20 +140,28 @@ void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDa
 
 void USkillBehavior_ChargeTarget::TargetCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnDelayFinished()
 {
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
 }
 
 void USkillBehavior_ChargeTarget::OnReleased(float TimeHeld)
 {
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+}
+
+void USkillBehavior_ChargeTarget::OnChargeEventReceived(FGameplayEventData Payload)
+{
+	SetMontagePlayRate(0.01f);
 }
 
 void USkillBehavior_ChargeTarget::SpawnVFX(FVector SpawnLoc,float FinalSize)

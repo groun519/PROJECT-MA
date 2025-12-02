@@ -43,6 +43,7 @@ void USkillBehavior_SpawnActorFwd::InitFromConfig(const FInstancedStruct& Config
 	const FConfig_SpawnActorAtFwd* ConfigSpawn = ConfigPayload.GetPtr<FConfig_SpawnActorAtFwd>();
 	if (ConfigSpawn)
 	{
+		DefaultProjectile = ConfigSpawn->DefaultProjectile;
 		ElementalProjectiles = ConfigSpawn->ElementalProjectiles;
 		ProjectileMaxDist=ConfigSpawn->MaxDistance;
 		ProjectileSpeed=ConfigSpawn->ProjectileSpeed;

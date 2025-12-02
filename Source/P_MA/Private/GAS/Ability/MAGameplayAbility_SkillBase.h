@@ -5,10 +5,12 @@
 #include "CoreMinimal.h"
 #include "MASkillBehavior.h"
 #include "GameplayTagContainer.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/MASkillVFXSet.h"
 #include "MAGameplayAbility_SkillBase.generated.h"
 
+class UMAAbilitySystemComponent;
 class UUtilityModule;
 /**
  * 
@@ -28,37 +30,22 @@ public:
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return DamageGEClass;}
 	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
 
+	TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const;
+	TSubclassOf<UGameplayEffect> GetBaseCooldownEffect() const;
 	UDataTable* GetElementDataTable() const;
-	UAnimMontage* GetSkillMontage() const { return SkillMontage; }
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	TObjectPtr<UAnimMontage> SkillMontage;
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	TSubclassOf<UGameplayEffect> DamageGEClass;
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	TSubclassOf<UGameplayEffect> CooldownGEClass;
-	UPROPERTY(EditDefaultsOnly, Category="Setup")
-	FGameplayTag SharedCooldownTag;
-	
-	//FGameplayTag CachedCooldownTag;
-	
 	//속성 모듈
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FGameplayTag ActiveElementTag;
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	FGameplayTag DefaultElementTag;
 	
 	//유틸리티 모듈
 	UPROPERTY(BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveUtilityTag;
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	FGameplayTag DefaultUtilityTag;
 	UPROPERTY()
 	TObjectPtr<UUtilityModule> ActiveUtilityModule;
 	UPROPERTY()
@@ -67,18 +54,22 @@ private:
 	//행동 모듈
 	UPROPERTY(BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveBehaviorTag;
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	FGameplayTag DefaultBehaviorTag;
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveBehaviorModule;
 	
 	FGameplayTag CooldownDurationTag;
 	FGameplayTag ElementalModifierTag;
 	FGameplayTag BehaviorModifierTag;
+	FGameplayTag SharedCooldownTag;
 	FGameplayTag VFXEventRootTag;
 	
 	void ApplyBehaviorCooldown(float Multiplier);
 	bool bCooldownApplied = false;
+	
+	UPROPERTY()
+	UMAAbilitySystemComponent* ASC;
+	UPROPERTY()
+	FName BPName;
 public:
 	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);
 	const F_ElementInfoRow* GetActiveElementInfoRow();

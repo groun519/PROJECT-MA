@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MASkillTemplate.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
@@ -37,11 +36,11 @@ public:
 
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> MontageToPlay;
+	UPROPERTY()
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	float BehaviorDamageMultiplier;
 	float CooldownDuration;
-	float DamageMultiplier;
-	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지
 	virtual bool IsRequirePlayerInput() const {return false;}
@@ -49,25 +48,14 @@ public:
 	virtual bool ShouldLockRotation() const {return true;}
 	//스킬 사용 직후 쿨타임 적용할지
 	virtual bool IsApplyCooldownImmediate() const {return true;}
+	virtual bool IsUseDamageNotify() const {return true;}
+	virtual bool IsUseVFXNotify() const {return true;}
 
 	virtual float GetCurrentDamageMultiplier() const;
-
+	
 	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload);
 	
 protected:
-	UPROPERTY()
-	TObjectPtr<UMASkillVFXSet> VFXDataSet;
-	
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
-	UFUNCTION()
-	virtual void HandleVFXSpawnEvent(FGameplayEventData EventData);
-	
-	class AMACharacter* GetCharacter() const;
-	UPROPERTY()
-	TObjectPtr<class AMACharacter> Character;
-	UPROPERTY()
-	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
-
 	UFUNCTION()
 	virtual void SafeEndAbility();
 
@@ -76,4 +64,19 @@ protected:
 
 	FGameplayTag DamageEventTag = UMAAbilitySystemStatics::GetMontageDamageTag();
 	FGameplayTag IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
+	
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
+	
+	UFUNCTION()
+	virtual void HandleVFXSpawnEvent(FGameplayEventData EventData);
+	UFUNCTION()
+	void HitTarget(FGameplayEventData EventData);
+	
+	class AMACharacter* GetCharacter() const;
+	UPROPERTY()
+	TObjectPtr<class AMACharacter> Character;
+	UPROPERTY()
+	TObjectPtr<class AMAPlayerCharacter> PlayerCharacter;
+
 };

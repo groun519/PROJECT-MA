@@ -23,6 +23,7 @@ public:
 
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
+	virtual bool IsUseDamageNotify() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
 	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
@@ -48,10 +49,15 @@ private:
 	void CleanUp();
 	
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> SkillTimeoutTask;
+	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitSlowTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
+
+	FGameplayTag ChargeStartTag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
 	
 	UFUNCTION()
 	void OnKeyReleased(float TimeHeld);
 	UFUNCTION()
 	void OnSkillTimeout();
+	UFUNCTION()
+	void OnChargeEventReceived(FGameplayEventData Payload);
 };

@@ -46,13 +46,6 @@ void USkillBehavior_Hold::OnActivate_Implementation()
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
-	if (OwningAbility->K2_HasAuthority())
-	{
-		//데미지 태그 만나면
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
 }
 
 void USkillBehavior_Hold::OnEndAbility_Implementation()
@@ -68,8 +61,6 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 		HoldTimeOut->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 	if (WaitClearEventTask.IsValid())
 		WaitClearEventTask->EndTask();
 	
@@ -116,15 +107,6 @@ void USkillBehavior_Hold::OnMaxHold()
 	bIsHoldEnd = true;
 	OwningAbility->ApplyDefaultCooldownOnce();
 	MontageToOtherSection(FName("LoopEnd"));
-}
-
-void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
 }
 
 void USkillBehavior_Hold::ClearIgnore(FGameplayEventData EventData)

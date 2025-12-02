@@ -30,8 +30,6 @@ protected:
 	void OnMaxCharged();
 	UFUNCTION()
 	void OnChargeReleased(float Time);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
@@ -42,7 +40,6 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> ChargeTimeoutTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitSlowTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
 	FGameplayTag ChargeStartTag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
 	

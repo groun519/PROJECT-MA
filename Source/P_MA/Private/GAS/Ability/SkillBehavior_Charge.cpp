@@ -39,14 +39,6 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Charge::OnChargeReleased);
 	InputReleaseTask->ReadyForActivation();
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		//데미지 태그 만나면
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
 }
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()
@@ -63,8 +55,6 @@ void USkillBehavior_Charge::OnEndAbility_Implementation()
 		WaitSlowTagTask->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 
 	Super::OnEndAbility_Implementation();
 }
@@ -123,12 +113,6 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 	CachedChargeDuration = Time;
 	OwningAbility->ApplyDefaultCooldownOnce();
 	SetMontagePlayRate(1.f);
-}
-
-void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)
-{
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults);
 }
 
 void USkillBehavior_Charge::UpdateChargeUI()

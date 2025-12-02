@@ -9,6 +9,7 @@
 #include "GAS/Ability/MASkillBehavior.h"
 #include "MovementBehavior_Jump.generated.h"
 
+struct FGameplayAbilityTargetDataHandle;
 /**
  * 
  */
@@ -20,12 +21,12 @@ class UMovementBehavior_Jump : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 	
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetDataTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitJumpStartEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitJumpEndEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;
 
 	UFUNCTION()
 	void TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data);
@@ -33,27 +34,19 @@ private:
 	void OnJumpStartEventReceived(FGameplayEventData EventData);
 	UFUNCTION()
 	void OnJumpEndEventReceived(FGameplayEventData EventData);
-	UFUNCTION()
-	void OnDamageEventReceived(FGameplayEventData EventData);
 	
 	FGameplayTag JumpStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.Start");
 	FGameplayTag JumpEndTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Jump.End");
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY()
 	TSubclassOf<class AMATargetActor_Movement> TargetActorClass;
 	
-	UPROPERTY(EditDefaultsOnly)
-	float MaxJumpDistance = 700.f;
-	UPROPERTY(EditDefaultsOnly)
-	float MinJumpDistance = 100.f;
-	UPROPERTY(EditDefaultsOnly)
-	float MaxJumpForce = 1000.f;
-	UPROPERTY(EditDefaultsOnly)
-	float MinJumpForce = 200.f;
-	UPROPERTY(EditDefaultsOnly)
-	float VerticalLaunchForce = 400.f;
-	UPROPERTY(EditDefaultsOnly)
-	float SlamForce = -2000.f;
+	float MaxJumpDistance;
+	float MinJumpDistance;
+	float MaxJumpForce;
+	float MinJumpForce;
+	float VerticalLaunchForce;
+	float SlamForce;
 	
 	bool bJumpTagReceived;
 	bool bHasValidTargetLocation;

@@ -37,14 +37,11 @@ private:
 	bool bIsComboInputBuffered;
 	
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboChangeEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputPress> WaitInputPress;
 
 	UFUNCTION()
 	void ComboChangedEventReceived(FGameplayEventData EventData);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData EventData);
 	UFUNCTION()

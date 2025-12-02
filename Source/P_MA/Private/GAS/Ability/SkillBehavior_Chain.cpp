@@ -26,13 +26,7 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
+	
 	SetupWaitComboInputPress();
 }
 
@@ -40,8 +34,6 @@ void USkillBehavior_Chain::OnEndAbility_Implementation()
 {
 	if (WaitComboChangeEventTask.IsValid())
 		WaitComboChangeEventTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 	if (WaitClearEventTask.IsValid())
 		WaitClearEventTask->EndTask();
 	if (WaitInputPress.IsValid())
@@ -67,15 +59,6 @@ void USkillBehavior_Chain::ComboChangedEventReceived(FGameplayEventData EventDat
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag,TagNames);
 	NextComboName = TagNames.Last();
-}
-
-void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
 }
 
 void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
