@@ -19,22 +19,16 @@ class UMovementBehavior_Dash : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDashStartEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;
 	
 	UFUNCTION()
 	void OnDashStartEventReceived(FGameplayEventData Payload);
-	UFUNCTION()
-	void OnDamageEventReceived(FGameplayEventData Payload);
 	
 	FGameplayTag DashStartTag = FGameplayTag::RequestGameplayTag("Ability.Movement.Dash.Start");
 	
-	
-	UPROPERTY(EditDefaultsOnly)
-	float UpLaunchForce = 100.f;
-	UPROPERTY(EditDefaultsOnly)
-	float ForwardLaunchForce = 100.f;
+	float UpLaunchForce;
+	float ForwardLaunchForce;
 };

@@ -38,22 +38,6 @@ void USkillBehavior_HoldWithLaunch::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
-void USkillBehavior_HoldWithLaunch::InitFromData(const FSkillDefinitionDT& Data)
-{
-	Super::InitFromData(Data);
-
-	MontageToPlay=Data.HoldLaunchData.MontageToPlay;
-	VFXDataSet=Data.HoldLaunchData.VFXDataSet;
-	bCanMoveWhileHolding=Data.HoldLaunchData.bCanMove;
-
-	if (Data.HoldLaunchData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.HoldLaunchData.DamageMultiplier;
-	if (Data.HoldLaunchData.CooldownDuration>0.f)	CooldownDuration = Data.HoldLaunchData.CooldownDuration;
-	if (Data.HoldLaunchData.MaxHoldDuration>0.f)	MaxHoldDuration = Data.HoldLaunchData.MaxHoldDuration;
-	
-	if (Data.HoldLaunchData.FirstLaunchForce>0.f)	FirstLaunchSpeed = Data.HoldLaunchData.FirstLaunchForce;
-	if (Data.HoldLaunchData.OtherLaunchForce>0.f)	OtherLaunchSpeed = Data.HoldLaunchData.OtherLaunchForce;
-	if (Data.HoldLaunchData.SmashForce>0.f)			SmashSpeed = Data.HoldLaunchData.SmashForce;
-}
 
 void USkillBehavior_HoldWithLaunch::StartLaunch(FGameplayEventData Payload)
 {

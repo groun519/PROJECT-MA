@@ -4,6 +4,7 @@
 #include "GAS/Ability/SkillBehavior_Charge.h"
 
 #include "AbilitySystemComponent.h"
+#include "SkillBehaviorConfig.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -27,7 +28,7 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	
 	//최대 차지 시간
-	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
+	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	ChargeTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_Charge::OnMaxCharged);
 	ChargeTimeoutTask->ReadyForActivation();
 	//차징 시작
@@ -38,14 +39,6 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Charge::OnChargeReleased);
 	InputReleaseTask->ReadyForActivation();
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		//데미지 태그 만나면
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Charge::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
 }
 
 void USkillBehavior_Charge::OnEndAbility_Implementation()
@@ -62,8 +55,6 @@ void USkillBehavior_Charge::OnEndAbility_Implementation()
 		WaitSlowTagTask->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 
 	Super::OnEndAbility_Implementation();
 }
@@ -73,14 +64,14 @@ float USkillBehavior_Charge::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
-void USkillBehavior_Charge::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_Charge::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-	if (Data.ChargeData.MontageToPlay)			MontageToPlay = Data.ChargeData.MontageToPlay;
-	if (Data.ChargeData.VFXDataSet)				VFXDataSet = Data.ChargeData.VFXDataSet;
-	if (Data.ChargeData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeData.MaxChargeDuration;
-	if (Data.ChargeData.TimeoutDuration>0.f)	TimeoutDuration = Data.ChargeData.TimeoutDuration;
-	if (Data.ChargeData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeData.CooldownDuration;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Charge* ChargeConfig = ConfigPayload.GetPtr<FConfig_Charge>();
+	if (ChargeConfig)
+	{
+		MaxChargeDuration = ChargeConfig->MaxChargeDuration;
+	}
 }
 
 void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)
@@ -122,12 +113,6 @@ void USkillBehavior_Charge::OnChargeReleased(float Time)
 	CachedChargeDuration = Time;
 	OwningAbility->ApplyDefaultCooldownOnce();
 	SetMontagePlayRate(1.f);
-}
-
-void USkillBehavior_Charge::HitTarget(FGameplayEventData EventData)
-{
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults);
 }
 
 void USkillBehavior_Charge::UpdateChargeUI()

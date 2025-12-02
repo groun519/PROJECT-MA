@@ -20,7 +20,8 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual float GetCurrentDamageMultiplier() const override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TMap<FName, float> DamageMultiplierMap;
@@ -36,14 +37,11 @@ private:
 	bool bIsComboInputBuffered;
 	
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboChangeEventTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputPress> WaitInputPress;
 
 	UFUNCTION()
 	void ComboChangedEventReceived(FGameplayEventData EventData);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData EventData);
 	UFUNCTION()

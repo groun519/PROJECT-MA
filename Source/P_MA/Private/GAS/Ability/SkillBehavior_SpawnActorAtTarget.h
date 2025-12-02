@@ -8,6 +8,7 @@
 #include "Engine/DataTable.h"
 #include "SkillBehavior_SpawnActorAtTarget.generated.h"
 
+class AMAProjectile_GroundTargetedAOE;
 /**
  * 지점 액터 스폰
  * 플레이어가 지정한 위치에 설정한 투사체로 공격
@@ -25,7 +26,10 @@ public:
 	virtual bool IsRequirePlayerInput() const override { return true; }
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+	virtual bool IsUseDamageNotify() const override {return false;}
+	virtual bool IsUseVFXNotify() const override {return false;}
+	
 private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY()
@@ -44,10 +48,10 @@ private:
 	UPROPERTY()
 	TSubclassOf<AMAProjectile_GroundTargetedAOE> ProjectileToSpawn;
 	
-	float TravelTime;
+	float TravelTime=0.5f;
 	float MaxDistance;
 	float AbilityRange;
-	float SpawnHeight;
+	float SpawnHeight=700.f;
 	int32 ProjectileCount;
 	float SpawnDelay;
 

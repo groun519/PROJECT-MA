@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
+#include "SkillBehaviorConfig.h"
 #include "Character/MACharacter.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "GAS/Projectile/MATargetActor_SelectLoc.h"
@@ -76,26 +77,21 @@ void USkillBehavior_SpawnActorAtTarget::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
-void USkillBehavior_SpawnActorAtTarget::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_SpawnActorAtTarget::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-	if (Data.SpawnAtTargetData.MontageToPlay)		MontageToPlay = Data.SpawnAtTargetData.MontageToPlay;
-
-	if (Data.SpawnAtTargetData.TargetActorClass)	TargetActorClass = Data.SpawnAtTargetData.TargetActorClass;
-	if (Data.SpawnAtTargetData.RangeActorClass)		RangeActorClass = Data.SpawnAtTargetData.RangeActorClass;
-	
-	if (Data.SpawnAtTargetData.DefaultProjectile)	DefaultProjectile = Data.SpawnAtTargetData.DefaultProjectile;
-	ElementalProjectiles = Data.SpawnAtTargetData.ElementalProjectiles;
-
-	if (Data.SpawnAtTargetData.TravelTime>0.f)		TravelTime = Data.SpawnAtTargetData.TravelTime;
-	if (Data.SpawnAtTargetData.MaxDistance>0.f)		MaxDistance = Data.SpawnAtTargetData.MaxDistance;
-	if (Data.SpawnAtTargetData.AbilityRange>0.f)	AbilityRange = Data.SpawnAtTargetData.AbilityRange;
-	if (Data.SpawnAtTargetData.SpawnHeight>0.f)		SpawnHeight = Data.SpawnAtTargetData.SpawnHeight;
-	if (Data.SpawnAtTargetData.ProjectileCount>0)	ProjectileCount = Data.SpawnAtTargetData.ProjectileCount;
-	if (Data.SpawnAtTargetData.SpawnDelay>0.f)		SpawnDelay = Data.SpawnAtTargetData.SpawnDelay;
-	
-	if (Data.SpawnAtTargetData.DamageMultiplier>0.f)BehaviorDamageMultiplier = Data.SpawnAtTargetData.DamageMultiplier;
-	if (Data.SpawnAtTargetData.CooldownDuration>0.f)CooldownDuration = Data.SpawnAtTargetData.CooldownDuration;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_SpawnActorAtTarget* ConfigSpawn = ConfigPayload.GetPtr<FConfig_SpawnActorAtTarget>();
+	if (ConfigSpawn)
+	{
+		DefaultProjectile = ConfigSpawn->DefaultProjectile;
+		TargetActorClass = ConfigSpawn->TargetActorClass;
+		RangeActorClass = ConfigSpawn->RangeActorClass;
+		ElementalProjectiles = ConfigSpawn->ElementalProjectiles;
+		MaxDistance=ConfigSpawn->MaxDistance;
+		AbilityRange=ConfigSpawn->AbilityRange;
+		SpawnDelay=ConfigSpawn->SpawnDelay;
+		ProjectileCount=ConfigSpawn->ProjectileCount;
+	}
 }
 
 void USkillBehavior_SpawnActorAtTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)

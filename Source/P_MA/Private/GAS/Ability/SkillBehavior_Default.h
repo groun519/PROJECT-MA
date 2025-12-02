@@ -18,10 +18,4 @@ class USkillBehavior_Default : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
-private:
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
-
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 };

@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GameplayTagsManager.h"
+#include "SkillBehaviorConfig.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -25,13 +26,7 @@ void USkillBehavior_Chain::OnActivate_Implementation()
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Chain::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
+	
 	SetupWaitComboInputPress();
 }
 
@@ -39,8 +34,6 @@ void USkillBehavior_Chain::OnEndAbility_Implementation()
 {
 	if (WaitComboChangeEventTask.IsValid())
 		WaitComboChangeEventTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 	if (WaitClearEventTask.IsValid())
 		WaitClearEventTask->EndTask();
 	if (WaitInputPress.IsValid())
@@ -66,15 +59,6 @@ void USkillBehavior_Chain::ComboChangedEventReceived(FGameplayEventData EventDat
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag,TagNames);
 	NextComboName = TagNames.Last();
-}
-
-void USkillBehavior_Chain::HitTarget(FGameplayEventData EventData)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
 }
 
 void USkillBehavior_Chain::ClearIgnore(FGameplayEventData EventData)
@@ -128,12 +112,12 @@ float USkillBehavior_Chain::GetCurrentDamageMultiplier() const
 	return GetDamageMultiplierForCurrentCombo();
 }
 
-void USkillBehavior_Chain::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_Chain::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	if (Data.ChainData.MontageToPlay)			MontageToPlay = Data.ChainData.MontageToPlay;
-	if (Data.ChainData.VFXDataSet)				VFXDataSet = Data.ChainData.VFXDataSet;
-	if (Data.ChainData.CooldownDuration>0.f)	CooldownDuration = Data.ChainData.CooldownDuration;
-	DamageMultiplierMap = Data.ChainData.ComboDamageMultipliers;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Chain* ChainConfig = ConfigPayload.GetPtr<FConfig_Chain>();
+	if (ChainConfig)
+	{
+		DamageMultiplierMap = ChainConfig->DamageMultiplierMap;
+	}
 }
