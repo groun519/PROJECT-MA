@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
+#include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -42,48 +43,36 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	const UDataTable* SkillTable = ASC->GetSystemGenerics()->GetSkillDefinitionTable();
-	if (!SkillTable)
+	UDataTable* RegistryTable = ASC->GetSystemGenerics()->GetSkillBehaviorRegistry();
+	if (!RegistryTable)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Not Have Skill Definition Table"))
+		UE_LOG(LogTemp, Warning, TEXT("Not Have RegistryTable"));
 		K2_EndAbility();
 		return;
 	}
-	if (SkillName.IsNone())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Skill Name isn't Set (%s)"),*GetName());
-		K2_EndAbility();
-		return;
-	}
-	const FSkillDefinitionDT* SkillData = SkillTable->FindRow<FSkillDefinitionDT>(SkillName,"");
-	if (!SkillData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cant find Row by (%s)"),*SkillName.ToString());
-		K2_EndAbility();
-		return;
-	}
-	//캐시 저장
-	CachedSkillTemplate = SkillData->SkillTemplate;
-	CachedCooldownTag = SkillData->CooldownTag;
-
-	bCooldownApplied = false;
-	IgnoreTargets.Empty();
 	
-	const FGameplayTagContainer& DynamicTags = GetCurrentAbilitySpec()->DynamicAbilityTags;
+	FGameplayTagContainer AllTags;
+	if (const FGameplayAbilitySpec* Spec = GetCurrentAbilitySpec())
+	{
+		AllTags.AppendTags(Spec->DynamicAbilityTags); // 아이템 등으로 추가된 태그
+	}
 
-	
-	//속성 모듈 태그 결정
-	ActiveElementTag = SkillData->ElementModuleTag;
-	FGameplayTagContainer AttributeFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
+	ActiveBehaviorTag = DefaultBehaviorTag;
+	FGameplayTagContainer BehaviorFilter = AllTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
+	if (BehaviorFilter.Num() >0)
+	{
+		ActiveBehaviorTag = BehaviorFilter.First();
+	}
+
+	ActiveElementTag = DefaultElementTag;
+	FGameplayTagContainer AttributeFilter = AllTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Attribute")));
 	if (AttributeFilter.Num() > 0)
 	{
 		ActiveElementTag = AttributeFilter.First();
 	}
 	
-	//유틸리티 모듈 태그 결정
-	ActiveUtilityTag = SkillData->UtilityModuleTag;
-	ActiveUtilityModule = nullptr;
-	FGameplayTagContainer UtilityFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Utility")));
+	ActiveUtilityTag = DefaultUtilityTag;
+	FGameplayTagContainer UtilityFilter = AllTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Utility")));
 	if (UtilityFilter.Num() > 0)
 	{
 		ActiveUtilityTag = UtilityFilter.First();
@@ -103,73 +92,61 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 			}
 		}
 	}
-	
-	//행동 모듈 태그 결정
-	ActiveBehaviorTag = SkillData->BehaviorModuleTag;
-	FGameplayTagContainer BehaviorFilter = DynamicTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Behavior")));
-	if (BehaviorFilter.Num() > 0)
-	{
-		ActiveBehaviorTag = BehaviorFilter.First();
-	}
-	//결정된 태그로 템플릿에서 행동 모듈 찾기
-	TSubclassOf<UMASkillBehavior> ModuleClass = CachedSkillTemplate->BehaviorModuleMap.FindRef(ActiveBehaviorTag);
-	if (!ModuleClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Module Class not found for Tag: %s"), *ActiveBehaviorTag.ToString());
-		K2_EndAbility();
-		return;
-	}
-	
-	//모듈 생성 및 데이터 삽입
-	ActiveBehaviorModule = nullptr;
-	ActiveBehaviorModule = NewObject<UMASkillBehavior>(this, ModuleClass);
-	if (ActiveBehaviorModule)
-	{
-		ActiveBehaviorModule->OwningAbility=this;
-		ActiveBehaviorModule->InitFromData(*SkillData);
-		//즉시 쿨타임 적용
-		if (ActiveBehaviorModule->IsApplyCooldownImmediate())
-		{
-			ApplyDefaultCooldownOnce();
-		}
-		//캐릭터 설정 (입력, 회전)
-		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
-		if (PlayerCharacter)
-		{
-			if (ActiveBehaviorModule->ShouldLockRotation())
-			{
-				PlayerCharacter->SnapRotationToMouse();;
-				GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
-			}
-			if (!ActiveBehaviorModule->IsRequirePlayerInput())
-			{
-				PlayerCharacter->SetInputEnabledFromPlayerController(false);
-			}
-		}
-		if (ActiveUtilityModule)
-		{
-			//유틸리티 모듈 활성화
-			ActiveUtilityModule->OwningAbility = this;
-			ActiveUtilityModule->OnAbilityActivate();
-		}
-		
-		//행동 모듈 활성화
-		ActiveBehaviorModule->OnActivate();
 
-		UAnimMontage* MontageToPlay = ActiveBehaviorModule->MontageToPlay;
-		if (MontageToPlay)
+	TArray<FName> TagNames;
+	UGameplayTagsManager::Get().SplitGameplayTagFName(ActiveBehaviorTag, TagNames);
+	FName BehaviorName = TagNames.Last();
+	FSkillBehaviorRegistryRow* FoundRow = RegistryTable->FindRow<FSkillBehaviorRegistryRow>(BehaviorName,"");
+	if (FoundRow && FoundRow->BehaviorClass)
+	{
+		ActiveBehaviorModule = NewObject<UMASkillBehavior>(this,FoundRow->BehaviorClass);
+		if (ActiveBehaviorModule)
 		{
-			float PlayRate = 1.f;
+			ActiveBehaviorModule->OwningAbility=this;
+			ActiveBehaviorModule->InitFromConfig(FoundRow->BehaviorConfig);
+
+			//즉시 쿨타임 적용
+			if (ActiveBehaviorModule->IsApplyCooldownImmediate())
+			{
+				ApplyDefaultCooldownOnce();
+			}
+			//캐릭터 설정 (입력, 회전)
+			AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(ActorInfo->AvatarActor.Get());
+			if (PlayerCharacter)
+			{
+				if (ActiveBehaviorModule->ShouldLockRotation())
+				{
+					PlayerCharacter->SnapRotationToMouse();;
+					GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+				}
+				if (!ActiveBehaviorModule->IsRequirePlayerInput())
+				{
+					PlayerCharacter->SetInputEnabledFromPlayerController(false);
+				}
+			}
+			//유틸리티 모듈 활성화
 			if (ActiveUtilityModule)
 			{
-				PlayRate = ActiveUtilityModule->ModifyMontagePlayRate(PlayRate);
+				ActiveUtilityModule->OwningAbility = this;
+				ActiveUtilityModule->OnAbilityActivate();
 			}
-			UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay, PlayRate);
-			PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-			PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
-			PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
-			PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
-			PlayMontageTask->ReadyForActivation();
+			ActiveBehaviorModule->OnActivate();
+
+			UAnimMontage* MontageToPlay = ActiveBehaviorModule->MontageToPlay;
+			if (MontageToPlay)
+			{
+				float PlayRate = 1.f;
+				if (ActiveUtilityModule)
+				{
+					PlayRate = ActiveUtilityModule->ModifyMontagePlayRate(PlayRate);
+				}
+				UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this,NAME_None,MontageToPlay, PlayRate);
+				PlayMontageTask->OnBlendOut.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+				PlayMontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_SkillBase::K2_EndAbility);
+				PlayMontageTask->OnCancelled.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
+				PlayMontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility);
+				PlayMontageTask->ReadyForActivation();
+			}
 		}
 	}
 }
@@ -264,12 +241,12 @@ const F_ElementInfoRow* UMAGameplayAbility_SkillBase::GetActiveElementInfoRow()
 }
 void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults)
 {
-	if (!CachedSkillTemplate || !CachedSkillTemplate->DamageGEClass || !HasAuthority(&CurrentActivationInfo))
+	if (!DamageGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->DamageGEClass, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageGEClass, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	//유틸리티 모듈의 데미지 배율
@@ -315,12 +292,12 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToHitResults(const TArray<FHitResu
 
 void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData)
 {
-	if (!CachedSkillTemplate || !CachedSkillTemplate->DamageGEClass || !HasAuthority(&CurrentActivationInfo))
+	if (!DamageGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 	
 	const F_ElementInfoRow* ElementInfoRow = GetActiveElementInfoRow();
 	
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->DamageGEClass, GetAbilityLevel());
+	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageGEClass, GetAbilityLevel());
 	if (!DamageSpecHandle.IsValid())
 		return;
 	//유틸리티 모듈 데미지 배율
@@ -414,7 +391,7 @@ void UMAGameplayAbility_SkillBase::ApplyShortCooldownAndRequestEndAbility()
 
 void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 {
-	if (!CachedSkillTemplate || !CachedSkillTemplate->CooldownGEClass || !HasAuthority(&CurrentActivationInfo))
+	if (!CooldownGEClass || !HasAuthority(&CurrentActivationInfo))
 		return;
 
 	float FinalDuration =  CooldownToApply;
@@ -424,13 +401,13 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	}
 	if (FinalDuration <= 0)
 		return;
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CachedSkillTemplate->CooldownGEClass, GetAbilityLevel());
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGEClass, GetAbilityLevel());
 	if (SpecHandle.IsValid())
 	{
 		SpecHandle.Data->SetSetByCallerMagnitude(CooldownDurationTag, FinalDuration);
-		if (CachedCooldownTag.IsValid())
+		if (SharedCooldownTag.IsValid())
 		{
-			SpecHandle.Data->DynamicGrantedTags.AddTag(CachedCooldownTag);
+			SpecHandle.Data->DynamicGrantedTags.AddTag(SharedCooldownTag);
 		}
 		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
 	}

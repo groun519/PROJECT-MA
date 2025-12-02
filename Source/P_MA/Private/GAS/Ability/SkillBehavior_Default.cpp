@@ -26,14 +26,6 @@ void USkillBehavior_Default::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
-void USkillBehavior_Default::InitFromData(const FSkillDefinitionDT& Data)
-{
-	Super::InitFromData(Data);
-	if (Data.DefaultData.MontageToPlay)			MontageToPlay = Data.DefaultData.MontageToPlay;
-	if (Data.DefaultData.VFXDataSet)			VFXDataSet = Data.DefaultData.VFXDataSet;
-	if (Data.DefaultData.CooldownDuration>0.f)	CooldownDuration = Data.DefaultData.CooldownDuration;
-	if (Data.DefaultData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.DefaultData.DamageMultiplier;
-}
 
 void USkillBehavior_Default::HitTarget(FGameplayEventData EventData)
 {

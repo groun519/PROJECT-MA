@@ -4,6 +4,7 @@
 #include "GAS/Ability/SkillBehavior_Charge.h"
 
 #include "AbilitySystemComponent.h"
+#include "SkillBehaviorConfig.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -27,7 +28,7 @@ void USkillBehavior_Charge::OnActivate_Implementation()
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
 	
 	//최대 차지 시간
-	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
+	ChargeTimeoutTask = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	ChargeTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_Charge::OnMaxCharged);
 	ChargeTimeoutTask->ReadyForActivation();
 	//차징 시작
@@ -73,14 +74,14 @@ float USkillBehavior_Charge::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
-void USkillBehavior_Charge::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_Charge::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-	if (Data.ChargeData.MontageToPlay)			MontageToPlay = Data.ChargeData.MontageToPlay;
-	if (Data.ChargeData.VFXDataSet)				VFXDataSet = Data.ChargeData.VFXDataSet;
-	if (Data.ChargeData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeData.MaxChargeDuration;
-	if (Data.ChargeData.TimeoutDuration>0.f)	TimeoutDuration = Data.ChargeData.TimeoutDuration;
-	if (Data.ChargeData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeData.CooldownDuration;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Charge* ChargeConfig = ConfigPayload.GetPtr<FConfig_Charge>();
+	if (ChargeConfig)
+	{
+		MaxChargeDuration = ChargeConfig->MaxChargeDuration;
+	}
 }
 
 void USkillBehavior_Charge::OnChargeEventReceived(FGameplayEventData EventData)

@@ -25,7 +25,8 @@ public:
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+	
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AMAAbilityRangeActor> MaxDistanceActorClass;
@@ -37,12 +38,11 @@ private:
 	UPROPERTY()
 	TObjectPtr<class AMATargetActor_ChargeAtTarget> TargetActor;
 	
+	float MaxChargeDuration;
 	float MaxDistance;
 	float MaxSize;
 	float MinSize;
-	float MaxChargeDuration;
-	float TimeoutDuration;
-	float VFXRadius;
+	float VFXRadius=200.f;
 	
 	TWeakObjectPtr<class UAbilityTask_WaitTargetData> WaitTargetData;
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> WaitDelay;

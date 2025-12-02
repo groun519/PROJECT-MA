@@ -20,7 +20,7 @@ public:
 	virtual void OnEndAbility_Implementation() override;
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 
 protected:
 	bool bCanMoveWhileHolding = false;
@@ -46,4 +46,8 @@ private:
 	void HitTarget(FGameplayEventData EventData);
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData EventData);
+	UFUNCTION()
+	void JumpSection(FGameplayEventData Payload);
+
+	FGameplayTag MontageJumpTag = FGameplayTag::RequestGameplayTag("Event.Montage.JumpSection");
 };

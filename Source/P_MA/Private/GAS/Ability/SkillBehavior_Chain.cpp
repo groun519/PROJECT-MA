@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GameplayTagsManager.h"
+#include "SkillBehaviorConfig.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -128,12 +129,12 @@ float USkillBehavior_Chain::GetCurrentDamageMultiplier() const
 	return GetDamageMultiplierForCurrentCombo();
 }
 
-void USkillBehavior_Chain::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_Chain::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	if (Data.ChainData.MontageToPlay)			MontageToPlay = Data.ChainData.MontageToPlay;
-	if (Data.ChainData.VFXDataSet)				VFXDataSet = Data.ChainData.VFXDataSet;
-	if (Data.ChainData.CooldownDuration>0.f)	CooldownDuration = Data.ChainData.CooldownDuration;
-	DamageMultiplierMap = Data.ChainData.ComboDamageMultipliers;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Chain* ChainConfig = ConfigPayload.GetPtr<FConfig_Chain>();
+	if (ChainConfig)
+	{
+		DamageMultiplierMap = ChainConfig->DamageMultiplierMap;
+	}
 }

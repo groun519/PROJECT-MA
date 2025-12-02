@@ -48,18 +48,6 @@ void UMovementBehavior_Blink::OnEndAbility_Implementation()
 	Super::OnEndAbility_Implementation();
 }
 
-void UMovementBehavior_Blink::InitFromData(const FSkillDefinitionDT& Data)
-{
-	Super::InitFromData(Data);
-
-	MontageToPlay = Data.BlinkData.MontageToPlay;
-	TargetActorClass = Data.BlinkData.TargetActorClass;
-	VFXDataSet = Data.BlinkData.VFXDataSet;
-	if (Data.BlinkData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.BlinkData.DamageMultiplier;
-	if (Data.BlinkData.CooldownDuration>0.f)	CooldownDuration = Data.BlinkData.CooldownDuration;
-	if (Data.BlinkData.MaxBlinkDistance>0.f)	MaxBlinkDistance = Data.BlinkData.MaxBlinkDistance;
-}
-
 void UMovementBehavior_Blink::OnBlinkTagReceived(FGameplayEventData Payload)
 {
 	bBlinkTagReceived = true;

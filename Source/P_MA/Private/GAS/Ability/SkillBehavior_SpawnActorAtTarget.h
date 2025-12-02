@@ -25,7 +25,8 @@ public:
 	virtual bool IsRequirePlayerInput() const override { return true; }
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+	
 private:
 	// 스킬 타격 범위 선택 액터
 	UPROPERTY()
@@ -44,10 +45,10 @@ private:
 	UPROPERTY()
 	TSubclassOf<AMAProjectile_GroundTargetedAOE> ProjectileToSpawn;
 	
-	float TravelTime;
+	float TravelTime=0.5f;
 	float MaxDistance;
 	float AbilityRange;
-	float SpawnHeight;
+	float SpawnHeight=700.f;
 	int32 ProjectileCount;
 	float SpawnDelay;
 

@@ -8,6 +8,7 @@
 #include "MAGameplayAbility_SkillBase.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Engine/DataTable.h"
@@ -27,6 +28,10 @@ void UMASkillBehavior::OnActivate_Implementation()
 		WaitVFXEventTask->EventReceived.AddDynamic(this, &UMASkillBehavior::HandleVFXSpawnEvent);
 		WaitVFXEventTask->ReadyForActivation();
 	}
+	if (OwningAbility)
+	{
+		MontageToPlay = OwningAbility->GetSkillMontage();
+	}
 }
 
 void UMASkillBehavior::OnEndAbility_Implementation()
@@ -43,8 +48,14 @@ float UMASkillBehavior::GetCurrentDamageMultiplier() const
 	return BehaviorDamageMultiplier;
 }
 
-void UMASkillBehavior::InitFromData(const FSkillDefinitionDT& Data)
+void UMASkillBehavior::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
+	const FSkillBehaviorConfigBase* BaseConfig = ConfigPayload.GetPtr<FSkillBehaviorConfigBase>();
+	if (BaseConfig)
+	{
+		CooldownDuration = BaseConfig->CooldownDuration;
+		DamageMultiplier = BaseConfig->DamageMultiplier;
+	}
 }
 
 void UMASkillBehavior::HandleVFXSpawnEvent(FGameplayEventData EventData)

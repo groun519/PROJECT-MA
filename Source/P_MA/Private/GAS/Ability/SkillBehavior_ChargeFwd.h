@@ -25,7 +25,7 @@ public:
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly)
@@ -34,15 +34,14 @@ private:
 	TObjectPtr<AMATargetActor_ChargeAtFwd> TargetActor;
 	
 	float MaxChargeDuration;
-	float TimeoutDuration;
 	float MinTraceDistance;
 	float MaxTraceDistance;
 
-	float SkillWidth;
+	float SkillWidth = 96.f;
 	float DecalDepth = 10.f;
 
-	float VFXLength;
-	float VFXWidth;
+	float VFXLength = 1000.f;
+	float VFXWidth =120.f;
 
 	float CachedChargeDuration;
 	void SpawnVFX(float FinalLength);

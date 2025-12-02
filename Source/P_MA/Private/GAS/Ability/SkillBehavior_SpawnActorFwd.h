@@ -23,7 +23,8 @@ class USkillBehavior_SpawnActorFwd : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+
 	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> ProjectileEventTask;

@@ -8,6 +8,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "MASkillBehavior.generated.h"
 
+struct FInstancedStruct;
 class UMASkillVFXSet;
 class UMAGameplayAbility_SkillBase;
 class AMACharacter;
@@ -39,6 +40,7 @@ public:
 	
 	float BehaviorDamageMultiplier;
 	float CooldownDuration;
+	float DamageMultiplier;
 	float ShortCoolDownDuration = 1.f;
 	
 	//입력 필요한 스킬인지
@@ -50,7 +52,7 @@ public:
 
 	virtual float GetCurrentDamageMultiplier() const;
 
-	virtual void InitFromData(const FSkillDefinitionDT& Data);
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload);
 	
 protected:
 	UPROPERTY()

@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MAGameplayAbility_SkillBase.h"
+#include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Character/MACharacter.h"
@@ -31,7 +32,7 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_ChargeFwd::OnKeyReleased);
 	InputReleaseTask->ReadyForActivation();
 
-	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
+	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	SkillTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeFwd::OnSkillTimeout);
 	SkillTimeoutTask->ReadyForActivation();
 }
@@ -53,23 +54,17 @@ float USkillBehavior_ChargeFwd::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
-void USkillBehavior_ChargeFwd::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_ChargeFwd::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	MontageToPlay=Data.ChargeFwdData.MontageToPlay;
-	VFXDataSet=Data.ChargeFwdData.VFXDataSet;
-	
-	if (Data.ChargeFwdData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeFwdData.CooldownDuration;
-	if (Data.ChargeFwdData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeFwdData.MaxChargeDuration;
-	if (Data.ChargeFwdData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeFwdData.TimeoutDuration;
-	
-	if (Data.ChargeFwdData.TargetActorClass)		TargetActorClass = Data.ChargeFwdData.TargetActorClass;
-	if (Data.ChargeFwdData.MinDistance>0.f)			MinTraceDistance = Data.ChargeFwdData.MinDistance;
-	if (Data.ChargeFwdData.MaxDistance>0.f)			MaxTraceDistance = Data.ChargeFwdData.MaxDistance;
-	if (Data.ChargeFwdData.SkillWidth>0.f)			SkillWidth = Data.ChargeFwdData.SkillWidth;
-	if (Data.ChargeFwdData.DefaultVFXLength>0.f)	VFXLength = Data.ChargeFwdData.DefaultVFXLength;
-	if (Data.ChargeFwdData.DefaultVFXWidth>0.f)		VFXWidth = Data.ChargeFwdData.DefaultVFXWidth;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_ChargeFwd* ChargeFwdConfig = ConfigPayload.GetPtr<FConfig_ChargeFwd>();
+	if (ChargeFwdConfig)
+	{
+		TargetActorClass = ChargeFwdConfig->TargetActorClass;
+		MaxChargeDuration = ChargeFwdConfig->MaxChargeDuration;
+		MaxTraceDistance = ChargeFwdConfig->MaxTraceDistance;
+		MinTraceDistance = ChargeFwdConfig->MinTraceDistance;
+	}
 }
 
 void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)

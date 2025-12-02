@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "MAGameplayAbility_SkillBase.h"
+#include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
@@ -47,7 +48,7 @@ void USkillBehavior_ChargeTarget::OnActivate_Implementation()
 	}
 	WaitTargetData->FinishSpawningActor(OwningAbility, TA);
 
-	WaitDelay = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
+	WaitDelay = UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	WaitDelay->OnFinish.AddDynamic(this, &USkillBehavior_ChargeTarget::OnDelayFinished);
 	WaitDelay->ReadyForActivation();
 
@@ -72,23 +73,19 @@ float USkillBehavior_ChargeTarget::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
-void USkillBehavior_ChargeTarget::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_ChargeTarget::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-	MontageToPlay = Data.ChargeTargetData.MontageToPlay;
-	VFXDataSet = Data.ChargeTargetData.VFXDataSet;
-	
-	if (Data.ChargeTargetData.RangeActorClass)		MaxDistanceActorClass = Data.ChargeTargetData.RangeActorClass;
-	if (Data.ChargeTargetData.TargetActorClass)		TargetActorClass = Data.ChargeTargetData.TargetActorClass;
-	
-	if (Data.ChargeTargetData.CooldownDuration>0.f)		CooldownDuration = Data.ChargeTargetData.CooldownDuration;
-	if (Data.ChargeTargetData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeTargetData.MaxChargeDuration;
-	if (Data.ChargeTargetData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeTargetData.TimeoutDuration;
-	
-	if (Data.ChargeTargetData.MaxDistance>0.f)		MaxDistance = Data.ChargeTargetData.MaxDistance;
-	if (Data.ChargeTargetData.MinRadius>0.f)		MinSize = Data.ChargeTargetData.MinRadius;
-	if (Data.ChargeTargetData.MaxRadius>0.f)		MaxSize = Data.ChargeTargetData.MaxRadius;
-	if (Data.ChargeTargetData.DefaultVFXRadius>0.f)	VFXRadius = Data.ChargeTargetData.DefaultVFXRadius;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_ChargeTarget* ChargeConfig = ConfigPayload.GetPtr<FConfig_ChargeTarget>();
+	if (ChargeConfig)
+	{
+		MaxChargeDuration = ChargeConfig->MaxChargeDuration;
+		MaxDistanceActorClass = ChargeConfig->MaxDistanceActorClass;
+		TargetActorClass = ChargeConfig->TargetActorClass;
+		MaxDistance = ChargeConfig->MaxDistance;
+		MaxSize = ChargeConfig->MaxSize;
+		MinSize = ChargeConfig->MinSize;
+	}
 }
 
 void USkillBehavior_ChargeTarget::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)

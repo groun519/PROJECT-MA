@@ -28,39 +28,47 @@ public:
 	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
-	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return CachedSkillTemplate->DamageGEClass;}
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const {return DamageGEClass;}
 	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
 
 	UDataTable* GetElementDataTable() const;
-	
+	UAnimMontage* GetSkillMontage() const { return SkillMontage; }
 	/***************************************************************/
 	/*						Skill Module						   */
 	/***************************************************************/
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TObjectPtr<UAnimMontage> SkillMontage;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TSubclassOf<UGameplayEffect> DamageGEClass;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
+	TSubclassOf<UGameplayEffect> CooldownGEClass;
+	UPROPERTY(EditDefaultsOnly, Category="Setup")
 	FGameplayTag SharedCooldownTag;
-	UPROPERTY(EditDefaultsOnly, Category="Skill Name")
-	FName SkillName;
 	
-	UPROPERTY()
-	TObjectPtr<UMASkillTemplate> CachedSkillTemplate;
-	FGameplayTag CachedCooldownTag;
+	//FGameplayTag CachedCooldownTag;
 	
 	//속성 모듈
-	UPROPERTY(BlueprintReadOnly, Category = "Setup", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FGameplayTag ActiveElementTag;
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FGameplayTag DefaultElementTag;
 	
 	//유틸리티 모듈
-	UPROPERTY(BlueprintReadOnly, Category="Utility Module", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveUtilityTag;
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FGameplayTag DefaultUtilityTag;
 	UPROPERTY()
 	TObjectPtr<UUtilityModule> ActiveUtilityModule;
 	UPROPERTY()
 	TMap<FGameplayTag, TObjectPtr<UUtilityModule>> CachedUtilityModules;
 
 	//행동 모듈
-	UPROPERTY(BlueprintReadOnly, Category="Behavior Module", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
 	FGameplayTag ActiveBehaviorTag;
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FGameplayTag DefaultBehaviorTag;
 	UPROPERTY()
 	TObjectPtr<UMASkillBehavior> ActiveBehaviorModule;
 	
