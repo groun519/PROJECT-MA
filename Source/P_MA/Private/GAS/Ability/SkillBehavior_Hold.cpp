@@ -4,6 +4,7 @@
 #include "GAS/Ability/SkillBehavior_Hold.h"
 
 #include "AbilitySystemComponent.h"
+#include "SkillBehaviorConfig.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -36,17 +37,15 @@ void USkillBehavior_Hold::OnActivate_Implementation()
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwningAbility);
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_Hold::OnHoldReleased);
 	InputReleaseTask->ReadyForActivation();
+
+	UAbilityTask_WaitGameplayEvent* WaitJumpEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, MontageJumpTag);
+	WaitJumpEvent->EventReceived.AddDynamic(this, &USkillBehavior_Hold::JumpSection);
+	WaitJumpEvent->ReadyForActivation();
+	
 	//Ignore Target 배열 초기화
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
-	if (OwningAbility->K2_HasAuthority())
-	{
-		//데미지 태그 만나면
-		WaitHitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitHitEventTask->EventReceived.AddDynamic(this, &USkillBehavior_Hold::HitTarget);
-		WaitHitEventTask->ReadyForActivation();
-	}
 }
 
 void USkillBehavior_Hold::OnEndAbility_Implementation()
@@ -62,24 +61,21 @@ void USkillBehavior_Hold::OnEndAbility_Implementation()
 		HoldTimeOut->EndTask();
 	if (InputReleaseTask.IsValid())
 		InputReleaseTask->EndTask();
-	if (WaitHitEventTask.IsValid())
-		WaitHitEventTask->EndTask();
 	if (WaitClearEventTask.IsValid())
 		WaitClearEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
 
-void USkillBehavior_Hold::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_Hold::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-	if (Data.HoldData.MontageToPlay)		MontageToPlay = Data.HoldData.MontageToPlay;
-	if (Data.HoldData.MaxHoldDuration>0.f)	MaxHoldDuration = Data.HoldData.MaxHoldDuration;
-	if (Data.HoldData.VFXDataSet)			VFXDataSet = Data.HoldData.VFXDataSet;
-	if (Data.HoldData.CooldownDuration>0.f)	CooldownDuration = Data.HoldData.CooldownDuration;
-	if (Data.HoldData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.HoldData.DamageMultiplier;
-	
-	bCanMoveWhileHolding = Data.HoldData.bCanMove;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Hold* HoldConfig = ConfigPayload.GetPtr<FConfig_Hold>();
+	if (HoldConfig)
+	{
+		MaxHoldDuration = HoldConfig->MaxHoldDuration;
+		bCanMoveWhileHolding=HoldConfig->bCanMove;
+	}
 }
 
 
@@ -98,7 +94,7 @@ void USkillBehavior_Hold::OnHoldReleased(float Time)
 		return;
 	}
 	OwningAbility->ApplyDefaultCooldownOnce();
-	MontageToOtherSection(FName("End"));
+	MontageToOtherSection(FName("LoopEnd"));
 }
 
 void USkillBehavior_Hold::OnMaxHold()
@@ -110,16 +106,7 @@ void USkillBehavior_Hold::OnMaxHold()
 		return;
 	bIsHoldEnd = true;
 	OwningAbility->ApplyDefaultCooldownOnce();
-	MontageToOtherSection(FName("End"));
-}
-
-void USkillBehavior_Hold::HitTarget(FGameplayEventData EventData)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
+	MontageToOtherSection(FName("LoopEnd"));
 }
 
 void USkillBehavior_Hold::ClearIgnore(FGameplayEventData EventData)
@@ -128,6 +115,11 @@ void USkillBehavior_Hold::ClearIgnore(FGameplayEventData EventData)
 	{
 		OwningAbility->IgnoreTargets.Empty();
 	}
+}
+
+void USkillBehavior_Hold::JumpSection(FGameplayEventData Payload)
+{
+	MontageToOtherSection("LoopStart");
 }
 
 void USkillBehavior_Hold::UpdateChargeUI()

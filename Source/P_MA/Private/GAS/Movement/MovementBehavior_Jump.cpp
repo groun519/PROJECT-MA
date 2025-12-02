@@ -6,6 +6,7 @@
 #include "Character/MACharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Ability/SkillBehaviorConfig.h"
 #include "GAS/Movement/MATargetActor_Movement.h"
 
 void UMovementBehavior_Jump::OnActivate_Implementation()
@@ -35,14 +36,6 @@ void UMovementBehavior_Jump::OnActivate_Implementation()
 	AGameplayAbilityTargetActor* TargetActor;
 	WaitTargetDataTask->BeginSpawningActor(OwningAbility, TargetActorClass, TargetActor);
 	WaitTargetDataTask->FinishSpawningActor(OwningAbility, TargetActor);
-
-	if (OwningAbility->K2_HasAuthority())
-	{
-		// 데미지 태그 대기
-		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, DamageEventTag);
-		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Jump::OnDamageEventReceived);
-		WaitDamageTagEventTask->ReadyForActivation();
-	}
 }
 
 void UMovementBehavior_Jump::OnEndAbility_Implementation()
@@ -55,30 +48,28 @@ void UMovementBehavior_Jump::OnEndAbility_Implementation()
 		WaitJumpStartEventTask->EndTask();
 	if (WaitJumpEndEventTask.IsValid())
 		WaitJumpEndEventTask->EndTask();
-	if (WaitDamageTagEventTask.IsValid())
-		WaitDamageTagEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
 
-void UMovementBehavior_Jump::InitFromData(const FSkillDefinitionDT& Data)
+void UMovementBehavior_Jump::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	MontageToPlay = Data.JumpData.MontageToPlay;
-	TargetActorClass=Data.JumpData.TargetActorClass;
-	VFXDataSet=Data.JumpData.VFXDataSet;
-	
-	if (Data.JumpData.DamageMultiplier>0.f)		BehaviorDamageMultiplier = Data.JumpData.DamageMultiplier;
-	if (Data.JumpData.CooldownDuration>0.f)		CooldownDuration = Data.JumpData.CooldownDuration;
-	
-	if (Data.JumpData.MaxJumpDistance>0.f)		MaxJumpDistance = Data.JumpData.MaxJumpDistance;
-	if (Data.JumpData.MinJumpDistance>0.f)		MinJumpDistance = Data.JumpData.MinJumpDistance;
-	if (Data.JumpData.MaxJumpForce>0.f)			MaxJumpForce = Data.JumpData.MaxJumpForce;
-	if (Data.JumpData.MinJumpForce>0.f)			MinJumpForce = Data.JumpData.MinJumpForce;
-	if (Data.JumpData.VerticalLaunchForce>0.f)	VerticalLaunchForce = Data.JumpData.VerticalLaunchForce;
-	if (Data.JumpData.SlamForce>0.f)			SlamForce = Data.JumpData.SlamForce;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Jump* JumpConfig = ConfigPayload.GetPtr<FConfig_Jump>();
+	if (JumpConfig)
+	{
+		MontageToPlay=JumpConfig->MontageToPlay;
+		TargetActorClass = JumpConfig->TargetActorClass;
+		MaxJumpForce = JumpConfig->MaxJumpForce;
+		MinJumpForce = JumpConfig->MinJumpForce;
+		MaxJumpDistance = JumpConfig->MaxJumpDistance;
+		MinJumpDistance = JumpConfig->MinJumpDistance;
+		VerticalLaunchForce = JumpConfig->VerticalLaunchForce;
+		SlamForce = JumpConfig->SlamForce;
+		VFXDataSet=JumpConfig->VFXDataSet;
+	}
 }
+
 
 void UMovementBehavior_Jump::TargetConfirmed(const FGameplayAbilityTargetDataHandle& Data)
 {
@@ -112,13 +103,6 @@ void UMovementBehavior_Jump::OnJumpEndEventReceived(FGameplayEventData EventData
 		const FVector SlamVel(0.f, 0.f, SlamForce);
 		Character->LaunchCharacter(SlamVel, false, true);
 	}
-}
-
-void UMovementBehavior_Jump::OnDamageEventReceived(FGameplayEventData EventData)
-{
-	TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(EventData.TargetData);
-	OwningAbility->ApplyDamageToHitResults(HitResults);
-
 }
 
 void UMovementBehavior_Jump::TryJump()

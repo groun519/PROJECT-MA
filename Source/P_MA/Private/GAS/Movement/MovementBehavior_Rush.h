@@ -21,10 +21,9 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool ShouldLockRotation() const override {return false;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
 private:
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> WaitInputRelease;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitDamageTagEventTask;
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> TimeoutTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 
@@ -33,11 +32,8 @@ private:
 	UFUNCTION()
 	void OnFinished();
 	UFUNCTION()
-	void OnDamageEventReceived(FGameplayEventData Payload);
-	UFUNCTION()
 	void ClearIgnore(FGameplayEventData Payload);
 	
-	UPROPERTY(EditDefaultsOnly)
 	float MaxRushDuration = 3.f;
 
 	bool bIsEnd = false;

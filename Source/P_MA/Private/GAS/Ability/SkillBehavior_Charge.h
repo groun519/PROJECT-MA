@@ -21,7 +21,8 @@ public:
 	virtual bool IsRequirePlayerInput() const override {return true;}
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+
 protected:
 	UFUNCTION()
 	void OnChargeEventReceived(FGameplayEventData EventData);
@@ -29,12 +30,9 @@ protected:
 	void OnMaxCharged();
 	UFUNCTION()
 	void OnChargeReleased(float Time);
-	UFUNCTION()
-	void HitTarget(FGameplayEventData EventData);
 	
 	UPROPERTY(EditDefaultsOnly)
 	float MaxChargeDuration = 3.0f;
-	float TimeoutDuration = 4.5f;
 
 	float CachedChargeDuration;
 	bool bIsEnd = false;
@@ -42,7 +40,6 @@ protected:
 	TWeakObjectPtr<class UAbilityTask_WaitDelay> ChargeTimeoutTask;
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitSlowTagTask;
 	TWeakObjectPtr<class UAbilityTask_WaitInputRelease> InputReleaseTask;
-	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitHitEventTask;
 
 	FGameplayTag ChargeStartTag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
 	

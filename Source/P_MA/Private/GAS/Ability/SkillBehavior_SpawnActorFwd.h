@@ -9,6 +9,7 @@
 #include "SkillBehavior_SpawnActorFwd.generated.h"
 
 
+class AMAProjectile_OverlapAOE;
 class AMACharacter;
 
 /**
@@ -23,7 +24,9 @@ class USkillBehavior_SpawnActorFwd : public UMASkillBehavior
 public:
 	virtual void OnActivate_Implementation() override;
 	virtual void OnEndAbility_Implementation() override;
-	virtual void InitFromData(const FSkillDefinitionDT& Data) override;
+	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
+	virtual bool IsUseDamageNotify() const override {return false;}
+	virtual bool IsUseVFXNotify() const override {return false;}
 	
 protected:
 	TWeakObjectPtr<class UAbilityTask_WaitGameplayEvent> ProjectileEventTask;

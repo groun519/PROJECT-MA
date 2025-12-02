@@ -107,6 +107,4 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
 	TSubclassOf<UGameplayAbility> GrantedAbility; 
 	
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
-    float CooldownDuration = 0.0f;
 };

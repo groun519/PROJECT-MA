@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Ability/SkillBehaviorConfig.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMovementBehavior_Rush::OnActivate_Implementation()
@@ -28,13 +29,6 @@ void UMovementBehavior_Rush::OnActivate_Implementation()
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Rush::ClearIgnore);
 	WaitClearEventTask->ReadyForActivation();
-	
-	if (OwningAbility->K2_HasAuthority())
-	{
-		WaitDamageTagEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility,DamageEventTag);
-		WaitDamageTagEventTask->EventReceived.AddDynamic(this, &UMovementBehavior_Rush::OnDamageEventReceived);
-		WaitDamageTagEventTask->ReadyForActivation();
-	}
 }
 
 void UMovementBehavior_Rush::OnEndAbility_Implementation()
@@ -43,24 +37,25 @@ void UMovementBehavior_Rush::OnEndAbility_Implementation()
 		WaitInputRelease->EndTask();
 	if (TimeoutTask.IsValid())
 		TimeoutTask->EndTask();
-	if (WaitDamageTagEventTask.IsValid())
-		WaitDamageTagEventTask->EndTask();
+
 	if (WaitClearEventTask.IsValid())
 		WaitClearEventTask->EndTask();
 	
 	Super::OnEndAbility_Implementation();
 }
 
-void UMovementBehavior_Rush::InitFromData(const FSkillDefinitionDT& Data)
+void UMovementBehavior_Rush::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	MontageToPlay = Data.RushData.MontageToPlay;
-	VFXDataSet=Data.RushData.VFXDataSet;
-	if (Data.RushData.DamageMultiplier>0.f)	BehaviorDamageMultiplier = Data.RushData.DamageMultiplier;
-	if (Data.RushData.CooldownDuration>0.f)	CooldownDuration = Data.RushData.CooldownDuration;
-	if (Data.RushData.MaxRushDuration>0.f)	MaxRushDuration = Data.RushData.MaxRushDuration;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_Rush* RushConfig = ConfigPayload.GetPtr<FConfig_Rush>();
+	if (RushConfig)
+	{
+		MontageToPlay=RushConfig->MontageToPlay;
+		MaxRushDuration = RushConfig->MaxRushDuration;
+		VFXDataSet=RushConfig->VFXDataSet;
+	}
 }
+
 
 void UMovementBehavior_Rush::OnInputReleased(float TimeHeld)
 {
@@ -89,15 +84,6 @@ void UMovementBehavior_Rush::OnFinished()
 	OwningAbility->ApplyDefaultCooldownOnce();
 	
 	OwningAbility->GetAbilitySystemComponentFromActorInfo()->RemoveLooseGameplayTag(PlayerCharacter->RushingTag);
-}
-
-void UMovementBehavior_Rush::OnDamageEventReceived(FGameplayEventData Payload)
-{
-	if (OwningAbility->K2_HasAuthority())
-	{
-		TArray<FHitResult> HitResults = OwningAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-		OwningAbility->ApplyDamageToHitResults(HitResults);
-	}
 }
 
 void UMovementBehavior_Rush::ClearIgnore(FGameplayEventData Payload)

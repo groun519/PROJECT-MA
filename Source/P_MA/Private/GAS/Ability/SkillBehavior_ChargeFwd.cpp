@@ -6,7 +6,9 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MAGameplayAbility_SkillBase.h"
+#include "SkillBehaviorConfig.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Character/MACharacter.h"
 #include "GAS/MASkillVFXSet.h"
@@ -31,7 +33,11 @@ void USkillBehavior_ChargeFwd::OnActivate_Implementation()
 	InputReleaseTask->OnRelease.AddDynamic(this, &USkillBehavior_ChargeFwd::OnKeyReleased);
 	InputReleaseTask->ReadyForActivation();
 
-	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, TimeoutDuration);
+	WaitSlowTagTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwningAbility, ChargeStartTag);
+	WaitSlowTagTask->EventReceived.AddDynamic(this, &USkillBehavior_ChargeFwd::OnChargeEventReceived);
+	WaitSlowTagTask->ReadyForActivation();
+	
+	SkillTimeoutTask= UAbilityTask_WaitDelay::WaitDelay(OwningAbility, MaxChargeDuration+0.5f);
 	SkillTimeoutTask->OnFinish.AddDynamic(this, &USkillBehavior_ChargeFwd::OnSkillTimeout);
 	SkillTimeoutTask->ReadyForActivation();
 }
@@ -44,6 +50,8 @@ void USkillBehavior_ChargeFwd::OnEndAbility_Implementation()
 		InputReleaseTask->EndTask();
 	if (SkillTimeoutTask.IsValid())
 		SkillTimeoutTask->EndTask();
+	if (WaitSlowTagTask.IsValid())
+		WaitSlowTagTask->EndTask();
 
 	Super::OnEndAbility_Implementation();
 }
@@ -53,23 +61,17 @@ float USkillBehavior_ChargeFwd::GetCurrentDamageMultiplier() const
 	return CachedChargeDuration;
 }
 
-void USkillBehavior_ChargeFwd::InitFromData(const FSkillDefinitionDT& Data)
+void USkillBehavior_ChargeFwd::InitFromConfig(const FInstancedStruct& ConfigPayload)
 {
-	Super::InitFromData(Data);
-
-	MontageToPlay=Data.ChargeFwdData.MontageToPlay;
-	VFXDataSet=Data.ChargeFwdData.VFXDataSet;
-	
-	if (Data.ChargeFwdData.CooldownDuration>0.f)	CooldownDuration = Data.ChargeFwdData.CooldownDuration;
-	if (Data.ChargeFwdData.MaxChargeDuration>0.f)	MaxChargeDuration = Data.ChargeFwdData.MaxChargeDuration;
-	if (Data.ChargeFwdData.TimeoutDuration>0.f)		TimeoutDuration = Data.ChargeFwdData.TimeoutDuration;
-	
-	if (Data.ChargeFwdData.TargetActorClass)		TargetActorClass = Data.ChargeFwdData.TargetActorClass;
-	if (Data.ChargeFwdData.MinDistance>0.f)			MinTraceDistance = Data.ChargeFwdData.MinDistance;
-	if (Data.ChargeFwdData.MaxDistance>0.f)			MaxTraceDistance = Data.ChargeFwdData.MaxDistance;
-	if (Data.ChargeFwdData.SkillWidth>0.f)			SkillWidth = Data.ChargeFwdData.SkillWidth;
-	if (Data.ChargeFwdData.DefaultVFXLength>0.f)	VFXLength = Data.ChargeFwdData.DefaultVFXLength;
-	if (Data.ChargeFwdData.DefaultVFXWidth>0.f)		VFXWidth = Data.ChargeFwdData.DefaultVFXWidth;
+	Super::InitFromConfig(ConfigPayload);
+	const FConfig_ChargeFwd* ChargeFwdConfig = ConfigPayload.GetPtr<FConfig_ChargeFwd>();
+	if (ChargeFwdConfig)
+	{
+		TargetActorClass = ChargeFwdConfig->TargetActorClass;
+		MaxChargeDuration = ChargeFwdConfig->MaxChargeDuration;
+		MaxTraceDistance = ChargeFwdConfig->MaxTraceDistance;
+		MinTraceDistance = ChargeFwdConfig->MinTraceDistance;
+	}
 }
 
 void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
@@ -91,6 +93,7 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 	if (OwningAbility->K2_HasAuthority())
 		OwningAbility->ApplyDamageToTargetData(TargetDataHandle);
 	
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	SafeEndAbility();
 	OwningAbility->ApplyDefaultCooldownOnce();
@@ -98,8 +101,14 @@ void USkillBehavior_ChargeFwd::OnKeyReleased(float TimeHeld)
 
 void USkillBehavior_ChargeFwd::OnSkillTimeout()
 {
+	SetMontagePlayRate(1.f);
 	CleanUp();
 	OwningAbility->ApplyShortCooldownAndRequestEndAbility();
+}
+
+void USkillBehavior_ChargeFwd::OnChargeEventReceived(FGameplayEventData Payload)
+{
+	SetMontagePlayRate(0.01f);
 }
 
 void USkillBehavior_ChargeFwd::SpawnVFX(float FinalLength)
