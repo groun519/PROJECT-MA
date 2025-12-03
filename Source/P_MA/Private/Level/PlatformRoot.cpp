@@ -14,14 +14,6 @@ APlatformRoot::APlatformRoot()
 	/** Add Matrix **/
 	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
 	PlatformMatrixComponent->SetupAttachment(RootComponent);
-	
-	// /** Add Arrow **/
-	// if (UArrowComponent* Arrow = GetArrowComponent())
-	// {
-	// 	Arrow->ArrowSize = 3.0f;
-	// 	Arrow->ArrowColor = FColor::Red;
-	// 	Arrow->SetRelativeLocation(FVector(1000.0f, 0.0f, 50.f));
-	// }
 }
 
 void APlatformRoot::BeginPlay()
@@ -37,14 +29,30 @@ void APlatformRoot::Tick(float DeltaTime)
 	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
 	if (!Manager) return;
 
+	/** Height **/
+	Manager->IsMoving() ?
+		CurHeight = MovingHeight :
+		CurHeight = WaitingHeight;
+
+	const float LocationInterpSpeed = 1.0f; 
+	const float CurrentLocZ = GetActorLocation().Z;
+	float SmoothedLocZ =
+		FMath::FInterpTo(CurrentLocZ, CurHeight, DeltaTime, LocationInterpSpeed);
+	FVector TargetZVec = GetActorLocation();
+	TargetZVec.Z = SmoothedLocZ;
+	SetActorLocation(TargetZVec);
+	
 	/** if Loop **/
 	if (Manager->Sectors.Num() == 0)
 	{
 		AMAGameMode* MAGM = Manager->GetMAGameMode();
 		Manager->SetSplinesWithMAGameState(
 			MAGM->GetMAGameState());
+		
 		return;
 	}
+
+	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
 
 	USplineComponent* CurSpline = Manager->Sectors[CurSector]->RoadSpline;
 	float Len = CurSpline->GetSplineLength();
@@ -73,7 +81,7 @@ void APlatformRoot::Tick(float DeltaTime)
 		CurSpline = Manager->Sectors[CurSector]->RoadSpline;
 	}
 
-	const FVector TargetLoc =
+	FVector TargetLoc =
 		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 
 	FRotator TargetRot =
@@ -83,11 +91,11 @@ void APlatformRoot::Tick(float DeltaTime)
 	TargetRot.Roll  = 0.f;
 
 	const float RotationInterpSpeed = 1.0f; 
-
 	const FRotator CurrentRot = GetActorRotation();
-
 	const FRotator SmoothedRot =
 		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
+
+	TargetLoc.Z = GetActorLocation().Z;
 
 	SetActorLocation(TargetLoc);
 	SetActorRotation(SmoothedRot);

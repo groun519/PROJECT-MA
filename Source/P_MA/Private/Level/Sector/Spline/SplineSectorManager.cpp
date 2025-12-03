@@ -99,6 +99,7 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 	if (InMAGS == EMAGameState::Wait)
 	{
 		Sectors.Empty();
+		bIsMoving = false;
 	}
 	else if (InMAGS == EMAGameState::Start)
 	{
@@ -109,7 +110,11 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 			CachedMAGameMode->SetMAGameState(EMAGameState::InBattle);
 			return;
 		}
-		else Sectors = StartSectors;
+		else
+		{
+			Sectors = StartSectors;
+			bIsMoving = true;
+		}
 	}
 	else if (InMAGS == EMAGameState::InBattle)
 	{
@@ -120,15 +125,21 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 			CachedMAGameMode->SetMAGameState(EMAGameState::Battle);
 			return;
 		}
-		else Sectors = InBattleSectors;
+		else
+		{
+			Sectors = InBattleSectors;
+			bIsMoving = true;
+		}
 	}
 	else if (InMAGS == EMAGameState::Battle)
 	{
 		Sectors.Empty();
+		bIsMoving = false;
 	}
 	else if (InMAGS == EMAGameState::EndBattle)
 	{
 		Sectors.Empty();
+		bIsMoving = false;
 	}
 	else if (InMAGS == EMAGameState::OutBattle)
 	{
@@ -139,11 +150,16 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 			CachedMAGameMode->SetMAGameState(EMAGameState::Loop);
 			return;
 		}
-		else Sectors = OutBattleSectors;
+		else
+		{
+			Sectors = OutBattleSectors;
+			bIsMoving = true;
+		}
 	}
 	else if (InMAGS == EMAGameState::Loop)
 	{
 		Sectors = LoopSectors;
+		bIsMoving = true;
 	}
 
 	CachedPrevMAGameState = InMAGS;

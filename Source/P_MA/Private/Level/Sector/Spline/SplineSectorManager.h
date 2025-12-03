@@ -48,8 +48,10 @@ public:
 	void SetSplinesWithMAGameState(EMAGameState InMAGS);
 
 	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
+	FORCEINLINE bool IsMoving(){ return bIsMoving; }
 private:
 	EMAGameState CachedPrevMAGameState = EMAGameState::Wait;
 	AMAGameMode* CachedMAGameMode;
 	void CachingMAGameMode();
+	bool bIsMoving = false;
 };

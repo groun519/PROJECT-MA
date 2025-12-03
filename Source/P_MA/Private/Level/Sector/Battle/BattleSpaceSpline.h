@@ -14,11 +14,13 @@ class P_MA_API ABattleSpaceSpline : public AActor
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	ABattleSpaceSpline();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 NumPoints = 8;
+	
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USplineComponent> SpaceSpline;
@@ -26,9 +28,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InnerSplineRadius = 1750.f;
 
+	/** Spawn **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bRandomAtSpawn = false;
+	TArray<APlayerStart*> PlayerStarts;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float StartDistanceOffset = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bSpawnSpawnPoint = true;
 	
 private:
-	void UpdateInnerSpline(int32 NumPoints = 8);
+	void UpdateInnerSpline(int32 InNumPoints = 8);
 };

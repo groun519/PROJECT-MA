@@ -3,6 +3,7 @@
 
 #include "BattleSpaceSpline.h"
 #include "Components/SplineComponent.h"
+#include "GameFramework/PlayerStart.h"
 
 
 ABattleSpaceSpline::ABattleSpaceSpline()
@@ -18,23 +19,18 @@ ABattleSpaceSpline::ABattleSpaceSpline()
 void ABattleSpaceSpline::BeginPlay()
 {
 	Super::BeginPlay();
-	UpdateInnerSpline();
+	UpdateInnerSpline(NumPoints);
 }
 
-void ABattleSpaceSpline::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-	if (bRandomAtSpawn) UpdateInnerSpline();
-}
-
-void ABattleSpaceSpline::UpdateInnerSpline(int32 NumPoints)
+void ABattleSpaceSpline::UpdateInnerSpline(int32 InNumPoints)
 {
 	SpaceSpline->ClearSplinePoints();
-	for (int32 i = 0; i < NumPoints; ++i)
+	for (int32 i = 0; i < InNumPoints; ++i)
 	{
-		float Angle = FMath::DegreesToRadians(i * (360.f / NumPoints));
-		FVector PointOnCircle = FVector(FMath::Cos(Angle) * InnerSplineRadius, FMath::Sin(Angle) * InnerSplineRadius, 0.f);
-		SpaceSpline->AddSplinePoint(PointOnCircle, ESplineCoordinateSpace::Local);
+		/** Add SplinePoint **/
+		float Angle = FMath::DegreesToRadians(i * (360.f / InNumPoints));
+		FVector SplinePointOnCircle = FVector(FMath::Cos(Angle) * InnerSplineRadius, FMath::Sin(Angle) * InnerSplineRadius, 0.f);
+		SpaceSpline->AddSplinePoint(SplinePointOnCircle, ESplineCoordinateSpace::Local);
 	}
 	SpaceSpline->UpdateSpline();
 }

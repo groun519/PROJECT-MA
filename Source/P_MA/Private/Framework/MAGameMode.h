@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/GameModeBase.h"
 #include "GenericTeamAgentInterface.h"
 #include "MAGameMode.generated.h"
@@ -55,7 +56,20 @@ public:
 	FORCEINLINE void SetMAGameState(EMAGameState InState) { MAGameState = InState; } 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FGameplayTag CurEnvTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EMAGameState MAGameState;
 private:
-	
+
+	/** Wave **/
+public:
+	UPROPERTY(EditDefaultsOnly, Category = "Data")
+	UDataAsset* WaveData = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Data")
+	UDataTable* MonsterByEnvironmentData = nullptr;
+		
+private:
+	int32 CurWave = 0;
 };
