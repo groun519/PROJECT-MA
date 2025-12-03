@@ -13,31 +13,42 @@ UCLASS()
 class P_MA_API ASplineSector : public AActor
 {
 	GENERATED_BODY()
+	
+protected:
+	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	ASplineSector();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UStaticMeshComponent> GroundBox;
+	TObjectPtr<UStaticMeshComponent> PCGExtentBox;
 
+	/** Seed and Sector **/
+	void SetSectorSeed(int32 InSeed = 0);
+	void SetRandomSeed(int32 MaxValue = INT32_MAX);
+	FVector GetSectorBound();
+	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
+	
+	
 	/** Spline **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<USplineComponent> Spline;
+	TObjectPtr<USplineComponent> RoadSpline;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SplineNum = 7;
+	int32 SplineNum = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 SplineSeed = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SplineOffset = 7.f;
+	float SplineOffset = 12.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bRandomAtSpawn = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FVector> Points;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SplineWidth = 500.f;
 
 	/** Arrow **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -46,12 +57,9 @@ public:
 	/** PCG **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UPCGComponent> PCGComponent;
-	
-protected:
-	virtual void BeginPlay() override;
-	void OnConstruction(const FTransform& Transform) override;
 
-public:
-	void SetRandomSeed(int MaxValue = INT32_MAX);
-	FVector GetSectorBound() ;
+private:
+	int32 SectorSeed = 0;
+	void UpdatePCGComponent();
+	void UpdateSeed();
 };
