@@ -37,7 +37,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bSpawnSpawnPoint = true;
-	
+
 private:
 	void UpdateInnerSpline(int32 InNumPoints = 8);
 };
