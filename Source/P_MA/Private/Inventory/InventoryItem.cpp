@@ -188,11 +188,23 @@ bool UInventoryItem::TryActivateGrantedAbility()
 void UInventoryItem::ApplyConsumeEffect()
 {
     const FConsumableItemData* Data = GetConsumableData();
-    if (!Data || !Data->ConsumeEffect) return;
+    // 데이터가 없거나 이펙트 배열이 비어있으면 리턴
+    if (!Data || Data->ConsumeEffects.IsEmpty()) return;
 
-    OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(Data->ConsumeEffect, 1, OwnerAbilitySystemComponent->MakeEffectContext());
+    if (!OwnerAbilitySystemComponent) return;
+
+    FGameplayEffectContextHandle EffectContext = OwnerAbilitySystemComponent->MakeEffectContext();
+    EffectContext.AddSourceObject(this);
+
+    // [변경] 배열을 순회하며 모든 이펙트 적용
+    for (const TSubclassOf<UGameplayEffect>& EffectClass : Data->ConsumeEffects)
+    {
+        if (EffectClass)
+        {
+            OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(EffectClass, 1, EffectContext);
+        }
+    }
 }
-
 void UInventoryItem::RemoveGASModifications()
 {
     if (!OwnerAbilitySystemComponent) return;
@@ -200,15 +212,17 @@ void UInventoryItem::RemoveGASModifications()
     // 권한 확인 (서버에서만 이펙트 제거)
     if (OwnerAbilitySystemComponent->GetOwner()->HasAuthority())
     {
-        // 1. 저장해둔 장비 이펙트 핸들이 유효하다면?
-        if (AppliedEquipedEffectHandle.IsValid())
+        // [변경] 저장된 모든 핸들을 순회하며 이펙트 제거
+        for (const FActiveGameplayEffectHandle& HandleToRemove : AppliedEquipedEffectHandles)
         {
-            // 2. 이펙트 제거!
-            OwnerAbilitySystemComponent->RemoveActiveGameplayEffect(AppliedEquipedEffectHandle);
-            
-            // 3. 핸들 초기화 (더 이상 유효하지 않음)
-            AppliedEquipedEffectHandle.Invalidate();
+            if (HandleToRemove.IsValid())
+            {
+                OwnerAbilitySystemComponent->RemoveActiveGameplayEffect(HandleToRemove);
+            }
         }
+        
+        // 핸들 배열 비우기
+        AppliedEquipedEffectHandles.Empty();
     
         // (스킬 제거 로직 기존 유지)
         if (GrantedAbiltiySpecHandle.IsValid())
@@ -227,22 +241,28 @@ void UInventoryItem::ApplyGASModifications()
     // 2. 장비 아이템인지 확인 (데이터 테이블 접근)
     if (const FEquipmentItemData* EquipData = GetEquipmentData())
     {
-        // 3. 적용할 이펙트(GE)가 있는지 확인
-        if (EquipData->EquipEffect)
+        // [변경] 이펙트 배열이 비어있지 않은지 확인
+        if (!EquipData->EquipEffects.IsEmpty())
         {
             // 4. 이펙트 적용 컨텍스트 생성
             FGameplayEffectContextHandle EffectContext = OwnerAbilitySystemComponent->MakeEffectContext();
             EffectContext.AddSourceObject(this);
 
-            // 5. [핵심] 플레이어에게 이펙트 적용하고, 그 '증명서(Handle)'를 저장해둠!
-            AppliedEquipedEffectHandle = OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(
-                EquipData->EquipEffect, 
-                1.0f, 
-                EffectContext
-            );
-
-            // (로그) 적용 확인용
-            // UE_LOG(LogTemp, Warning, TEXT("Equip Effect Applied: %s"), *EquipData->DisplayName.ToString());
+            // [변경] 배열을 순회하며 이펙트 적용 및 핸들 저장
+            for (const TSubclassOf<UGameplayEffect>& EffectClass : EquipData->EquipEffects)
+            {
+                if (EffectClass)
+                {
+                    FActiveGameplayEffectHandle ActiveHandle = OwnerAbilitySystemComponent->BP_ApplyGameplayEffectToSelf(
+                        EffectClass, 
+                        1.0f, 
+                        EffectContext
+                    );
+                    
+                    // 핸들 배열에 추가
+                    AppliedEquipedEffectHandles.Add(ActiveHandle);
+                }
+            }
         }
     }
 

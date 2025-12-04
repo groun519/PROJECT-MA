@@ -118,6 +118,6 @@ private:
 	int StackCount;
 	int Slot;
 
-	FActiveGameplayEffectHandle AppliedEquipedEffectHandle;
+	TArray<FActiveGameplayEffectHandle> AppliedEquipedEffectHandles;
 	FGameplayAbilitySpecHandle GrantedAbiltiySpecHandle;
 };

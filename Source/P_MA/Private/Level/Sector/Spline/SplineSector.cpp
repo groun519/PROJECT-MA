@@ -6,19 +6,28 @@
 ASplineSector::ASplineSector()
 {
     /** Ground **/
-    GroundBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
-    SetRootComponent(GroundBox);
+    PCGExtentBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
+    SetRootComponent(PCGExtentBox);
     
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh
     (TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (CubeMesh.Succeeded())
     {
-        GroundBox->SetStaticMesh(CubeMesh.Object);
+        PCGExtentBox->SetStaticMesh(CubeMesh.Object);
     }
-
+    
+    PCGExtentBox->SetWorldScale3D(FVector(63.f));
+    PCGExtentBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+    PCGExtentBox->SetVisibility(false);
+    PCGExtentBox->SetGenerateOverlapEvents(false);
+    PCGExtentBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    PCGExtentBox->SetCollisionObjectType(ECC_WorldStatic);
+    PCGExtentBox->CanCharacterStepUpOn = ECB_No;
+    
     /** Spline **/
-    Spline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
-    Spline->SetupAttachment(RootComponent);
+    RoadSpline = CreateDefaultSubobject<USplineComponent>(TEXT("Spline"));
+    RoadSpline->SetupAttachment(RootComponent);
+    RoadSpline->ComponentTags.Add(FName("Road"));
 
     /** Arrow **/
     Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
@@ -35,16 +44,57 @@ ASplineSector::ASplineSector()
     PCGComponent = CreateDefaultSubobject<UPCGComponent>(TEXT("PCGComponent"));
     PCGComponent->InputType = EPCGComponentInput::Actor;
     PCGComponent->bParseActorComponents = true;
+    PCGComponent->SetIsPartitioned(false);
 }
 
 void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
+    //PCGComponent->Cleanup();
+    SetRandomSeed();
+}
 
+void ASplineSector::UpdatePCGComponent()
+{
     if (PCGComponent && PCGComponent->GetGraph())
     {
-        PCGComponent->Seed = FMath::RandRange(1, INT32_MAX);
-        PCGComponent->GenerateLocal(true);
+        PCGComponent->Seed = SectorSeed;
+        PCGComponent->Generate(true);
+    }
+}
+
+void ASplineSector::UpdateSeed()
+{
+    if (RoadSpline)
+    {
+        FVector StartPoint =
+            FVector(
+                -GetSectorBound().X,0.f,GetSectorBound().Z
+                );
+
+        FVector EndPoint =
+            FVector(
+                GetSectorBound().X,0.f,GetSectorBound().Z
+                );
+
+        RoadSpline->ClearSplinePoints(false);
+        RoadSpline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
+        
+        FRandomStream Stream(SectorSeed);
+        
+        for (int i = 1; i <= SplineNum-1; ++i)
+        {
+            float RandYBySplineSeed = Stream.FRandRange(-SplineOffset, SplineOffset);
+            FVector Point = StartPoint + FVector(GetSectorBound().X * 2.f / SplineNum * i, RandYBySplineSeed, 0.f);
+            RoadSpline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
+        }
+
+        RoadSpline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
+
+        RoadSpline->ScaleVisualizationWidth = SplineWidth;
+        int32 LastIndex = RoadSpline->GetNumberOfSplinePoints() - 1;
+        RoadSpline->SetTangentAtSplinePoint(LastIndex, FVector(1,0,0), ESplineCoordinateSpace::Local);
+        RoadSpline->SetTangentAtSplinePoint(0, FVector(1,0,0), ESplineCoordinateSpace::Local);
     }
 }
 
@@ -53,34 +103,27 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
     Super::OnConstruction(Transform);
 
     if (bRandomAtSpawn) SetRandomSeed();
-
-    if (Spline)
-    {
-        FVector StartPoint =
-            FVector(
-                -GetSectorBound().X,0.f,GetSectorBound().Z
-                );
-
-        Spline->ClearSplinePoints(false);
-        Spline->AddSplinePoint(StartPoint, ESplineCoordinateSpace::Local);
-        
-        FRandomStream Stream(SplineSeed);
-        
-        for (int i = 1; i <= SplineNum - 1; ++i)
-        {
-            float RandYBySplineSeed = Stream.FRandRange(-SplineOffset, SplineOffset);
-            FVector Point = StartPoint + FVector(GetSectorBound().X * 2.f / SplineNum * i, RandYBySplineSeed, 0.f);
-            Spline->AddSplinePoint(Point, ESplineCoordinateSpace::Local);
-        }
-    }
 }
 
-void ASplineSector::SetRandomSeed(int MaxValue)
+
+
+void ASplineSector::SetSectorSeed(int32 InSeed)
 {
-    SplineSeed = FMath::RandRange(1, MaxValue);
+    SectorSeed = InSeed;
+    UE_LOG(LogTemp, Warning, TEXT("Copied New Seed at Last Sector!: %d"), InSeed);
+    UpdateSeed();
+    UpdatePCGComponent();
+}
+
+void ASplineSector::SetRandomSeed(int32 MaxValue)
+{
+    SectorSeed = FMath::RandRange(1, MaxValue);
+    UpdateSeed();
+    UpdatePCGComponent();
 }
 
 FVector ASplineSector::GetSectorBound()
 {
-    return GroundBox->GetStaticMesh()->GetBounds().BoxExtent;
+    if (!PCGExtentBox || !PCGExtentBox->GetStaticMesh()) return  FVector::ZeroVector;
+    return PCGExtentBox->GetStaticMesh()->GetBounds().BoxExtent;
 }

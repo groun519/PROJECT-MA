@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraSystem.h"
+#include "Components/BoxComponent.h"
 #include "PlatformComponent.generated.h"
 
 
@@ -18,6 +19,9 @@ public:
 	
 	void EnablePlatform();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UBoxComponent* MovementingBox;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
 	TObjectPtr<UNiagaraSystem> EnableEffect;
 };

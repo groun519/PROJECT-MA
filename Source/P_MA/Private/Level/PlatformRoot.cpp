@@ -5,6 +5,7 @@
 #include "PlatformComponent.h"
 #include "PlatformMatrixComponent.h"
 #include "Components/ArrowComponent.h"
+#include "Sector/Spline/SplineSectorManager.h"
 
 APlatformRoot::APlatformRoot()
 {
@@ -13,14 +14,6 @@ APlatformRoot::APlatformRoot()
 	/** Add Matrix **/
 	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
 	PlatformMatrixComponent->SetupAttachment(RootComponent);
-	
-	/** Add Arrow **/
-	if (UArrowComponent* Arrow = GetArrowComponent())
-	{
-		Arrow->ArrowSize = 3.0f;
-		Arrow->ArrowColor = FColor::Red;
-		Arrow->SetRelativeLocation(FVector(1000.0f, 0.0f, 50.f));
-	}
 }
 
 void APlatformRoot::BeginPlay()
@@ -31,10 +24,79 @@ void APlatformRoot::BeginPlay()
 void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-}
 
-void APlatformRoot::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
+	/** Get SSManager **/
+	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
+	if (!Manager) return;
 
+	/** Height **/
+	Manager->IsMoving() ?
+		CurHeight = MovingHeight :
+		CurHeight = WaitingHeight;
+
+	const float LocationInterpSpeed = 1.0f; 
+	const float CurrentLocZ = GetActorLocation().Z;
+	float SmoothedLocZ =
+		FMath::FInterpTo(CurrentLocZ, CurHeight, DeltaTime, LocationInterpSpeed);
+	FVector TargetZVec = GetActorLocation();
+	TargetZVec.Z = SmoothedLocZ;
+	SetActorLocation(TargetZVec);
+	
+	/** if Loop **/
+	if (Manager->Sectors.Num() == 0)
+	{
+		AMAGameMode* MAGM = Manager->GetMAGameMode();
+		Manager->SetSplinesWithMAGameState(
+			MAGM->GetMAGameState());
+		
+		return;
+	}
+
+	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
+
+	USplineComponent* CurSpline = Manager->Sectors[CurSector]->RoadSpline;
+	float Len = CurSpline->GetSplineLength();
+
+	Distance += MoveSpeed * DeltaTime;
+
+	if (Distance >= Len)
+	{
+		Distance -= Len;
+		CurSector++;
+
+		if (CurSector >= Manager->Sectors.Num())
+		{
+			CurSector = 0;
+			Distance  = 0.f;
+
+			AMAGameMode* MAGM = Manager->GetMAGameMode();
+			Manager->SetSplinesWithMAGameState(
+				MAGM->GetMAGameState());
+			if (Manager->Sectors.Num() == 0) return;
+		}
+
+		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
+		Manager->Sectors[NewSectorIndex]->SetRandomSeed();
+		
+		CurSpline = Manager->Sectors[CurSector]->RoadSpline;
+	}
+
+	FVector TargetLoc =
+		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	FRotator TargetRot =
+		CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	TargetRot.Pitch = 0.f;
+	TargetRot.Roll  = 0.f;
+
+	const float RotationInterpSpeed = 1.0f; 
+	const FRotator CurrentRot = GetActorRotation();
+	const FRotator SmoothedRot =
+		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
+
+	TargetLoc.Z = GetActorLocation().Z;
+
+	SetActorLocation(TargetLoc);
+	SetActorRotation(SmoothedRot);
+}
