@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
+#include "AI/Golem/Monster.h"
 #include "Components/SplineComponent.h"
 #include "GameFramework/Actor.h"
 #include "BattleSpaceSpline.generated.h"
@@ -38,6 +40,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bSpawnSpawnPoint = true;
 
+	/** Wave **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UDataTable* MonsByEnvData;
+
+	int32 TotalWaveCost = 10;
+	
+	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutCost, FGameplayTag EnvTag);
+	
 private:
 	void UpdateInnerSpline(int32 InNumPoints = 8);
 };

@@ -11,51 +11,6 @@ class UPCGGraph;
 class AMonster;
 
 USTRUCT(BlueprintType)
-struct FEnvironmentData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	UPCGGraph* SplinePCGGraph = nullptr;
-
-	UPROPERTY(EditAnywhere)
-	UPCGGraph* BattlePCGGraph = nullptr;
-};
-
-USTRUCT(BlueprintType)
-struct FBossMonsterData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<AMonster> BossMonster;
-
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AMonster>> MinionMonsterClasses;
-};
-
-USTRUCT(BlueprintType)
-struct FMonsterData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AMonster>> SmallMonsterClasses;
-	
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AMonster>> MiddleMonsterClasses;
-	
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AMonster>> HeavyMonsterClasses;
-	
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AMonster>> HugeMonsterClasses;
-
-	UPROPERTY(EditAnywhere)
-	FBossMonsterData BossMonsterData;
-};
-
-USTRUCT(BlueprintType)
 struct FMonstersByEnvironmentData : public FTableRowBase
 {
 	GENERATED_BODY()
@@ -64,8 +19,20 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 	FGameplayTag EnvGameplayTag = FGameplayTag();
 
 	UPROPERTY(EditAnywhere)
-	FEnvironmentData EnvironmentData = FEnvironmentData();
+	UPCGGraph* SplinePCGGraph = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	FMonsterData MonsterData = FMonsterData();
+	UPCGGraph* BattlePCGGraph = nullptr;
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10"))
+	TMap<TSubclassOf<AMonster>, int32> MonsterData;
+
+	void GetMonsterDataByTag(
+		TSubclassOf<AMonster>& OutMonster,
+		int32& OutCost,
+		FGameplayTag EnvTag)
+	{
+		
+	}
 };
+
