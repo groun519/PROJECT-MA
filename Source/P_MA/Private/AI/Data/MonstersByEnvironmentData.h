@@ -26,13 +26,5 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10"))
 	TMap<TSubclassOf<AMonster>, int32> MonsterData;
-
-	void GetMonsterDataByTag(
-		TSubclassOf<AMonster>& OutMonster,
-		int32& OutCost,
-		FGameplayTag EnvTag)
-	{
-		
-	}
 };
 

@@ -2,10 +2,7 @@
 
 
 #include "BattleSpaceSpline.h"
-
-#include "AI/Data/MonstersByEnvironmentData.h"
 #include "Components/SplineComponent.h"
-#include "GameFramework/PlayerStart.h"
 
 
 ABattleSpaceSpline::ABattleSpaceSpline()
@@ -24,32 +21,6 @@ void ABattleSpaceSpline::BeginPlay()
 	UpdateInnerSpline(NumPoints);
 }
 
-void ABattleSpaceSpline::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutCost, FGameplayTag EnvTag)
-{
-	FString TagString = EnvTag.ToString();
-	FString Last;
-	TagString.Split(TEXT("."), nullptr, &Last, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	FName RowName(*Last);
-
-	FMonstersByEnvironmentData* Data = MonsByEnvData->FindRow<FMonstersByEnvironmentData>(
-		RowName,
-		TEXT("GetRandomMonsterByEnv"),
-		false
-	);
-
-	if (EnvTag != Data->EnvGameplayTag) return;
-	
-	TArray<TSubclassOf<AMonster>> Keys;
-	Data->MonsterData.GetKeys(Keys);
-
-	if (Keys.Num() == 0) return;
-	
-	int32 RandomIndex = FMath::RandRange(0, Data->MonsterData.Num() - 1);
-	
-	OutMonster = Keys[RandomIndex];
-	OutCost = Data->MonsterData[OutMonster];
-}
-
 void ABattleSpaceSpline::UpdateInnerSpline(int32 InNumPoints)
 {
 	SpaceSpline->ClearSplinePoints();
@@ -61,5 +32,19 @@ void ABattleSpaceSpline::UpdateInnerSpline(int32 InNumPoints)
 		SpaceSpline->AddSplinePoint(SplinePointOnCircle, ESplineCoordinateSpace::Local);
 	}
 	SpaceSpline->UpdateSpline();
+}
+
+TArray<FVector> ABattleSpaceSpline::GetMonsterSpawnLocations(int32 InNumPoints)
+{
+	TArray<FVector> SpawnLocations;
+	float MonsterSpawnRadius = InnerSplineRadius + 250.f;
+	for (int32 i = 0; i < InNumPoints; ++i)
+	{
+		/** Get Points **/
+		float Angle = FMath::DegreesToRadians(i * (360.f / InNumPoints));
+		FVector SplinePointOnCircle = FVector(FMath::Cos(Angle) * MonsterSpawnRadius, FMath::Sin(Angle) * MonsterSpawnRadius, 0.f);
+		SpawnLocations.Add(SplinePointOnCircle);
+	}
+	return SpawnLocations;
 }
 
