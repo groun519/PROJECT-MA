@@ -39,7 +39,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		return;
 	}
 	
-	ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
 	if (!ASC || !ASC->GetSystemGenerics())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Not ASC or cant find Generics"))
@@ -67,7 +67,8 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	SharedCooldownTag = SkillInfoRow->CooldownTag;
+	UE_LOG(LogTemp,Warning,TEXT("[ActivateAbility] = %s"),*BPName.ToString());
+	CooldownTag = SkillInfoRow->CooldownTag;
 	bCooldownApplied=false;
 	IgnoreTargets.Empty();
 	
@@ -231,6 +232,7 @@ void UMAGameplayAbility_SkillBase::ApplyGESpecToOwner(FGameplayEffectSpecHandle 
 
 UDataTable* UMAGameplayAbility_SkillBase::GetElementDataTable() const
 {
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
 	if (ASC && ASC->GetSystemGenerics())
 	{
 		return const_cast <UDataTable*>(ASC->GetSystemGenerics()->GetElementDataTable());
@@ -243,6 +245,7 @@ UDataTable* UMAGameplayAbility_SkillBase::GetElementDataTable() const
 /***********************************************************************************/
 TSubclassOf<UGameplayEffect> UMAGameplayAbility_SkillBase::GetBaseDamageEffect() const
 {
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
 	if (ASC && ASC->GetSystemGenerics())
 		return ASC->GetSystemGenerics()->GetDamageEffect();
 	return nullptr;
@@ -367,6 +370,7 @@ void UMAGameplayAbility_SkillBase::ApplyDamageToTargetData(const FGameplayAbilit
 /***********************************************************************************/
 TSubclassOf<UGameplayEffect> UMAGameplayAbility_SkillBase::GetBaseCooldownEffect() const
 {
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
 	if (ASC && ASC->GetSystemGenerics())
 		return ASC->GetSystemGenerics()->GetCooldownEffect();
 	return nullptr;
@@ -374,20 +378,45 @@ TSubclassOf<UGameplayEffect> UMAGameplayAbility_SkillBase::GetBaseCooldownEffect
 
 const FGameplayTagContainer* UMAGameplayAbility_SkillBase::GetCooldownTags() const
 {
-	if (SharedCooldownTag.IsValid())
+	if (CooldownTag.IsValid())
 	{
 		static FGameplayTagContainer TagContainer;
 		TagContainer.Reset();
-		TagContainer.AddTag(SharedCooldownTag);
+		TagContainer.AddTag(CooldownTag);
 		return &TagContainer;
 	}
 	return Super::GetCooldownTags();
 }
 
-UGameplayEffect* UMAGameplayAbility_SkillBase::GetCooldownGameplayEffect() const
+bool UMAGameplayAbility_SkillBase::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
 {
-	return nullptr;
+	if (!Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags))
+		return false;
+
+	const UMAAbilitySystemComponent* LocalASC = Cast<UMAAbilitySystemComponent>(ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr);
+	if (!LocalASC | !LocalASC->GetSystemGenerics())
+		return true;
+
+	const UDataTable* SkillTable = LocalASC->GetSystemGenerics()->GetSkillInformationTableTable();
+	if (!SkillTable)
+		return true;
+	const FSkillInformationDT* SkillInfoRow = SkillTable->FindRow<FSkillInformationDT>(GetClass()->GetFName(),"");
+	if (!SkillInfoRow || !SkillInfoRow->CooldownTag.IsValid())
+		return true;
+
+	const FGameplayTag CooldownTagToApply = SkillInfoRow->CooldownTag;
+	if (LocalASC->HasMatchingGameplayTag(CooldownTagToApply))
+	{
+		if (OptionalRelevantTags)
+		{
+			OptionalRelevantTags->AddTag(CooldownTagToApply);
+		}
+		return false;
+	}
+	return true;
 }
+
 
 void UMAGameplayAbility_SkillBase::ApplyDefaultCooldownOnce()
 {
@@ -420,9 +449,9 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	if (FinalDuration==1.f && SpecHandle.IsValid())
 	{
 		SpecHandle.Data->SetSetByCallerMagnitude(CooldownDurationTag, FinalDuration);
-		if (SharedCooldownTag.IsValid())
+		if (CooldownTag.IsValid())
 		{
-			SpecHandle.Data->DynamicGrantedTags.AddTag(SharedCooldownTag);
+			SpecHandle.Data->DynamicGrantedTags.AddTag(CooldownTag);
 		}
 		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
 		bCooldownApplied=true;
@@ -440,9 +469,9 @@ void UMAGameplayAbility_SkillBase::ApplyBehaviorCooldown(float CooldownToApply)
 	if (SpecHandle.IsValid())
 	{
 		SpecHandle.Data->SetSetByCallerMagnitude(CooldownDurationTag, FinalDuration);
-		if (SharedCooldownTag.IsValid())
+		if (CooldownTag.IsValid())
 		{
-			SpecHandle.Data->DynamicGrantedTags.AddTag(SharedCooldownTag);
+			SpecHandle.Data->DynamicGrantedTags.AddTag(CooldownTag);
 		}
 		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, SpecHandle);
 		bCooldownApplied=true;

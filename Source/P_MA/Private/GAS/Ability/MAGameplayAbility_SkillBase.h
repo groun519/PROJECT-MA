@@ -25,9 +25,9 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
-	virtual UGameplayEffect* GetCooldownGameplayEffect() const override;
-
-	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return SharedCooldownTag;}
+	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
+	
+	FORCEINLINE FGameplayTag GetSharedCooldownTag() const {return CooldownTag;}
 	FORCEINLINE FGameplayTag GetSkillElementTag() const {return ActiveElementTag;}
 	FORCEINLINE FGameplayTag GetVFXRootTag() const {return VFXEventRootTag;}
 	FORCEINLINE TObjectPtr<UUtilityModule> GetActiveUtilityModule() const {return ActiveUtilityModule;}
@@ -60,15 +60,12 @@ private:
 	FGameplayTag CooldownDurationTag;
 	FGameplayTag ElementalModifierTag;
 	FGameplayTag BehaviorModifierTag;
-	FGameplayTag SharedCooldownTag;
+	FGameplayTag CooldownTag;
 	FGameplayTag VFXEventRootTag;
 	
 	void ApplyBehaviorCooldown(float Multiplier);
 	bool bCooldownApplied = false;
 	
-	UPROPERTY()
-	UMAAbilitySystemComponent* ASC;
-	UPROPERTY()
 	FName BPName;
 public:
 	void ApplyGESpecToOwner(FGameplayEffectSpecHandle SpecHandle);

@@ -9,6 +9,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GAS/Ability/MAGameplayAbility_SkillBase.h"
+#include "GAS/Ability/SkillBehaviorConfig.h"
 
 #include "Widget/SkillDragDropOperation.h"
 #include "Player/MAPlayerCharacter.h"
@@ -126,16 +127,25 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 		AbilityCDO = nullptr;
 		return;
 	}
-
+	SharedCooldownTag = FGameplayTag();
 	AbilityCDO = NewAbilityClass->GetDefaultObject<UGameplayAbility>();
-
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(OwnerASC);
+	if (!ASC || !ASC->GetSystemGenerics())
+		return;
+	const UDataTable* SkillInfoDT = ASC->GetSystemGenerics()->GetSkillInformationTableTable();
+	if (!SkillInfoDT)
+		return;
 	UMAGameplayAbility_SkillBase* SkillCDO = Cast<UMAGameplayAbility_SkillBase>(AbilityCDO);
 	if (SkillCDO && OwnerASC.IsValid())
 	{
-		SharedCooldownTag = SkillCDO->GetSharedCooldownTag();
-		if (SharedCooldownTag.IsValid())
+		const FSkillInformationDT* SkillInfoRow = SkillInfoDT->FindRow<FSkillInformationDT>(NewAbilityClass->GetFName(),"");
+		if (SkillInfoRow)
 		{
-			OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);
+			SharedCooldownTag = SkillInfoRow->CooldownTag;
+			if (SharedCooldownTag.IsValid())
+			{
+				OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);
+			}
 		}
 	}
 
