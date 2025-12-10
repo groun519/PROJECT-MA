@@ -177,7 +177,7 @@ void AMAPlayerCharacter::Server_SetSkillAttribute_Implementation(const FString& 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
 	if (!SkillClass) return;
 
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
@@ -203,7 +203,7 @@ void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& S
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
 	if (!SkillClass) return;
 
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
