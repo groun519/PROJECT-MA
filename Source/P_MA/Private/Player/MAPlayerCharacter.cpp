@@ -162,7 +162,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 		}
-		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::UseInventoryItem);
+		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
 // 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
@@ -177,7 +177,7 @@ void AMAPlayerCharacter::Server_SetSkillAttribute_Implementation(const FString& 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
 	if (!SkillClass) return;
 
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
@@ -203,7 +203,7 @@ void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& S
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_BP_C"));
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
 	if (!SkillClass) return;
 
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
