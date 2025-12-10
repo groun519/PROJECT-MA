@@ -33,8 +33,6 @@ void AMAGameMode::BeginPlay()
 
 		SpawnSpline = Found;
 	}
-
-	StartWave();
 }
 
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const
@@ -67,10 +65,15 @@ TArray<FWaveMonster> AMAGameMode::GetNewWaveMonsters()
 	
 	while (UsingCost != TotalWaveCost)
 	{
-		TSubclassOf<AMonster> Monster; int32 Cost;
-		GetRandomMonsterByEnv(Monster, Cost, EnvTag);
+		TSubclassOf<AMonster> Monster; int32 Cost = 0;
+		GetRandomMonsterByEnv(Monster, Cost, CurEnvTag);
 
-		if (Cost + UsingCost > TotalWaveCost) continue;
+		if (Cost == 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Monster Cost is Zero !"));
+			break;
+		}
+		if (UsingCost + Cost > TotalWaveCost) continue;
 
 		FWaveMonster NewMonster(Monster, Cost);
 		OutWaveMonsters.Add(NewMonster);
@@ -115,15 +118,22 @@ void AMAGameMode::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32
 
 void AMAGameMode::StartWave()
 {
+	if (bIsWaving) return;
+	
+	bIsWaving = true;
 	WaveMonsters = GetNewWaveMonsters();
 	CreateBaseIntervalTimer();
 }
 
 void AMAGameMode::EndWave()
 {
+	if (!bIsWaving) return;
+	
+	bIsWaving = false;
 	if (Wave == 5)
 	{
 		Stage++;
+		Wave = 1;
 	}
 	else
 	{
@@ -135,20 +145,21 @@ void AMAGameMode::SpawnMonsters(int32 SpawnAtOnce)
 {
 	if (WaveMonsters.IsEmpty()) return;
 	
-	int32 Count = 0;
-	
-	for (FWaveMonster Monster : WaveMonsters)
+	TArray<FVector> SpawnLocations
+		= SpawnSpline->GetMonsterSpawnLocations(SpawnAtOnce);
+
+	for (FVector SpawnLoc : SpawnLocations)
 	{
+		if (WaveMonsters.Num() == 0) return;
+		FWaveMonster Monster = WaveMonsters[0];
 		if (!Monster.Class) continue;
-		if (SpawnAtOnce <= Count) return;
-		Count++;
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride =
 			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		
-		FVector SpawnLocation = FVector::ZeroVector; // 원하는 스폰 위치
-		FRotator SpawnRotation = FRotator::ZeroRotator;
+
+		FVector SpawnLocation = SpawnSpline->GetActorLocation() + SpawnLoc;
+		FRotator SpawnRotation = (-SpawnLoc).Rotation();
 		
 		AMonster* Spawned = GetWorld()->SpawnActor<AMonster>(
 			Monster.Class,
@@ -156,6 +167,7 @@ void AMAGameMode::SpawnMonsters(int32 SpawnAtOnce)
 			SpawnRotation,
 			SpawnParams
 		);
+		Spawned->SetGoal(SpawnSpline);
 
 		WaveMonsters.RemoveAt(0);
 	}
@@ -208,8 +220,3 @@ void AMAGameMode::SpawnMonstersByInterval()
 	}
 	SpawnMonsters(Count);
 }
-
-// void AMAGameMode::CreateSchedulizedIntervalTimer(TArray<FVector> InSpawnTargetLoc)
-// {
-// 	
-// }

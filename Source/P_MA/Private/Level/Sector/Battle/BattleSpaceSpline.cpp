@@ -37,11 +37,11 @@ void ABattleSpaceSpline::UpdateInnerSpline(int32 InNumPoints)
 TArray<FVector> ABattleSpaceSpline::GetMonsterSpawnLocations(int32 InNumPoints)
 {
 	TArray<FVector> SpawnLocations;
-	float MonsterSpawnRadius = InnerSplineRadius + 250.f;
+	float MonsterSpawnRadius = InnerSplineRadius + FMath::FRandRange(500.f, 1000.f);
 	for (int32 i = 0; i < InNumPoints; ++i)
 	{
 		/** Get Points **/
-		float Angle = FMath::DegreesToRadians(i * (360.f / InNumPoints));
+		float Angle = FMath::DegreesToRadians(i * (360.f / InNumPoints + FMath::FRandRange(0.f, 30.f)));
 		FVector SplinePointOnCircle = FVector(FMath::Cos(Angle) * MonsterSpawnRadius, FMath::Sin(Angle) * MonsterSpawnRadius, 0.f);
 		SpawnLocations.Add(SplinePointOnCircle);
 	}

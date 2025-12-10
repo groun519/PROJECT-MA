@@ -49,6 +49,10 @@ public:
 
 	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bUseStateDebug = false;
+	
 private:
 	EMAGameState CachedPrevMAGameState = EMAGameState::Wait;
 	AMAGameMode* CachedMAGameMode;

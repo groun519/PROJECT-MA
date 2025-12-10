@@ -92,6 +92,7 @@ public:
 	void StartWave();
 	// 웨이브 종료 및 관련변수 초기화
 	void EndWave();
+	bool bIsWaving = false;
 
 	
 	// 몬스터를 데이터에서 뽑아 배열에 저장
@@ -109,7 +110,6 @@ public:
 	//void CreateSchedulizedIntervalTimer(TArray<FVector> InSpawnTargetLoc); // 얘가 BaseIntervalTimer에 바인딩
 	
 private:
-	FGameplayTag EnvTag;
 	int32 Stage	= 1;
 	int32 Wave = 1;
 	int32 TotalWaveCost = 51;

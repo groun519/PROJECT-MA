@@ -89,12 +89,15 @@ void ASplineSectorManager::CachingMAGameMode()
 
 void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 {
-	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
-	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedPrevMAGameState);
-	const FString CurrName = EnumPtr->GetNameStringByValue((int64)InMAGS);
-	UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
-	UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
-	UE_LOG(LogTemp, Display, TEXT("- - - - -"));
+	if (bUseStateDebug)
+	{
+		const UEnum* EnumPtr = StaticEnum<EMAGameState>();
+		const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedPrevMAGameState);
+		const FString CurrName = EnumPtr->GetNameStringByValue((int64)InMAGS);
+		UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
+		UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
+		UE_LOG(LogTemp, Display, TEXT("- - - - -"));
+	}
 	
 	if (InMAGS == EMAGameState::Wait)
 	{
@@ -123,6 +126,7 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 			CachedPrevMAGameState = InMAGS;
 			SetSplinesWithMAGameState(EMAGameState::Battle);
 			CachedMAGameMode->SetMAGameState(EMAGameState::Battle);
+			CachedMAGameMode->StartWave();
 			return;
 		}
 		else
@@ -135,6 +139,7 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 	{
 		Sectors.Empty();
 		bIsMoving = false;
+		CachedMAGameMode->EndWave();
 	}
 	else if (InMAGS == EMAGameState::EndBattle)
 	{
