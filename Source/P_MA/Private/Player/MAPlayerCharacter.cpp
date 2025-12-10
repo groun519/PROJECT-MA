@@ -162,7 +162,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 		}
-		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::UseInventoryItem);
+		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
 // 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
