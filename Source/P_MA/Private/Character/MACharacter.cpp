@@ -445,8 +445,8 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 
 void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor, FLinearColor EffectColor)
 {
-	if (HasAuthority())
-		return;
+	if (GetNetMode() == NM_DedicatedServer)
+            return;
 	
 	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 		GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
@@ -459,8 +459,8 @@ void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTra
 void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* NS, FName SocketName, FVector LocOffset,
 	FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor, FLinearColor EffectColor)
 {
-	if (HasAuthority())
-		return;
+	if (GetNetMode() == NM_DedicatedServer)
+            return;
 	
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	if (!MeshComp) return;
