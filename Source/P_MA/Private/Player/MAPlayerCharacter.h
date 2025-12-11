@@ -30,13 +30,17 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(Exec)
-	void SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	UFUNCTION(Server, Reliable)
-	void Server_SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	void Server_SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	UFUNCTION(Exec)
-	void SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName);
+	void SetAttribute(const FString& SkillClassName, const FString& AttributeName);
 	UFUNCTION(Server, Reliable)
-	void Server_SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName);
+	void Server_SetAttribute(const FString& SkillClassName, const FString& AttributeName);
+	UFUNCTION(Exec)
+	void SetUtility(const FString& SkillClassName, const FString& UtilityName);
+	UFUNCTION(Server, Reliable)
+	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
 	
 private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")

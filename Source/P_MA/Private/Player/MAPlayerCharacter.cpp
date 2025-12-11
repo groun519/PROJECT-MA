@@ -166,13 +166,12 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	}
 }
 // 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
-void AMAPlayerCharacter::SetSkillAttribute(const FString& SkillClassName, const FString& AttributeName)
+void AMAPlayerCharacter::SetAttribute(const FString& SkillClassName, const FString& AttributeName)
 {
-	Server_SetSkillAttribute(SkillClassName, AttributeName);
+	Server_SetAttribute(SkillClassName, AttributeName);
 }
-
-void AMAPlayerCharacter::Server_SetSkillAttribute_Implementation(const FString& SkillClassName,
-	const FString& AttributeName)
+void AMAPlayerCharacter::Server_SetAttribute_Implementation(const FString& SkillClassName,
+                                                                 const FString& AttributeName)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	if (!ASC) return;
@@ -193,11 +192,11 @@ void AMAPlayerCharacter::Server_SetSkillAttribute_Implementation(const FString& 
 	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 
-void AMAPlayerCharacter::SetSkillBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
+void AMAPlayerCharacter::SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
 {
-	Server_SetSkillBehavior(SkillClassName, BehaviorTagString);
+	Server_SetBehavior(SkillClassName, BehaviorTagString);
 }
-void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& SkillClassName,
+void AMAPlayerCharacter::Server_SetBehavior_Implementation(const FString& SkillClassName,
                                                                 const FString& BehaviorTagString)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
@@ -221,6 +220,34 @@ void AMAPlayerCharacter::Server_SetSkillBehavior_Implementation(const FString& S
 	}
 
 	// 3. 변경사항을 모든 클라이언트에 동기화합니다.
+	ASC->MarkAbilitySpecDirty(*AbilitySpec);
+}
+
+void AMAPlayerCharacter::SetUtility(const FString& SkillClassName, const FString& UtilityName)
+{
+	Server_SetUtility(SkillClassName, UtilityName);
+}
+
+void AMAPlayerCharacter::Server_SetUtility_Implementation(const FString& SkillClassName, const FString& UtilityName)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
+	if (!SkillClass) return;
+
+	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
+	if (!AbilitySpec) return;
+	
+	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Utility"));
+	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
+	
+	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*UtilityName));
+	if (NewBehaviorTag.IsValid() && !UtilityName.Equals("None", ESearchCase::IgnoreCase))
+	{
+		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+	}
+	
 	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 //******************************************************************************//
