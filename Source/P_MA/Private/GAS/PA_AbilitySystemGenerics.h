@@ -30,7 +30,8 @@ public:
 	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag, UObject* Outer) const;
 	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementModuleDataTable;}
 	FORCEINLINE const UDataTable* GetBehaviorDataTable() const {return BehaviorModuleDataTable;}
-	FORCEINLINE const UDataTable* GetSkillInformationTableTable() const { return SkillInformationDT; }
+	FORCEINLINE const UDataTable* GetSkillInformationDataTable() const { return SkillInformationDT; }
+	FORCEINLINE const UDataTable* GetUtilityModuleDataTable() const { return UtilityModuleDataTable; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")

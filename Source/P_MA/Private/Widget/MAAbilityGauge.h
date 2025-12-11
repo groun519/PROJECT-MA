@@ -32,7 +32,8 @@ class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
 public:
 	virtual void NativeConstruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-    
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
 	void UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass);
     
 	// [변경] 반환 타입 수정: FAbilityWidgetData -> FSkillItemData
@@ -93,4 +94,7 @@ private:
 
 	FNumberFormattingOptions WholeNumberFormattionOptions;
 	FNumberFormattingOptions TwoDigitNumberFormattingOptions;
+
+	float CurrentDisplayMaxCooldown = -1.f;
+	void UpdateMaxCooldownText();
 };
