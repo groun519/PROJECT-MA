@@ -53,7 +53,7 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	const UDataTable* SkillTable = ASC->GetSystemGenerics()->GetSkillInformationTableTable();
+	const UDataTable* SkillTable = ASC->GetSystemGenerics()->GetSkillInformationDataTable();
 	if (!SkillTable)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Not Have SkillTable"));
@@ -398,7 +398,7 @@ bool UMAGameplayAbility_SkillBase::CheckCooldown(const FGameplayAbilitySpecHandl
 	if (!LocalASC | !LocalASC->GetSystemGenerics())
 		return true;
 
-	const UDataTable* SkillTable = LocalASC->GetSystemGenerics()->GetSkillInformationTableTable();
+	const UDataTable* SkillTable = LocalASC->GetSystemGenerics()->GetSkillInformationDataTable();
 	if (!SkillTable)
 		return true;
 	const FSkillInformationDT* SkillInfoRow = SkillTable->FindRow<FSkillInformationDT>(GetClass()->GetFName(),"");

@@ -6,6 +6,9 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayTagsManager.h"
+#include "MAAbilitySystemComponent.h"
+#include "Ability/SkillBehaviorConfig.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
@@ -196,4 +199,55 @@ float UMAAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* A
 	}
 
 	return CooldownRemaining;
+}
+
+float UMAAbilitySystemStatics::GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO,	const UAbilitySystemComponent* ASC)
+{
+	if (!AbilityCDO && !ASC)
+		return 0.f;
+
+	const UMAAbilitySystemComponent* CurASC= Cast<UMAAbilitySystemComponent>(ASC);
+	if (!CurASC || !CurASC->GetSystemGenerics())
+		return 0.f;
+
+	const UDataTable* SkillTable = CurASC->GetSystemGenerics()->GetSkillInformationDataTable();
+	if (!SkillTable)
+		return 0.f;
+
+	const FSkillInformationDT* SkillRow = SkillTable->FindRow<FSkillInformationDT>(AbilityCDO->GetClass()->GetFName(),"");
+	if (!SkillRow)
+		return 0.f;
+
+	float FinalCooldown = SkillRow->BaseCooldownDuration;
+	const FGameplayAbilitySpec* Spec = CurASC->FindAbilitySpecFromClass(AbilityCDO->GetClass());
+	if (!Spec)
+		return FinalCooldown;
+
+	FGameplayTag UtilityTag = SkillRow->DefaultUtilityTag;
+	FGameplayTagContainer UtilityFilter = Spec->DynamicAbilityTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Utility")));
+	if (UtilityFilter.Num() > 0)
+		UtilityTag=UtilityFilter.First();
+
+	if (UtilityTag.IsValid())
+	{
+		const UDataTable* UtilityTable = CurASC->GetSystemGenerics()->GetUtilityModuleDataTable();
+		if (UtilityTable)
+		{
+			TArray<FName> TagNames;
+			UGameplayTagsManager::Get().SplitGameplayTagFName(UtilityTag, TagNames);
+			FName UtilityRowName = TagNames.Last();
+
+			const FSkillUtilityModule* UtilityRow = UtilityTable->FindRow<FSkillUtilityModule>(UtilityRowName, "");
+            
+			if (UtilityRow)
+			{
+				// 쿨타임 배율 적용 (0이면 초기화 확률 로직이므로 여기서는 표기상 0초 혹은 원본 유지가 맞음. UI 표기용이므로 원본 유지 혹은 별도 처리)
+				if (UtilityRow->CooldownMultiplier != 0.f)
+				{
+					FinalCooldown *= UtilityRow->CooldownMultiplier;
+				}
+			}
+		}
+	}
+	return FinalCooldown;
 }

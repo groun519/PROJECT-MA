@@ -47,6 +47,12 @@ void UMAAbilityGauge::NativeOnListItemObjectSet(UObject* ListItemObject)
 	}
 }
 
+void UMAAbilityGauge::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	UpdateMaxCooldownText();
+}
+
 // [통합] 드롭 이벤트
 bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
@@ -132,7 +138,7 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(OwnerASC);
 	if (!ASC || !ASC->GetSystemGenerics())
 		return;
-	const UDataTable* SkillInfoDT = ASC->GetSystemGenerics()->GetSkillInformationTableTable();
+	const UDataTable* SkillInfoDT = ASC->GetSystemGenerics()->GetSkillInformationDataTable();
 	if (!SkillInfoDT)
 		return;
 	UMAGameplayAbility_SkillBase* SkillCDO = Cast<UMAGameplayAbility_SkillBase>(AbilityCDO);
@@ -148,12 +154,37 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 			}
 		}
 	}
+	UpdateMaxCooldownText();
 
-	float CooldownDuration = UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(AbilityCDO);
+	//float CooldownDuration = UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(AbilityCDO);
 	float Cost = UMAAbilitySystemStatics::GetStaticCostForAbility(AbilityCDO);
 
-	if(CooldownDurationText) CooldownDurationText->SetText(FText::AsNumber(CooldownDuration));
+	//if(CooldownDurationText) CooldownDurationText->SetText(FText::AsNumber(CooldownDuration));
 	if(CostText) CostText->SetText(FText::AsNumber(Cost));
+}
+
+void UMAAbilityGauge::UpdateMaxCooldownText()
+{
+	if (!AbilityCDO || !OwnerASC.IsValid())
+		return;
+
+	float NewMaxCooldown = UMAAbilitySystemStatics::GetExpectedCooldownDuration(AbilityCDO,OwnerASC.Get());
+	if (!FMath::IsNearlyEqual(CurrentDisplayMaxCooldown,NewMaxCooldown))
+	{
+		CurrentDisplayMaxCooldown = NewMaxCooldown;
+		if (CooldownDurationText)
+		{
+			if (CurrentDisplayMaxCooldown>0.f)
+			{
+				CooldownDurationText->SetVisibility(ESlateVisibility::Visible);
+				CooldownDurationText->SetText(FText::AsNumber(CurrentDisplayMaxCooldown));
+			}
+			else
+			{
+				CooldownDurationText->SetVisibility(ESlateVisibility::Hidden);
+			}
+		}
+	}
 }
 
 void UMAAbilityGauge::OnCooldownTagChanged(const FGameplayTag CooldownTag, int32 NewCount)
