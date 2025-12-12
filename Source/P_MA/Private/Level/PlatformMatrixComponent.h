@@ -18,12 +18,23 @@ protected:
 public:
 	UPlatformMatrixComponent();
 
+	UPROPERTY(EditAnywhere, Category="Grid")
+	int32 Cols = 9;
+
+	UPROPERTY(EditAnywhere, Category="Platform")
+	UMaterialInterface* PlatformMaterial;
+
+	/** Platform **/
+	UPROPERTY(Transient)
+	TArray<UPlatformComponent*> Platforms;
+
 	void SetPlatformEnable(int32 X, int32 Y);
 	FORCEINLINE int32 GetIndex(int32 X, int32 Y) const { return Y * Cols + X; }
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Grid")
-	int32 Cols = 9;
-
-	UPROPERTY(Transient)
-	TArray<UPlatformComponent*> Platforms;
+	/** Debug **/
+	UPROPERTY(EditAnywhere, Category="Debug")
+	bool bDebugPlatformNumAtFirstFrame = false;
+	
+private:
+	void CreatePlatforms();
 };
