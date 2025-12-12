@@ -43,7 +43,7 @@ void APlatformRoot::Tick(float DeltaTime)
 	SetActorLocation(TargetZVec);
 	
 	/** if Loop **/
-	if (Manager->Sectors.Num() == 0)
+	if (Manager->CurSectors.Num() == 0)
 	{
 		AMAGameMode* MAGM = Manager->GetMAGameMode();
 		Manager->SetSplinesWithMAGameState(
@@ -54,7 +54,7 @@ void APlatformRoot::Tick(float DeltaTime)
 
 	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
 
-	USplineComponent* CurSpline = Manager->Sectors[CurSector]->RoadSpline;
+	USplineComponent* CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
 	float Len = CurSpline->GetSplineLength();
 
 	Distance += MoveSpeed * DeltaTime;
@@ -64,7 +64,7 @@ void APlatformRoot::Tick(float DeltaTime)
 		Distance -= Len;
 		CurSector++;
 
-		if (CurSector >= Manager->Sectors.Num())
+		if (CurSector >= Manager->CurSectors.Num())
 		{
 			CurSector = 0;
 			Distance  = 0.f;
@@ -72,13 +72,13 @@ void APlatformRoot::Tick(float DeltaTime)
 			AMAGameMode* MAGM = Manager->GetMAGameMode();
 			Manager->SetSplinesWithMAGameState(
 				MAGM->GetMAGameState());
-			if (Manager->Sectors.Num() == 0) return;
+			if (Manager->CurSectors.Num() == 0) return;
 		}
 
 		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
-		Manager->Sectors[NewSectorIndex]->SetRandomSeed();
+		Manager->CurSectors[NewSectorIndex]->SetRandomSeed();
 		
-		CurSpline = Manager->Sectors[CurSector]->RoadSpline;
+		CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
 	}
 
 	FVector TargetLoc =

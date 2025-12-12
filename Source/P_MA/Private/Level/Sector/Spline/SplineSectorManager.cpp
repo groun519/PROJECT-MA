@@ -4,13 +4,12 @@
 #include "SplineSectorManager.h"
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
-
 #include "Kismet/GameplayStatics.h"
 
 
 ASplineSectorManager::ASplineSectorManager()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void ASplineSectorManager::BeginPlay()
@@ -25,46 +24,9 @@ void ASplineSectorManager::BeginPlay()
 	SetSplinesWithMAGameState(CachedMAGameMode->GetMAGameState());
 }
 
-bool ASplineSectorManager::IsClosePreSectorZeroVector()
-{
-	if (!PlatformRoot) return false;
-
-	FVector PlatformLoc = PlatformRoot->GetActorLocation();
-	PlatformLoc.Y = 0; PlatformLoc.Z = 0;
-	FVector FinalSectorLoc = Sectors[Sectors.Num() - 1]->GetActorLocation();
-	FinalSectorLoc.Y = 0; FinalSectorLoc.Z = 0;
-	
-	float CenterDistance = (PlatformLoc - FinalSectorLoc).Length();
-
-	UE_LOG(LogTemp, Display, TEXT("CenterDistance: %f"), CenterDistance);
-	DrawDebugSphere(GetWorld(), FinalSectorLoc, 12.f, 12.f,FColor::Red, true, 1, 0, 0);
-	
-	if (CenterDistance < 100.f)
-		return true;
-	return false;
-}
-
-void ASplineSectorManager::GoBackToFirstSector()
-{
-	int32 LastSectorIndex = Sectors.Num() - 1;
-	UE_LOG(LogTemp, Display, TEXT("LastSectorIndex: %d"), LastSectorIndex);
-
-	Sectors[0]->SetSectorSeed(Sectors[LastSectorIndex]->GetSectorSeed());
-	
-	FVector FirstSectorLoc = Sectors[0]->GetActorLocation();
-	FVector LastSectorLoc = Sectors[LastSectorIndex]->GetActorLocation();
-	FVector PlatformLoc = PlatformRoot->GetActorLocation();
-
-	FVector Offset = PlatformLoc - LastSectorLoc;
-	FirstSectorLoc += Offset;
-	
-	FirstSectorLoc.Z = 50;
-	PlatformRoot->SetActorLocation(FirstSectorLoc);
-}
-
 int32 ASplineSectorManager::GetNextSectorIndex(int32 CurSectorIndex)
 {
-	int32 LastSectorIndex = Sectors.Num() - 1;
+	int32 LastSectorIndex = CurSectors.Num() - 1;
 	return CurSectorIndex == LastSectorIndex ? 0 : CurSectorIndex + 1;
 }
 
@@ -73,12 +35,6 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());
 	ASplineSectorManager* SSM = Cast<ASplineSectorManager>(Found);
 	return SSM;
-}
-
-void ASplineSectorManager::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
 }
 
 void ASplineSectorManager::CachingMAGameMode()
@@ -92,7 +48,7 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 	if (bUseStateDebug)
 	{
 		const UEnum* EnumPtr = StaticEnum<EMAGameState>();
-		const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedPrevMAGameState);
+		const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);
 		const FString CurrName = EnumPtr->GetNameStringByValue((int64)InMAGS);
 		UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
 		UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
@@ -101,71 +57,74 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 	
 	if (InMAGS == EMAGameState::Wait)
 	{
-		Sectors.Empty();
-		bIsMoving = false;
+		if (SameAsCachedState(InMAGS))
+			return;
 	}
 	else if (InMAGS == EMAGameState::Start)
 	{
-		if (CachedPrevMAGameState == EMAGameState::Start)
+		if (SameAsCachedState(InMAGS))
 		{
-			CachedPrevMAGameState = InMAGS;
-			SetSplinesWithMAGameState(EMAGameState::InBattle);
-			CachedMAGameMode->SetMAGameState(EMAGameState::InBattle);
+			GoToNextState(InMAGS, EMAGameState::InBattle);
 			return;
-		}
-		else
-		{
-			Sectors = StartSectors;
-			bIsMoving = true;
 		}
 	}
 	else if (InMAGS == EMAGameState::InBattle)
 	{
-		if (CachedPrevMAGameState == EMAGameState::InBattle)
+		if (SameAsCachedState(InMAGS))
 		{
-			CachedPrevMAGameState = InMAGS;
-			SetSplinesWithMAGameState(EMAGameState::Battle);
-			CachedMAGameMode->SetMAGameState(EMAGameState::Battle);
+			GoToNextState(InMAGS, EMAGameState::Battle);
 			CachedMAGameMode->StartWave();
 			return;
-		}
-		else
-		{
-			Sectors = InBattleSectors;
-			bIsMoving = true;
 		}
 	}
 	else if (InMAGS == EMAGameState::Battle)
 	{
-		Sectors.Empty();
-		bIsMoving = false;
-		CachedMAGameMode->EndWave();
+		if (SameAsCachedState(InMAGS))
+			return;
 	}
 	else if (InMAGS == EMAGameState::EndBattle)
 	{
-		Sectors.Empty();
-		bIsMoving = false;
+		if (SameAsCachedState(InMAGS))
+			return;
+		
+		if (CachedMAGameMode->bIsWaving)
+		{
+			CachedMAGameMode->EndWave();
+		}
 	}
 	else if (InMAGS == EMAGameState::OutBattle)
 	{
-		if (CachedPrevMAGameState == EMAGameState::OutBattle)
+		if (SameAsCachedState(InMAGS))
 		{
-			CachedPrevMAGameState = InMAGS;
-			SetSplinesWithMAGameState(EMAGameState::Loop);
-			CachedMAGameMode->SetMAGameState(EMAGameState::Loop);
+			GoToNextState(InMAGS, EMAGameState::Loop);
 			return;
-		}
-		else
-		{
-			Sectors = OutBattleSectors;
-			bIsMoving = true;
 		}
 	}
 	else if (InMAGS == EMAGameState::Loop)
 	{
-		Sectors = LoopSectors;
-		bIsMoving = true;
+		if (SameAsCachedState(InMAGS))
+			return;
 	}
 
-	CachedPrevMAGameState = InMAGS;
+	SetSectorsByState(InMAGS);
+	CachedMAGameState = InMAGS;
+}
+
+void ASplineSectorManager::GoToNextState(EMAGameState InCurState,EMAGameState InNextState)
+{
+	CachedMAGameState = InCurState;
+	SetSplinesWithMAGameState(InNextState);
+	CachedMAGameMode->SetMAGameState(InNextState);
+}
+
+void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
+{
+	FSplineSectorData SSData = SplineSectorsByState[InState];
+	
+	bIsMoving = SSData.bIsMoving;
+	
+	if (bIsMoving)
+		CurSectors = SSData.Sectors;
+	else
+		CurSectors.Empty();
 }

@@ -9,6 +9,18 @@
 #include "Level/PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
 
+USTRUCT(BlueprintType)
+struct FSplineSectorData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsMoving = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = bIsMoving, EditConditionHides))
+	TArray<TObjectPtr<ASplineSector>> Sectors;
+};
+
 UCLASS()
 class P_MA_API ASplineSectorManager : public AActor
 {
@@ -16,46 +28,42 @@ class P_MA_API ASplineSectorManager : public AActor
 	
 protected:
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
 	
 public:
 	ASplineSectorManager();
 
+	/** Platform **/
 	UPROPERTY()
 	TObjectPtr<APlatformRoot> PlatformRoot;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<ASplineSector>> Sectors;
+	/** Sector **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
+	TArray<TObjectPtr<ASplineSector>> CurSectors;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<ASplineSector>> StartSectors;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<ASplineSector>> InBattleSectors;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<ASplineSector>> OutBattleSectors;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<TObjectPtr<ASplineSector>> LoopSectors;
-	
-	bool IsClosePreSectorZeroVector();
-	void GoBackToFirstSector();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
+	TMap<EMAGameState, FSplineSectorData> SplineSectorsByState;
 
 	int32 GetNextSectorIndex(int32 CurSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
-
 	void SetSplinesWithMAGameState(EMAGameState InMAGS);
 
 	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
-
+	
+	/** Debug **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bUseStateDebug = false;
 	
 private:
-	EMAGameState CachedPrevMAGameState = EMAGameState::Wait;
+	bool bIsMoving = false;
+
+	/** Cache **/
+	EMAGameState CachedMAGameState = EMAGameState::Wait;
 	AMAGameMode* CachedMAGameMode;
 	void CachingMAGameMode();
-	bool bIsMoving = false;
+
+	/** Sector **/
+	void GoToNextState(EMAGameState InCurState, EMAGameState InNextState);
+	void SetSectorsByState(EMAGameState InState);
+	FORCEINLINE bool SameAsCachedState(EMAGameState InState) { return CachedMAGameState == InState; }
 };
