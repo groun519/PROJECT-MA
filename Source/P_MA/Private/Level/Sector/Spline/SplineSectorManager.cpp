@@ -6,7 +6,6 @@
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
-
 ASplineSectorManager::ASplineSectorManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -105,7 +104,6 @@ void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
 		if (SameAsCachedState(InMAGS))
 			return;
 	}
-
 	SetSectorsByState(InMAGS);
 	CachedMAGameState = InMAGS;
 }
