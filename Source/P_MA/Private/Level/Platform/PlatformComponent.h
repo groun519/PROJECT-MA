@@ -13,6 +13,7 @@ UCLASS(Blueprintable)
 class P_MA_API UPlatformComponent : public UStaticMeshComponent
 {
 	GENERATED_BODY()
+	virtual void BeginPlay() override;
 
 public:
 	UPlatformComponent();
@@ -20,7 +21,12 @@ public:
 	void EnablePlatform();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* MovementingBox;
+	UBoxComponent* TriggerBox;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	float BoxWidth = 2.f;
+
+	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
 	TObjectPtr<UNiagaraSystem> EnableEffect;

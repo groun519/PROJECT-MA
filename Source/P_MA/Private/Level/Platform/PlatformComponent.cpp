@@ -2,8 +2,16 @@
 
 
 #include "PlatformComponent.h"
+
+#include "IAutomationControllerManager.h"
 #include "NiagaraFunctionLibrary.h"
 
+
+void UPlatformComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
+}
 
 UPlatformComponent::UPlatformComponent()
 {
@@ -17,10 +25,13 @@ UPlatformComponent::UPlatformComponent()
 	{
 		UStaticMeshComponent::SetStaticMesh(CubeMesh.Object);
 	}
+	SetRelativeScale3D(GetPlatformBoxExtent(0.5f));
 
-	// /** Movementing Box **/
-	// MovementingBox = CreateDefaultSubobject<UBoxComponent>("MovementingBox");
-	// MovementingBox->SetBoxExtent(FVector(10.0f, 10.0f, 10.0f));
+	/** Trigger Box **/
+	TriggerBox = CreateDefaultSubobject<UBoxComponent>("TriggerBox");
+	TriggerBox->SetupAttachment(this);
+	TriggerBox->SetBoxExtent(GetPlatformBoxExtent(BoxWidth));
+	//TriggerBox->SetRelativeLocation()
 }
 
 void UPlatformComponent::EnablePlatform()

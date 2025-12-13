@@ -19,8 +19,11 @@ void ASplineSectorManager::BeginPlay()
 	UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass())
 	);
 
-	CachingMAGameMode();
-	SetSplinesWithMAGameState(CachedMAGameMode->GetMAGameState());
+	if (HasAuthority())
+	{
+		CachingMAGameMode();
+		SetSplinesWithMAGameState(CachedMAGameMode->GetMAGameState());
+	}
 }
 
 int32 ASplineSectorManager::GetNextSectorIndex(int32 CurSectorIndex)

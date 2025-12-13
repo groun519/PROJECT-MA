@@ -6,7 +6,7 @@
 #include "SplineSector.h"
 #include "Framework/MAGameMode.h"
 #include "GameFramework/Actor.h"
-#include "Level/PlatformRoot.h"
+#include "Level/Platform//PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
 
 USTRUCT(BlueprintType)

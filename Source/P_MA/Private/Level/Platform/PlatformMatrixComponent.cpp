@@ -45,7 +45,7 @@ void UPlatformMatrixComponent::CreatePlatforms()
 			Platform->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 
 			Platform->SetRelativeLocation(FVector(-(X - Cols / 2) * 200.f, (Y - Cols / 2) * 200.f, 0.f));
-			Platform->SetRelativeScale3D(FVector(2.f, 2.f, 0.5f));
+			//Platform->SetRelativeScale3D(FVector(2.f, 2.f, 0.5f));
 
 			if (PlatformMaterial)
 			{
