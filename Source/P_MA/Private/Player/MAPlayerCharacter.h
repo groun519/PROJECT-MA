@@ -11,6 +11,8 @@
 
 class UInputAction;
 class UNiagaraComponent;
+class UInteractComponent;
+
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMAChargeAbilityUpdate, float, ChargePercentage);
@@ -63,11 +65,11 @@ private:
 	UInputAction* InteractInputAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* UseInventoryItemAction;
+	UInputAction* UseInventoryItemAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	class UInputMappingContext* GameplayInputMappingContext;
 
@@ -81,6 +83,17 @@ private:
 public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
+
+	/** Interact **/
+	UFUNCTION()
+	void SetCurrentInteractComp(UInteractComponent* NewComp);
+
+	UFUNCTION()
+	void ClearCurrentInteractComp(UInteractComponent* Comp);
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
+	
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:

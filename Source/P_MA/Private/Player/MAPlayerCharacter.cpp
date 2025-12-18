@@ -20,6 +20,7 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Convenience/InteractComponent.h"
 
 
 AMAPlayerCharacter::AMAPlayerCharacter()
@@ -283,6 +284,11 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 {
 	const bool bPressed = InputActionValue.Get<bool>();
 	if (!bPressed) return;
+
+	if (UInteractComponent* Comp = CurrentInteractComp.Get())
+	{
+		Comp->RequestInteract(this);
+	}
 }
 
 void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
@@ -328,6 +334,35 @@ void AMAPlayerCharacter::SnapRotationToMouse()
 			Server_SetRotation(LookDir);
 		}
 	}
+}
+
+void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
+{
+	if (!NewComp) return;
+
+	UInteractComponent* Prev = CurrentInteractComp.Get();
+	if (Prev == NewComp) return;
+
+	if (Prev)
+	{
+		Prev->SetActive(false, nullptr);
+	}
+
+	CurrentInteractComp = NewComp;
+	NewComp->SetActive(true, this);
+}
+
+void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
+{
+	if (CurrentInteractComp.Get() != Comp)
+		return;
+
+	if (Comp)
+	{
+		Comp->SetActive(false, nullptr);
+	}
+
+	CurrentInteractComp = nullptr;
 }
 
 

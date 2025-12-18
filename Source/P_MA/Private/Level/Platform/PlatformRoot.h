@@ -41,8 +41,8 @@ private:
 
 	/** Height System **/
 	float CurHeight = 0.f;
-	float MovingHeight = 150.f;
-	float WaitingHeight = 0.f;
+	float MovingHeight = 50.f;
+	float WaitingHeight = -100.f;
 
 	/** Core **/
 	void SpawnCore();
