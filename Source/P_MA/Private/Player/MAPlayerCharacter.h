@@ -114,16 +114,17 @@ private:
 	virtual void OnRespawn() override;
 	virtual void OnGhostMode();
 
-	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
+	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USpringArmComponent* MinimapCameraBoom;
 
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USceneCaptureComponent2D* MinimapCapture;
 
-	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	class UPaperSpriteComponent* MinimapSprite;
-	/** 여기 위에 까지는 별도의 코드 입니다 **/
+	// UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	// class UPaperSpriteComponent* MinimapSprite;
+	// ㄴ 미사용, 주석처리.
+	/****/
 
 	/*************************************************************/
 	/*                      Inventory                            */

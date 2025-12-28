@@ -6,7 +6,6 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/Character.h"
 
 #include "DebugShapeHelper.h"
@@ -109,7 +108,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	
 	for (const FOverlapResult& Result : OverlapResults)
 	{
-		// 무시당해야하는 하찮은 액터들 거르기
+		// 중복 피격 방지
 		if (HitActors.Contains(Result.GetActor())) continue;
 
 		/** 대상과의 팀 관계(OtherActorTeamAttitude, PlayerTeam -> TargetTeam)가 TargetTeam과 같지 않으면 피해x

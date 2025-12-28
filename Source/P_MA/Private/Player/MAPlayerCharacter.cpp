@@ -63,7 +63,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
+	/** MiniMap_Cam **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
 	MinimapCameraBoom->SetupAttachment(RootComponent);
 	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
@@ -78,21 +78,22 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->SetupAttachment(MinimapCameraBoom);
 	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
 	MinimapCapture->OrthoWidth = 1700.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+	//MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+	/****/
+
+	/** Minimap_Sprite **//*
+	 * -> 미사용중. 주석처리.
+	// static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+	// if (renderObj.Succeeded())
+	// {
+	// 	MinimapCapture->TextureTarget = renderObj.Object;
+	// }
+	// MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+	// MinimapSprite->SetupAttachment(GetMesh());
+	/****/
 
 	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
 	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
-	
-
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
-	if (renderObj.Succeeded())
-	{
-		MinimapCapture->TextureTarget = renderObj.Object;
-	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
-	/** 여기 위에 까지는 별도의 코드 입니다 **/
-	
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
