@@ -29,10 +29,17 @@ AMACharacter::AMACharacter()
 	USceneComponent* SceneComp = CreateDefaultSubobject<USceneComponent>("Mesh Parent");
 	SceneComp->SetupAttachment(GetRootComponent());
 	SceneComp->SetRelativeLocationAndRotation(FVector(0,0,-90), FRotator(0,-90,0));
+
+	/** Mesh **/
 	GetMesh()->SetupAttachment(SceneComp);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Target, ECR_Ignore);
+	/****/
 
+	/** CapsuleComp **/
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Target, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionObjectType(ECC_Hitbox);
+	/****/
+	
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");

@@ -14,7 +14,7 @@
 #include "MAAbilitySystemStatics.h"
 #include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
-#include "Kismet/GameplayStatics.h"
+#include "P_MA/P_MA.h"
 
 
 UMAGameplayAbility::UMAGameplayAbility()
@@ -52,15 +52,13 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 	FVector Center = TargetData->GetOrigin().GetTranslation();
 
-	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	FCollisionObjectQueryParams ObjParams;
+	ObjParams.AddObjectTypesToQuery(ECC_Hitbox);
 
-	TArray<AActor*> ActorsToIgnore;
-	if (bIgnoreSelf) ActorsToIgnore.Add(GetAvatarActorFromActorInfo());
-	EDrawDebugTrace::Type DrawDebugTrace = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
-	
+	FCollisionQueryParams QueryParams;
+	if (bIgnoreSelf) QueryParams.AddIgnoredActor(GetAvatarActorFromActorInfo());
+
 	TArray<FOverlapResult> OverlapResults;
-
 	if (TraceObjType == EVA_Shape::None)
 	{
 		return {};
@@ -69,9 +67,9 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	{
 		if (!bUseSector) // 원
 		{
-			GetWorld()->OverlapMultiByChannel(
-				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
-				FCollisionShape::MakeSphere(HalfSize.X));
+			GetWorld()->OverlapMultiByObjectType(
+				OverlapResults, Center, FQuat::Identity, ObjParams,
+				FCollisionShape::MakeSphere(HalfSize.X), QueryParams);
 
 			if (bDrawDebug)
 				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 32,
@@ -80,9 +78,9 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		}
 		else // 부채꼴
 		{
-			GetWorld()->OverlapMultiByChannel(
-				OverlapResults, Center, FQuat::Identity, ECC_Pawn,
-				FCollisionShape::MakeSphere(HalfSize.X));
+			GetWorld()->OverlapMultiByObjectType(
+				OverlapResults, Center, FQuat::Identity, ObjParams,
+				FCollisionShape::MakeSphere(HalfSize.X), QueryParams);
 
 			if (bDrawDebug)
 			{
@@ -98,9 +96,9 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		FQuat LocalQuat = BoxRot.Quaternion();
 		FQuat FinalQuat = WorldQuat * LocalQuat;
 		
-		GetWorld()->OverlapMultiByChannel(
-			OverlapResults, Center, FinalQuat, ECC_Pawn,
-			FCollisionShape::MakeBox(HalfSize));
+		GetWorld()->OverlapMultiByObjectType(
+			OverlapResults, Center, FinalQuat, ObjParams,
+			FCollisionShape::MakeBox(HalfSize), QueryParams);
 
 		if (bDrawDebug)
 		{
