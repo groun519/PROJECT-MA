@@ -5,6 +5,8 @@
 #include "Components/ScrollBox.h"
 #include "Engine/DataTable.h"
 #include "Inventory/MAItemTypes.h"
+#include "Components/Button.h" 
+#include "Kismet/GameplayStatics.h"
 
 void UShopWidget::NativeConstruct()
 {
@@ -16,8 +18,28 @@ void UShopWidget::NativeConstruct()
 		OwnerInventoryComponent = OwnerPawn->GetComponentByClass<UInventoryComponent>();
 	}
 
-	// 바로 로드 시도
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &UShopWidget::OnCloseClicked);
+	}
+	
 	LoadShopCategories();
+}
+
+void UShopWidget::OnCloseClicked()
+{
+    RemoveFromParent();
+	
+    if (APlayerController* PC = GetOwningPlayer())
+    {
+        PC->bShowMouseCursor = true; 
+    	
+        FInputModeGameAndUI InputMode;
+        InputMode.SetHideCursorDuringCapture(false); 
+        InputMode.SetWidgetToFocus(nullptr);         
+
+        PC->SetInputMode(InputMode);
+    }
 }
 
 void UShopWidget::InitShop(const TArray<UDataTable*>& InDataTables)

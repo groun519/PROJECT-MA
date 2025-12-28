@@ -5,11 +5,17 @@
 #include "Widget/SkillSlotWidget.h"
 #include "Inventory/SkillBookComponent.h"
 #include "Components/WrapBox.h"
+#include "Components/Button.h" 
 #include "Player/MAPlayerCharacter.h" 
 
 void USkillBookWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &USkillBookWidget::OnCloseClicked);
+	}
 
 	if (!SkillList) return;
 	SkillList->ClearChildren(); 
@@ -33,6 +39,22 @@ void USkillBookWidget::NativeConstruct()
 	}
 }
 
+void USkillBookWidget::OnCloseClicked()
+{
+	RemoveFromParent();
+	
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		PC->bShowMouseCursor = true;
+		
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetWidgetToFocus(nullptr);
+
+		PC->SetInputMode(InputMode);
+	}
+}
+
 void USkillBookWidget::OnSkillLearned(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
 	AddSkillSlot(NewSkillClass);
@@ -49,4 +71,3 @@ void USkillBookWidget::AddSkillSlot(TSubclassOf<UGameplayAbility> SkillClass)
 		SkillList->AddChildToWrapBox(NewSlot);
 	}
 }
-

@@ -14,6 +14,8 @@ class UShopItemWidget;
 class UDataTable; 
 class UShopItemDataObject; 
 
+class UButton;
+
 UCLASS()
 class UShopWidget : public UMovableWindowWidget
 {
@@ -25,6 +27,12 @@ public:
 	void InitShop(const TArray<UDataTable*>& InDataTables);
 
 private:
+	UPROPERTY(meta = (BindWidget))
+	UButton* CloseButton;
+
+	UFUNCTION()
+	void OnCloseClicked();
+	
 	// [변경] TileView 삭제 -> 카테고리들을 담을 스크롤 박스 추가
 	UPROPERTY(meta=(BindWidget))
 	class UScrollBox* CategoryContainer; 
