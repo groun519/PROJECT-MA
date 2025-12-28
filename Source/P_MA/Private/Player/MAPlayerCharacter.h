@@ -121,8 +121,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USceneCaptureComponent2D* MinimapCapture;
 
-	// UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	// class UPaperSpriteComponent* MinimapSprite;
+	 UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	 class UPaperSpriteComponent* MinimapSprite;
 	// ㄴ 미사용, 주석처리.
 	/****/
 
