@@ -35,6 +35,15 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	DefaultMouseCursor = EMouseCursor::Default;
 	CurrentMouseCursor = EMouseCursor::Default;
 	/** 위에까지는 별로 코드입니다 **/
+
+	bEnableClickEvents = true;      
+	bEnableMouseOverEvents = true;
+
+	// 마우스 삭제떄문에 일단 추가해봄 테스트
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 가두지 않기
+	InputMode.SetHideCursorDuringCapture(false); // ★핵심: 클릭해도 커서 숨기지 않기
+	SetInputMode(InputMode);
 }
 
 /** 아래는 별로 코드입니다 **/	
@@ -76,21 +85,16 @@ void AMAPlayerController::SpawnGameplayWidget()
 /** 여기에는 강의에는 없는 별도 코드입니다 **/
 void AMAPlayerController::CheckMouseCursorShape()
 {
-	// [수정] UI가 켜져서 마우스가 보일 때는, 무조건 '기본 화살표'로 고정해야 합니다.
 	if (bShowMouseCursor)
 	{
-		// 현재 커서가 기본이 아니라면(크로스헤어 등), 기본으로 돌려놓고 함수 종료
 		if (CurrentMouseCursor != EMouseCursor::Default)
 		{
 			CurrentMouseCursor = EMouseCursor::Default;
-            
-			// 커서 상태 기록용 변수도 초기화 (기존 코드 스타일에 맞춤)
+			
 			bOnMouseCursorRecord = false; 
 		}
 		return;
 	}
-
-	// --- 아래는 기존 로직 그대로 유지 ---
 
 	FHitResult mouseHitResult;
 	GetHitResultUnderCursor(ECC_Visibility, false, mouseHitResult);
@@ -139,7 +143,7 @@ void AMAPlayerController::SetupInputComponent()
 	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComp)
 	{
-		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
+		//EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
 		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 	}
 }

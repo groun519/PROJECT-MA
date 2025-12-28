@@ -10,6 +10,7 @@
 class UWrapBox;
 class USkillSlotWidget;
 class USkillBookComponent;
+class UButton; 
 
 UCLASS()
 class USkillBookWidget : public UMovableWindowWidget
@@ -22,12 +23,18 @@ public:
 private:
 	UFUNCTION()
 	void OnSkillLearned(TSubclassOf<UGameplayAbility> NewSkillClass);
+	
+	UFUNCTION()
+	void OnCloseClicked();
 
 	void AddSkillSlot(TSubclassOf<UGameplayAbility> SkillClass);
 	
 	UPROPERTY(meta = (BindWidget))
 	UWrapBox* SkillList;
 	
+	UPROPERTY(meta = (BindWidget))
+	UButton* CloseButton;
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<USkillSlotWidget> SlotWidgetClass;
 	

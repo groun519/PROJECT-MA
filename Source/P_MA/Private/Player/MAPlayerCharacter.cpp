@@ -67,7 +67,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCameraBoom->SetupAttachment(RootComponent);
 	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
 
-	MinimapCameraBoom->TargetArmLength = 900.0f;
+	MinimapCameraBoom->TargetArmLength = 3000.0f;
 	MinimapCameraBoom->bUsePawnControlRotation = false;
 	MinimapCameraBoom->bInheritPitch = false;
 	MinimapCameraBoom->bInheritRoll = false;
@@ -76,7 +76,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
 	MinimapCapture->SetupAttachment(MinimapCameraBoom);
 	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
-	MinimapCapture->OrthoWidth = 1700.0f;
+	MinimapCapture->OrthoWidth = 7000.0f;
 	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
 	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();

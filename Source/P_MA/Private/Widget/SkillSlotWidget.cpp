@@ -5,7 +5,7 @@
 #include "Engine/DataTable.h"
 #include "Widget/SkillDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Inventory/MAItemTypes.h" // [필수]
+#include "Inventory/MAItemTypes.h" 
 
 void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
