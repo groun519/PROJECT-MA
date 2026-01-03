@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,44 +5,53 @@
 #include "InteractComponent.generated.h"
 
 class AMAPlayerCharacter;
+class UWidgetComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractRequested, AMAPlayerCharacter*, Interactor);
+/** * How to Use ? 
+ * 1. CALL_SETUP_INTERACT(MethodName) -> Connect logic without 'this'
+ * 2. Fill in widgetcomp in Details Panel
+ */
+#define CALL_SETUP_INTERACT(MethodName) SetupInteraction(this, &std::remove_pointer_t<decltype(this)>::MethodName)
 
-UCLASS()
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class P_MA_API UInteractComponent : public USphereComponent
 {
 	GENERATED_BODY()
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void OnRegister() override;
 
 public:
 	UInteractComponent();
 
-	UPROPERTY(BlueprintAssignable, Category="MA|Interact")
-	FOnInteractRequested OnInteractRequested;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MA|UI")
+	TObjectPtr<UWidgetComponent> InteractKeyWidgetComp;
+
+	template<typename T>
+	void SetupInteraction(T* InObj, void (T::*InMethod)(AMAPlayerCharacter*))
+	{
+		InteractionHandler = [InObj, InMethod](AMAPlayerCharacter* Interactor)
+		{
+			if (InObj && InMethod)
+			{
+				(InObj->*InMethod)(Interactor);
+			}
+		};
+	}
 
 	UFUNCTION(BlueprintCallable, Category="MA|Interact")
 	void RequestInteract(AMAPlayerCharacter* Interactor);
+
+	void SetActive(bool bNewActive);
 	
-	void SetActive(bool bNewActive, AMAPlayerCharacter* Interactor);
-
-	void ShowInteractKeyUI(AMAPlayerCharacter* Interactor);
-	void HideInteractKeyUI();
-
-	UPROPERTY(Transient)
-	bool bActive = false;
-
 private:
+	
 	UFUNCTION()
-	void HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep);
+	void HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep);
 
 	UFUNCTION()
-	void HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
-	class UWidgetComponent* InteractKeyWidgetComp;
+	TFunction<void(AMAPlayerCharacter*)> InteractionHandler;
+	bool bActive = false;
 };
