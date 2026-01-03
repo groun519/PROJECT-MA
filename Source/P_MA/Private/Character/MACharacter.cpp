@@ -26,12 +26,9 @@
 AMACharacter::AMACharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	USceneComponent* SceneComp = CreateDefaultSubobject<USceneComponent>("Mesh Parent");
-	SceneComp->SetupAttachment(GetRootComponent());
-	SceneComp->SetRelativeLocationAndRotation(FVector(0,0,-90), FRotator(0,-90,0));
 
 	/** Mesh **/
-	GetMesh()->SetupAttachment(SceneComp);
+	GetMesh()->SetupAttachment(GetRootComponent());
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	/****/
 
