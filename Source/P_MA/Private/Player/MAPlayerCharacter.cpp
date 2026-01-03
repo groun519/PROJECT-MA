@@ -8,8 +8,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
-#include "Engine/CanvasRenderTarget2D.h"
-#include "PaperSpriteComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -337,18 +335,12 @@ void AMAPlayerCharacter::SnapRotationToMouse()
 
 void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 {
-	if (!NewComp) return;
+	if (!NewComp || CurrentInteractComp == NewComp) return;
 
-	UInteractComponent* Prev = CurrentInteractComp.Get();
-	if (Prev == NewComp) return;
-
-	if (Prev)
-	{
-		Prev->SetActive(false, nullptr);
-	}
-
+	if (CurrentInteractComp.IsValid())
+		CurrentInteractComp->SetActive(false);
+	
 	CurrentInteractComp = NewComp;
-	NewComp->SetActive(true, this);
 }
 
 void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
@@ -357,10 +349,8 @@ void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 		return;
 
 	if (Comp)
-	{
-		Comp->SetActive(false, nullptr);
-	}
-
+		Comp->SetActive(false);
+	
 	CurrentInteractComp = nullptr;
 }
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const

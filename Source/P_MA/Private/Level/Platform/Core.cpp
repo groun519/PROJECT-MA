@@ -16,7 +16,8 @@ void ACore::BeginPlay()
 	Super::BeginPlay();
 	if (InteractComp)
 	{
-		InteractComp->OnInteractRequested.AddDynamic(this, &ACore::HandleInteract);
+		// 사용예시. 매크로로 함수 쉽게 넘김.
+		InteractComp->CALL_SETUP_INTERACT(HandleInteract);
 	}
 }
 
@@ -27,5 +28,6 @@ void ACore::Tick(float DeltaTime)
 
 void ACore::HandleInteract(AMAPlayerCharacter* Interactor)
 {
-	UE_LOG(LogTemp, Display, TEXT("Interact"));
+	UE_LOG(LogTemp, Display, TEXT("Core Interacted!"));
+	// 여기에 추가해주면 됩니다 용범BROTHER 
 }
