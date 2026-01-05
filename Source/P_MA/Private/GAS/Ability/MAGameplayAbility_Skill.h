@@ -33,7 +33,7 @@ public:
 	float GetTotalAnimSpeed() const;
 	
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults);
-	
+	void ExecuteSkillAction(FGameplayEventData& Payload, float ChargeLevel = 1.f);
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
@@ -52,5 +52,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Config")
 	FName SkillID;
 
+	void PerformMeleeAttack(FGameplayEventData& Payload, float ChargeLevel);
+	void SpawnProjectile(FGameplayEventData& Payload, float ChargeLevel);
+	bool HasActionTag(FName TagName) const;
+	
 	bool LoadSkillData();
+
+public:
+	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
+	void Montage_SetSection(FName SectionName);
 };

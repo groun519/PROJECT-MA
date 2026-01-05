@@ -116,6 +116,66 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 	}
 }
 
+void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float ChargeLevel)
+{
+	const FSkillData& SkillData = GetSkillData();
+
+	if (HasActionTag(FName("Ability.Action.Melee")))
+	{
+		PerformMeleeAttack(Payload, ChargeLevel);
+	}
+}
+
+void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float ChargeLevel)
+{
+	if (Payload.TargetData.Num() > 0)
+	{
+		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
+		if (HitResults.Num() > 0)
+		{
+			ApplyDamageToHitResults(HitResults);
+		}
+	}
+}
+
+void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, float ChargeLevel)
+{
+	const FSkillData& SkillData = GetSkillData();
+	if (!SkillData.ProjectileClass)	return;
+
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!AvatarActor)	return;
+
+	FVector SpawnLoc = AvatarActor->GetActorLocation();
+	FRotator SpawnRot = AvatarActor->GetActorRotation();
+
+	if (Payload.TargetData.Num() > 0)
+	{
+		const FGameplayAbilityTargetData* RawData = Payload.TargetData.Get(0);
+		if (RawData && RawData->GetScriptStruct() == FGameplayAbilityTargetData_LocationInfo::StaticStruct())
+		{
+			const FGameplayAbilityTargetData_LocationInfo* LocInfo = static_cast<const FGameplayAbilityTargetData_LocationInfo*>(RawData);
+			SpawnLoc = LocInfo->SourceLocation.GetTargetingTransform().GetLocation();
+		}
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = AvatarActor;
+	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
+
+	GetWorld()->SpawnActor<AActor>(SkillData.ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
+}
+
+bool UMAGameplayAbility_Skill::HasActionTag(FName TagName) const
+{
+	FGameplayTag TagToCheck = FGameplayTag::RequestGameplayTag(TagName);
+	if (TagToCheck.IsValid())
+	{
+		return CachedSkillData.ActionTags.HasTag(TagToCheck);
+	}
+	return false;
+}
+
 bool UMAGameplayAbility_Skill::LoadSkillData()
 {
 	UMASkillSubsystem* SkillSys = GetWorld()->GetGameInstance()->GetSubsystem<UMASkillSubsystem>();
@@ -166,4 +226,22 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 		}
 	}
 	return true;
+}
+
+void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)
+{
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	if (AnimInstance && AnimMontage)
+	{
+		AnimInstance->Montage_SetPlayRate(AnimMontage, PlayRate);
+	}
+}
+
+void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
+{
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
 }

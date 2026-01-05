@@ -223,7 +223,7 @@ struct FSkillInformationDT : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMAGameplayAbility_SkillBase> GrantedAbility;
+	TSubclassOf<UMAGameplayAbility> GrantedAbility;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;

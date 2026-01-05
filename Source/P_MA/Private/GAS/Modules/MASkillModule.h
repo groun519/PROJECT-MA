@@ -26,16 +26,16 @@ public:
 	// 종료
 	virtual void OnAbilityEnded(bool bWasCancelled) {}
 
-	// 수치 조정
-	virtual void ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandle) const {}
 	// 상태이상 부여
 	virtual void CreateAdditionalEffectSpecs(TArray<FGameplayEffectSpecHandle>& OutAdditionalSpecs) const {}
+	// 수치 조정
+	virtual void ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandle) const {}
 	// 쿨타임 조정
 	virtual void ModifyCooldownSpec(FGameplayEffectSpecHandle& SpecHandle) const {}
 	// 애니메이션 속도 조정
 	virtual float GetAnimSpeedMultiplier() const {return 1.0f;}
 	
 protected:
-	UPROPERTY()
-	class UMAGameplayAbility_Skill* OwnerSkill;
+	UPROPERTY(Transient, BlueprintReadOnly)
+	TObjectPtr<UMAGameplayAbility_Skill> OwnerSkill;
 };

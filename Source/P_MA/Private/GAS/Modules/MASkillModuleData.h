@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
 #include "MASkillModuleData.generated.h"
 
+class UMASkillVFXSet;
+class UMAGameplayAbility_Skill;
 class UGameplayEffect;
 class UMASkillModule;
 
@@ -17,11 +20,11 @@ struct FSkillData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
+	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
 	UAnimMontage* SkillMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
 	UTexture2D* SkillIcon;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
-	TSubclassOf<AActor> ProjectileClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Behavior"), Category="Module")
 	FGameplayTag DefaultBehaviorTag;
@@ -29,16 +32,30 @@ public:
 	FGameplayTag DefaultElementalTag;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Utility"), Category="Module")
 	FGameplayTag DefaultUtilityTag;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
+	FGameplayTagContainer ActionTags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
+	TSubclassOf<AActor> ProjectileClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
+	TSubclassOf<AActor> ChargeActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
+	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Skill Stat")
+	FGameplayTag CooldownTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
+	float BaseCooldown = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
+	float BaseDamageMultiplier=1.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")
 	bool bCanMove=false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")
 	bool bCanRotate=true;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
-	float BaseCooldown = 10.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
-	float BaseDamageMultiplier=1.f;
 };
 
 
