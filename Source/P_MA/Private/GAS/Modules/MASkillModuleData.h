@@ -80,6 +80,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor EffectColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplier=1.f;
 };
 
 
@@ -90,7 +93,7 @@ struct FModuleUtilityData : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DamagePercentAdditive=0.f;
+	float DamageMultiplier=1.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MontagePlayRate=1.f;

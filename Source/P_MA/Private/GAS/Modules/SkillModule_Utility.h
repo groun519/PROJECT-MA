@@ -17,7 +17,7 @@ class USkillModule_Utility : public UMASkillModule
 public:
 	virtual void ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandle) const override;
 	virtual void ModifyCooldownSpec(FGameplayEffectSpecHandle& SpecHandle) const override;
-	virtual float GetAnimSpeedMultiplier() const override {return AnimSpeedMultiplier;}
+	virtual float GetAnimSpeedMultiplier() const override;
 	
 protected:
 	UPROPERTY()

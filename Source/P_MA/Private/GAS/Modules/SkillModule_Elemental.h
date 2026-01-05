@@ -16,7 +16,8 @@ class USkillModule_Elemental : public UMASkillModule
 
 public:
 	virtual void CreateAdditionalEffectSpecs(TArray<FGameplayEffectSpecHandle>& OutAdditionalSpecs) const override;
-
+	virtual void ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandle) const override;
+	
 protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UGameplayEffect> StatusEffectClass;

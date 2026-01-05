@@ -121,7 +121,7 @@ void USkillModule_Charge::OnInputReleased(float TimeHeld)
 	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
 
 	FinalChargedDuration = GetWorld()->GetTimeSeconds() - ChargeStartTime;
-	
+	UE_LOG(LogTemp,Warning,TEXT("Charge Duration = %f"),FinalChargedDuration);
 	if (Skill && Skill->GetCurrentMontage())
 	{
 		Skill->Montage_SetPlayRate(Skill->GetCurrentMontage(), 1.0f);
@@ -136,7 +136,7 @@ void USkillModule_Charge::StartMaxChargeDelayTask()
 {
 	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
 
-	MaxChargeTask = UAbilityTask_WaitDelay::WaitDelay(Skill, 3.f);
+	MaxChargeTask = UAbilityTask_WaitDelay::WaitDelay(Skill, 3.4f);
 	MaxChargeTask -> OnFinish.AddDynamic(this, &USkillModule_Charge::OnMaxCharged);
 	MaxChargeTask -> ReadyForActivation();
 }

@@ -27,13 +27,11 @@ public:
 	const FModuleUtilityData& GetUtilityData() const {return CachedUtilityData;}
 	
 	UFUNCTION()
-	void HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload);
-	
-	UFUNCTION()
 	float GetTotalAnimSpeed() const;
 	
-	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults);
-	void ExecuteSkillAction(FGameplayEventData& Payload, float ChargeLevel = 1.f);
+	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float DamageMultiplier = 1.f);
+	void ExecuteSkillAction(FGameplayEventData& Payload, float FinalMultiplier = 1.f);
+	
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UGameplayEffect> DamageEffectClass;
@@ -54,11 +52,12 @@ protected:
 
 	void PerformMeleeAttack(FGameplayEventData& Payload, float ChargeLevel);
 	void SpawnProjectile(FGameplayEventData& Payload, float ChargeLevel);
-	bool HasActionTag(FName TagName) const;
-	
 	bool LoadSkillData();
 
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
+
+	UPROPERTY()
+	TArray<AActor*> IgnoreTargets;
 };

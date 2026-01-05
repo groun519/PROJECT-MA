@@ -16,6 +16,7 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
 		return;
 	}
+	IgnoreTargets.Empty();
 
 	for (UMASkillModule* Module : ActiveModules)
 	{
@@ -40,6 +41,9 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
+/********************************************************************************************/
+/*										쿨타임												*/
+/********************************************************************************************/
 void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
@@ -59,58 +63,53 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
 }
 
-void UMAGameplayAbility_Skill::HandleGameplayEvent(FGameplayTag EventTag, FGameplayEventData Payload)
+/********************************************************************************************/
+/*										데미지												*/
+/********************************************************************************************/
+void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float BehaviorMultiplier)
 {
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->OnGameplayEvent(EventTag, Payload);
-		}
-	}
-}
+	if (!DamageEffectClass)	return;
 
-float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
-{
-	float TotalSpeed = 1.f;
-	for (const auto& Module : ActiveModules)
-	{
-		if (Module)
-		{
-			TotalSpeed *= Module->GetAnimSpeedMultiplier();
-		}
-	}
-	return TotalSpeed;
-}
+	FGameplayEffectSpecHandle MainSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass,GetAbilityLevel());
+	if (!MainSpecHandle.IsValid())	return;
 
-void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults)
-{
-	if (!DamageEffectClass || HitResults.Num() == 0)	return;
+	// 행동 모듈 데미지 보정
+	MainSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier"), BehaviorMultiplier);
 
-	FGameplayEffectSpecHandle DamageSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass,GetAbilityLevel());
+	// 나머지 모듈 데미지 보정
 	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
-	
-	if (!DamageSpecHandle.IsValid())	return;
-
 	for (UMASkillModule* Module : ActiveModules)
 	{
 		if (Module)
 		{
-			Module->ModifyDamageSpec(DamageSpecHandle);
+			Module->ModifyDamageSpec(MainSpecHandle);
 			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
 		}
 	}
 
 	for (const FHitResult& Hit : HitResults)
 	{
-		FGameplayAbilityTargetDataHandle TargetDataHandle = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(Hit);
-		K2_ApplyGameplayEffectSpecToTarget(DamageSpecHandle, TargetDataHandle);
-
-		for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
+		if (AActor* TargetActor = Hit.GetActor())
 		{
-			if (AddSpec.IsValid())
+			if (IgnoreTargets.Contains(TargetActor))
+				continue;
+
+			IgnoreTargets.Add(TargetActor);
+			FGameplayAbilityTargetDataHandle TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
+			MainSpecHandle.Data->GetContext().AddHitResult(Hit);
+	
+			ApplyGameplayEffectSpecToTarget(
+				GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, TargetData);
+
+			for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
 			{
-				K2_ApplyGameplayEffectSpecToTarget(AddSpec, TargetDataHandle);
+				if (AddSpec.IsValid())
+				{
+					AddSpec.Data->GetContext().AddHitResult(Hit);
+
+					ApplyGameplayEffectSpecToTarget(
+						GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, TargetData);
+				}
 			}
 		}
 	}
@@ -119,21 +118,22 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float ChargeLevel)
 {
 	const FSkillData& SkillData = GetSkillData();
+	float FinalMultiplier = SkillData.BaseDamageMultiplier * ChargeLevel;
 
-	if (HasActionTag(FName("Ability.Action.Melee")))
+	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		PerformMeleeAttack(Payload, ChargeLevel);
+		PerformMeleeAttack(Payload, FinalMultiplier);
 	}
 }
 
-void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float ChargeLevel)
+void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier)
 {
 	if (Payload.TargetData.Num() > 0)
 	{
 		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
 		if (HitResults.Num() > 0)
 		{
-			ApplyDamageToHitResults(HitResults);
+			ApplyDamageToHitResults(HitResults, FinalMultiplier);
 		}
 	}
 }
@@ -166,16 +166,10 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	GetWorld()->SpawnActor<AActor>(SkillData.ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
 }
 
-bool UMAGameplayAbility_Skill::HasActionTag(FName TagName) const
-{
-	FGameplayTag TagToCheck = FGameplayTag::RequestGameplayTag(TagName);
-	if (TagToCheck.IsValid())
-	{
-		return CachedSkillData.ActionTags.HasTag(TagToCheck);
-	}
-	return false;
-}
 
+/********************************************************************************************/
+/*										초기화												*/
+/********************************************************************************************/
 bool UMAGameplayAbility_Skill::LoadSkillData()
 {
 	UMASkillSubsystem* SkillSys = GetWorld()->GetGameInstance()->GetSubsystem<UMASkillSubsystem>();
@@ -226,6 +220,22 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 		}
 	}
 	return true;
+}
+
+/********************************************************************************************/
+/*										도우미												*/
+/********************************************************************************************/
+float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
+{
+	float TotalSpeed = 1.f;
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (Module)
+		{
+			TotalSpeed *= Module->GetAnimSpeedMultiplier();
+		}
+	}
+	return TotalSpeed;
 }
 
 void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)

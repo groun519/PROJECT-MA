@@ -21,8 +21,6 @@ public:
 	virtual void InitializeModule(class UMAGameplayAbility_Skill* InSkill){OwnerSkill = InSkill;}
 	// 활성화
 	virtual void OnAbilityActivated() {}
-	// 이벤트 수신
-	virtual void OnGameplayEvent(FGameplayTag EventTag, const FGameplayEventData& Payload) {}
 	// 종료
 	virtual void OnAbilityEnded(bool bWasCancelled) {}
 

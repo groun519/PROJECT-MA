@@ -22,3 +22,14 @@ void USkillModule_Elemental::CreateAdditionalEffectSpecs(TArray<FGameplayEffectS
 		}
 	}
 }
+
+void USkillModule_Elemental::ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandle) const
+{
+	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!Skill || !SpecHandle.Data)
+		return;
+
+	const FModuleElementalData& ElementData = Skill->GetElementalData();
+
+	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier"),ElementData.DamageMultiplier);
+}
