@@ -19,15 +19,19 @@ public:
 	UPlatformComponent();
 	
 	void EnablePlatform();
+	void InitPlatform();
+	void InitReadyWall();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* TriggerBox;
+	UBoxComponent* ReadyWallBox;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	float BoxWidth = 2.f;
 
-	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
 	TObjectPtr<UNiagaraSystem> EnableEffect;
+
+private:
+	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
+	FORCEINLINE FVector GetReadyWallBoxExtent() { return FVector(BoxWidth*25, BoxWidth*25, BoxWidth*25*10); }
 };

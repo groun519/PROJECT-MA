@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlatformRoot.h"
+
+#include "MovieSceneTracksComponentTypes.h"
 #include "PlatformMatrixComponent.h"
 #include "Level/Sector/Spline/SplineSectorManager.h"
 #include "Level/Platform/Core.h"
@@ -21,6 +23,8 @@ void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnCore();
+	PlatformMatrixComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	PlatformMatrixComponent->InitMatrix();
 }
 
 void APlatformRoot::Tick(float DeltaTime)

@@ -14,9 +14,10 @@ class P_MA_API UPlatformMatrixComponent : public USceneComponent
 
 protected:
 	virtual void BeginPlay() override;
-	
+
 public:
 	UPlatformMatrixComponent();
+	void InitMatrix();
 
 	UPROPERTY(EditAnywhere, Category="Grid")
 	int32 Cols = 9;

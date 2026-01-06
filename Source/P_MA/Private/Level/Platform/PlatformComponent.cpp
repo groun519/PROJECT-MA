@@ -2,16 +2,8 @@
 
 
 #include "PlatformComponent.h"
-
-#include "IAutomationControllerManager.h"
+#include "P_MA/P_MA.h"
 #include "NiagaraFunctionLibrary.h"
-
-
-void UPlatformComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
 
 UPlatformComponent::UPlatformComponent()
 {
@@ -28,10 +20,20 @@ UPlatformComponent::UPlatformComponent()
 	SetRelativeScale3D(GetPlatformBoxExtent(0.5f));
 
 	/** Trigger Box **/
-	TriggerBox = CreateDefaultSubobject<UBoxComponent>("TriggerBox");
-	TriggerBox->SetupAttachment(this);
-	TriggerBox->SetBoxExtent(GetPlatformBoxExtent(BoxWidth));
+	// ReadyWallBox = CreateDefaultSubobject<UBoxComponent>("ReadyWallBox");
+	// ReadyWallBox->SetupAttachment(this);
+	// ReadyWallBox->SetBoxExtent(GetPlatformBoxExtent(BoxWidth));
+	// ReadyWallBox->SetCollisionObjectType(ECC_ReadyWall);
+	// ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	// ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	// ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
 	//TriggerBox->SetRelativeLocation()
+}
+
+void UPlatformComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
 }
 
 void UPlatformComponent::EnablePlatform()
@@ -51,5 +53,36 @@ void UPlatformComponent::EnablePlatform()
 			true    
 		);
 	}
+
+	ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void UPlatformComponent::InitPlatform()
+{
+	
+}
+
+void UPlatformComponent::InitReadyWall()
+{
+	if (ReadyWallBox) return;
+
+	ReadyWallBox = NewObject<UBoxComponent>(this, TEXT("ReadyWallBox"));
+	if (ReadyWallBox)
+	{
+		ReadyWallBox->bEditableWhenInherited = true;
+
+		ReadyWallBox->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+		ReadyWallBox->RegisterComponent();
+		
+		ReadyWallBox->SetBoxExtent(GetReadyWallBoxExtent());
+		ReadyWallBox->SetCollisionObjectType(ECC_ReadyWall);
+		ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+		ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
+		
+		ReadyWallBox->SetRelativeLocation(FVector(0, 0, BoxWidth * 25));
+
+		// debug
+		ReadyWallBox->SetHiddenInGame(false);
+	}
+}

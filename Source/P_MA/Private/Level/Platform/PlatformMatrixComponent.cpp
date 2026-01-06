@@ -12,8 +12,11 @@ UPlatformMatrixComponent::UPlatformMatrixComponent()
 void UPlatformMatrixComponent::BeginPlay()
 {
 	Super::BeginPlay();
+}
 
-	Platforms.SetNum(Cols * Cols); 
+void UPlatformMatrixComponent::InitMatrix()
+{
+	Platforms.SetNum(Cols * Cols);
 	CreatePlatforms();
 }
 
@@ -37,50 +40,53 @@ void UPlatformMatrixComponent::CreatePlatforms()
 			FString CompName = FString::Printf(TEXT("RuntimePlatform_%02d_%02d"), X, Y);
 
 			UPlatformComponent* Platform = NewObject<UPlatformComponent>(this, *CompName);
-
-			if (!Platform) continue;
-
-			Platform->RegisterComponent();
-
-			Platform->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
-
-			Platform->SetRelativeLocation(FVector(-(X - Cols / 2) * 200.f, (Y - Cols / 2) * 200.f, 0.f));
-			//Platform->SetRelativeScale3D(FVector(2.f, 2.f, 0.5f));
-
-			if (PlatformMaterial)
+			if (Platform)
 			{
-				Platform->SetMaterial(0, PlatformMaterial);
-			}
+				Platform->CreationMethod = EComponentCreationMethod::Instance;
+				Platform->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+				Platform->RegisterComponent();
+				Platform->SetRelativeLocation(FVector(-(X - Cols / 2) * 200.f, (Y - Cols / 2) * 200.f, 0.f));
+				//Platform->SetRelativeScale3D(FVector(2.f, 2.f, 0.5f));
+
+				Platform->InitReadyWall();
 			
-			if (X < 3 || X > 5 || Y < 3 || Y > 5)
-			{
-				Platform->SetVisibility(false, true);
-				Platform->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			}
+				if (PlatformMaterial)
+				{
+					Platform->SetMaterial(0, PlatformMaterial);
+				}
+			
+				if (X < 3 || X > 5 || Y < 3 || Y > 5)
+				{
+					Platform->SetVisibility(false, true);
+					Platform->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				}
 
-			Platforms[Index] = Platform;
+				Platforms[Index] = Platform;
 
 #if WITH_EDITOR
-			if (bDebugPlatformNumAtFirstFrame)
-			{
-				const FVector TextLoc = Platform->GetComponentLocation();
-				const FString Label = FString::Printf(TEXT("%d,%d"), X, Y);
-				const float DebugTime = -1.f; // -1 -> 무한 지속
-				const bool bOnTextShadow = true;
-				const float FontSize = 1.f;
+				if (bDebugPlatformNumAtFirstFrame)
+				{
+					const FVector TextLoc = Platform->GetComponentLocation();
+					const FString Label = FString::Printf(TEXT("%d,%d"), X, Y);
+					const float DebugTime = -1.f; // -1 -> 무한 지속
+					const bool bOnTextShadow = true;
+					const float FontSize = 1.f;
 				
-				DrawDebugString(
-					GetWorld(),
-					TextLoc,
-					Label,
-					nullptr,
-					FColor::Cyan,
-					DebugTime,
-					bOnTextShadow,
-					FontSize
-				);
-			}
+					DrawDebugString(
+						GetWorld(),
+						TextLoc,
+						Label,
+						nullptr,
+						FColor::Cyan,
+						DebugTime,
+						bOnTextShadow,
+						FontSize
+					);
+				}
 #endif
+			}
 		}
 	}
 }
+
+

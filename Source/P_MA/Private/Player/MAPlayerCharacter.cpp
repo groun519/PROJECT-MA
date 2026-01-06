@@ -75,19 +75,19 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->SetupAttachment(MinimapCameraBoom);
 	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
 	MinimapCapture->OrthoWidth = 7000.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+	// MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
 	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
 	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
 	
 
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
-	if (renderObj.Succeeded())
-	{
-		MinimapCapture->TextureTarget = renderObj.Object;
-	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
+	// static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+	// if (renderObj.Succeeded())
+	// {
+	// 	MinimapCapture->TextureTarget = renderObj.Object;
+	// }
+	// MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+	// MinimapSprite->SetupAttachment(GetMesh());
 	/** 여기 위에 까지는 별도의 코드 입니다 **/
 	
 }
