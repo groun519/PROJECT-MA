@@ -16,17 +16,18 @@ void USkillModule_Charge::OnAbilityActivated()
 		Skill->EndAbility(Skill->GetCurrentAbilitySpecHandle(), Skill->GetCurrentActorInfo(), Skill->GetCurrentActivationInfo(), true, false);
 		return;
 	}
-
-	ChargeStartTime = 0.f;
+	
 	FinalChargedDuration = 0.f;
 	bIsCharging = false;
-
+	
+	//몽타주 재생 및 애니메이션 속도 늦추도록
 	StartMontageTask();
 	StartChargeTask();
 
+	//공격 방식에 따라 다르게 데미지 적용 (근접/타게팅/투사체)
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		StartWaitForEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
 	}
 }
 
@@ -35,7 +36,7 @@ void USkillModule_Charge::OnAbilityEnded(bool bWasCancelled)
 	if (MontageTask)			MontageTask->EndTask();
 	if (InputReleaseTask)		InputReleaseTask->EndTask();
 	if (ChargeStartEventTask)	ChargeStartEventTask->EndTask();
-	if (EventTask)				EventTask->EndTask();
+	if (DamageEventTask)		DamageEventTask->EndTask();
 	if (MaxChargeTask)			MaxChargeTask->EndTask();
 }
 
@@ -78,26 +79,26 @@ void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 	
 	if (UAnimMontage* Montage = Skill->GetCurrentMontage())
 	{
-		Skill->Montage_SetPlayRate(Montage, 0.01f);
+		Skill->Montage_SetPlayRate(Montage, 0.001f);
 	}
 	bIsCharging = true;
-	ChargeStartTime = GetWorld()->GetTimeSeconds();
+	FinalChargedDuration = 0.f;
 
 	StartWaitInputReleaseTask();
 	StartMaxChargeDelayTask();
 }
 
-void USkillModule_Charge::StartWaitForEventTask(FName TagName)
+void USkillModule_Charge::StartWaitDamageEventTask(FName TagName)
 {
 	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
 	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
-	EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
-	EventTask->EventReceived.AddDynamic(this, &USkillModule_Charge::OnEventReceived);
-	EventTask->ReadyForActivation();
+	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
+	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Charge::OnDamageEventReceived);
+	DamageEventTask->ReadyForActivation();
 }
 
-void USkillModule_Charge::OnEventReceived(FGameplayEventData Payload)
+void USkillModule_Charge::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
 	{
@@ -119,9 +120,9 @@ void USkillModule_Charge::OnInputReleased(float TimeHeld)
 	if (!bIsCharging)	return;
 
 	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-
-	FinalChargedDuration = GetWorld()->GetTimeSeconds() - ChargeStartTime;
-	UE_LOG(LogTemp,Warning,TEXT("Charge Duration = %f"),FinalChargedDuration);
+	
+	FinalChargedDuration = TimeHeld;
+	
 	if (Skill && Skill->GetCurrentMontage())
 	{
 		Skill->Montage_SetPlayRate(Skill->GetCurrentMontage(), 1.0f);
@@ -156,5 +157,6 @@ void USkillModule_Charge::OnMaxCharged()
 	}
 
 	bIsCharging = false;
-	if (InputReleaseTask) InputReleaseTask->EndTask();
+	if (InputReleaseTask)
+		InputReleaseTask->EndTask();
 }

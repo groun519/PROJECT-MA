@@ -21,14 +21,14 @@ void USkillModule_Instant::OnAbilityActivated()
 	StartMontageTask();
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		StartWaitForEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
 	}
 }
 
 void USkillModule_Instant::OnAbilityEnded(bool bWasCancelled)
 {
 	if (MontageTask)	MontageTask->EndTask();
-	if (EventTask)		EventTask->EndTask();
+	if (DamageEventTask)		DamageEventTask->EndTask();
 }
 
 void USkillModule_Instant::StartMontageTask()
@@ -53,17 +53,17 @@ void USkillModule_Instant::OnMontageEnded()
 	}
 }
 
-void USkillModule_Instant::StartWaitForEventTask(FName TagName)
+void USkillModule_Instant::StartWaitDamageEventTask(FName TagName)
 {
 	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
 	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
-	EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
-	EventTask->EventReceived.AddDynamic(this, &USkillModule_Instant::OnEventReceived);
-	EventTask->ReadyForActivation();
+	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
+	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Instant::OnDamageEventReceived);
+	DamageEventTask->ReadyForActivation();
 }
 
-void USkillModule_Instant::OnEventReceived(FGameplayEventData Payload)
+void USkillModule_Instant::OnDamageEventReceived(FGameplayEventData Payload)
 {
 	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
 	{

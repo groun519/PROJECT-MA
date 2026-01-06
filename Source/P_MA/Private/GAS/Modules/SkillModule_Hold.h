@@ -8,13 +8,13 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS/Modules/MASkillModule.h"
-#include "SkillModule_Charge.generated.h"
+#include "SkillModule_Hold.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class USkillModule_Charge : public UMASkillModule
+class USkillModule_Hold : public UMASkillModule
 {
 	GENERATED_BODY()
 
@@ -27,33 +27,33 @@ protected:
 	UFUNCTION()
 	void OnMontageEnded();
 
-	void StartChargeTask();
+	void StartWaitJumpSectionEventTask();
 	UFUNCTION()
-	void OnChargeEventReceived(FGameplayEventData Payload);
-
+	void OnJumpSectionEventReceived(FGameplayEventData Payload);
+	
 	void StartWaitDamageEventTask(FName TagName);
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
-	
+
 	void StartWaitInputReleaseTask();
 	UFUNCTION()
-	void OnInputReleased(float TimeHeld);
-	
-	void StartMaxChargeDelayTask();
+	void OnInputRelease(float TimeHeld);
+
+	void StartMaxHoldDelayTask();
 	UFUNCTION()
-	void OnMaxCharged();
+	void OnMaxHold();
+	
 private:
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
 	UPROPERTY()
-	TObjectPtr<UAbilityTask_WaitGameplayEvent> ChargeStartEventTask;
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> JumpMontageSectionTask;
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> DamageEventTask;
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitInputRelease> InputReleaseTask;
 	UPROPERTY()
-	TObjectPtr<UAbilityTask_WaitDelay> MaxChargeTask;
+	TObjectPtr<UAbilityTask_WaitDelay> MaxHoldTask;
 
-	bool bIsCharging = false;
-	float FinalChargedDuration = 0.f;
+	bool bIsHolding = false;
 };

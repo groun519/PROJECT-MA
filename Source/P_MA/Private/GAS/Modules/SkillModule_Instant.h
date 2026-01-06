@@ -25,13 +25,13 @@ protected:
 	UFUNCTION()
 	void OnMontageEnded();
 
-	void StartWaitForEventTask(FName TagName);
+	void StartWaitDamageEventTask(FName TagName);
 	UFUNCTION()
-	void OnEventReceived(FGameplayEventData Payload);
+	void OnDamageEventReceived(FGameplayEventData Payload);
 
 private:
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
 	UPROPERTY()
-	TObjectPtr<UAbilityTask_WaitGameplayEvent> EventTask;
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> DamageEventTask;
 };

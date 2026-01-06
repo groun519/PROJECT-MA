@@ -60,7 +60,7 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 			Module->ModifyCooldownSpec(SpecHandle);
 		}
 	}
-	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+	FActiveGameplayEffectHandle EffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
 }
 
 /********************************************************************************************/
@@ -98,27 +98,24 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			FGameplayAbilityTargetDataHandle TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
 			MainSpecHandle.Data->GetContext().AddHitResult(Hit);
 	
-			ApplyGameplayEffectSpecToTarget(
-				GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, TargetData);
+			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, TargetData);
 
 			for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
 			{
 				if (AddSpec.IsValid())
 				{
 					AddSpec.Data->GetContext().AddHitResult(Hit);
-
-					ApplyGameplayEffectSpecToTarget(
-						GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, TargetData);
+					ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, TargetData);
 				}
 			}
 		}
 	}
 }
 
-void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float ChargeLevel)
+void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier)
 {
 	const FSkillData& SkillData = GetSkillData();
-	float FinalMultiplier = SkillData.BaseDamageMultiplier * ChargeLevel;
+	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
 
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
