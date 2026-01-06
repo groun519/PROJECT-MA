@@ -151,10 +151,6 @@ void AMACharacter::BindGASChangeDelegates()
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetChargingTag()).AddUObject(this, &AMACharacter::ChargeTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAirborneTag()).AddUObject(this, &AMACharacter::AirborneTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetKnockdownTag()).AddUObject(this, &AMACharacter::KnockdownTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetRecoveryTag()).AddUObject(this, &AMACharacter::RecoveryTagUpdated);
 	}
 }
 
@@ -222,57 +218,6 @@ void AMACharacter::ChargeTagUpdated(const FGameplayTag Tag, int32 NewCount)
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
 {
 	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
-}
-
-void AMACharacter::AirborneTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (NewCount != 0)
-	{
-		bIsAirborne = true;
-
-		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-		
-		if (AirborneMontage && GetMesh()->GetAnimInstance())
-		{
-			GetMesh()->GetAnimInstance()->Montage_Play(AirborneMontage);
-		}
-	}
-	else
-	{
-		bIsAirborne = false;
-	}
-}
-
-void AMACharacter::KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-
-	if (NewCount != 0)
-	{
-		if (KnockdownMontage && GetMesh()->GetAnimInstance())
-		{
-			float Duration = GetMesh()->GetAnimInstance()->Montage_Play(KnockdownMontage);
-
-			FTimerHandle TimerHandle;
-			GetWorldTimerManager().SetTimer(TimerHandle, [this]()
-			{
-				MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRecoveryTag());
-			}, Duration, false);
-		}
-	}
-}
-
-void AMACharacter::RecoveryTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-
-	if (NewCount != 0)
-	{
-		if (RecoveryMontage && GetMesh()->GetAnimInstance())
-		{
-			GetMesh()->GetAnimInstance()->Montage_Play(RecoveryMontage);
-		}
-	}
 }
 
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)

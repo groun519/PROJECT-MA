@@ -69,6 +69,10 @@ public:
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
+	
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
@@ -78,10 +82,6 @@ private:
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 
-	void AirborneTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void RecoveryTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
 	UPROPERTY()
