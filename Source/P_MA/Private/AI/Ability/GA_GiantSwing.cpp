@@ -2,6 +2,7 @@
 
 #include "AI/Ability/GA_GiantSwing.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "AIController.h"
@@ -13,11 +14,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 
-void UGA_GiantSwing::ActivateAbility(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+void UGA_GiantSwing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	IgnoreTargets.Empty();
 
@@ -51,51 +48,44 @@ void UGA_GiantSwing::ActivateAbility(
 	PlayMontageTask->OnInterrupted.AddDynamic(this, &UGA_GiantSwing::K2_EndAbility);
 	PlayMontageTask->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* WaitDamageEvent =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
+	UAbilityTask_WaitGameplayEvent* WaitDamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
 	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnDamageEvent);
 	WaitDamageEvent->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* WaitEndEvent =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
+	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
 	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnEndEventReceived);
 	WaitEndEvent->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* WaitGrabEvent =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Grab")));
+	UAbilityTask_WaitGameplayEvent* WaitGrabEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Grab")));
 	WaitGrabEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnGrabEvent);
 	WaitGrabEvent->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* WaitSwingEvent =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Swing")));
+	UAbilityTask_WaitGameplayEvent* WaitSwingEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.GiantSwing.Swing")));
 	WaitSwingEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnSwingEvent);
 	WaitSwingEvent->ReadyForActivation();
-
-	UAbilityTask_WaitGameplayEvent* WaitRecoveryEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Stats.Recovery.End")));
-	WaitRecoveryEvent->EventReceived.AddDynamic(this, &UGA_GiantSwing::OnRecoveryEnd);
-	WaitRecoveryEvent->ReadyForActivation();
 }
-
-void UGA_GiantSwing::EndAbility(
-	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo,
-	bool bReplicateEndAbility,
-	bool bWasCancelled)
+void UGA_GiantSwing::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	ACharacter* Monster = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+
+	AMACharacter* TargetCharacter = Cast<AMACharacter>(GrabbedTarget);
+
+	if (GrabbedTarget)
+	{
+		GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		GrabbedTarget = nullptr;
+	}
+
+	if (TargetCharacter)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(TargetCharacter->GetController()))
+		{
+			TargetCharacter->EnableInput(PC);
+		}
+	}
+
 	if (Monster)
 	{
-		if (GrabbedTarget)
-		{
-			GrabbedTarget->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-			GrabbedTarget = nullptr;
-		}
-
 		if (UAnimInstance* Anim = Monster->GetMesh()->GetAnimInstance())
 		{
 			if (GiantSwingMontage && Anim->Montage_IsPlaying(GiantSwingMontage))
@@ -131,9 +121,7 @@ void UGA_GiantSwing::OnDamageEvent(FGameplayEventData Data)
 		if (IgnoreTargets.Contains(Hit.GetActor()))
 			continue;
 
-		ApplyGameplayEffectToHitResultActor(
-			Hit, DamageEffect,
-			GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+		ApplyGameplayEffectToHitResultActor(Hit, DamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 
 		IgnoreTargets.Add(Hit.GetActor());
 	}
@@ -163,23 +151,6 @@ void UGA_GiantSwing::OnGrabEvent(FGameplayEventData Data)
 	if (APlayerController* PC = Cast<APlayerController>(Target->GetController()))
 	{
 		Target->DisableInput(PC);
-	}
-
-	if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target))
-	{
-		if (GE_BlockAbility)
-		{
-			FGameplayEffectSpecHandle Spec = MakeOutgoingGameplayEffectSpec(GE_BlockAbility, GetAbilityLevel());
-
-			if (Spec.IsValid())
-			{
-				Spec.Data->SetSetByCallerMagnitude(
-					FGameplayTag::RequestGameplayTag(TEXT("Data.SilenceDuration")),
-					2.5f);
-
-				BlockAbilityHandle = ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
-			}
-		}
 	}
 
 	Target->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, MonsterGrabSocketName);
@@ -213,26 +184,16 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
 		{
 			Character->LaunchCharacter(Impulse, true, true);
+
+			FGameplayEventData EventData;
+			EventData.Instigator = GetAvatarActorFromActorInfo();
+			EventData.Target = Character;
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+				Character,
+				FGameplayTag::RequestGameplayTag(TEXT("Stats.Knockdown")),
+				EventData
+			);
 		}
 	}
-}
-
-void UGA_GiantSwing::OnRecoveryEnd(FGameplayEventData Data)
-{
-	if (!BlockAbilityHandle.IsValid())
-		return;
-
-	const AActor* PlayerActor = Data.Instigator.Get();
-	if (!PlayerActor)
-		return;
-
-	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(PlayerActor);
-
-	if (!TargetASC)
-		return;
-
-	TargetASC->RemoveActiveGameplayEffect(BlockAbilityHandle);
-	BlockAbilityHandle.Invalidate();
-	
-	GrabbedTarget = nullptr;
 }

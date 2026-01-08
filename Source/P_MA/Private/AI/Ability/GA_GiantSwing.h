@@ -33,9 +33,6 @@ protected:
 
 	UFUNCTION()
 	void OnSwingEvent(FGameplayEventData Data);
-
-	UFUNCTION()
-	void OnRecoveryEnd(FGameplayEventData Data);
 	
 private:
 	UPROPERTY(EditAnywhere, Category="Animation")
@@ -55,15 +52,4 @@ private:
 	
 	UPROPERTY()
 	ACharacter* GrabbedTarget = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, Category="GiantSwing")
-	UAnimMontage* KnockdownMontage;
-
-	FTimerHandle RecoveryTimerHandle;
-	
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> GE_BlockAbility;
-
-	UPROPERTY()
-	FActiveGameplayEffectHandle BlockAbilityHandle;
 };

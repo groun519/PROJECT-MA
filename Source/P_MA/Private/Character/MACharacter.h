@@ -193,19 +193,17 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 
-	/** Airborne **/
+	/** Knockdown **/
 public:
 	virtual void Landed(const FHitResult& Hit) override;
+
+	void OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+	void ResetKnockdownState();
+	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
-	UAnimMontage* AirborneMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
+	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* KnockdownMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Airborne")
-	UAnimMontage* RecoveryMontage;
-	
-	bool bIsAirborne = false;
+	bool bPendingKnockdown = false;
 };
