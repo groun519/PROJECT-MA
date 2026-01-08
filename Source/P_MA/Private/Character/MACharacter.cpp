@@ -495,7 +495,6 @@ void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bIn
 	ResetKnockdownState();
 }
 
-
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
 {
