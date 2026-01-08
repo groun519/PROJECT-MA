@@ -113,7 +113,6 @@ void AMACharacter::PossessedBy(AController* NewController)
 	}
 }
 
-
 void AMACharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);	
@@ -155,6 +154,7 @@ void AMACharacter::BindGASChangeDelegates()
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
+		MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("Stats.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
 	}
 }
 
@@ -431,6 +431,73 @@ void AMACharacter::ApplyMaterialParam()
 	}
 }
 
+void AMACharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	if (!bPendingKnockdown)
+		return;
+
+	bPendingKnockdown = false;
+
+	if (!KnockdownMontage)
+		return;
+
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (!Anim)
+		return;
+
+	Anim->Montage_Play(KnockdownMontage);
+
+	FOnMontageBlendingOutStarted BlendOutDelegate;
+	BlendOutDelegate.BindUObject(this, &AMACharacter::OnKnockdownMontageBlendingOut);
+
+	Anim->Montage_SetBlendingOutDelegate(BlendOutDelegate, KnockdownMontage);
+}
+
+
+void AMACharacter::OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
+{
+	if (IsDead())
+		return;
+
+	bPendingKnockdown = true;
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetKnockdownTag());
+	}
+}
+
+void AMACharacter::ResetKnockdownState()
+{
+	bPendingKnockdown = false;
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->RemoveLooseGameplayTag(
+			UMAAbilitySystemStatics::GetKnockdownTag());
+	}
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		if (Move->MovementMode == MOVE_None)
+		{
+			Move->SetMovementMode(MOVE_Walking);
+		}
+	}
+}
+
+void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != KnockdownMontage)
+		return;
+
+	if (IsDead())
+		return;
+
+	ResetKnockdownState();
+}
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
