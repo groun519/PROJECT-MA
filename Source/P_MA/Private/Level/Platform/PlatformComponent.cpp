@@ -4,6 +4,11 @@
 #include "PlatformComponent.h"
 #include "P_MA/P_MA.h"
 #include "NiagaraFunctionLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/ReadyStateComponent.h"
+
+class AMAPlayerCharacter;
 
 UPlatformComponent::UPlatformComponent()
 {
@@ -39,8 +44,13 @@ void UPlatformComponent::BeginPlay()
 void UPlatformComponent::EnablePlatform()
 {
 	SetVisibility(true, true);
-	SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	bIsEnablePlatform = true;
 
+	// Enable ReadyWall to Ready
+	ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
+	ReadyWallBox->OnComponentBeginOverlap.AddDynamic(this, &UPlatformComponent::OnWallOverlap);
+
+	// Effect
 	if (EnableEffect)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAttached(
@@ -53,8 +63,6 @@ void UPlatformComponent::EnablePlatform()
 			true    
 		);
 	}
-
-	ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void UPlatformComponent::InitPlatform()
@@ -80,9 +88,34 @@ void UPlatformComponent::InitReadyWall()
 		ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
 		ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
 		
-		ReadyWallBox->SetRelativeLocation(FVector(0, 0, BoxWidth * 25));
+		ReadyWallBox->SetRelativeLocation(FVector(0, 0, BoxWidth * 25 * 10));
 
 		// debug
 		ReadyWallBox->SetHiddenInGame(false);
 	}
+}
+
+void UPlatformComponent::OnWallOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor);
+	if (!Player || Player->GetReadyComponent()->IsReady()) return;
+
+	// 예외처리 디버깅 하자
+	
+	Player->GetReadyComponent()->SetReady(true);
+
+	FVector ToCenter = (GetComponentLocation() - Player->GetActorLocation());
+	ToCenter.Z = 0; 
+	FVector LaunchVel = ToCenter.GetSafeNormal() * 300.f;
+	LaunchVel.Z = 300.f; 
+	Player->LaunchCharacter(LaunchVel, true, true);
+	
+	// FVector TargetLocation = GetComponentLocation();
+	// FVector CurrentLocation = Player->GetActorLocation();
+	// TargetLocation.Z = CurrentLocation.Z;
+	// Player->SetActorLocation(TargetLocation, false, nullptr, ETeleportType::None);
+	// if (auto* Movement = Player->GetCharacterMovement())
+	// {
+	// 	Movement->Velocity = FVector::ZeroVector;
+	// }
 }

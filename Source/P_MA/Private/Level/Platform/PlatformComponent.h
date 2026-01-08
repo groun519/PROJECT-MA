@@ -16,22 +16,41 @@ class P_MA_API UPlatformComponent : public UStaticMeshComponent
 	virtual void BeginPlay() override;
 
 public:
+	/** Init and ects **/
 	UPlatformComponent();
 	
-	void EnablePlatform();
-	void InitPlatform();
-	void InitReadyWall();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* ReadyWallBox;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
 	float BoxWidth = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
 	TObjectPtr<UNiagaraSystem> EnableEffect;
 
+	/** Platform **/
+	void InitPlatform();
+	void EnablePlatform();
+	FORCEINLINE bool IsEnablePlatform() const { return bIsEnablePlatform; }
+	
+	/** Ready Wall **/
+	void InitReadyWall();
+	
+	UFUNCTION()
+	void OnWallOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+		);
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
+	UBoxComponent* ReadyWallBox;
+
 private:
+	/** Platform **/
+	bool bIsEnablePlatform = false;
 	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
+
+	/** Ready Wall **/
 	FORCEINLINE FVector GetReadyWallBoxExtent() { return FVector(BoxWidth*25, BoxWidth*25, BoxWidth*25*10); }
 };
