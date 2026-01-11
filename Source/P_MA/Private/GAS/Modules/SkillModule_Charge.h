@@ -56,4 +56,7 @@ private:
 
 	bool bIsCharging = false;
 	float FinalChargedDuration = 0.f;
+
+	float CachedMaxChargeDuration = 3.f;
+	float CachedMaxInputDelay = 3.5f;
 };

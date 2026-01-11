@@ -56,4 +56,6 @@ private:
 	TObjectPtr<UAbilityTask_WaitDelay> MaxHoldTask;
 
 	bool bIsHolding = false;
+	float CachedHoldMultiplier = 0.8f;
+	float CachedMaxHoldDuration = 2.5f;
 };

@@ -2,23 +2,32 @@
 
 
 #include "GAS/Modules/SkillModule_Charge.h"
-
+#include "GAS/Modules/MASkillModuleData.h"
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 
 void USkillModule_Charge::OnAbilityActivated()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	if (!Skill)	return;
+	if (!OwnerSkill)	return;
 
-	const FSkillData& SkillData = Skill->GetSkillData();
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 	if (!SkillData.SkillMontage)
 	{
-		Skill->EndAbility(Skill->GetCurrentAbilitySpecHandle(), Skill->GetCurrentActorInfo(), Skill->GetCurrentActivationInfo(), true, false);
+		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 		return;
 	}
 	
 	FinalChargedDuration = 0.f;
 	bIsCharging = false;
+
+	CachedMaxChargeDuration = 3.f;
+	CachedMaxInputDelay = 3.5f;
+	
+	const FModuleBehaviorData& BehaviorData = OwnerSkill->GetBehaviorData();
+	if (const FBehavior_Charge* Config = BehaviorData.ModuleConfig.GetPtr<FBehavior_Charge>())
+	{
+		CachedMaxChargeDuration = Config->MaxChargeDuration;
+		CachedMaxInputDelay = Config->MaxInputDelay;
+	}
 	
 	//몽타주 재생 및 애니메이션 속도 늦추도록
 	StartMontageTask();
@@ -42,12 +51,12 @@ void USkillModule_Charge::OnAbilityEnded(bool bWasCancelled)
 
 void USkillModule_Charge::StartMontageTask()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	const FSkillData& SkillData = Skill->GetSkillData();
+	if (!OwnerSkill)	return;
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 
-	float PlayRate = Skill->GetTotalAnimSpeed();
+	float PlayRate = OwnerSkill->GetTotalAnimSpeed();
 
-	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(Skill,NAME_None,SkillData.SkillMontage,PlayRate,NAME_None,false);
+	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(OwnerSkill,NAME_None,SkillData.SkillMontage,PlayRate,NAME_None,false);
 	MontageTask->OnCompleted.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);
 	MontageTask->OnInterrupted.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);
 	MontageTask->OnBlendOut.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);
@@ -56,30 +65,29 @@ void USkillModule_Charge::StartMontageTask()
 
 void USkillModule_Charge::OnMontageEnded()
 {
-	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
+	if (OwnerSkill)
 	{
-		Skill->EndAbility(Skill->GetCurrentAbilitySpecHandle(), Skill->GetCurrentActorInfo(), Skill->GetCurrentActivationInfo(), true, false);
+		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 	}
 }
 
 void USkillModule_Charge::StartChargeTask()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!OwnerSkill)	return;
 	FGameplayTag Tag = FGameplayTag::RequestGameplayTag("Event.Montage.SlowPlay");
 
-	ChargeStartEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill, Tag, nullptr, false, true);
+	ChargeStartEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill, Tag, nullptr, false, true);
 	ChargeStartEventTask -> EventReceived.AddDynamic(this, &USkillModule_Charge::OnChargeEventReceived);
 	ChargeStartEventTask -> ReadyForActivation();
 }
 
 void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	if (!Skill) return;
+	if (!OwnerSkill)	return;
 	
-	if (UAnimMontage* Montage = Skill->GetCurrentMontage())
+	if (UAnimMontage* Montage = OwnerSkill->GetCurrentMontage())
 	{
-		Skill->Montage_SetPlayRate(Montage, 0.001f);
+		OwnerSkill->Montage_SetPlayRate(Montage, 0.001f);
 	}
 	bIsCharging = true;
 	FinalChargedDuration = 0.f;
@@ -90,42 +98,41 @@ void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 
 void USkillModule_Charge::StartWaitDamageEventTask(FName TagName)
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!OwnerSkill)	return;
 	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
-	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
+	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag,nullptr,false,true);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Charge::OnDamageEventReceived);
 	DamageEventTask->ReadyForActivation();
 }
 
 void USkillModule_Charge::OnDamageEventReceived(FGameplayEventData Payload)
 {
-	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
+	if (OwnerSkill)
 	{
-		Skill->ExecuteSkillAction(Payload, FinalChargedDuration);
+		OwnerSkill->ExecuteSkillAction(Payload, FinalChargedDuration);
 	}
 }
 
 void USkillModule_Charge::StartWaitInputReleaseTask()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!OwnerSkill)	return;
 	
-	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(Skill);
+	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(OwnerSkill);
 	InputReleaseTask -> OnRelease.AddDynamic(this, &USkillModule_Charge::OnInputReleased);
 	InputReleaseTask -> ReadyForActivation();
 }
 
 void USkillModule_Charge::OnInputReleased(float TimeHeld)
 {
-	if (!bIsCharging)	return;
-
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!bIsCharging || !OwnerSkill)	return;
 	
-	FinalChargedDuration = TimeHeld;
 	
-	if (Skill && Skill->GetCurrentMontage())
+	FinalChargedDuration = FMath::Clamp(TimeHeld, 0.f, CachedMaxChargeDuration);
+	
+	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
-		Skill->Montage_SetPlayRate(Skill->GetCurrentMontage(), 1.0f);
+		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);
 	}
 	
 	bIsCharging = false;
@@ -135,25 +142,21 @@ void USkillModule_Charge::OnInputReleased(float TimeHeld)
 
 void USkillModule_Charge::StartMaxChargeDelayTask()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-
-	MaxChargeTask = UAbilityTask_WaitDelay::WaitDelay(Skill, 3.4f);
+	if (!OwnerSkill)	return;
+	
+	MaxChargeTask = UAbilityTask_WaitDelay::WaitDelay(OwnerSkill, CachedMaxInputDelay);
 	MaxChargeTask -> OnFinish.AddDynamic(this, &USkillModule_Charge::OnMaxCharged);
 	MaxChargeTask -> ReadyForActivation();
 }
 
 void USkillModule_Charge::OnMaxCharged()
 {
-	if (!bIsCharging)	return;
+	if (!bIsCharging || !OwnerSkill)	return;
 
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	
-	const FSkillData& Data = Skill->GetSkillData();
-	FinalChargedDuration = 3.f;
-	
-	if (Skill && Skill->GetCurrentMontage())
+	FinalChargedDuration = CachedMaxChargeDuration;
+	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
-		Skill->Montage_SetPlayRate(Skill->GetCurrentMontage(), 1.0f);
+		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);
 	}
 
 	bIsCharging = false;

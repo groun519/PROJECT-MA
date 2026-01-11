@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
+#include "StructUtils/Public/InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
 class UMASkillVFXSet;
@@ -58,6 +59,35 @@ public:
 	bool bCanRotate=true;
 };
 
+USTRUCT(BlueprintType)
+struct FSkillBehaviorConfig
+{
+	GENERATED_BODY()
+};
+
+USTRUCT(BlueprintType)
+struct FBehavior_Hold : public FSkillBehaviorConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HoldingDamageMultiplier = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxHoldDuration = 2.5f;
+};
+
+USTRUCT(BlueprintType)
+struct FBehavior_Charge : public FSkillBehaviorConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxChargeDuration = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxInputDelay = 3.4f;
+};
 
 USTRUCT(BlueprintType)
 struct FModuleBehaviorData : public FTableRowBase
@@ -67,6 +97,9 @@ struct FModuleBehaviorData : public FTableRowBase
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UMASkillModule> ModuleClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "SkillBehaviorConfig"))
+	FInstancedStruct ModuleConfig;
 };
 
 USTRUCT(BlueprintType)
