@@ -26,7 +26,6 @@ public:
 	TObjectPtr<UNiagaraSystem> EnableEffect;
 
 	/** Platform **/
-	void InitPlatform();
 	void EnablePlatform();
 	FORCEINLINE bool IsEnablePlatform() const { return bIsEnablePlatform; }
 	
@@ -46,6 +45,9 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
 	UBoxComponent* ReadyWallBox;
 
+	FORCEINLINE bool CanMoveIn() const { return bCanMoveIn; }
+	FORCEINLINE void SetCanMoveIn(bool bNew) { bCanMoveIn = bNew; }
+	
 private:
 	/** Platform **/
 	bool bIsEnablePlatform = false;
@@ -53,4 +55,6 @@ private:
 
 	/** Ready Wall **/
 	FORCEINLINE FVector GetReadyWallBoxExtent() { return FVector(BoxWidth*25, BoxWidth*25, BoxWidth*25*10); }
+
+	bool bCanMoveIn = false;
 };

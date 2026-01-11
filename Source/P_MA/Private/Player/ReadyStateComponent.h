@@ -14,6 +14,9 @@ class P_MA_API UReadyStateComponent : public UActorComponent
 public:
 	UReadyStateComponent();
 
+	/** Ready by Montage **/
+	void ReadyAndMoveIn(FVector InDir, float MovingUnit);
+	
 	void SetReady(bool bNewReady);
 	FORCEINLINE bool IsReady() const { return bIsReady; }
 

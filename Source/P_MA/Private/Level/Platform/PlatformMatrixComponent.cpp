@@ -29,6 +29,14 @@ void UPlatformMatrixComponent::SetPlatformEnable(int32 X, int32 Y)
 	}
 }
 
+void UPlatformMatrixComponent::SetMovedInPlatforms(bool NewCanMovedIn)
+{
+	for (UPlatformComponent* Platform : Platforms)
+	{
+		Platform->SetCanMoveIn(NewCanMovedIn);
+	}
+}
+
 void UPlatformMatrixComponent::CreatePlatforms()
 {
 	int32 OddCols = GetCols();

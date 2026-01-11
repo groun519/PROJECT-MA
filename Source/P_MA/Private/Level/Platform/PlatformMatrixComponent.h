@@ -35,6 +35,8 @@ public:
 	void SetPlatformEnable(int32 X, int32 Y);
 	FORCEINLINE int32 GetIndex(int32 X, int32 Y) { return Y * GetCols() + X; }
 
+	void SetMovedInPlatforms(bool NewCanMovedIn);
+	
 	/** Debug **/
 	UPROPERTY(EditAnywhere, Category="Debug")
 	bool bDebugPlatformNumAtFirstFrame = false;

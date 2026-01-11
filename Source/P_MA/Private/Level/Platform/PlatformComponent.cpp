@@ -4,7 +4,6 @@
 #include "PlatformComponent.h"
 #include "P_MA/P_MA.h"
 #include "NiagaraFunctionLibrary.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/ReadyStateComponent.h"
 
@@ -65,11 +64,6 @@ void UPlatformComponent::EnablePlatform()
 	}
 }
 
-void UPlatformComponent::InitPlatform()
-{
-	
-}
-
 void UPlatformComponent::InitReadyWall()
 {
 	if (ReadyWallBox) return;
@@ -82,7 +76,7 @@ void UPlatformComponent::InitReadyWall()
 		ReadyWallBox->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		ReadyWallBox->RegisterComponent();
 		
-		ReadyWallBox->SetBoxExtent(GetReadyWallBoxExtent());
+		ReadyWallBox->SetBoxExtent(GetReadyWallBoxExtent() + 0.01f);
 		ReadyWallBox->SetCollisionObjectType(ECC_ReadyWall);
 		ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -97,25 +91,17 @@ void UPlatformComponent::InitReadyWall()
 
 void UPlatformComponent::OnWallOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!CanMoveIn()) return;
+	
 	AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor);
 	if (!Player || Player->GetReadyComponent()->IsReady()) return;
 
-	// 예외처리 디버깅 하자
-	
-	Player->GetReadyComponent()->SetReady(true);
+	/** Find MoveIn Dir **/
+	FVector Delta = OtherActor->GetActorLocation() - GetOwner()->GetActorLocation();
+	FVector PushDir = (FMath::Abs(Delta.X) > FMath::Abs(Delta.Y)) 
+		? FVector(FMath::Sign(Delta.X) * -1.f, 0.f, 0.f) 
+		: FVector(0.f, FMath::Sign(Delta.Y) * -1.f, 0.f);
 
-	FVector ToCenter = (GetComponentLocation() - Player->GetActorLocation());
-	ToCenter.Z = 0; 
-	FVector LaunchVel = ToCenter.GetSafeNormal() * 300.f;
-	LaunchVel.Z = 300.f; 
-	Player->LaunchCharacter(LaunchVel, true, true);
-	
-	// FVector TargetLocation = GetComponentLocation();
-	// FVector CurrentLocation = Player->GetActorLocation();
-	// TargetLocation.Z = CurrentLocation.Z;
-	// Player->SetActorLocation(TargetLocation, false, nullptr, ETeleportType::None);
-	// if (auto* Movement = Player->GetCharacterMovement())
-	// {
-	// 	Movement->Velocity = FVector::ZeroVector;
-	// }
+	/** MoveIn **/
+	Player->GetReadyComponent()->ReadyAndMoveIn(PushDir, 50.f);
 }

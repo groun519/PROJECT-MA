@@ -48,6 +48,7 @@ public:
 	void SetSplinesWithMAGameState(EMAGameState InMAGS);
 
 	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
+	FORCEINLINE EMAGameState GetMAGameState(){ return GetMAGameMode()->GetMAGameState(); }
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
 	
 	/** Debug **/

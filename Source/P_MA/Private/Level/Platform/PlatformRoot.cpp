@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlatformRoot.h"
-
-#include "MovieSceneTracksComponentTypes.h"
 #include "PlatformMatrixComponent.h"
 #include "Level/Sector/Spline/SplineSectorManager.h"
 #include "Level/Platform/Core.h"
@@ -35,7 +33,15 @@ void APlatformRoot::Tick(float DeltaTime)
 	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
 	if (!Manager) return;
 
-	/** Height **/
+	/** Get MAGameState **/
+	EMAGameState MAGameState = Manager->GetMAGameState();
+
+	/** Set Platform Can MoveIn **/
+	bool bWaitMoveIn =
+		MAGameState == EMAGameState::Wait || MAGameState == EMAGameState::EndBattle;
+	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+	
+	/** Set Height **/
 	Manager->IsMoving() ?
 		CurHeight = MovingHeight :
 		CurHeight = WaitingHeight;
@@ -51,11 +57,7 @@ void APlatformRoot::Tick(float DeltaTime)
 	/** if Loop **/
 	if (Manager->CurSectors.Num() == 0)
 	{
-		AMAGameMode* MAGM = Manager->GetMAGameMode();
-		if (MAGM)
-		{
-			Manager->SetSplinesWithMAGameState(MAGM->GetMAGameState());
-		}
+		Manager->SetSplinesWithMAGameState(MAGameState);
 		return;
 	}
 
@@ -76,9 +78,7 @@ void APlatformRoot::Tick(float DeltaTime)
 			CurSector = 0;
 			Distance  = 0.f;
 
-			AMAGameMode* MAGM = Manager->GetMAGameMode();
-			Manager->SetSplinesWithMAGameState(
-				MAGM->GetMAGameState());
+			Manager->SetSplinesWithMAGameState(MAGameState);
 			if (Manager->CurSectors.Num() == 0) return;
 		}
 
