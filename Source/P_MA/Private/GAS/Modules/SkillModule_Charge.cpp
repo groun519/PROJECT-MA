@@ -38,6 +38,10 @@ void USkillModule_Charge::OnAbilityActivated()
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
 	}
+	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	{
+		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+	}
 }
 
 void USkillModule_Charge::OnAbilityEnded(bool bWasCancelled)

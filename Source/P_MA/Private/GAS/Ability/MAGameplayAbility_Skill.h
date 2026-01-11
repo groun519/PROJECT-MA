@@ -30,7 +30,7 @@ public:
 	float GetTotalAnimSpeed() const;
 	
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float DamageMultiplier = 1.f);
-	void ExecuteSkillAction(FGameplayEventData& Payload, float FinalMultiplier = 1.f);
+	void ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier = 1.f);
 	
 protected:
 	UPROPERTY(EditDefaultsOnly)
@@ -50,10 +50,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Config")
 	FName SkillID;
 
-	void PerformMeleeAttack(FGameplayEventData& Payload, float ChargeLevel);
-	void SpawnProjectile(FGameplayEventData& Payload, float ChargeLevel);
+	void PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier);
+	void SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier);
+	void SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier);
 	bool LoadSkillData();
 
+	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);

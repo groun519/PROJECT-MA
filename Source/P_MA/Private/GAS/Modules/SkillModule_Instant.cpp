@@ -8,13 +8,12 @@
 
 void USkillModule_Instant::OnAbilityActivated()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	if (!Skill)	return;
+	if (!OwnerSkill)	return;
 
-	const FSkillData& SkillData = Skill->GetSkillData();
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 	if (!SkillData.SkillMontage)
 	{
-		Skill->EndAbility(Skill->GetCurrentAbilitySpecHandle(), Skill->GetCurrentActorInfo(), Skill->GetCurrentActivationInfo(), true, false);
+		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 		return;
 	}
 	
@@ -22,6 +21,10 @@ void USkillModule_Instant::OnAbilityActivated()
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
+	}
+	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	{
+		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
 	}
 }
 
@@ -33,12 +36,12 @@ void USkillModule_Instant::OnAbilityEnded(bool bWasCancelled)
 
 void USkillModule_Instant::StartMontageTask()
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
-	const FSkillData& SkillData = Skill->GetSkillData();
+	if (!OwnerSkill)	return;
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 
-	float PlayRate = Skill->GetTotalAnimSpeed();
+	float PlayRate = OwnerSkill->GetTotalAnimSpeed();
 
-	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(Skill,NAME_None,SkillData.SkillMontage,PlayRate,NAME_None,false);
+	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(OwnerSkill,NAME_None,SkillData.SkillMontage,PlayRate,NAME_None,false);
 	MontageTask->OnCompleted.AddDynamic(this, &USkillModule_Instant::OnMontageEnded);
 	MontageTask->OnInterrupted.AddDynamic(this, &USkillModule_Instant::OnMontageEnded);
 	MontageTask->OnBlendOut.AddDynamic(this, &USkillModule_Instant::OnMontageEnded);
@@ -47,27 +50,27 @@ void USkillModule_Instant::StartMontageTask()
 
 void USkillModule_Instant::OnMontageEnded()
 {
-	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
+	if (OwnerSkill)
 	{
-		Skill->EndAbility(Skill->GetCurrentAbilitySpecHandle(), Skill->GetCurrentActorInfo(), Skill->GetCurrentActivationInfo(), true, false);
+		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 	}
 }
 
 void USkillModule_Instant::StartWaitDamageEventTask(FName TagName)
 {
-	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!OwnerSkill)	return;
 	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
-	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(Skill,EventTag,nullptr,false,true);
+	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag,nullptr,false,true);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Instant::OnDamageEventReceived);
 	DamageEventTask->ReadyForActivation();
 }
 
 void USkillModule_Instant::OnDamageEventReceived(FGameplayEventData Payload)
 {
-	if (UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill))
+	if (OwnerSkill)
 	{
-		Skill->ExecuteSkillAction(Payload, 1.f);
+		OwnerSkill->ExecuteSkillAction(Payload, 1.f);
 	}
 }
 

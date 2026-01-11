@@ -14,6 +14,9 @@ class UMAGameplayAbility_Skill;
 class UGameplayEffect;
 class UMASkillModule;
 
+/*
+ *	모든 스킬 관리 데이터 테이블
+ */
 USTRUCT(BlueprintType)
 struct FSkillData : public FTableRowBase
 {
@@ -36,8 +39,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
 	FGameplayTagContainer ActionTags;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
-	TSubclassOf<AActor> ProjectileClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="SkillActionConfig"))
+	FInstancedStruct ActionData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
 	TSubclassOf<AActor> ChargeActorClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
@@ -59,6 +62,20 @@ public:
 	bool bCanRotate=true;
 };
 
+// 행동 모듈 데이터 테이블
+USTRUCT(BlueprintType)
+struct FModuleBehaviorData : public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UMASkillModule> ModuleClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "SkillBehaviorConfig"))
+	FInstancedStruct ModuleConfig;
+};
+
+// 행동 모듈 데이터
 USTRUCT(BlueprintType)
 struct FSkillBehaviorConfig
 {
@@ -89,24 +106,12 @@ public:
 	float MaxInputDelay = 3.4f;
 };
 
-USTRUCT(BlueprintType)
-struct FModuleBehaviorData : public FTableRowBase
-{
-	GENERATED_BODY()
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMASkillModule> ModuleClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "SkillBehaviorConfig"))
-	FInstancedStruct ModuleConfig;
-};
-
+// 속성 모듈 데이터 테이블
 USTRUCT(BlueprintType)
 struct FModuleElementalData : public FTableRowBase
 {
 	GENERATED_BODY()
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> AdditionalEffect;
@@ -119,11 +124,11 @@ public:
 };
 
 
+// 유틸리티 모듈 데이터 테이블
 USTRUCT(BlueprintType)
 struct FModuleUtilityData : public FTableRowBase
 {
 	GENERATED_BODY()
-
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplier=1.f;
@@ -147,3 +152,42 @@ public:
 	FText Description;
 };
 
+// Action 데이터 구조체 [투사체 or 타게팅]
+USTRUCT(BlueprintType)
+struct FSkillActionConfig
+{
+	GENERATED_BODY()
+};
+
+USTRUCT(BlueprintType)
+struct FActionConfig_Projectile : public FSkillActionConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 NumOfProjectiles = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsRadial = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="!bIsRadial"))
+	float SpreadAngle = 90.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpawnDistanceFromCharacter = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AngleOffset = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FActionConfig_Targeting : public FSkillActionConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> ProjectileClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpawnHeight = 600.f;
+};

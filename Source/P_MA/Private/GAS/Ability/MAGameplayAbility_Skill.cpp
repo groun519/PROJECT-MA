@@ -7,6 +7,7 @@
 #include "GAS/Modules/MASkillModule.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
+#include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Setting/MASkillSubsystem.h"
 
 void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -66,23 +67,38 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 /********************************************************************************************/
 /*										데미지												*/
 /********************************************************************************************/
+FGameplayEffectSpecHandle UMAGameplayAbility_Skill::MakeSkillDamageSpec(float BehaviorMultiplier)
+{
+	if (!DamageEffectClass)
+		return FGameplayEffectSpecHandle();
+
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
+	if (!SpecHandle.IsValid())
+		return SpecHandle;
+
+	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier"), BehaviorMultiplier);
+
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (Module)
+		{
+			Module->ModifyDamageSpec(SpecHandle);
+		}
+	}
+	return SpecHandle;
+}
+
 void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float BehaviorMultiplier)
 {
-	if (!DamageEffectClass)	return;
-
-	FGameplayEffectSpecHandle MainSpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass,GetAbilityLevel());
+	FGameplayEffectSpecHandle MainSpecHandle = MakeSkillDamageSpec(BehaviorMultiplier);
 	if (!MainSpecHandle.IsValid())	return;
 
-	// 행동 모듈 데미지 보정
-	MainSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier"), BehaviorMultiplier);
-
-	// 나머지 모듈 데미지 보정
+	// 추가 상태이상 부여
 	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
 	for (UMASkillModule* Module : ActiveModules)
 	{
 		if (Module)
 		{
-			Module->ModifyDamageSpec(MainSpecHandle);
 			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
 		}
 	}
@@ -121,6 +137,14 @@ void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, f
 	{
 		PerformMeleeAttack(Payload, FinalMultiplier);
 	}
+	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	{
+		SpawnProjectile(Payload, FinalMultiplier);
+	}
+	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+	{
+		SpawnTargetingProjectile(Payload, FinalMultiplier);
+	}
 }
 
 void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier)
@@ -135,32 +159,64 @@ void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, f
 	}
 }
 
-void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, float ChargeLevel)
+void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
 	const FSkillData& SkillData = GetSkillData();
-	if (!SkillData.ProjectileClass)	return;
+	const FActionConfig_Projectile* ProjectileConfig = SkillData.ActionData.GetPtr<FActionConfig_Projectile>();
+	if (!ProjectileConfig || !ProjectileConfig->ProjectileClass)
+		return;
 
 	AActor* AvatarActor = GetAvatarActorFromActorInfo();
-	if (!AvatarActor)	return;
+	if (!AvatarActor)
+		return;
 
-	FVector SpawnLoc = AvatarActor->GetActorLocation();
-	FRotator SpawnRot = AvatarActor->GetActorRotation();
+	FVector AvatarLoc = AvatarActor->GetActorLocation();
+	FRotator AvatarRotator = AvatarActor->GetActorRotation();
+	int32 Num = FMath::Max(1, ProjectileConfig->NumOfProjectiles);
 
-	if (Payload.TargetData.Num() > 0)
+	for (int32 i=0 ; i<Num ; i++)
 	{
-		const FGameplayAbilityTargetData* RawData = Payload.TargetData.Get(0);
-		if (RawData && RawData->GetScriptStruct() == FGameplayAbilityTargetData_LocationInfo::StaticStruct())
+		float CurrentAngle = 0.f;
+		if (Num >1)
 		{
-			const FGameplayAbilityTargetData_LocationInfo* LocInfo = static_cast<const FGameplayAbilityTargetData_LocationInfo*>(RawData);
-			SpawnLoc = LocInfo->SourceLocation.GetTargetingTransform().GetLocation();
+			if (ProjectileConfig->bIsRadial)
+			{
+				float Step = 360.f / Num;
+				CurrentAngle = i*Step;
+			}
+			else
+			{
+				float HalfAngle = ProjectileConfig ->SpreadAngle /2.f;
+				float Step = ProjectileConfig -> SpreadAngle / (Num -1);
+				CurrentAngle = -HalfAngle + (i*Step);
+			}
+		}
+		CurrentAngle += ProjectileConfig ->AngleOffset;
+
+		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
+		FVector SpawnDirection = SpawnRot.Vector();
+		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = AvatarActor;
+		SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
+		if (AMAProjectile* Projectile = Cast<AMAProjectile>(SpawnedActor))
+		{
+			FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
+			if (SpecHandle.IsValid())
+			{
+				Projectile->InitializeProjectile(SpecHandle);
+			}
 		}
 	}
+}
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = AvatarActor;
-	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
-
-	GetWorld()->SpawnActor<AActor>(SkillData.ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
+void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier)
+{
+	
 }
 
 
@@ -218,6 +274,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 	}
 	return true;
 }
+
 
 /********************************************************************************************/
 /*										도우미												*/
