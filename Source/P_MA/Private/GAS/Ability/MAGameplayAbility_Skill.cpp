@@ -197,26 +197,65 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
 
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = AvatarActor;
-		SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, SpawnParams);
-		if (AMAProjectile* Projectile = Cast<AMAProjectile>(SpawnedActor))
-		{
-			FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
-			if (SpecHandle.IsValid())
-			{
-				Projectile->InitializeProjectile(SpecHandle);
-			}
-		}
+		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
 	}
 }
 
 void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
-	
+	const FSkillData& SkillData = GetSkillData();
+	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
+
+	if (!TargetConfig || !TargetConfig->ProjectileClass)
+		return;
+
+	FVector TargetLoc = FVector::ZeroVector;
+	if (Payload.TargetData.Num() > 0)
+	{
+		const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(0);
+		if (Data)
+		{
+			const FHitResult* Hit = Data->GetHitResult();
+			if (Hit)
+				TargetLoc = Hit->ImpactPoint;
+			else
+			{
+				TargetLoc = Data->GetEndPoint();
+			}
+		}
+	}
+	else
+	{
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
+		}
+	}
+
+	FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
+	FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
+	SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+}
+
+void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier)
+{
+	if (!Class)
+		return;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = GetAvatarActorFromActorInfo();
+	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(Class, Loc, Rot, SpawnParams);
+	if (AMAProjectile* Projectile = Cast<AMAProjectile>(SpawnedActor))
+	{
+		FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
+		if (SpecHandle.IsValid())
+		{
+			Projectile->InitializeProjectile(SpecHandle);
+		}
+	}
 }
 
 
@@ -240,12 +279,22 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 	const FModuleBehaviorData* BehaviorRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultBehaviorTag);
 	if (BehaviorRow && BehaviorRow->ModuleClass)
 	{
-		CachedBehaviorData = *BehaviorRow;
-		UMASkillModule* NewModule = NewObject<UMASkillModule>(this, BehaviorRow->ModuleClass);
-		if (NewModule)
+
+		bool bIsCompatible = BehaviorRow->RequiredTraits.IsEmpty() || CachedSkillData.SkillTraits.HasAll(BehaviorRow->RequiredTraits);
+
+		if (bIsCompatible)
 		{
-			NewModule->InitializeModule(this);
-			ActiveModules.Add(NewModule);
+			CachedBehaviorData = *BehaviorRow;
+			UMASkillModule* NewModule = NewObject<UMASkillModule>(this, BehaviorRow->ModuleClass);
+			if (NewModule)
+			{
+				NewModule->InitializeModule(this);
+				ActiveModules.Add(NewModule);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Skill is Not Compatible"));
 		}
 	}
 

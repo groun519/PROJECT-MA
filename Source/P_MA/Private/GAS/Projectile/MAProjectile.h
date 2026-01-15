@@ -18,9 +18,9 @@ class AMAProjectile : public AActor
 public:	
 	AMAProjectile();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<USphereComponent> SphereComp;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
 	
 protected:

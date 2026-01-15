@@ -7,6 +7,8 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "MASkillModule.generated.h"
 
+struct FModuleBehaviorData;
+struct FSkillData;
 class UMAGameplayAbility_Skill;
 /**
  * 
@@ -32,6 +34,8 @@ public:
 	virtual void ModifyCooldownSpec(FGameplayEffectSpecHandle& SpecHandle) const {}
 	// 애니메이션 속도 조정
 	virtual float GetAnimSpeedMultiplier() const {return 1.0f;}
+
+	virtual void ApplyModuleToSkillData(FSkillData& OutSkillData, const FModuleBehaviorData& ModuleData) const;
 	
 protected:
 	UPROPERTY(Transient, BlueprintReadOnly)

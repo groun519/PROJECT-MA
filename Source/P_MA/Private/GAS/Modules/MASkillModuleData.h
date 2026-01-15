@@ -29,7 +29,9 @@ public:
 	UAnimMontage* SkillMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
 	UTexture2D* SkillIcon;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Traits")
+	FGameplayTagContainer SkillTraits;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Behavior"), Category="Module")
 	FGameplayTag DefaultBehaviorTag;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Elemental"), Category="Module")
@@ -73,6 +75,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "SkillBehaviorConfig"))
 	FInstancedStruct ModuleConfig;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Requirement")
+	FGameplayTagContainer RequiredTraits;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
+	bool bReplaceActionTags = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
+	FGameplayTagContainer ActionTagOverride;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "SkillActionConfig"))
+	FInstancedStruct ActionDataOverride;
 };
 
 // 행동 모듈 데이터
