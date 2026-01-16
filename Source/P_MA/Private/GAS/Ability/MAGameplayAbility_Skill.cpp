@@ -4,11 +4,19 @@
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Character/MACharacter.h"
+#include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Setting/MASkillSubsystem.h"
+
+UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
+{
+	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
+	IgnoreClearTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+}
 
 void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -19,6 +27,14 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 	}
 	IgnoreTargets.Empty();
 
+	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
+	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
+	WaitVFXEventTask->ReadyForActivation();
+
+	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,IgnoreClearTag);
+	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
+	WaitClearEventTask->ReadyForActivation();
+	
 	for (UMASkillModule* Module : ActiveModules)
 	{
 		if (Module)
@@ -31,6 +47,14 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 
 void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (WaitVFXEventTask)
+	{
+		WaitVFXEventTask->EndTask();
+	}
+	if (WaitClearEventTask)
+	{
+		WaitClearEventTask->EndTask();
+	}
 	for (UMASkillModule* Module : ActiveModules)
 	{
 		if (Module)
@@ -90,9 +114,13 @@ FGameplayEffectSpecHandle UMAGameplayAbility_Skill::MakeSkillDamageSpec(float Be
 
 void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float BehaviorMultiplier)
 {
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	
 	FGameplayEffectSpecHandle MainSpecHandle = MakeSkillDamageSpec(BehaviorMultiplier);
-	if (!MainSpecHandle.IsValid())	return;
-
+	if (!MainSpecHandle.IsValid())
+		return;
+	
 	// 추가 상태이상 부여
 	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
 	for (UMASkillModule* Module : ActiveModules)
@@ -105,41 +133,58 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 
 	for (const FHitResult& Hit : HitResults)
 	{
-		if (AActor* TargetActor = Hit.GetActor())
+		AActor* HitActor = Hit.GetActor();
+		if (HitActor && !IgnoreTargets.Contains(HitActor))
 		{
-			if (IgnoreTargets.Contains(TargetActor))
-				continue;
-
-			IgnoreTargets.Add(TargetActor);
-			FGameplayAbilityTargetDataHandle TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(TargetActor);
-			MainSpecHandle.Data->GetContext().AddHitResult(Hit);
-	
-			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, TargetData);
-
-			for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
+			FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo());
+			EffectContext.AddHitResult(Hit);
+			MainSpecHandle.Data->SetContext(EffectContext);
+			
+			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+			IgnoreTargets.Add(HitActor);
+		}
+		for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
+		{
+			if (AddSpec.IsValid())
 			{
-				if (AddSpec.IsValid())
-				{
-					AddSpec.Data->GetContext().AddHitResult(Hit);
-					ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, TargetData);
-				}
+				FGameplayEffectContextHandle AddContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+				AddContext.AddHitResult(Hit);
+				AddSpec.Data->SetContext(AddContext);
+				
+				ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			}
 		}
 	}
 }
 
+/********************************************************************************************/
+/*										공격 액션											*/
+/********************************************************************************************/
 void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier)
 {
 	const FSkillData& SkillData = GetSkillData();
 	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
 
+	bool bIsDamageEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+	bool bIsProjectileEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
+
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		PerformMeleeAttack(Payload, FinalMultiplier);
+		if (!Payload.EventTag.IsValid() || bIsDamageEvent)
+		{
+			PerformMeleeAttack(Payload, FinalMultiplier);
+		}
 	}
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
 	{
-		SpawnProjectile(Payload, FinalMultiplier);
+		if (bIsProjectileEvent)
+		{
+			SpawnProjectile(Payload, FinalMultiplier);
+		}
+		else if (bIsDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+		{
+			SpawnProjectile(Payload, FinalMultiplier);
+		}
 	}
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
 	{
@@ -149,7 +194,7 @@ void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, f
 
 void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier)
 {
-	if (Payload.TargetData.Num() > 0)
+	if (Payload.TargetData.Num() >0)
 	{
 		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
 		if (HitResults.Num() > 0)
@@ -161,6 +206,9 @@ void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, f
 
 void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Projectile* ProjectileConfig = SkillData.ActionData.GetPtr<FActionConfig_Projectile>();
 	if (!ProjectileConfig || !ProjectileConfig->ProjectileClass)
@@ -197,12 +245,16 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
 
+		DrawDebugSphere(GetWorld(), SpawnLoc, 20.f, 12, FColor::Red, false, 2.0f);
 		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
 	}
 }
 
 void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
 
@@ -234,14 +286,14 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 
 	FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
 	FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
-	SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+	if (K2_HasAuthority())
+		SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
 }
 
 void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier)
 {
 	if (!Class)
 		return;
-
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetAvatarActorFromActorInfo();
 	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
@@ -289,12 +341,9 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 			if (NewModule)
 			{
 				NewModule->InitializeModule(this);
+				NewModule->ApplyModuleToSkillData(CachedSkillData, *BehaviorRow);
 				ActiveModules.Add(NewModule);
 			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Skill is Not Compatible"));
 		}
 	}
 
@@ -356,5 +405,49 @@ void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
 	if (AnimInstance)
 	{
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)
+{
+	IgnoreTargets.Empty();
+}
+
+void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
+{
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	if (!CachedSkillData.VFXDataSet)
+		return;
+
+	const F_SkillVFX_Info* VFXInfo = CachedSkillData.VFXDataSet->VFXDataMap.Find(Payload.EventTag);
+	if (!VFXInfo || !VFXInfo->DefaultVFX)
+		return;
+
+	FLinearColor SpawnColor = FLinearColor::White;
+	bool bApplyColor = false;
+	if (VFXInfo->bUseElementColor)
+	{
+		SpawnColor = CachedElementalData.EffectColor;
+		bApplyColor = true;
+	}
+	AMACharacter* Character = Cast<AMACharacter>(GetAvatarActorFromActorInfo());
+	if (!Character)
+		return;
+	USkeletalMeshComponent* MeshComp = Character->GetMesh();
+	if (!MeshComp)
+		return;
+
+	if (VFXInfo->bSpawnInWorld)
+	{
+		FTransform SocketTransform = (VFXInfo->SocketName != NAME_None)? MeshComp->GetSocketTransform(VFXInfo->SocketName) : MeshComp->GetComponentTransform();
+		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset, VFXInfo->Scale);
+		FTransform WorldSPawnTransform = OffsetTransform * SocketTransform;
+
+		Character->Multicast_PlayNiagara(VFXInfo->DefaultVFX, WorldSPawnTransform, bApplyColor, SpawnColor);
+	}
+	else
+	{
+		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,VFXInfo->Scale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
 }

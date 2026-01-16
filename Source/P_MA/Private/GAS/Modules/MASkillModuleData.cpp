@@ -2,3 +2,11 @@
 
 
 #include "GAS/Modules/MASkillModuleData.h"
+
+FSkillData::FSkillData()
+	:AbilityClass{nullptr},
+	SkillMontage{nullptr},
+	SkillIcon{nullptr},
+	VFXDataSet{nullptr}
+{
+}

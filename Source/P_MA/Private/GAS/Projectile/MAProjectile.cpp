@@ -49,7 +49,6 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 			TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 		}
 	}
-
 	Destroy();
 }
 

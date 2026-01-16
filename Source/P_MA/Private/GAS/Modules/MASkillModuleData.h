@@ -23,6 +23,7 @@ struct FSkillData : public FTableRowBase
 	GENERATED_BODY()
 
 public:
+	FSkillData();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
 	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
@@ -41,7 +42,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
 	FGameplayTagContainer ActionTags;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="SkillActionConfig"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"))
 	FInstancedStruct ActionData;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
 	TSubclassOf<AActor> ChargeActorClass;
@@ -73,7 +74,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UMASkillModule> ModuleClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "SkillBehaviorConfig"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "/Script/P_MA.SkillBehaviorConfig"))
 	FInstancedStruct ModuleConfig;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Requirement")
@@ -83,8 +84,11 @@ public:
 	bool bReplaceActionTags = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
 	FGameplayTagContainer ActionTagOverride;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "SkillActionConfig"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "/Script/P_MA.SkillActionConfig"))
 	FInstancedStruct ActionDataOverride;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Information")
+	FText Description;
 };
 
 // 행동 모듈 데이터

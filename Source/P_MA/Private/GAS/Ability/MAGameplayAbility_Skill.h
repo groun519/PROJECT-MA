@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Modules/MASkillModuleData.h"
 #include "MAGameplayAbility_Skill.generated.h"
@@ -17,6 +18,7 @@ class UMAGameplayAbility_Skill : public UMAGameplayAbility
 	GENERATED_BODY()
 
 public:
+	UMAGameplayAbility_Skill();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
@@ -57,6 +59,20 @@ protected:
 	bool LoadSkillData();
 
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);
+	
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
+	UFUNCTION()
+	void TargetClear(FGameplayEventData Payload);
+	
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
+	UFUNCTION()
+	void HandleVFXSpawnEvent(FGameplayEventData Payload);
+
+	FGameplayTag VFXRootTag;
+	FGameplayTag IgnoreClearTag;
+	
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
