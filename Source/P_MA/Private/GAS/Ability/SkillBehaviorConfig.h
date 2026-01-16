@@ -213,7 +213,7 @@ struct FSkillBehaviorRegistryRow : public FTableRowBase
 
 	// 2. 위 클래스가 사용할 데이터
 	// 에디터에서 BehaviorClass를 선택하고, 그에 맞는 구조체(FConfig_SpawnAtTarget 등)를 선택해서 넣게 됩니다.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BaseStruct = "SkillBehaviorConfigBase"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BaseStruct = "/Script/P_MA.SkillBehaviorConfigBase"))
 	FInstancedStruct BehaviorConfig;
 };
 
@@ -223,7 +223,7 @@ struct FSkillInformationDT : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMAGameplayAbility_SkillBase> GrantedAbility;
+	TSubclassOf<UMAGameplayAbility> GrantedAbility;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText DisplayName;

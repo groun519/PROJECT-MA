@@ -67,7 +67,6 @@ void UMAGameplayAbility_SkillBase::ActivateAbility(const FGameplayAbilitySpecHan
 		K2_EndAbility();
 		return;
 	}
-	UE_LOG(LogTemp,Warning,TEXT("[ActivateAbility] = %s"),*BPName.ToString());
 	CooldownTag = SkillInfoRow->CooldownTag;
 	bCooldownApplied=false;
 	IgnoreTargets.Empty();

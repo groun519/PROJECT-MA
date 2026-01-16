@@ -49,7 +49,7 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	GetCapturedAttributeMagnitude(DamageVarianceCaptureDef,Spec, EvalParams, DamageVariance);
 
 	float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag,false,1.f);
-	float UtilityBonus = Spec.GetSetByCallerMagnitude(UtilityModifierTag, false, 0.f);
+	float UtilityBonus = Spec.GetSetByCallerMagnitude(UtilityModifierTag, false, 1.f);
 	float ElementBonus = Spec.GetSetByCallerMagnitude(ElementalModifierTag, false, 1.f);
 	
 	// 방어력이 0 밑으로 내려가지 않도록 안전장치
@@ -60,7 +60,7 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	const float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * AttackDamage;
 	
 	const float Damage = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
-	const float FinalDamage = Damage * (1.0f + UtilityBonus) * ElementBonus * BehaviorBonus;
+	const float FinalDamage = Damage * UtilityBonus * ElementBonus * BehaviorBonus;
 	//const float FinalDamage = Damage * ElementBonus * BehaviorBonus * (UtilityBonus+1.f);
 	UE_LOG(LogTemp, Warning, TEXT("Damage: %f"), FinalDamage);
 	return -FinalDamage;

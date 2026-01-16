@@ -18,7 +18,9 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
+#include "PaperSpriteComponent.h"
 #include "Convenience/InteractComponent.h"
+#include "Engine/CanvasRenderTarget2D.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
