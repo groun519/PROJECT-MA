@@ -5,6 +5,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Character/MACharacter.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
@@ -91,12 +92,23 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 /********************************************************************************************/
 /*										데미지												*/
 /********************************************************************************************/
+
+TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseDamageEffect() const
+{
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	if (ASC && ASC->GetSystemGenerics())
+	{
+		return ASC->GetSystemGenerics()->GetDamageEffect();
+	}
+	return nullptr;
+}
 FGameplayEffectSpecHandle UMAGameplayAbility_Skill::MakeSkillDamageSpec(float BehaviorMultiplier)
 {
-	if (!DamageEffectClass)
+	TSubclassOf<UGameplayEffect> DamageGE = GetBaseDamageEffect();
+	if (!DamageGE)
 		return FGameplayEffectSpecHandle();
 
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageGE, GetAbilityLevel());
 	if (!SpecHandle.IsValid())
 		return SpecHandle;
 
@@ -420,6 +432,10 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 	if (!CachedSkillData.VFXDataSet)
 		return;
 
+	bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
+	if (!bHasMeleeTrait)
+		return;
+	
 	const F_SkillVFX_Info* VFXInfo = CachedSkillData.VFXDataSet->VFXDataMap.Find(Payload.EventTag);
 	if (!VFXInfo || !VFXInfo->DefaultVFX)
 		return;

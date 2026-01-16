@@ -35,8 +35,7 @@ public:
 	void ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier = 1.f);
 	
 protected:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayEffect> DamageEffectClass;
+	TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const;
 	
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMASkillModule>> ActiveModules;
