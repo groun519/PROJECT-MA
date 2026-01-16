@@ -28,17 +28,15 @@ void AMonster::Activate()
 		MoveComp->SetMovementMode(MOVE_Walking);
 	}
 
-	// RespawnImmediately()는 체력 등 초기화용
 	RespawnImmediately();
 
-	// ★ AI 다시 시작 (필수)
 	if (AController* BaseCon = GetController())
 	{
 		if (AAIController* AICon = Cast<AAIController>(BaseCon))
 		{
 			if (UBrainComponent* Brain = AICon->GetBrainComponent())
 			{
-				Brain->StartLogic();           // ← 이거 없으면 절대 안 움직임
+				Brain->StartLogic();
 			}
 		}
 	}

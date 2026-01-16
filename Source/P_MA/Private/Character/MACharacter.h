@@ -69,6 +69,10 @@ public:
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
+	
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
@@ -77,7 +81,7 @@ private:
 	void MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount);
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
-	
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
 	UPROPERTY()
@@ -188,4 +192,18 @@ public:
 	//소켓에 VFX 부착
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
+
+	/** Knockdown **/
+public:
+	virtual void Landed(const FHitResult& Hit) override;
+
+	void OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+	void ResetKnockdownState();
+	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+	
+private:
+	UPROPERTY(EditDefaultsOnly)
+	UAnimMontage* KnockdownMontage;
+
+	bool bPendingKnockdown = false;
 };

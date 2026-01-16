@@ -42,6 +42,10 @@ public:
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
 
+	static FGameplayTag GetAirborneTag();
+	static FGameplayTag GetKnockdownTag();
+	static FGameplayTag GetRecoveryTag();
+	
 	static bool IsPlayer(const AActor* ActorToCheck);
 
 	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
