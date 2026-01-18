@@ -2,7 +2,7 @@
 
 #include "PlatformRoot.h"
 #include "PlatformMatrixComponent.h"
-#include "Level/Sector/Spline/SplineSectorManager.h"
+#include "Components/SplineComponent.h"
 #include "Level/Platform/Core.h"
 
 APlatformRoot::APlatformRoot()
@@ -25,27 +25,40 @@ void APlatformRoot::BeginPlay()
 	PlatformMatrixComponent->InitMatrix();
 }
 
+void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
+{
+	// bool bWaitMoveIn =
+	// 	CurState == EMAGameState::Wait || CurState == EMAGameState::EndBattle;
+	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+}
+
+void APlatformRoot::SetHeight(bool bIsMoving)
+{
+	CurHeight = bIsMoving ? MovingHeight : WaitingHeight;
+	UE_LOG(LogTemp, Warning, TEXT("Root: SetHeight -> %f"), CurHeight);
+}
+
+void APlatformRoot::SetCurSpline(USplineComponent* Spline)
+{
+	if (CurSpline != Spline)
+	{
+		CurSpline = Spline;
+		Distance = 0.f;
+		UE_LOG(LogTemp, Warning, TEXT("Root: SetCurSpline -> %s"), CurSpline ? *CurSpline->GetName() : TEXT("nullptr"));
+	}
+}
+
 void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	/** Get SSManager **/
-	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
-	if (!Manager) return;
-
-	/** Get MAGameState **/
-	EMAGameState MAGameState = Manager->GetMAGameState();
-
-	/** Set Platform Can MoveIn **/
-	bool bWaitMoveIn =
-		MAGameState == EMAGameState::Wait || MAGameState == EMAGameState::EndBattle;
-	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+	/** TODO **//*
+	 * 1. SetWaitMoveIn() when state change in manager
+	 * 2. SetHeight() when state change in manager
+	 * 3. SetCurSpline() when sector change in manager
+	 */
 	
 	/** Set Height **/
-	Manager->IsMoving() ?
-		CurHeight = MovingHeight :
-		CurHeight = WaitingHeight;
-
 	const float LocationInterpSpeed = 1.0f; 
 	const float CurrentLocZ = GetActorLocation().Z;
 	float SmoothedLocZ =
@@ -55,15 +68,13 @@ void APlatformRoot::Tick(float DeltaTime)
 	SetActorLocation(TargetZVec);
 	
 	/** if Loop **/
-	if (Manager->CurSectors.Num() == 0)
-	{
-		Manager->SetSplinesWithMAGameState(MAGameState);
-		return;
-	}
-
 	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
 
-	USplineComponent* CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
+	if (!IsValid(CurSpline))
+	{
+		CurSpline = nullptr;
+		return;
+	}
 	float Len = CurSpline->GetSplineLength();
 
 	Distance += MoveSpeed * DeltaTime;
@@ -71,21 +82,8 @@ void APlatformRoot::Tick(float DeltaTime)
 	if (Distance >= Len)
 	{
 		Distance -= Len;
-		CurSector++;
-
-		if (CurSector >= Manager->CurSectors.Num())
-		{
-			CurSector = 0;
-			Distance  = 0.f;
-
-			Manager->SetSplinesWithMAGameState(MAGameState);
-			if (Manager->CurSectors.Num() == 0) return;
-		}
-
-		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
-		Manager->CurSectors[NewSectorIndex]->SetRandomSeed();
-		
-		CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
+		MoveEnd();
+		if (!IsValid(CurSpline)) return;
 	}
 
 	FVector TargetLoc =
@@ -106,6 +104,12 @@ void APlatformRoot::Tick(float DeltaTime)
 
 	SetActorLocation(TargetLoc);
 	SetActorRotation(SmoothedRot);
+}
+
+void APlatformRoot::MoveEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
+	OnPlatformReachedEnd.Broadcast();
 }
 
 void APlatformRoot::SpawnCore()

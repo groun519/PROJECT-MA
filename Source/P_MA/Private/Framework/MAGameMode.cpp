@@ -35,6 +35,29 @@ void AMAGameMode::BeginPlay()
 	}
 }
 
+void AMAGameMode::RequestStateChange(EMAGameState NewState)
+{
+	if (MAGameState == NewState) return;
+
+	MAGameState = NewState;
+
+	if (OnMAGameStateChanged.IsBound())
+	{
+		OnMAGameStateChanged.Broadcast(MAGameState);
+	}
+}
+
+void AMAGameMode::SetMAState(int32 NewState)
+{
+	if (NewState < 0 || NewState > static_cast<int32>(EMAGameState::Loop))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetMAState: invalid state %d"), NewState);
+		return;
+	}
+
+	RequestStateChange(static_cast<EMAGameState>(NewState));
+}
+
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const
 {
 	const FName* StartSpotTag = TeamStartSpotTagMap.Find(TeamID);
