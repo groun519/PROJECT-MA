@@ -19,6 +19,7 @@
 UMAGameplayAbility::UMAGameplayAbility()
 {
 	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 
 class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
