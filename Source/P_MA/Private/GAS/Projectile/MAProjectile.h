@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
+class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 
@@ -22,7 +23,9 @@ public:
 	TObjectPtr<USphereComponent> SphereComp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
-	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
+	TObjectPtr<UNiagaraComponent> Niagara;
+
 protected:
 	virtual void BeginPlay() override;
 	

@@ -234,6 +234,8 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	FRotator AvatarRotator = AvatarActor->GetActorRotation();
 	int32 Num = FMath::Max(1, ProjectileConfig->NumOfProjectiles);
 
+	float FinalDamageMultiplier = DamageMultiplier * ProjectileConfig->DamageMultiplierPerProjectile;
+
 	for (int32 i=0 ; i<Num ; i++)
 	{
 		float CurrentAngle = 0.f;
@@ -256,9 +258,8 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
-
-		DrawDebugSphere(GetWorld(), SpawnLoc, 20.f, 12, FColor::Red, false, 2.0f);
-		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+		
+		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier);
 	}
 }
 
@@ -296,10 +297,22 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		}
 	}
 
-	FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
-	FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
-	if (K2_HasAuthority())
-		SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+	int32 Num = FMath::Max(1, TargetConfig->NumOfProjectiles);
+	float FinalDamageMultiplier = DamageMultiplier * TargetConfig->DamageMultiplierPerProjectile;
+
+	for (int32 i=0 ; i<Num ; i++)
+	{
+		FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
+		FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
+
+		if (Num > 1 && TargetConfig->SpreadRadius > 0.f)
+		{
+			FVector2D RandPoint = FMath::RandPointInCircle(TargetConfig->SpreadRadius);
+			SpawnLoc += FVector(RandPoint.X, RandPoint.Y, 0.f);
+		}
+		if (K2_HasAuthority())
+			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier);
+	}
 }
 
 void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier)

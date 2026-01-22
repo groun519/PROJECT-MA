@@ -185,6 +185,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplierPerProjectile = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsRadial = false;
@@ -203,7 +205,28 @@ struct FActionConfig_Targeting : public FSkillActionConfig
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> RangeActorClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 NumOfProjectiles = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplierPerProjectile = 1.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SpawnHeight = 600.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpreadRadius = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinDistance = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxDistance = 700.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SkillWidth = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DecalDepth = 500.f;
 };

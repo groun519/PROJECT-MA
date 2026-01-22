@@ -42,6 +42,10 @@ protected:
 	void StartMaxChargeDelayTask();
 	UFUNCTION()
 	void OnMaxCharged();
+
+	void StartTargetingCharge();
+	void FinishTargetingCharge();
+
 private:
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
@@ -59,4 +63,7 @@ private:
 
 	float CachedMaxChargeDuration = 3.f;
 	float CachedMaxInputDelay = 3.5f;
+
+	UPROPERTY()
+	TObjectPtr<class AMATargetActor_ChargeAtFwd> CurrentTargetActor;
 };
