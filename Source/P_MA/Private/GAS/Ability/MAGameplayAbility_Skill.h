@@ -54,7 +54,7 @@ protected:
 	void PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier);
 	void SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier);
 	void SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier);
-	void SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier);
+	AActor* SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier, float ExplodeRadius = 0.f, bool bIsPenetrating=false);
 	bool LoadSkillData();
 
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);

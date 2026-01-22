@@ -146,7 +146,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 	AMATargetActor_SelectLoc* SelectLoc = Cast<AMATargetActor_SelectLoc>(SpawnedActor);
 	if (SelectLoc)
 	{
-		SelectLoc->SetAbilityRadius(TargetConfig->SpreadRadius);
+		SelectLoc->SetAbilityRadius(TargetConfig->ExplodeRadius);
 		SelectLoc->SetMaxDistance(TargetConfig->MaxDistance);
 	}
 	WaitTargetDataTask->FinishSpawningActor(OwnerSkill, SpawnedActor);

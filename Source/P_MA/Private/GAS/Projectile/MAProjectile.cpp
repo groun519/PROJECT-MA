@@ -7,7 +7,9 @@
 #include "AbilitySystemComponent.h"
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Engine/OverlapResult.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "P_MA/P_MA.h"
 
 // Sets default values
 AMAProjectile::AMAProjectile()
@@ -45,15 +47,33 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 
-	if (DamageEffectSpecHandle.IsValid())
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams(ECC_Hitbox);
+	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ExplodeRadius);
+
+	GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape);
+	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplodeRadius, 12, FColor::Red, false, 2.0f);
+	
+	for (const FOverlapResult& OverlapResult : Overlaps)
 	{
-		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
-		if (TargetASC)
+		AActor* TargetActor = OverlapResult.GetActor();
+		if (TargetActor && TargetActor != GetInstigator() && TargetActor != this)
 		{
-			TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+			if (TargetASC)
+			{
+				if (DamageEffectSpecHandle.IsValid())
+				{
+					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+				}
+			}
 		}
 	}
-	Destroy();
+	
+	if (!bIsPenetrating)
+	{
+		Destroy();
+	}
 }
 
 void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -61,10 +81,39 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
 
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+	if (!SourceASC)
+		return;
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams(ECC_Hitbox);
+	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ExplodeRadius);
+
+	GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape);
+
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, ExplodeRadius, 12, FColor::Red, false, 2.0f);
+	
+	for (const FOverlapResult& OverlapResult : Overlaps)
+	{
+		AActor* TargetActor = OverlapResult.GetActor();
+		if (TargetActor && TargetActor != GetInstigator())
+		{
+			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+			if (TargetASC)
+			{
+				if (DamageEffectSpecHandle.IsValid())
+				{
+					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+				}
+			}
+		}
+	}
 	Destroy();
 }
 
-void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle)
+void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrating)
 {
 	DamageEffectSpecHandle = InSpecHandle;
+	ExplodeRadius = InExplodeRadius;
+	bIsPenetrating = bInPenetrating;
 }

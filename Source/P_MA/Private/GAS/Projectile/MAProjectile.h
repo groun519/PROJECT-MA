@@ -38,6 +38,12 @@ protected:
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
 	
 public:	
-	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle);
-	
+	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false);
+
+
+private:
+	UPROPERTY()
+	float ExplodeRadius;
+
+	bool bIsPenetrating = false;
 };

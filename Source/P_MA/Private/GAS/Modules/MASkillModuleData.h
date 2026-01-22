@@ -187,7 +187,11 @@ public:
 	int32 NumOfProjectiles = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplierPerProjectile = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ExplodeRadius = 200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsPenetrating = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsRadial = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="!bIsRadial"))
@@ -219,7 +223,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SpawnHeight = 600.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SpreadRadius = 200.f;
+	float ExplodeRadius = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MinDistance = 100.f;

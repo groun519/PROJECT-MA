@@ -11,6 +11,7 @@
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
+#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "GAS/Setting/MASkillSubsystem.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
@@ -259,7 +260,7 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
 		
-		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier);
+		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier, ProjectileConfig->ExplodeRadius, ProjectileConfig->bIsPenetrating);
 	}
 }
 
@@ -305,20 +306,23 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
 		FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
 
-		if (Num > 1 && TargetConfig->SpreadRadius > 0.f)
+		if (Num > 1 && TargetConfig->ExplodeRadius > 0.f)
 		{
-			FVector2D RandPoint = FMath::RandPointInCircle(TargetConfig->SpreadRadius);
+			FVector2D RandPoint = FMath::RandPointInCircle(TargetConfig->ExplodeRadius);
 			SpawnLoc += FVector(RandPoint.X, RandPoint.Y, 0.f);
 		}
 		if (K2_HasAuthority())
-			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier);
+		{
+			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier,TargetConfig->ExplodeRadius);
+		}
 	}
 }
 
-void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier)
+AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier, float ExplodeRadius, bool bIsPenetrating)
 {
 	if (!Class)
-		return;
+		return nullptr;
+	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetAvatarActorFromActorInfo();
 	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
@@ -330,9 +334,10 @@ void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, F
 		FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
 		if (SpecHandle.IsValid())
 		{
-			Projectile->InitializeProjectile(SpecHandle);
+			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
 		}
 	}
+	return SpawnedActor;
 }
 
 
