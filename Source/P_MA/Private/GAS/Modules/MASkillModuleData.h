@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
+#include "GAS/Projectile/MAAbilityRangeActor.h"
+#include "GAS/Projectile/MAProjectile.h"
 #include "StructUtils/Public/InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
@@ -44,10 +46,6 @@ public:
 	FGameplayTagContainer ActionTags;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"))
 	FInstancedStruct ActionData;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
-	TSubclassOf<AActor> ChargeActorClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
-	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Skill Stat")
 	FGameplayTag CooldownTag;
@@ -211,9 +209,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> ProjectileClass;
+	TSubclassOf<AMAProjectile> ProjectileClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> RangeActorClass;
+	TSubclassOf<AMAAbilityRangeActor> RangeActorClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
@@ -229,8 +227,13 @@ public:
 	float MinDistance = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxDistance = 700.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Box")
 	float SkillWidth = 200.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Box")
 	float DecalDepth = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Circle")
+	float MinSize = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Circle")
+	float MaxSize = 500.f;
 };

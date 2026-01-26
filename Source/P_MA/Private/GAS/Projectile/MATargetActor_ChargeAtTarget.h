@@ -21,6 +21,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	void Initialize(float InMaxDistance, float InMaxSize, float InMinSize, float InMaxHoldDuration);
 
+	FGameplayAbilityTargetDataHandle GetTargetData();
+	
 private:
 	UPROPERTY(VisibleAnywhere)
 	class USphereComponent* CollisionComp;

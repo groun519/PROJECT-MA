@@ -11,7 +11,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "P_MA/P_MA.h"
 
-// Sets default values
+
 AMAProjectile::AMAProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -30,7 +30,7 @@ AMAProjectile::AMAProjectile()
 	ProjectileMovement->MaxSpeed = 1000.f;
 }
 
-// Called when the game starts or when spawned
+
 void AMAProjectile::BeginPlay()
 {
 	Super::BeginPlay();

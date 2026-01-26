@@ -11,7 +11,7 @@
 #include "SkillModule_Instant.generated.h"
 
 /**
- * 
+ * 제일 기본적인 (즉발) 공격 로직
  */
 UCLASS()
 class USkillModule_Instant : public UMASkillModule

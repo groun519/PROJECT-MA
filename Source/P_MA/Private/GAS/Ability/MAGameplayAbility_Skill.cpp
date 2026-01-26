@@ -156,7 +156,7 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 		}
-		for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
+		for (const auto& AddSpec : AdditionalSpecs)
 		{
 			if (AddSpec.IsValid())
 			{
@@ -165,6 +165,49 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 				AddSpec.Data->SetContext(AddContext);
 				
 				ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+			}
+		}
+	}
+}
+
+void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,float DamageMultiplier)
+{
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	
+	FGameplayEffectSpecHandle MainSpecHandle = MakeSkillDamageSpec(DamageMultiplier);
+	if (!MainSpecHandle.IsValid())
+		return;
+
+	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (Module)
+		{
+			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
+		}
+	}
+	
+	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData,0);
+	for (AActor* HitActor : TargetActors)
+	{
+		if (HitActor && !IgnoreTargets.Contains(HitActor))
+		{
+			FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+			EffectContext.AddInstigator(GetAvatarActorFromActorInfo(), GetAvatarActorFromActorInfo());
+			MainSpecHandle.Data->SetContext(EffectContext);
+			
+			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+			IgnoreTargets.Add(HitActor);
+
+			for (const auto& AddSpec : AdditionalSpecs)
+			{
+				if (AddSpec.IsValid())
+				{
+					FGameplayEffectContextHandle AddContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+					AddSpec.Data->SetContext(AddContext);
+					ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+				}
 			}
 		}
 	}

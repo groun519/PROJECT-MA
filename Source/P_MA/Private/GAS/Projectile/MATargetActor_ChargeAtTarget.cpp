@@ -101,6 +101,35 @@ void AMATargetActor_ChargeAtTarget::Initialize(float InMaxDistance, float InMaxS
 	HandleUpdate(0.f);
 }
 
+FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtTarget::GetTargetData()
+{
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+
+	TArray<AActor*> TargetActors;
+	CollisionComp->GetOverlappingActors(TargetActors);
+	if (TargetActors.Num() > 0)
+	{
+		FGameplayAbilityTargetData_ActorArray* TargetData = new FGameplayAbilityTargetData_ActorArray();
+		TargetData->TargetActorArray.Reserve(TargetActors.Num());
+
+		AActor* OwnerActor = OwningAbility ? OwningAbility->GetActorInfo().OwnerActor.Get() : nullptr;
+		for (AActor* Actor : TargetActors)
+		{
+			if (Actor && Actor!=OwnerActor)
+			{
+				TargetData->TargetActorArray.Add(Actor);
+			}
+		}
+		TargetDataHandle.Add(TargetData);
+	}
+	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
+	NewData->HitResult.ImpactPoint = GetActorLocation(); // 현재 액터 위치(마우스 위치)
+	NewData->HitResult.Distance = CurrentSize;           // 현재 커진 크기
+	TargetDataHandle.Add(NewData);
+	
+	return TargetDataHandle;
+}
+
 FVector AMATargetActor_ChargeAtTarget::GetTargetPoint() const
 {
 	if (!PrimaryPC)

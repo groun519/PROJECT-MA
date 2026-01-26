@@ -27,7 +27,7 @@ public:
 	virtual bool IsApplyCooldownImmediate() const override {return false;}
 	virtual float GetCurrentDamageMultiplier() const override;
 	virtual void InitFromConfig(const FInstancedStruct& ConfigPayload) override;
-	
+
 private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AMAAbilityRangeActor> MaxDistanceActorClass;

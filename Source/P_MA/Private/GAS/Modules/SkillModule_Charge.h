@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "GAS/Modules/MASkillModule.h"
 #include "SkillModule_Charge.generated.h"
 
@@ -43,9 +44,9 @@ protected:
 	UFUNCTION()
 	void OnMaxCharged();
 
-	void StartTargetingCharge();
-	void FinishTargetingCharge();
-
+	void StartWaitTargetDataTask();
+	void FinishTargetingTask();
+	void DestroyActors();
 private:
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
@@ -57,6 +58,8 @@ private:
 	TObjectPtr<UAbilityTask_WaitInputRelease> InputReleaseTask;
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitDelay> MaxChargeTask;
+	UPROPERTY()
+	TObjectPtr<UAbilityTask_WaitTargetData> WaitTargetDataTask;
 
 	bool bIsCharging = false;
 	float FinalChargedDuration = 0.f;
@@ -65,5 +68,8 @@ private:
 	float CachedMaxInputDelay = 3.5f;
 
 	UPROPERTY()
-	TObjectPtr<class AMATargetActor_ChargeAtFwd> CurrentTargetActor;
+	TObjectPtr<AGameplayAbilityTargetActor> CurrentTargetActor;
+	UPROPERTY()
+	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
+
 };

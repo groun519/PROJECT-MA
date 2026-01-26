@@ -21,17 +21,18 @@ void USkillModule_Instant::OnAbilityActivated()
 	CachedTargetData = FGameplayAbilityTargetDataHandle();
 	
 	StartMontageTask();
-	
+
+	//즉발 근저저로직
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
 	}
-	
+	//즉발 투사체 로직
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
 	}
-	
+	//즉발 타게팅 로직
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
 	{
 		if (UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance())

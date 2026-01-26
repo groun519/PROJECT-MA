@@ -32,6 +32,7 @@ public:
 	float GetTotalAnimSpeed() const;
 	
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float DamageMultiplier = 1.f);
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, float DamageMultiplier =1.f);
 	void ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier = 1.f);
 	
 protected:
