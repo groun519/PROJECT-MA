@@ -52,9 +52,28 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 {
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
-	SetSectorsByState(NewState);
+	
+	// Set IsMoving
+	FSplineSectorData SSData = SplineSectorsByState[NewState];
+	bIsMoving = SSData.bIsMoving;
+	bIsAutoPass = SSData.bIsAutoPass;
+
+	// 만약 이전 상태가 Start였다면,
+	// 스플라인의 끝에 도달하지 못하는 상태기에 한번 ApplyCurSplineAndSeed를 실행하여 게임 루프를 시작시킴.
+	if (bWasMoving == false && bIsMoving == true)
+	{
+		CurSectorIndex = 0;
+		SetSectorsByState(NewState);
+		
+		if (CachedPlatformRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
+		{
+			USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
+			if (IsValid(CurSpline)) CachedPlatformRoot->SetCurSpline(CurSpline);
+		}
+	}
+
+	// 스테이트 캐시
 	CachedMAGameState = NewState;
-	CurSectorIndex = 0;
 	
 	if (CachedPlatformRoot)
 	{
@@ -63,47 +82,35 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 		CachedPlatformRoot->SetHeight(bIsMoving);
 	}
-
-	if (!bIsMoving && CachedPlatformRoot)
-	{
-		CachedPlatformRoot->SetCurSpline(nullptr);
-	}
-
-	if (!bWasMoving && bIsMoving)
-	{
-		ApplySplineSelection();
-	}
+	
 	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 상태 변화 감지 -> %d"), (int32)NewState);
 }
 
 void ASplineSectorManager::OnHandlePlatformReachedEnd()
 {
 	if (CurSectors.IsEmpty() || !CachedPlatformRoot) return;
-	
+
+	// 마지막 스테이트인가 ?
 	bool bIsLastSector = CurSectorIndex >= CurSectors.Num() - 1;
 	if (bIsLastSector)
 	{
+		// 만약 자동으로 넘겨야 하는 스테이트라면 넘김.
+		IsAutoPassState(CachedMAGameState);
+
+		// 섹터 세팅
+		SetSectorsByState(CachedMAGameState);
 		CurSectorIndex = 0;
+		
+		// 스테이트 넘어갈 때 로그 찍기
+		LogStateChange(CachedMAGameState);
 	}
 	else
 	{
 		CurSectorIndex++;
 	}
-
-	bool bRequestedStateChange = false;
-	if (bIsLastSector)
-	{
-		LogStateChange(CachedMAGameState);
-		bRequestedStateChange = HandleRepeatState(CachedMAGameState);
-	}
-
-	if (bRequestedStateChange)
-	{
-		ApplySplineSelection();
-		return;
-	}
-
-	ApplySplineSelection();
+	
+	// 타고 갈 스플라인을 적용, 다음 섹터 시드 변경.
+	ApplyCurSplineAndSeed();
 	
 	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 플랫폼 섹터 끝 도달!"));
 }
@@ -163,57 +170,41 @@ void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 		CurSectors.Empty();
 }
 
-bool ASplineSectorManager::HandleRepeatState(EMAGameState InState)
+bool ASplineSectorManager::IsAutoPassState(EMAGameState InState)
 {
-	if (InState == EMAGameState::Start)
+	int32 StateNum = static_cast<int32>(InState);
+	if (StateNum == 6) return false;
+	
+	if (bIsAutoPass)
 	{
-		GoToNextState(EMAGameState::InBattle);
+		GoToNextState(static_cast<EMAGameState>(++StateNum));
 		return true;
 	}
-	if (InState == EMAGameState::InBattle)
-	{
-		GoToNextState(EMAGameState::Battle);
-		return true;
-	}
-	if (InState == EMAGameState::OutBattle)
-	{
-		GoToNextState(EMAGameState::Loop);
-		return true;
-	}
-
 	return false;
 }
 
-void ASplineSectorManager::ApplySplineSelection()
+void ASplineSectorManager::ApplyCurSplineAndSeed()
 {
 	if (!CachedPlatformRoot) return;
 
-	if (!bIsMoving || CurSectors.IsEmpty())
+	// If Stop Sector, assign nullptr to CurSpline
+	if (!bIsMoving || CurSectors.IsEmpty() || !CurSectors[CurSectorIndex])
 	{
 		CachedPlatformRoot->SetCurSpline(nullptr);
 		return;
 	}
-
-	if (CurSectorIndex < 0 || CurSectorIndex >= CurSectors.Num())
-	{
-		CurSectorIndex = 0;
-	}
-
-	if (!CurSectors[CurSectorIndex])
-	{
-		CachedPlatformRoot->SetCurSpline(nullptr);
-		return;
-	}
-
-	int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
-	CurSectors[NextIndex]->SetRandomSeed();
-
 	USplineComponent* CurSpline = CurSectors[CurSectorIndex]->RoadSpline;
 	if (!IsValid(CurSpline))
 	{
 		CachedPlatformRoot->SetCurSpline(nullptr);
 		return;
 	}
+
+	// Change Seed
+	int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
+	CurSectors[NextIndex]->SetRandomSeed();
+
+	// Set Spline
 	CachedPlatformRoot->SetCurSpline(CurSpline);
 }
 

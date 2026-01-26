@@ -18,7 +18,7 @@ enum class EMAGameState : uint8
 {
 	// 멈춤
 	Wait = 0,
-	// 게임 시작 단계
+	// 게임 시작 단계. 루프 탈출 시에도 사용.
 	Start = 1,		
 
 	/** Inf Loop **/

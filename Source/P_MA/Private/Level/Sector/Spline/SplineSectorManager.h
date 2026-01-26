@@ -65,8 +65,7 @@ public:
 	
 private:
 	bool bIsMoving = false;
-
-
+	bool bIsAutoPass = false;
 
 	/** Cache **/
 	AMAGameMode* CachedMAGameMode;
@@ -77,8 +76,8 @@ private:
 	// 섹터 끝에 도달했을 때, 리퀘스트 받아 사용.
 	void GoToNextState(EMAGameState InNextState);
 	void SetSectorsByState(EMAGameState InState);
-	bool HandleRepeatState(EMAGameState InState);
-	void ApplySplineSelection();
+	bool IsAutoPassState(EMAGameState InState);
+	void ApplyCurSplineAndSeed();
 	void LogStateChange(EMAGameState InState) const;
 	int32 CurSectorIndex = 0;
 };
