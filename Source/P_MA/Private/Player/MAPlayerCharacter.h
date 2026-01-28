@@ -12,6 +12,7 @@
 class UInputAction;
 class UNiagaraComponent;
 class UInteractComponent;
+class UReadyStateComponent;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
@@ -43,8 +44,16 @@ public:
 	void SetUtility(const FString& SkillClassName, const FString& UtilityName);
 	UFUNCTION(Server, Reliable)
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
+
+	/** Ready State Component **/
+	FORCEINLINE UReadyStateComponent* GetReadyComponent(){ return ReadyStateComponent; }
 	
 private:
+	/** Ready State Component **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
+	UReadyStateComponent* ReadyStateComponent;
+
+	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
 	class USpringArmComponent* CameraBoom;
 	
@@ -121,8 +130,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USceneCaptureComponent2D* MinimapCapture;
 
-	 UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	 class UPaperSpriteComponent* MinimapSprite;
+	// UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
+	// class UPaperSpriteComponent* MinimapSprite;
 	// ㄴ 미사용, 주석처리.
 	/****/
 

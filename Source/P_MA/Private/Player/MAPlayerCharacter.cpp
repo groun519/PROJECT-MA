@@ -19,8 +19,11 @@
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
+#include "ReadyStateComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
+#include "P_MA/P_MA.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -79,10 +82,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->OrthoWidth = 7000.0f;
 	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
-	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
-	
-
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())
 	{
@@ -90,8 +89,17 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	}
 	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
 	MinimapSprite->SetupAttachment(GetMesh());
-	/** 여기 위에 까지는 별도의 코드 입니다 **/
 	
+	/** Capsule Collision **/
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
+	
+	/** Tag Init **/
+	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
+	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
+	
+	/** Ready State Component **/
+	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
