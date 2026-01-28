@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "P_MA/P_MA.h"
+#include "Framework/MAGameMode.h"
 
 UReadyStateComponent::UReadyStateComponent()
 {
@@ -66,4 +67,12 @@ void UReadyStateComponent::SetReady(bool bNewReady)
 		ECC_ReadyWall,
 		IsReady() ? ECR_Block : ECR_Overlap
 		);
+
+	if (PlayerCharacter->HasAuthority())
+	{
+		if (AMAGameMode* GameMode = GetWorld()->GetAuthGameMode<AMAGameMode>())
+		{
+			GameMode->BroadcastReadyCounts();
+		}
+	}
 }

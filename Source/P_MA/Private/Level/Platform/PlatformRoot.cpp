@@ -2,6 +2,7 @@
 
 #include "PlatformRoot.h"
 #include "PlatformMatrixComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Level/Platform/Core.h"
 
@@ -15,6 +16,16 @@ APlatformRoot::APlatformRoot()
 	/** Add Matrix **/
 	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
 	PlatformMatrixComponent->SetupAttachment(RootComponent);
+
+	/** Ready Text **/
+	ReadyText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ReadyText"));
+	ReadyText->SetupAttachment(RootComponent);
+	ReadyText->SetHorizontalAlignment(EHTA_Center);
+	ReadyText->SetVerticalAlignment(EVRTA_TextCenter);
+	ReadyText->SetWorldSize(40.f);
+	ReadyText->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
+	ReadyText->SetText(FText::FromString(TEXT("[ 0 / 0 ]")));
+	ReadyText->SetVisibility(false, true);
 }
 
 void APlatformRoot::BeginPlay()
@@ -30,6 +41,10 @@ void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 	// bool bWaitMoveIn =
 	// 	CurState == EMAGameState::Wait || CurState == EMAGameState::EndBattle;
 	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+	if (ReadyText)
+	{
+		ReadyText->SetVisibility(bWaitMoveIn, true);
+	}
 }
 
 void APlatformRoot::SetHeight(bool bIsMoving)
@@ -46,6 +61,14 @@ void APlatformRoot::SetCurSpline(USplineComponent* Spline)
 		Distance = 0.f;
 		UE_LOG(LogTemp, Warning, TEXT("Root: SetCurSpline -> %s"), CurSpline ? *CurSpline->GetName() : TEXT("nullptr"));
 	}
+}
+
+void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
+{
+	if (!ReadyText) return;
+
+	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	ReadyText->SetText(FText::FromString(NewText));
 }
 
 void APlatformRoot::Tick(float DeltaTime)
@@ -121,9 +144,10 @@ void APlatformRoot::SpawnCore()
 	Params.Instigator = GetInstigator();
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AActor* Core = GetWorld()->SpawnActor<ACore>(CoreClass, GetActorTransform(), Params);
+	ACore* Core = GetWorld()->SpawnActor<ACore>(CoreClass, GetActorTransform(), Params);
 	if (Core)
 	{
+		CoreInstance = Core;
 		Core->AttachToComponent(
 			Root,
 			FAttachmentTransformRules::SnapToTargetNotIncludingScale

@@ -36,6 +36,7 @@ enum class EMAGameState : uint8
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMAGameStateChanged, EMAGameState);
 DECLARE_MULTICAST_DELEGATE(FOnAllPlayersReady);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnReadyCountChanged, int32, int32);
 
 /**
  * 
@@ -55,6 +56,8 @@ public:
 	FOnMAGameStateChanged OnMAGameStateChanged;
 	// 플레이어들이 전부 레디 상태가 되었음을 알리는 델리게이트.
 	FOnAllPlayersReady OnAllPlayersReady;
+	// 레디 인원 변화를 알리는 델리게이트.
+	FOnReadyCountChanged OnReadyCountChanged;
 	
 	/** Ready **/// test
 	UPROPERTY(EditAnywhere)
@@ -64,9 +67,13 @@ public:
 	/** State **/
 	// 매니저들이 상태가 변했음을 게임모드에게 알릴 때 사용할 함수.
 	void RequestStateChange(EMAGameState NewState);
+	EMAGameState GetNextState(EMAGameState CurState) const;
+	void RequestNextState(EMAGameState CurState);
 	FORCEINLINE EMAGameState GetMAGameState() const { return MAGameState; } 
 	void RefreshPlayerCache();
 	void ResetAllPlayersReady();
+	void GetReadyCounts(int32& OutReady, int32& OutTotal) const;
+	void BroadcastReadyCounts();
 
 	/** Debug **/
 	UFUNCTION(Exec)

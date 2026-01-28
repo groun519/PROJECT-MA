@@ -108,6 +108,8 @@ void AWaveManager::StartWave()
 	if (bIsWaving) return;
 	
 	bIsWaving = true;
+	bWaveSpawnFinished = false;
+	AliveMonsterCount = 0;
 	WaveMonsters = GetNewWaveMonsters();
 	CreateBaseIntervalTimer();
 }
@@ -117,6 +119,9 @@ void AWaveManager::EndWave()
 	if (!bIsWaving) return;
 	
 	bIsWaving = false;
+	bWaveSpawnFinished = false;
+	GetWorldTimerManager().ClearTimer(BaseIntervalTimerHandle);
+
 	if (Wave == 5)
 	{
 		Stage++;
@@ -155,6 +160,8 @@ void AWaveManager::SpawnMonsters(int32 SpawnAtOnce)
 			SpawnParams
 		);
 		Spawned->SetGoal(SpawnSpline);
+		Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
+		AliveMonsterCount++;
 
 		WaveMonsters.RemoveAt(0);
 	}
@@ -187,6 +194,8 @@ void AWaveManager::CreateBaseIntervalTimer()
 
 void AWaveManager::SpawnMonstersByInterval()
 {
+	if (!bIsWaving) return;
+
 	TArray<TSubclassOf<AMonster>> Monsters;
 	int32 Count = 0;
 	while (true)
@@ -206,4 +215,32 @@ void AWaveManager::SpawnMonstersByInterval()
 		}
 	}
 	SpawnMonsters(Count);
+
+	if (WaveMonsters.IsEmpty())
+	{
+		bWaveSpawnFinished = true;
+		GetWorldTimerManager().ClearTimer(BaseIntervalTimerHandle);
+		TryEndWave();
+	}
+}
+
+void AWaveManager::OnMonsterDead()
+{
+	if (AliveMonsterCount > 0)
+	{
+		AliveMonsterCount--;
+	}
+	TryEndWave();
+}
+
+void AWaveManager::TryEndWave()
+{
+	if (!bIsWaving) return;
+	if (!bWaveSpawnFinished) return;
+	if (AliveMonsterCount > 0) return;
+
+	if (CachedMAGameMode)
+	{
+		CachedMAGameMode->RequestStateChange(EMAGameState::EndBattle);
+	}
 }

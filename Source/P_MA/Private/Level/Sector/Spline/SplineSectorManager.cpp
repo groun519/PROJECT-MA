@@ -5,7 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
-#include "Level/Platform/PlatformMatrixComponent.h"
+#include "Level/Platform/Core.h"
 
 ASplineSectorManager::ASplineSectorManager()
 {
@@ -29,7 +29,7 @@ void ASplineSectorManager::BeginPlay()
 			CachedMAGameMode = MAGM;
 			CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleGameStateChanged);
 			OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
-			CachedMAGameMode->OnAllPlayersReady.AddUObject(this, &ASplineSectorManager::OnHandleAllPlayersReady);
+			CachedMAGameMode->OnReadyCountChanged.AddUObject(this, &ASplineSectorManager::OnHandleReadyCountChanged);
 		}
 		
 		/** PlatformRoot **/
@@ -82,8 +82,15 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 			NewState == EMAGameState::Wait || NewState == EMAGameState::EndBattle;
 		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 		CachedPlatformRoot->SetHeight(bIsMoving);
+
+		if (ACore* Core = CachedPlatformRoot->GetCore())
+		{
+			const bool bIsBattle = (NewState == EMAGameState::Battle);
+			Core->ApplyBattleColor(bIsBattle);
+		}
 	}
-	
+
+	if (DebugSetting.bUseStateDebug)
 	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 상태 변화 감지 -> %d"), (int32)NewState);
 }
 
@@ -112,12 +119,15 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 	
 	// 타고 갈 스플라인을 적용, 다음 섹터 시드 변경.
 	ApplyCurSplineAndSeed();
-	
+
+	if (DebugSetting.bUseSplineEndTimeDebug)
 	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 플랫폼 섹터 끝 도달!"));
 }
 
-void ASplineSectorManager::OnHandleAllPlayersReady()
+void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount)
 {
+	if (!CachedPlatformRoot) return;
+	CachedPlatformRoot->SetReadyText(ReadyCount, TotalCount);
 }
 
 int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
@@ -138,13 +148,6 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());
 	ASplineSectorManager* SSM = Cast<ASplineSectorManager>(Found);
 	return SSM;
-}
-
-void ASplineSectorManager::GoToNextState(EMAGameState InNextState)
-{
-	if (!CachedMAGameMode) return;
-	// 리퀘스트 보냄
-	CachedMAGameMode->RequestStateChange(InNextState);
 }
 
 void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
@@ -183,7 +186,7 @@ bool ASplineSectorManager::IsAutoPassState(EMAGameState InState)
 	
 	if (bIsAutoPass)
 	{
-		GoToNextState(static_cast<EMAGameState>(++StateNum));
+		if (CachedMAGameMode) CachedMAGameMode->RequestNextState(InState);
 		return true;
 	}
 	return false;
@@ -216,7 +219,7 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 
 void ASplineSectorManager::LogStateChange(EMAGameState InState) const
 {
-	if (!bUseStateDebug) return;
+	if (!DebugSetting.bUseStateDebug) return;
 
 	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
 	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);

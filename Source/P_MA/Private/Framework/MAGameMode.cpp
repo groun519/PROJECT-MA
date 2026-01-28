@@ -45,6 +45,21 @@ void AMAGameMode::RequestStateChange(EMAGameState NewState)
 	}
 }
 
+EMAGameState AMAGameMode::GetNextState(EMAGameState CurState) const
+{
+	if (CurState == EMAGameState::Loop)
+	{
+		return EMAGameState::Start;
+	}
+
+	return static_cast<EMAGameState>(static_cast<int32>(CurState) + 1);
+}
+
+void AMAGameMode::RequestNextState(EMAGameState CurState)
+{
+	RequestStateChange(GetNextState(CurState));
+}
+
 void AMAGameMode::RefreshPlayerCache()
 {
 	CachedPlayers.Reset();
@@ -61,6 +76,8 @@ void AMAGameMode::RefreshPlayerCache()
 
 		CachedPlayers.Add(Player);
 	}
+
+	BroadcastReadyCounts();
 }
 
 void AMAGameMode::ResetAllPlayersReady()
@@ -76,6 +93,51 @@ void AMAGameMode::ResetAllPlayersReady()
 		if (!ReadyComp) continue;
 
 		ReadyComp->SetReady(false);
+	}
+
+	BroadcastReadyCounts();
+}
+
+void AMAGameMode::GetReadyCounts(int32& OutReady, int32& OutTotal) const
+{
+	OutReady = 0;
+	OutTotal = 0;
+
+	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
+	{
+		AMAPlayerCharacter* Player = PlayerPtr.Get();
+		if (!Player) continue;
+
+		UReadyStateComponent* ReadyComp = Player->GetReadyComponent();
+		if (!ReadyComp) continue;
+
+		OutTotal++;
+		if (ReadyComp->IsReady())
+		{
+			OutReady++;
+		}
+	}
+}
+
+void AMAGameMode::BroadcastReadyCounts()
+{
+	int32 ReadyCount = 0;
+	int32 TotalCount = 0;
+	GetReadyCounts(ReadyCount, TotalCount);
+
+	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
+	if (bAllPlayersReady != bIsAllReady)
+	{
+		bAllPlayersReady = bIsAllReady;
+		if (bAllPlayersReady)
+		{
+			RequestNextState(MAGameState);
+		}
+	}
+
+	if (OnReadyCountChanged.IsBound())
+	{
+		OnReadyCountChanged.Broadcast(ReadyCount, TotalCount);
 	}
 }
 

@@ -53,6 +53,7 @@ public:
 	// 웨이브 종료 및 관련변수 초기화
 	void EndWave();
 	bool bIsWaving = false;
+	bool bWaveSpawnFinished = false;
 
 	// 몬스터를 데이터에서 뽑아 배열에 저장
 	TArray<FWaveMonster> GetNewWaveMonsters();
@@ -64,6 +65,8 @@ public:
 	void SpawnMonstersByInterval();
 	// 개수만큼 몬스터 생성
 	void SpawnMonsters(int32 SpawnAtOnce = 3);
+	void OnMonsterDead();
+	void TryEndWave();
 
 private:
 	UPROPERTY()
@@ -80,4 +83,6 @@ private:
 
 	// 베이스 핸들
 	FTimerHandle BaseIntervalTimerHandle;
+
+	int32 AliveMonsterCount = 0;
 };

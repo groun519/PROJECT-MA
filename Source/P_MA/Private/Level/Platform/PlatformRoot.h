@@ -8,6 +8,7 @@
 class USplineComponent;
 class ACore;
 class UPlatformMatrixComponent;
+class UTextRenderComponent;
 
 DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
@@ -41,6 +42,8 @@ public:
 	void SetWaitMoveIn(bool bWaitMoveIn);
 	void SetHeight(bool bIsMoving);
 	void SetCurSpline(USplineComponent* Spline);
+	void SetReadyText(int32 ReadyCount, int32 TotalCount);
+	ACore* GetCore() const { return CoreInstance; }
 	
 private:
 	/** Input by Manager **/
@@ -48,6 +51,12 @@ private:
 	
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root = nullptr;
+
+	UPROPERTY(VisibleAnywhere)
+	UTextRenderComponent* ReadyText = nullptr;
+
+	UPROPERTY()
+	TObjectPtr<ACore> CoreInstance;
 	
 	float Distance = 0.f;
 

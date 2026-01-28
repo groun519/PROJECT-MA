@@ -9,6 +9,20 @@
 #include "Level/Platform//PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
 
+USTRUCT()
+struct FSplineSectorManagerDebugSetting
+{
+	GENERATED_BODY()
+
+	// 스테이트 변경을 보고 싶을때 사용
+	UPROPERTY(EditAnywhere)
+	bool bUseStateDebug = false;
+
+	// 스플라인의 마지막 위치에 도달했는지 체크하고 싶을 때 사용
+	UPROPERTY(EditAnywhere)
+	bool bUseSplineEndTimeDebug = false;
+};
+
 UENUM()
 enum class EMoveInState : uint8
 {
@@ -50,7 +64,7 @@ public:
 	void OnHandleGameStateChanged(EMAGameState NewState);
 	UFUNCTION()
 	void OnHandlePlatformReachedEnd();
-	void OnHandleAllPlayersReady();
+	void OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount);
 	
 	/** Platform **/
 	UPROPERTY()
@@ -71,8 +85,8 @@ public:
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
 	
 	/** Debug **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bUseStateDebug = false;
+	UPROPERTY(EditAnywhere)
+	FSplineSectorManagerDebugSetting DebugSetting;
 	
 private:
 	bool bIsMoving = false;
@@ -85,7 +99,6 @@ private:
 
 	/** Sector **/
 	// 섹터 끝에 도달했을 때, 리퀘스트 받아 사용.
-	void GoToNextState(EMAGameState InNextState);
 	void SetSectorsByState(EMAGameState InState);
 	bool IsAutoPassState(EMAGameState InState);
 	void ApplyCurSplineAndSeed();
