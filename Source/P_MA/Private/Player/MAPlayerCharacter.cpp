@@ -59,13 +59,13 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 	
 	/** Create SKCs **//*
-	 * - Child Relationship : Mesh - Handle
+	 * - Child Relationship: Mesh - Handle
 	 */
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
+	/** Mini Map **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
 	MinimapCameraBoom->SetupAttachment(RootComponent);
 	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
