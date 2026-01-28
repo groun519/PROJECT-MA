@@ -9,6 +9,14 @@
 #include "Level/Platform//PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
 
+UENUM()
+enum class EMoveInState : uint8
+{
+	Nothing		= 0,
+	CanMoveIn	= 1,
+	CanMoveOut	= 2,
+};
+
 USTRUCT(BlueprintType)
 struct FSplineSectorData
 {
@@ -19,6 +27,9 @@ struct FSplineSectorData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsAutoPass = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EMoveInState MoveInState = EMoveInState::Nothing;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = bIsMoving, EditConditionHides))
 	TArray<TObjectPtr<ASplineSector>> Sectors;

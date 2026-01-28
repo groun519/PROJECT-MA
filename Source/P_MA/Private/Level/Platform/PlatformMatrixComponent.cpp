@@ -18,6 +18,7 @@ void UPlatformMatrixComponent::InitMatrix()
 {
 	Platforms.SetNum(GetCols() * GetCols());
 	CreatePlatforms();
+	SetMovedInPlatforms(true);
 }
 
 void UPlatformMatrixComponent::SetPlatformEnable(int32 X, int32 Y)

@@ -94,7 +94,8 @@ void UPlatformComponent::OnWallOverlap(UPrimitiveComponent* OverlappedComp, AAct
 	if (!CanMoveIn()) return;
 	
 	AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor);
-	if (!Player || Player->GetReadyComponent()->IsReady()) return;
+	if (!Player) return;
+	if (Player->GetReadyComponent()->IsReady()) return;
 
 	/** Find MoveIn Dir **/
 	FVector Delta = OtherActor->GetActorLocation() - GetOwner()->GetActorLocation();

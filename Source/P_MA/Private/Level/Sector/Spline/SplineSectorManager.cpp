@@ -5,6 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "Level/Platform/PlatformMatrixComponent.h"
 
 ASplineSectorManager::ASplineSectorManager()
 {
@@ -142,18 +143,6 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 void ASplineSectorManager::GoToNextState(EMAGameState InNextState)
 {
 	if (!CachedMAGameMode) return;
-	
-	/** WaveManager 만들고 나면 옮길 파트 **/
-	if (InNextState == EMAGameState::Battle)
-	{
-		CachedMAGameMode->StartWave();
-	}
-	else if (InNextState == EMAGameState::EndBattle && CachedMAGameMode->bIsWaving)
-	{
-		CachedMAGameMode->EndWave();
-	}
-	/****/
-
 	// 리퀘스트 보냄
 	CachedMAGameMode->RequestStateChange(InNextState);
 }
@@ -163,6 +152,23 @@ void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 	FSplineSectorData SSData = SplineSectorsByState[InState];
 	
 	bIsMoving = SSData.bIsMoving;
+
+	if (PlatformRoot)
+	{
+		if (SSData.MoveInState == EMoveInState::Nothing)
+		{
+			PlatformRoot->SetWaitMoveIn(false);
+		}
+		else if (SSData.MoveInState == EMoveInState::CanMoveIn)
+		{
+			PlatformRoot->SetWaitMoveIn(true);
+		}
+		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
+		{
+			PlatformRoot->SetWaitMoveIn(false);
+			if (CachedMAGameMode) CachedMAGameMode->ResetAllPlayersReady();
+		}
+	}
 	
 	if (bIsMoving)
 		CurSectors = SSData.Sectors;
