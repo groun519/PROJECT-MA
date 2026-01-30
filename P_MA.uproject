@@ -53,6 +53,10 @@
 		{
 			"Name": "PCGExternalDataInterop",
 			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemSteam",
+			"Enabled": true
 		}
 	]
 }
