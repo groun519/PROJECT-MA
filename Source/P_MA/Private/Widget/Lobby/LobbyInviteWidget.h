@@ -4,16 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "LobbyReadyStartWidget.generated.h"
+#include "LobbyInviteWidget.generated.h"
 
 class UButton;
 
 UCLASS()
-class P_MA_API ULobbyReadyStartWidget : public UUserWidget
+class P_MA_API ULobbyInviteWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> ReadyStartButton;
+	TObjectPtr<UButton> InviteButton;
+
+protected:
+	virtual void NativeOnInitialized() override;
+
+private:
+	UFUNCTION()
+	void HandleInviteClicked();
 };

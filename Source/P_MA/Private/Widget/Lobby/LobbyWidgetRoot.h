@@ -7,6 +7,8 @@
 #include "LobbyWidgetRoot.generated.h"
 
 class ULobbyReadyStartWidget;
+class UButton;
+class UTextBlock;
 
 UCLASS()
 class P_MA_API ULobbyWidgetRoot : public UUserWidget
@@ -16,4 +18,10 @@ class P_MA_API ULobbyWidgetRoot : public UUserWidget
 public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<ULobbyReadyStartWidget> LobbyReadyStartWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> LoadoutButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> LoadoutButtonText;
 };

@@ -7,7 +7,8 @@
 #include "Player/MAPlayerState.h"
 #include "LobbyGameState.h"
 #include "Kismet/GameplayStatics.h"
-#include "Widget/LobbyAvatarNameWidget.h"
+#include "Widget/Lobby/Avatar/LobbyAvatarNameWidget.h"
+#include "Widget/Lobby/LobbyInviteWidget.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -43,9 +44,17 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 	NameWidget->SetupAttachment(Root);
 	NameWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	NameWidget->SetDrawSize(FVector2D(300.f, 50.f));
+
+	/** Invite Widget **/
+	InviteWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InviteWidget"));
+	InviteWidget->SetupAttachment(Root);
+	InviteWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	InviteWidget->SetDrawSize(FVector2D(200.f, 50.f));
+
 	AvatarMesh->SetVisibility(false, true);
 	WeaponMesh->SetVisibility(false, true);
 	NameWidget->SetVisibility(false, true);
+	InviteWidget->SetVisibility(false, true);
 }
 
 void ALobbyAvatarSlot::BeginPlay()
@@ -77,6 +86,14 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 		}
 		NameWidget->SetVisibility(Occupant != nullptr, true);
 	}
+	if (InviteWidget)
+	{
+		if (InviteWidgetClass)
+		{
+			InviteWidget->SetWidgetClass(InviteWidgetClass);
+		}
+		InviteWidget->SetVisibility(Occupant == nullptr, true);
+	}
 	if (AvatarMesh)
 	{
 		AvatarMesh->SetVisibility(Occupant != nullptr, true);
@@ -89,4 +106,20 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 	{
 		AvatarSpotLight->SetVisibility(Occupant != nullptr, true);
 	}
+}
+
+void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
+{
+	const bool bVisible = !bHide;
+	if (!bVisible)
+	{
+		if (AvatarMesh) { AvatarMesh->SetVisibility(false, true); }
+		if (WeaponMesh) { WeaponMesh->SetVisibility(false, true); }
+		if (NameWidget) { NameWidget->SetVisibility(false, true); }
+		if (InviteWidget) { InviteWidget->SetVisibility(false, true); }
+		if (AvatarSpotLight) { AvatarSpotLight->SetVisibility(false, true); }
+		return;
+	}
+
+	SetOccupant(Occupant);
 }

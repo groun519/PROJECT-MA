@@ -28,12 +28,17 @@ class P_MA_API ALobbyGameState : public AGameStateBase
 	GENERATED_BODY()
 
 public:
+	DECLARE_MULTICAST_DELEGATE(FLobbySlotsRegistered);
+	FLobbySlotsRegistered OnSlotsRegistered;
+
 	void RegisterAvatarSlot(ALobbyAvatarSlot* Slot);
 	void AssignSlotToPlayer(AMAPlayerState* PlayerState);
 	void RemovePlayerFromSlot(AMAPlayerState* PlayerState);
 	void SetPlayerReady(APlayerState* PlayerState, bool bReady);
 	bool IsPlayerReady(const APlayerState* PlayerState) const;
 	int32 GetSlotIndex(const APlayerState* PlayerState) const;
+	ALobbyAvatarSlot* GetAvatarSlot(int32 Index) const;
+	const TArray<TObjectPtr<ALobbyAvatarSlot>>& GetAvatarSlots() const { return AvatarSlots; }
 	int32 GetReadyCount() const;
 	int32 GetPlayerCount() const;
 
@@ -43,9 +48,11 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<ALobbyAvatarSlot>> AvatarSlots;
 
-	UPROPERTY(ReplicatedUsing = OnRep_ReadyStates)
+	UPROPERTY(ReplicatedUsing = OnRep_LobbySlots)
 	TArray<FPlayerLobbySlot> LobbySlots;
 
 	UFUNCTION()
-	void OnRep_ReadyStates();
+	void OnRep_LobbySlots();
+
+	void ApplyLobbySlotsToAvatars();
 };

@@ -14,6 +14,10 @@ class P_MA_API ALobbyGameMode : public AGameModeBase
 public:
 	ALobbyGameMode();
 
+	virtual void BeginPlay() override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
+
+private:
+	void HandleSlotsRegistered();
 };

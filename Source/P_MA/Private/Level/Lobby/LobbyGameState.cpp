@@ -3,12 +3,22 @@
 #include "LobbyGameState.h"
 #include "LobbyAvatarSlot.h"
 #include "Player/MAPlayerState.h"
+#include "GameFramework/PlayerController.h"
 #include "Net/UnrealNetwork.h"
 
 void ALobbyGameState::RegisterAvatarSlot(ALobbyAvatarSlot* Slot)
 {
 	if (!Slot) return;
-	AvatarSlots.AddUnique(Slot);
+	const int32 Index = Slot->SlotIndex;
+	if (Index < 0) return;
+
+	if (AvatarSlots.Num() <= Index)
+	{
+		AvatarSlots.SetNum(Index + 1);
+	}
+
+	AvatarSlots[Index] = Slot;
+	OnSlotsRegistered.Broadcast();
 }
 
 void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
@@ -31,6 +41,14 @@ void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 			{
 				AvatarSlots[Index]->SetOccupant(PlayerState);
 			}
+			if (APlayerController* PC = Cast<APlayerController>(PlayerState->GetOwner()))
+			{
+				if (PC->IsLocalController())
+				{
+					SetPlayerReady(PlayerState, true);
+				}
+			}
+			ApplyLobbySlotsToAvatars();
 			return;
 		}
 	}
@@ -49,6 +67,7 @@ void ALobbyGameState::RemovePlayerFromSlot(AMAPlayerState* PlayerState)
 			{
 				AvatarSlots[Index]->SetOccupant(nullptr);
 			}
+			ApplyLobbySlotsToAvatars();
 			return;
 		}
 	}
@@ -93,6 +112,12 @@ int32 ALobbyGameState::GetSlotIndex(const APlayerState* PlayerState) const
 	return INDEX_NONE;
 }
 
+ALobbyAvatarSlot* ALobbyGameState::GetAvatarSlot(int32 Index) const
+{
+	if (!AvatarSlots.IsValidIndex(Index)) return nullptr;
+	return AvatarSlots[Index];
+}
+
 int32 ALobbyGameState::GetReadyCount() const
 {
 	int32 ReadyCount = 0;
@@ -111,8 +136,22 @@ int32 ALobbyGameState::GetPlayerCount() const
 	return PlayerArray.Num();
 }
 
-void ALobbyGameState::OnRep_ReadyStates()
+void ALobbyGameState::OnRep_LobbySlots()
 {
+	ApplyLobbySlotsToAvatars();
+}
+
+void ALobbyGameState::ApplyLobbySlotsToAvatars()
+{
+	const int32 SlotCount = FMath::Min(LobbySlots.Num(), AvatarSlots.Num());
+	for (int32 Index = 0; Index < SlotCount; ++Index)
+	{
+		if (AvatarSlots[Index])
+		{
+			AMAPlayerState* PS = Cast<AMAPlayerState>(LobbySlots[Index].PlayerState.Get());
+			AvatarSlots[Index]->SetOccupant(PS);
+		}
+	}
 }
 
 void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

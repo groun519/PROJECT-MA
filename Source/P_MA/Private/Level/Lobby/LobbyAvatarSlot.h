@@ -24,6 +24,7 @@ public:
 	int32 SlotIndex = 0;
 
 	void SetOccupant(AMAPlayerState* NewPlayerState);
+	void SetLocalHidden(bool bHide);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -46,6 +47,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Lobby")
 	TSubclassOf<class ULobbyAvatarNameWidget> NameWidgetClass;
+
+	UPROPERTY(VisibleAnywhere)
+	UWidgetComponent* InviteWidget = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Lobby")
+	TSubclassOf<class ULobbyInviteWidget> InviteWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> Occupant;
