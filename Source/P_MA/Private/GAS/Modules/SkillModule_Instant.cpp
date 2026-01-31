@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitTargetData.h"
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Projectile/MATargetActor_ChargeAtTarget.h"
 #include "GAS/Projectile/MATargetActor_SelectLoc.h"
 
 void USkillModule_Instant::OnAbilityActivated()
@@ -144,11 +145,10 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 
 	AGameplayAbilityTargetActor* SpawnedActor = nullptr;
 	WaitTargetDataTask->BeginSpawningActor(OwnerSkill, TargetConfig->TargetActorClass, SpawnedActor);
-	AMATargetActor_SelectLoc* SelectLoc = Cast<AMATargetActor_SelectLoc>(SpawnedActor);
-	if (SelectLoc)
+	AMATargetActor_ChargeAtTarget* TargetActor = Cast<AMATargetActor_ChargeAtTarget>(SpawnedActor);
+	if (TargetActor)
 	{
-		SelectLoc->SetAbilityRadius(TargetConfig->ExplodeRadius);
-		SelectLoc->SetMaxDistance(TargetConfig->MaxDistance);
+		TargetActor->InitializeFixed(TargetConfig->MaxDistance, TargetConfig->ExplodeRadius);
 	}
 	WaitTargetDataTask->FinishSpawningActor(OwnerSkill, SpawnedActor);
 }

@@ -78,8 +78,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Requirement")
 	FGameplayTagContainer RequiredTraits;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
-	bool bReplaceActionTags = true;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
+	//bool bReplaceActionTags = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
 	FGameplayTagContainer ActionTagOverride;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "/Script/P_MA.SkillActionConfig"))

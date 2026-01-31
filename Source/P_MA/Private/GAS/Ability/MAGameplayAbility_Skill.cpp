@@ -13,6 +13,7 @@
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "GAS/Setting/MASkillSubsystem.h"
+#include "ProfilingDebugging/CookStats.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
@@ -319,14 +320,63 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		return;
 
 	FVector TargetLoc = FVector::ZeroVector;
+	float FinalExplodeRadius = TargetConfig->ExplodeRadius;
+
+	const FGameplayAbilityTargetData* ValidData = nullptr;
+	const FHitResult* ValidHit = nullptr;
+	
 	if (Payload.TargetData.Num() > 0)
 	{
+		for (int32 i=0; i<Payload.TargetData.Num() ; ++i)
+		{
+			const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(i);
+			if (Data)
+			{
+				const FHitResult* Hit = Data->GetHitResult();
+				if (Hit)
+				{
+					ValidData = Data;
+					ValidHit = Hit;
+					break;
+				}
+			}
+		}
+	}
+	if (ValidData)
+	{
+		if (ValidHit)
+		{
+			TargetLoc = ValidHit->ImpactPoint;
+			if (ValidHit->Distance > 0.f)
+			{
+				FinalExplodeRadius = ValidHit->Distance;
+			}
+		}
+		else
+		{
+			TargetLoc = ValidData->GetEndPoint();
+		}
+	}
+	else
+	{
+		if (AActor* Avatar = GetAvatarActorFromActorInfo())
+		{
+			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
+		}
+	}
+		/*
 		const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(0);
 		if (Data)
 		{
 			const FHitResult* Hit = Data->GetHitResult();
 			if (Hit)
+			{
 				TargetLoc = Hit->ImpactPoint;
+				if (Hit->Distance >0.f)
+				{
+					FinalExplodeRadius = Hit->Distance;
+				}
+			}
 			else
 			{
 				TargetLoc = Data->GetEndPoint();
@@ -339,7 +389,7 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		{
 			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
 		}
-	}
+	}*/
 
 	int32 Num = FMath::Max(1, TargetConfig->NumOfProjectiles);
 	float FinalDamageMultiplier = DamageMultiplier * TargetConfig->DamageMultiplierPerProjectile;
@@ -356,7 +406,7 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		}
 		if (K2_HasAuthority())
 		{
-			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier,TargetConfig->ExplodeRadius);
+			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier,FinalExplodeRadius);
 		}
 	}
 }

@@ -18,10 +18,10 @@ public:
 	AMATargetActor_ChargeAtFwd();
 	
 	virtual void Tick(float DeltaTime) override;
-
+	
 	void Initialize(float InMaxDistance, float InMinDistance, float InWidth, float InDepth, float InMaxChargeDuration);
 	FGameplayAbilityTargetDataHandle GetTargetData();
-	
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* RootComp;

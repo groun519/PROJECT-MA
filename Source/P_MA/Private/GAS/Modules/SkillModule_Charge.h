@@ -47,6 +47,11 @@ protected:
 	void StartWaitTargetDataTask();
 	void FinishTargetingTask();
 	void DestroyActors();
+
+	UFUNCTION()
+	void OnTargetDataReady(const FGameplayAbilityTargetDataHandle& Data);
+	UFUNCTION()
+	void OnTargetDataCancelled(const FGameplayAbilityTargetDataHandle& Data);
 private:
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
@@ -72,4 +77,5 @@ private:
 	UPROPERTY()
 	TObjectPtr<class AMAAbilityRangeActor> SpawnedRangeActor;
 
+	FGameplayAbilityTargetDataHandle CachedTargetData;
 };
