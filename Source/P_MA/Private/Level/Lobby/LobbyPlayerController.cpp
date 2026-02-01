@@ -165,7 +165,7 @@ void ALobbyPlayerController::ShowInviteUI()
 	}
 }
 
-void ALobbyPlayerController::PreviewEyeColor(const FLinearColor& EyeColor)
+void ALobbyPlayerController::PreviewEyeColor(const FMaterialParamData& EyeData)
 {
 	if (!bHasPendingLoadoutColor)
 	{
@@ -176,7 +176,22 @@ void ALobbyPlayerController::PreviewEyeColor(const FLinearColor& EyeColor)
 		bHasPendingLoadoutColor = true;
 	}
 
-	PendingLoadoutColor.EyeData.Color = EyeColor;
+	PendingLoadoutColor.EyeData = EyeData;
+	ApplyPreviewColor(PendingLoadoutColor);
+}
+
+void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData)
+{
+	if (!bHasPendingLoadoutColor)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingLoadoutColor = PS->GetLoadoutColor();
+		}
+		bHasPendingLoadoutColor = true;
+	}
+
+	PendingLoadoutColor.BodyData = BodyData;
 	ApplyPreviewColor(PendingLoadoutColor);
 }
 

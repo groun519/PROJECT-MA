@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LoadoutBodyColorPresetData.generated.h"
 
 UCLASS(BlueprintType)
@@ -13,5 +14,5 @@ class P_MA_API ULoadoutBodyColorPresetData : public UDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Loadout|Body")
-	TArray<FLinearColor> BodyColors;
+	TArray<FMaterialParamData> BodyColors;
 };

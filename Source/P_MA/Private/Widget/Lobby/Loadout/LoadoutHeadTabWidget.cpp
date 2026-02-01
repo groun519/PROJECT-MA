@@ -23,7 +23,7 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 
 	EyeColorScrollBox->ClearChildren();
 
-	for (const FLinearColor& Color : EyeColorPreset->EyeColors)
+	for (const FMaterialParamData& EyeData : EyeColorPreset->EyeColors)
 	{
 		ULoadoutColorButtonWidget* ButtonWidget = CreateWidget<ULoadoutColorButtonWidget>(this, EyeColorButtonClass);
 		if (!ButtonWidget)
@@ -31,7 +31,7 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 			continue;
 		}
 
-		ButtonWidget->Color = Color;
+		ButtonWidget->ColorData = EyeData;
 		ButtonWidget->OnColorSelected.AddDynamic(this, &ULoadoutHeadTabWidget::HandleEyeColorSelected);
 		if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(EyeColorScrollBox->AddChild(ButtonWidget)))
 		{
@@ -40,10 +40,10 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 	}
 }
 
-void ULoadoutHeadTabWidget::HandleEyeColorSelected(FLinearColor SelectedColor)
+void ULoadoutHeadTabWidget::HandleEyeColorSelected(FMaterialParamData SelectedData)
 {
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
 	{
-		PC->PreviewEyeColor(SelectedColor);
+		PC->PreviewEyeColor(SelectedData);
 	}
 }

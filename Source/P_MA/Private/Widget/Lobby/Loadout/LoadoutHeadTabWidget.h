@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LoadoutHeadTabWidget.generated.h"
 
 class ULoadoutEyeColorPresetData;
@@ -32,5 +33,5 @@ private:
 	void BuildEyeColorButtons();
 
 	UFUNCTION()
-	void HandleEyeColorSelected(FLinearColor SelectedColor);
+	void HandleEyeColorSelected(FMaterialParamData SelectedData);
 };

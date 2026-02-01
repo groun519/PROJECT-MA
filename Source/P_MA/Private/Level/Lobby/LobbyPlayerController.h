@@ -28,7 +28,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void ShowInviteUI();
 
-	void PreviewEyeColor(const FLinearColor& EyeColor);
+	void PreviewEyeColor(const FMaterialParamData& EyeData);
+	void PreviewBodyColor(const FMaterialParamData& BodyData);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lobby")
 	void ShowLobbyUI();

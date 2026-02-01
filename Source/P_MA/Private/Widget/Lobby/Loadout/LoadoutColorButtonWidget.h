@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LoadoutColorButtonWidget.generated.h"
 
 class UButton;
@@ -14,13 +15,13 @@ class P_MA_API ULoadoutColorButtonWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnColorSelected, FLinearColor, SelectedColor);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnColorSelected, FMaterialParamData, SelectedData);
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> ColorButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Loadout|Color")
-	FLinearColor Color = FLinearColor::White;
+	FMaterialParamData ColorData;
 
 	UPROPERTY(BlueprintAssignable, Category="Loadout|Color")
 	FOnColorSelected OnColorSelected;

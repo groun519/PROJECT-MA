@@ -10,6 +10,7 @@ void ULoadoutColorButtonWidget::NativeConstruct()
 	if (ColorButton)
 	{
 		FButtonStyle Style = ColorButton->GetStyle();
+		const FLinearColor& Color = ColorData.Color;
 		const FLinearColor PressedColor = FLinearColor(
 			Color.R * 0.75f,
 			Color.G * 0.75f,
@@ -27,5 +28,5 @@ void ULoadoutColorButtonWidget::NativeConstruct()
 
 void ULoadoutColorButtonWidget::HandleColorClicked()
 {
-	OnColorSelected.Broadcast(Color);
+	OnColorSelected.Broadcast(ColorData);
 }

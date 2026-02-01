@@ -10,8 +10,14 @@ struct FMaterialParamData
 {
 	GENERATED_BODY()
 
+	FMaterialParamData() = default;
+	explicit FMaterialParamData(const FLinearColor& InColor)
+		: Color(InColor)
+	{
+	}
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FLinearColor Color = FLinearColor(0.6f, 0.6f, 0.6f, 1.0f);
+	FLinearColor Color = FLinearColor(0.f, 0.f, 0.f, 1.0f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	float Emissive = 0.f;
@@ -23,8 +29,8 @@ struct FMaterialParamDataPair
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FMaterialParamData BodyData = FMaterialParamData();
+	FMaterialParamData BodyData = FMaterialParamData(FLinearColor(0.25f, 0.25f, 0.25f, 1.0f));
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FMaterialParamData EyeData = FMaterialParamData();
+	FMaterialParamData EyeData = FMaterialParamData(FLinearColor::White);
 };
