@@ -5,21 +5,27 @@
 #include "CoreMinimal.h"
 #include "PlatformRoot.generated.h"
 
+class USplineComponent;
 class ACore;
 class UPlatformMatrixComponent;
+class UTextRenderComponent;
+
+DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
 UCLASS()
 class P_MA_API APlatformRoot : public AActor
 {
 	GENERATED_BODY()
 	
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-	
 public:
 	APlatformRoot();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
+	/** Delegate **/
+	FOnPlatformReachedEnd OnPlatformReachedEnd;
+	void MoveEnd();
+	
 	/** Matrix **/
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UPlatformMatrixComponent* PlatformMatrixComponent;
@@ -31,16 +37,31 @@ public:
 	/** Atts Set **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MoveSpeed = 1000.f;
+
+	/** Use by Manager **/
+	void SetWaitMoveIn(bool bWaitMoveIn);
+	void SetHeight(bool bIsMoving);
+	void SetCurSpline(USplineComponent* Spline);
+	void SetReadyText(int32 ReadyCount, int32 TotalCount);
+	ACore* GetCore() const { return CoreInstance; }
 	
 private:
-	UPROPERTY(VisibleAnywhere)
-	USceneComponent* Root;
+	/** Input by Manager **/
+	USplineComponent* CurSpline = nullptr;
 	
-	int32 CurSector = 0;
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* Root = nullptr;
+
+	UPROPERTY(VisibleAnywhere)
+	UTextRenderComponent* ReadyText = nullptr;
+
+	UPROPERTY()
+	TObjectPtr<ACore> CoreInstance;
+	
 	float Distance = 0.f;
 
 	/** Height System **/
-	float CurHeight = 0.f;
+	float CurHeight = -100.f;
 	float MovingHeight = 50.f;
 	float WaitingHeight = -100.f;
 

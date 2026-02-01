@@ -16,18 +16,45 @@ class P_MA_API UPlatformComponent : public UStaticMeshComponent
 	virtual void BeginPlay() override;
 
 public:
+	/** Init and ects **/
 	UPlatformComponent();
 	
-	void EnablePlatform();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UBoxComponent* TriggerBox;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
 	float BoxWidth = 2.f;
 
-	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Platform")
 	TObjectPtr<UNiagaraSystem> EnableEffect;
+
+	/** Platform **/
+	void EnablePlatform();
+	FORCEINLINE bool IsEnablePlatform() const { return bIsEnablePlatform; }
+	
+	/** Ready Wall **/
+	void InitReadyWall();
+	
+	UFUNCTION()
+	void OnWallOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+		);
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite)
+	UBoxComponent* ReadyWallBox;
+
+	FORCEINLINE bool CanMoveIn() const { return bCanMoveIn; }
+	FORCEINLINE void SetCanMoveIn(bool bNew) { bCanMoveIn = bNew; }
+	
+private:
+	/** Platform **/
+	bool bIsEnablePlatform = false;
+	FORCEINLINE FVector GetPlatformBoxExtent(float InHight) { return FVector(BoxWidth, BoxWidth, InHight); }
+
+	/** Ready Wall **/
+	FORCEINLINE FVector GetReadyWallBoxExtent() { return FVector(BoxWidth*25, BoxWidth*25, BoxWidth*25*10); }
+
+	bool bCanMoveIn = false;
 };

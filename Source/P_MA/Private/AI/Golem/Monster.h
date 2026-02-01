@@ -15,6 +15,9 @@ class AMonster : public AMACharacter
 	GENERATED_BODY()
 	
 public:
+	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
+	FOnMonsterDead OnMonsterDead;
+
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamId) override;
 
 	bool IsActive() const;
@@ -27,6 +30,7 @@ public:
 	
 private:
 	virtual void OnRep_TeamID() override;
+	virtual void OnDead() override;
 
 	UPROPERTY()
 	bool bActiveInPool = true;

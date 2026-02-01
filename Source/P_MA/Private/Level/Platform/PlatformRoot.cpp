@@ -2,7 +2,8 @@
 
 #include "PlatformRoot.h"
 #include "PlatformMatrixComponent.h"
-#include "Level/Sector/Spline/SplineSectorManager.h"
+#include "Components/TextRenderComponent.h"
+#include "Components/SplineComponent.h"
 #include "Level/Platform/Core.h"
 
 APlatformRoot::APlatformRoot()
@@ -15,27 +16,72 @@ APlatformRoot::APlatformRoot()
 	/** Add Matrix **/
 	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
 	PlatformMatrixComponent->SetupAttachment(RootComponent);
+
+	/** Ready Text **/
+	ReadyText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ReadyText"));
+	ReadyText->SetupAttachment(RootComponent);
+	ReadyText->SetHorizontalAlignment(EHTA_Center);
+	ReadyText->SetVerticalAlignment(EVRTA_TextCenter);
+	ReadyText->SetWorldSize(40.f);
+	ReadyText->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
+	ReadyText->SetText(FText::FromString(TEXT("[ 0 / 0 ]")));
+	ReadyText->SetVisibility(false, true);
 }
 
 void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnCore();
+	PlatformMatrixComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	PlatformMatrixComponent->InitMatrix();
+}
+
+void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
+{
+	// bool bWaitMoveIn =
+	// 	CurState == EMAGameState::Wait || CurState == EMAGameState::EndBattle;
+	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+	if (ReadyText)
+	{
+		ReadyText->SetVisibility(bWaitMoveIn, true);
+	}
+}
+
+void APlatformRoot::SetHeight(bool bIsMoving)
+{
+	CurHeight = bIsMoving ? MovingHeight : WaitingHeight;
+	UE_LOG(LogTemp, Warning, TEXT("Root: SetHeight -> %f"), CurHeight);
+}
+
+void APlatformRoot::SetCurSpline(USplineComponent* Spline)
+{
+	if (CurSpline != Spline)
+	{
+		CurSpline = Spline;
+		Distance = 0.f;
+		UE_LOG(LogTemp, Warning, TEXT("Root: SetCurSpline -> %s"), CurSpline ? *CurSpline->GetName() : TEXT("nullptr"));
+	}
+}
+
+void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
+{
+	if (!ReadyText) return;
+
+	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	ReadyText->SetText(FText::FromString(NewText));
 }
 
 void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	/** Get SSManager **/
-	ASplineSectorManager* Manager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
-	if (!Manager) return;
-
-	/** Height **/
-	Manager->IsMoving() ?
-		CurHeight = MovingHeight :
-		CurHeight = WaitingHeight;
-
+	/** TODO **//*
+	 * 1. SetWaitMoveIn() when state change in manager
+	 * 2. SetHeight() when state change in manager
+	 * 3. SetCurSpline() when sector change in manager
+	 */
+	
+	/** Set Height **/
 	const float LocationInterpSpeed = 1.0f; 
 	const float CurrentLocZ = GetActorLocation().Z;
 	float SmoothedLocZ =
@@ -45,19 +91,13 @@ void APlatformRoot::Tick(float DeltaTime)
 	SetActorLocation(TargetZVec);
 	
 	/** if Loop **/
-	if (Manager->CurSectors.Num() == 0)
-	{
-		AMAGameMode* MAGM = Manager->GetMAGameMode();
-		if (MAGM)
-		{
-			Manager->SetSplinesWithMAGameState(MAGM->GetMAGameState());
-		}
-		return;
-	}
-
 	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
 
-	USplineComponent* CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
+	if (!IsValid(CurSpline))
+	{
+		CurSpline = nullptr;
+		return;
+	}
 	float Len = CurSpline->GetSplineLength();
 
 	Distance += MoveSpeed * DeltaTime;
@@ -65,23 +105,8 @@ void APlatformRoot::Tick(float DeltaTime)
 	if (Distance >= Len)
 	{
 		Distance -= Len;
-		CurSector++;
-
-		if (CurSector >= Manager->CurSectors.Num())
-		{
-			CurSector = 0;
-			Distance  = 0.f;
-
-			AMAGameMode* MAGM = Manager->GetMAGameMode();
-			Manager->SetSplinesWithMAGameState(
-				MAGM->GetMAGameState());
-			if (Manager->CurSectors.Num() == 0) return;
-		}
-
-		int32 NewSectorIndex = Manager->GetNextSectorIndex(CurSector);
-		Manager->CurSectors[NewSectorIndex]->SetRandomSeed();
-		
-		CurSpline = Manager->CurSectors[CurSector]->RoadSpline;
+		MoveEnd();
+		if (!IsValid(CurSpline)) return;
 	}
 
 	FVector TargetLoc =
@@ -104,6 +129,12 @@ void APlatformRoot::Tick(float DeltaTime)
 	SetActorRotation(SmoothedRot);
 }
 
+void APlatformRoot::MoveEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
+	OnPlatformReachedEnd.Broadcast();
+}
+
 void APlatformRoot::SpawnCore()
 {
 	if (!GetWorld() || !CoreClass) return;
@@ -113,9 +144,10 @@ void APlatformRoot::SpawnCore()
 	Params.Instigator = GetInstigator();
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AActor* Core = GetWorld()->SpawnActor<ACore>(CoreClass, GetActorTransform(), Params);
+	ACore* Core = GetWorld()->SpawnActor<ACore>(CoreClass, GetActorTransform(), Params);
 	if (Core)
 	{
+		CoreInstance = Core;
 		Core->AttachToComponent(
 			Root,
 			FAttachmentTransformRules::SnapToTargetNotIncludingScale

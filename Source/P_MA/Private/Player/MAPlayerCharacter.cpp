@@ -19,8 +19,11 @@
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
+#include "ReadyStateComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
+#include "P_MA/P_MA.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -56,13 +59,13 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 	
 	/** Create SKCs **//*
-	 * - Child Relationship : Mesh - Handle
+	 * - Child Relationship: Mesh - Handle
 	 */
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
+	/** Mini Map **/
 	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
 	MinimapCameraBoom->SetupAttachment(RootComponent);
 	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
@@ -79,10 +82,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->OrthoWidth = 7000.0f;
 	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
-	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
-	
-
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())
 	{
@@ -90,8 +89,17 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	}
 	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
 	MinimapSprite->SetupAttachment(GetMesh());
-	/** 여기 위에 까지는 별도의 코드 입니다 **/
 	
+	/** Capsule Collision **/
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
+	
+	/** Tag Init **/
+	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
+	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
+	
+	/** Ready State Component **/
+	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)

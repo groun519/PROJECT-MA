@@ -82,3 +82,8 @@ void AMonster::OnRep_TeamID()
 {
 	
 }
+
+void AMonster::OnDead()
+{
+	OnMonsterDead.Broadcast();
+}
