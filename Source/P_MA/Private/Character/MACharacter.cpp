@@ -22,6 +22,7 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "P_MA/P_MA.h"
+#include "Player/Loadout/LoadoutComponent.h"
 
 AMACharacter::AMACharacter()
 {
@@ -41,6 +42,7 @@ AMACharacter::AMACharacter()
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
 
 	BindGASChangeDelegates();
 
@@ -69,7 +71,6 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMACharacter, TeamID);
-	DOREPLIFETIME(AMACharacter, MaterialParamValue);
 }
 
 const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AMACharacter::GetAbilities() const
@@ -86,21 +87,9 @@ void AMACharacter::BeginPlay()
 
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 
-	if (GetMesh())
+	if (LoadoutComponent)
 	{
-		DynMat = GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
-		if (DynMat)
-		{
-			// Body Param Update
-			//DynMat->SetScalarParameterValue("Body_Opacity",	BaseMaterialParam.BodyData.Opacity);
-			DynMat->SetVectorParameterValue("Body_Color",	BaseMaterialParam.BodyData.Color);
-			DynMat->SetScalarParameterValue("Body_Emissive",BaseMaterialParam.BodyData.Emissive);
-
-			// Eye Param Update
-			//DynMat->SetScalarParameterValue("Eye_Opacity",	BaseMaterialParam.EyeData.Opacity);
-			DynMat->SetVectorParameterValue("Eye_Color",	BaseMaterialParam.EyeData.Color);
-			DynMat->SetScalarParameterValue("Eye_Emissive", BaseMaterialParam.EyeData.Emissive);
-		}
+		LoadoutComponent->InitializeMaterial(GetMesh());
 	}
 }
 
@@ -407,30 +396,6 @@ void AMACharacter::UpdateHeadGaugeVisibility()
 	}
 }
 
-/** Mat System Section **//**
- *	머티리얼 파라미터 변경하는 섹션
- */
-void AMACharacter::OnRep_MaterialParam()
-{
-	ApplyMaterialParam();
-}
-
-void AMACharacter::ApplyMaterialParam()
-{
-	if (DynMat)
-	{
-		// Body Param Update
-		//DynMat->SetScalarParameterValue("Body_Opacity", MaterialParamValue.BodyData.Opacity);
-		DynMat->SetVectorParameterValue("Body_Color", MaterialParamValue.BodyData.Color);
-		DynMat->SetScalarParameterValue("Body_Emissive", MaterialParamValue.BodyData.Emissive);
-
-		// Eye Param Update
-		//DynMat->SetScalarParameterValue("Eye_Opacity", MaterialParamValue.EyeData.Opacity);
-		DynMat->SetVectorParameterValue("Eye_Color", MaterialParamValue.EyeData.Color);
-		DynMat->SetScalarParameterValue("Eye_Emissive", MaterialParamValue.EyeData.Emissive);
-	}
-}
-
 void AMACharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
@@ -502,10 +467,10 @@ void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bIn
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
 {
-	MaterialParamValue.BodyData = BodyData;
-	MaterialParamValue.EyeData  = EyeData;
-
-	ApplyMaterialParam();
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->SetMaterialParams(BodyData, EyeData);
+	}
 }
 
 

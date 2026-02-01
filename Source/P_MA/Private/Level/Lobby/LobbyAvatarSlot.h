@@ -4,12 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LobbyAvatarSlot.generated.h"
 
 class USkeletalMeshComponent;
 class USpotLightComponent;
 class UWidgetComponent;
 class AMAPlayerState;
+class UMaterialInstanceDynamic;
 
 UCLASS()
 class P_MA_API ALobbyAvatarSlot : public AActor
@@ -25,6 +27,7 @@ public:
 
 	void SetOccupant(AMAPlayerState* NewPlayerState);
 	void SetLocalHidden(bool bHide);
+	void ApplyLoadoutColor(const FMaterialParamDataPair& ColorData);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -56,4 +59,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> Occupant;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> AvatarDynMat;
+
+	FDelegateHandle LoadoutColorChangedHandle;
 };

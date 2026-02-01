@@ -10,6 +10,7 @@ ALobbyGameMode::ALobbyGameMode()
 	GameStateClass = ALobbyGameState::StaticClass();
 	PlayerStateClass = AMAPlayerState::StaticClass();
 	DefaultPawnClass = nullptr;
+	bUseSeamlessTravel = true;
 }
 
 void ALobbyGameMode::BeginPlay()

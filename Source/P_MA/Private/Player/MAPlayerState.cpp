@@ -8,8 +8,19 @@ void AMAPlayerState::SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill)
 	DefaultSkill = NewSkill;
 }
 
+void AMAPlayerState::SetLoadoutColor(const FMaterialParamDataPair& NewColor)
+{
+	LoadoutColor = NewColor;
+	OnLoadoutColorChanged.Broadcast(LoadoutColor);
+}
+
 void AMAPlayerState::OnRep_DefaultSkill()
 {
+}
+
+void AMAPlayerState::OnRep_LoadoutColor()
+{
+	OnLoadoutColorChanged.Broadcast(LoadoutColor);
 }
 
 void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -17,4 +28,5 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
+	DOREPLIFETIME(AMAPlayerState, LoadoutColor);
 }

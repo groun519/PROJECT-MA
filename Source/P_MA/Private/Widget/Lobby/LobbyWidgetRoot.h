@@ -7,6 +7,7 @@
 #include "LobbyWidgetRoot.generated.h"
 
 class ULobbyReadyStartWidget;
+class ULoadoutWidget;
 class UButton;
 class UTextBlock;
 
@@ -24,4 +25,7 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> LoadoutButtonText;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<ULoadoutWidget> LoadoutWidget;
 };

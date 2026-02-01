@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LobbyPlayerController.generated.h"
 
 class UCameraComponent;
@@ -26,6 +27,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void ShowInviteUI();
+
+	void PreviewEyeColor(const FLinearColor& EyeColor);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lobby")
 	void ShowLobbyUI();
@@ -51,6 +54,11 @@ private:
 	void EnterLoadoutView();
 	void ExitLoadoutView();
 	void UpdateCameraTarget();
+	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
+	void CommitLoadoutColor();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
 
 	FTimerHandle LobbyUiTimerHandle;
 
@@ -79,4 +87,7 @@ private:
 	FTransform TargetCameraTransform;
 	float TargetFov = 0.0f;
 	bool bInLoadoutView = false;
+
+	FMaterialParamDataPair PendingLoadoutColor;
+	bool bHasPendingLoadoutColor = false;
 };

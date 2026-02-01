@@ -10,10 +10,12 @@
 #include "GameFramework/PlayerState.h"
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
+#include "Widget/Lobby/LoadoutWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "OnlineSubsystem.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
+#include "Player/MAPlayerState.h"
 
 void ALobbyPlayerController::BeginPlay()
 {
@@ -53,6 +55,11 @@ void ALobbyPlayerController::BeginPlay()
 				if (LobbyRootWidgetInstance->LoadoutButtonText)
 				{
 					LobbyRootWidgetInstance->LoadoutButtonText->SetText(FText::FromString(TEXT("Loadout")));
+				}
+
+				if (LobbyRootWidgetInstance->LoadoutWidget)
+				{
+					LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::Collapsed);
 				}
 			}
 		}
@@ -158,6 +165,21 @@ void ALobbyPlayerController::ShowInviteUI()
 	}
 }
 
+void ALobbyPlayerController::PreviewEyeColor(const FLinearColor& EyeColor)
+{
+	if (!bHasPendingLoadoutColor)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingLoadoutColor = PS->GetLoadoutColor();
+		}
+		bHasPendingLoadoutColor = true;
+	}
+
+	PendingLoadoutColor.EyeData.Color = EyeColor;
+	ApplyPreviewColor(PendingLoadoutColor);
+}
+
 void ALobbyPlayerController::HandleReadyStartClicked()
 {
 	const bool bIsHost = HasAuthority() && IsLocalController();
@@ -175,7 +197,10 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 					{
 						GI->StartSession();
 					}
-					UGameplayStatics::OpenLevel(this, FName(TEXT("/Game/_Maps/MainMap")), true, TEXT("listen"));
+					if (UWorld* World = GetWorld())
+					{
+						World->ServerTravel(TEXT("/Game/Map/MainMap?listen"));
+					}
 				}
 			}
 		}
@@ -261,10 +286,25 @@ void ALobbyPlayerController::EnterLoadoutView()
 	{
 		LobbyRootWidgetInstance->LoadoutButtonText->SetText(FText::FromString(TEXT("Save")));
 	}
+
+	if (!bHasPendingLoadoutColor)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingLoadoutColor = PS->GetLoadoutColor();
+			bHasPendingLoadoutColor = true;
+		}
+	}
+
+	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutWidget)
+	{
+		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+	}
 }
 
 void ALobbyPlayerController::ExitLoadoutView()
 {
+	CommitLoadoutColor();
 	bInLoadoutView = false;
 	UpdateCameraTarget();
 
@@ -288,6 +328,11 @@ void ALobbyPlayerController::ExitLoadoutView()
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutButtonText)
 	{
 		LobbyRootWidgetInstance->LoadoutButtonText->SetText(FText::FromString(TEXT("Loadout")));
+	}
+
+	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutWidget)
+	{
+		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -323,4 +368,44 @@ void ALobbyPlayerController::UpdateCameraTarget()
 	const FVector WorldLocation = SlotTransform.TransformPosition(LoadoutCameraOffset.GetLocation());
 	const FQuat WorldRotation = SlotTransform.GetRotation() * LoadoutCameraOffset.GetRotation();
 	TargetCameraTransform = FTransform(WorldRotation, WorldLocation, FVector::OneVector);
+}
+
+void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& ColorData)
+{
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->ApplyLoadoutColor(ColorData);
+		}
+	}
+}
+
+void ALobbyPlayerController::CommitLoadoutColor()
+{
+	if (!bHasPendingLoadoutColor)
+	{
+		return;
+	}
+
+	if (HasAuthority())
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PS->SetLoadoutColor(PendingLoadoutColor);
+		}
+	}
+	else
+	{
+		ServerSetLoadoutColor(PendingLoadoutColor);
+	}
+}
+
+void ALobbyPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutColor(ColorData);
+	}
 }
