@@ -18,6 +18,8 @@ bool AMonster::IsActive() const
 
 void AMonster::Activate()
 {
+	GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
+
 	bActiveInPool = true;
 
 	SetActorHiddenInGame(false);
@@ -85,5 +87,17 @@ void AMonster::OnRep_TeamID()
 
 void AMonster::OnDead()
 {
+	Super::OnDead();
+
 	OnMonsterDead.Broadcast();
+
+	if (HasAuthority())
+	{
+		GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
+		GetWorldTimerManager().SetTimer(
+			DisappearTimerHandle,
+			this, &AMonster::Deactivate,DisappearDelay,
+			false
+		);
+	}
 }

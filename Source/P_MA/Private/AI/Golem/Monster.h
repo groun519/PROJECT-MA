@@ -37,4 +37,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	FName GoalBlackboardKeyName = "Goal";
+
+	FTimerHandle DisappearTimerHandle;
+
+	UPROPERTY(EditDefaultsOnly, Category="Death")
+	float DisappearDelay = 3.f;
 };
