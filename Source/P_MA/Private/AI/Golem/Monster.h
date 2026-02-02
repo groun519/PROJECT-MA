@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/CoinDrop.h"
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
@@ -15,6 +16,8 @@ class AMonster : public AMACharacter
 	GENERATED_BODY()
 	
 public:
+	AMonster();
+	
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
 	FOnMonsterDead OnMonsterDead;
 
@@ -42,4 +45,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Death")
 	float DisappearDelay = 3.f;
+
+	UPROPERTY(VisibleAnywhere)
+	UCoinDrop* CoinDropComp;
 };

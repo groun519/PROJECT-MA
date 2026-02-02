@@ -6,6 +6,11 @@
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+AMonster::AMonster()
+{
+	CoinDropComp = CreateDefaultSubobject<UCoinDrop>(TEXT("CoinDropComp"));
+}
+
 void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
 {
 	Super::SetGenericTeamId(NewTeamId);
@@ -88,9 +93,13 @@ void AMonster::OnRep_TeamID()
 void AMonster::OnDead()
 {
 	Super::OnDead();
-
 	OnMonsterDead.Broadcast();
-
+	
+	if (CoinDropComp)
+	{
+		CoinDropComp->SpawnCoinFX();
+	}
+	
 	if (HasAuthority())
 	{
 		GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
