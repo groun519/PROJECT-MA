@@ -43,6 +43,11 @@ void UCoinDrop::SpawnCoinFX()
 void UCoinDrop::EnableAbsorb()
 {
 	bCanAbsorb = true;
+
+	if (ActiveCoinFX)
+	{
+		ActiveCoinFX->SetAutoDestroy(true);
+	}
 }
 
 void UCoinDrop::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -55,7 +60,7 @@ void UCoinDrop::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC || !PC->GetPawn()) return;
 
-	ActiveCoinFX->SetVectorParameter(
+	ActiveCoinFX->SetVariableVec3(
 		TEXT("User.TargetLocation"),
 		PC->GetPawn()->GetActorLocation()
 	);

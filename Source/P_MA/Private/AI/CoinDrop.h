@@ -18,7 +18,7 @@ public:
 	UNiagaraSystem* CoinAbsorbFX;
 
 	UPROPERTY(EditAnywhere, Category="FX")
-	float AbsorbDelay = 1.5f;
+	float AbsorbDelay = 1.5f;	
 
 	void SpawnCoinFX();
 
