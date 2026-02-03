@@ -200,7 +200,7 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 	const bool bIsHost = HasAuthority() && IsLocalController();
 	if (bIsHost)
 	{
-		if (ULobbyWidgetRoot* Root = LobbyRootWidgetInstance)
+		if (LobbyRootWidgetInstance)
 		{
 			if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
 			{
@@ -214,7 +214,7 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 					}
 					if (UWorld* World = GetWorld())
 					{
-						World->ServerTravel(TEXT("/Game/Map/MainMap?listen"));
+						World->ServerTravel(TEXT("/Game/_Map/MainMap?listen"));
 					}
 				}
 			}
@@ -295,6 +295,8 @@ void ALobbyPlayerController::EnterLoadoutView()
 				Slots[Index]->SetLocalHidden(Index != MySlotIndex);
 			}
 		}
+
+		ServerSetLobbyState(ELobbyAvatarState::Loadout);
 	}
 
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutButtonText)
@@ -338,6 +340,14 @@ void ALobbyPlayerController::ExitLoadoutView()
 				Slot->SetLocalHidden(false);
 			}
 		}
+
+		const bool bIsReady = LGS->IsPlayerReady(GetPlayerState<APlayerState>());
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->SetLobbyState(bIsReady ? ELobbyAvatarState::Ready : ELobbyAvatarState::Wait);
+		}
+		ServerSetLobbyState(bIsReady ? ELobbyAvatarState::Ready : ELobbyAvatarState::Wait);
 	}
 
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutButtonText)
@@ -422,5 +432,13 @@ void ALobbyPlayerController::ServerSetLoadoutColor_Implementation(const FMateria
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutColor(ColorData);
+	}
+}
+
+void ALobbyPlayerController::ServerSetLobbyState_Implementation(ELobbyAvatarState NewState)
+{
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		LGS->SetPlayerLobbyState(GetPlayerState<APlayerState>(), NewState);
 	}
 }

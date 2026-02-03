@@ -9,7 +9,9 @@
 #include "LobbyGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarNameWidget.h"
+#include "Widget/Lobby/Avatar/LobbyAvatarReadyWidget.h"
 #include "Widget/Lobby/LobbyInviteWidget.h"
+#include "LobbyAvatarAnimInstance.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -46,6 +48,12 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 	NameWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	NameWidget->SetDrawSize(FVector2D(300.f, 50.f));
 
+	/** Ready Widget **/
+	ReadyWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("ReadyWidget"));
+	ReadyWidget->SetupAttachment(Root);
+	ReadyWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	ReadyWidget->SetDrawSize(FVector2D(200.f, 50.f));
+
 	/** Invite Widget **/
 	InviteWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InviteWidget"));
 	InviteWidget->SetupAttachment(Root);
@@ -55,6 +63,7 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 	AvatarMesh->SetVisibility(false, true);
 	WeaponMesh->SetVisibility(false, true);
 	NameWidget->SetVisibility(false, true);
+	ReadyWidget->SetVisibility(false, true);
 	InviteWidget->SetVisibility(false, true);
 }
 
@@ -80,6 +89,14 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 	}
 
 	Occupant = NewPlayerState;
+	if (AActor* NewOwner = Occupant ? Occupant->GetOwner() : nullptr)
+	{
+		SetOwner(NewOwner);
+	}
+	else if (!Occupant)
+	{
+		SetOwner(nullptr);
+	}
 	if (NameWidget)
 	{
 		if (NameWidgetClass)
@@ -92,6 +109,14 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 			NameUI->SetNameText(NewText);
 		}
 		NameWidget->SetVisibility(Occupant != nullptr, true);
+	}
+	if (ReadyWidget)
+	{
+		if (ReadyWidgetClass)
+		{
+			ReadyWidget->SetWidgetClass(ReadyWidgetClass);
+		}
+		ReadyWidget->SetVisibility(Occupant != nullptr, true);
 	}
 	if (InviteWidget)
 	{
@@ -126,18 +151,7 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 
 void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
 {
-	const bool bVisible = !bHide;
-	if (!bVisible)
-	{
-		if (AvatarMesh) { AvatarMesh->SetVisibility(false, true); }
-		if (WeaponMesh) { WeaponMesh->SetVisibility(false, true); }
-		if (NameWidget) { NameWidget->SetVisibility(false, true); }
-		if (InviteWidget) { InviteWidget->SetVisibility(false, true); }
-		if (AvatarSpotLight) { AvatarSpotLight->SetVisibility(false, true); }
-		return;
-	}
-
-	SetOccupant(Occupant);
+	SetActorHiddenInGame(bHide);
 }
 
 void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
@@ -160,4 +174,41 @@ void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData
 	AvatarDynMat->SetScalarParameterValue("Body_Emissive", ColorData.BodyData.Emissive);
 	AvatarDynMat->SetVectorParameterValue("Eye_Color", ColorData.EyeData.Color);
 	AvatarDynMat->SetScalarParameterValue("Eye_Emissive", ColorData.EyeData.Emissive);
+}
+
+void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)
+{
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetOnlyOwnerSee(bEnable);
+	}
+}
+
+void ALobbyAvatarSlot::SetLobbyState(ELobbyAvatarState State)
+{
+	if (!ReadyWidget || !Occupant)
+	{
+		return;
+	}
+
+	if (ULobbyAvatarReadyWidget* ReadyUI = Cast<ULobbyAvatarReadyWidget>(ReadyWidget->GetUserWidgetObject()))
+	{
+		ReadyUI->SetLobbyState(State);
+	}
+
+	if (AvatarMesh)
+	{
+		if (ULobbyAvatarAnimInstance* LobbyAnim = Cast<ULobbyAvatarAnimInstance>(AvatarMesh->GetAnimInstance()))
+		{
+			LobbyAnim->SetLobbyState(State);
+		}
+	}
+
+	if (AvatarSpotLight)
+	{
+		const FLinearColor LightColor = (State == ELobbyAvatarState::Ready)
+			? FLinearColor(0.1f, 0.9f, 0.1f, 1.0f)
+			: FLinearColor::White;
+		AvatarSpotLight->SetLightColor(LightColor);
+	}
 }

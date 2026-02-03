@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "LobbyAvatarState.h"
 #include "LobbyGameState.generated.h"
 
 class ALobbyAvatarSlot;
@@ -35,6 +36,8 @@ public:
 	void AssignSlotToPlayer(AMAPlayerState* PlayerState);
 	void RemovePlayerFromSlot(AMAPlayerState* PlayerState);
 	void SetPlayerReady(APlayerState* PlayerState, bool bReady);
+	void SetPlayerLobbyState(APlayerState* PlayerState, ELobbyAvatarState NewState);
+	void RefreshPlayerLobbyState(APlayerState* PlayerState);
 	bool IsPlayerReady(const APlayerState* PlayerState) const;
 	int32 GetSlotIndex(const APlayerState* PlayerState) const;
 	ALobbyAvatarSlot* GetAvatarSlot(int32 Index) const;
@@ -51,8 +54,17 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_LobbySlots)
 	TArray<FPlayerLobbySlot> LobbySlots;
 
+	UPROPERTY(ReplicatedUsing = OnRep_LobbyStates)
+	TArray<ELobbyAvatarState> LobbyStates;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<APlayerState>> LobbySlotPlayersCache;
+
 	UFUNCTION()
 	void OnRep_LobbySlots();
+
+	UFUNCTION()
+	void OnRep_LobbyStates();
 
 	void ApplyLobbySlotsToAvatars();
 };

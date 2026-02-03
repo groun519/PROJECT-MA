@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "LobbyAvatarState.h"
 #include "Player/Loadout/LoadoutColorTypes.h"
 #include "LobbyAvatarSlot.generated.h"
 
@@ -12,6 +13,8 @@ class USpotLightComponent;
 class UWidgetComponent;
 class AMAPlayerState;
 class UMaterialInstanceDynamic;
+class ULobbyAvatarReadyWidget;
+class ULobbyAvatarAnimInstance;
 
 UCLASS()
 class P_MA_API ALobbyAvatarSlot : public AActor
@@ -28,6 +31,8 @@ public:
 	void SetOccupant(AMAPlayerState* NewPlayerState);
 	void SetLocalHidden(bool bHide);
 	void ApplyLoadoutColor(const FMaterialParamDataPair& ColorData);
+	void SetLobbyState(ELobbyAvatarState State);
+	void SetWeaponOnlyOwnerSee(bool bEnable);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -50,6 +55,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Lobby")
 	TSubclassOf<class ULobbyAvatarNameWidget> NameWidgetClass;
+
+	UPROPERTY(VisibleAnywhere)
+	UWidgetComponent* ReadyWidget = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Lobby")
+	TSubclassOf<ULobbyAvatarReadyWidget> ReadyWidgetClass;
 
 	UPROPERTY(VisibleAnywhere)
 	UWidgetComponent* InviteWidget = nullptr;

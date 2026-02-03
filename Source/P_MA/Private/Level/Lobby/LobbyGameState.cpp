@@ -30,6 +30,10 @@ void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 	{
 		LobbySlots.SetNum(SlotCount);
 	}
+	if (LobbyStates.Num() != SlotCount)
+	{
+		LobbyStates.SetNum(SlotCount);
+	}
 
 	for (int32 Index = 0; Index < SlotCount; ++Index)
 	{
@@ -37,9 +41,11 @@ void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 		{
 			LobbySlots[Index].PlayerState = PlayerState;
 			LobbySlots[Index].bReady = false;
+			LobbyStates[Index] = ELobbyAvatarState::Wait;
 			if (AvatarSlots[Index])
 			{
 				AvatarSlots[Index]->SetOccupant(PlayerState);
+				AvatarSlots[Index]->SetLobbyState(ELobbyAvatarState::Wait);
 			}
 			if (APlayerController* PC = Cast<APlayerController>(PlayerState->GetOwner()))
 			{
@@ -63,9 +69,14 @@ void ALobbyGameState::RemovePlayerFromSlot(AMAPlayerState* PlayerState)
 		{
 			LobbySlots[Index].PlayerState = nullptr;
 			LobbySlots[Index].bReady = false;
+			if (LobbyStates.IsValidIndex(Index))
+			{
+				LobbyStates[Index] = ELobbyAvatarState::Wait;
+			}
 			if (AvatarSlots.IsValidIndex(Index) && AvatarSlots[Index])
 			{
 				AvatarSlots[Index]->SetOccupant(nullptr);
+				AvatarSlots[Index]->SetLobbyState(ELobbyAvatarState::Wait);
 			}
 			ApplyLobbySlotsToAvatars();
 			return;
@@ -76,11 +87,62 @@ void ALobbyGameState::RemovePlayerFromSlot(AMAPlayerState* PlayerState)
 void ALobbyGameState::SetPlayerReady(APlayerState* PlayerState, bool bReady)
 {
 	if (!PlayerState) return;
-	for (FPlayerLobbySlot& Slot : LobbySlots)
+	for (int32 Index = 0; Index < LobbySlots.Num(); ++Index)
 	{
+		FPlayerLobbySlot& Slot = LobbySlots[Index];
 		if (Slot.PlayerState == PlayerState)
 		{
 			Slot.bReady = bReady;
+			if (LobbyStates.IsValidIndex(Index) && LobbyStates[Index] != ELobbyAvatarState::Loadout)
+			{
+				LobbyStates[Index] = bReady ? ELobbyAvatarState::Ready : ELobbyAvatarState::Wait;
+			}
+			if (AvatarSlots.IsValidIndex(Index) && AvatarSlots[Index])
+			{
+				AvatarSlots[Index]->SetLobbyState(LobbyStates.IsValidIndex(Index) ? LobbyStates[Index] : ELobbyAvatarState::Wait);
+			}
+			return;
+		}
+	}
+}
+
+void ALobbyGameState::SetPlayerLobbyState(APlayerState* PlayerState, ELobbyAvatarState NewState)
+{
+	if (!PlayerState) return;
+	for (int32 Index = 0; Index < LobbySlots.Num(); ++Index)
+	{
+		FPlayerLobbySlot& Slot = LobbySlots[Index];
+		if (Slot.PlayerState == PlayerState)
+		{
+			if (LobbyStates.IsValidIndex(Index))
+			{
+				LobbyStates[Index] = NewState;
+			}
+			if (AvatarSlots.IsValidIndex(Index) && AvatarSlots[Index])
+			{
+				AvatarSlots[Index]->SetLobbyState(NewState);
+			}
+			return;
+		}
+	}
+}
+
+void ALobbyGameState::RefreshPlayerLobbyState(APlayerState* PlayerState)
+{
+	if (!PlayerState) return;
+	for (int32 Index = 0; Index < LobbySlots.Num(); ++Index)
+	{
+		FPlayerLobbySlot& Slot = LobbySlots[Index];
+		if (Slot.PlayerState == PlayerState)
+		{
+			if (LobbyStates.IsValidIndex(Index))
+			{
+				LobbyStates[Index] = Slot.bReady ? ELobbyAvatarState::Ready : ELobbyAvatarState::Wait;
+			}
+			if (AvatarSlots.IsValidIndex(Index) && AvatarSlots[Index])
+			{
+				AvatarSlots[Index]->SetLobbyState(LobbyStates.IsValidIndex(Index) ? LobbyStates[Index] : ELobbyAvatarState::Wait);
+			}
 			return;
 		}
 	}
@@ -141,15 +203,41 @@ void ALobbyGameState::OnRep_LobbySlots()
 	ApplyLobbySlotsToAvatars();
 }
 
+void ALobbyGameState::OnRep_LobbyStates()
+{
+	const int32 SlotCount = FMath::Min(LobbyStates.Num(), AvatarSlots.Num());
+	for (int32 Index = 0; Index < SlotCount; ++Index)
+	{
+		if (AvatarSlots[Index])
+		{
+			AvatarSlots[Index]->SetLobbyState(LobbyStates[Index]);
+		}
+	}
+}
+
 void ALobbyGameState::ApplyLobbySlotsToAvatars()
 {
 	const int32 SlotCount = FMath::Min(LobbySlots.Num(), AvatarSlots.Num());
+	if (LobbySlotPlayersCache.Num() != SlotCount)
+	{
+		LobbySlotPlayersCache.SetNum(SlotCount);
+	}
 	for (int32 Index = 0; Index < SlotCount; ++Index)
 	{
 		if (AvatarSlots[Index])
 		{
 			AMAPlayerState* PS = Cast<AMAPlayerState>(LobbySlots[Index].PlayerState.Get());
-			AvatarSlots[Index]->SetOccupant(PS);
+			const TWeakObjectPtr<APlayerState> PreviousPS = LobbySlotPlayersCache[Index];
+			if (PreviousPS.Get() != PS)
+			{
+				AvatarSlots[Index]->SetOccupant(PS);
+				LobbySlotPlayersCache[Index] = PS;
+			}
+
+			if (LobbyStates.IsValidIndex(Index))
+			{
+				AvatarSlots[Index]->SetLobbyState(LobbyStates[Index]);
+			}
 		}
 	}
 }
@@ -159,4 +247,5 @@ void ALobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ALobbyGameState, LobbySlots);
+	DOREPLIFETIME(ALobbyGameState, LobbyStates);
 }

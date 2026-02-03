@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "Player/Loadout/LoadoutColorTypes.h"
+#include "LobbyAvatarState.h"
 #include "LobbyPlayerController.generated.h"
 
 class UCameraComponent;
@@ -60,6 +61,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLobbyState(ELobbyAvatarState NewState);
 
 	FTimerHandle LobbyUiTimerHandle;
 
