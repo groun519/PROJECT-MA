@@ -249,18 +249,6 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 			SpawnedRangeActor->SetMaxDistance(TargetConfig->MaxDistance);
 		}
 	}
-
-	/*
-	//타겟 액터 소환
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = Avatar;
-	SpawnParams.Instigator = Cast<APawn>(Avatar);
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	
-	CurrentTargetActor = GetWorld()->SpawnActor<AGameplayAbilityTargetActor>(TargetConfig->TargetActorClass, Avatar->GetActorTransform(), SpawnParams);
-	if (!CurrentTargetActor)
-		return;
-	*/
 	
 	if (TargetConfig->TargetActorClass->IsChildOf(AMATargetActor_ChargeAtFwd::StaticClass()))
 	{
@@ -296,33 +284,6 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 			CurrentTargetActor = SpawnedActor;
 		}
 	}
-	
-	/*
-	//사각형 차징 타겟 액터인 경우
-	if (AMATargetActor_ChargeAtFwd* FwdActor = Cast<AMATargetActor_ChargeAtFwd>(CurrentTargetActor))
-	{
-		FwdActor->AttachToActor(Avatar, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		FwdActor->StartTargeting(OwnerSkill);
-		FwdActor->Initialize(TargetConfig->MaxDistance,TargetConfig->MinDistance,TargetConfig->SkillWidth,TargetConfig->DecalDepth,CachedMaxChargeDuration);
-	}
-	//원형 차징 타겟 액터인 경우
-	else if (AMATargetActor_ChargeAtTarget* TargetActor = Cast<AMATargetActor_ChargeAtTarget>(CurrentTargetActor))
-	{
-		WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwnerSkill,NAME_None,EGameplayTargetingConfirmation::Custom,TargetConfig->TargetActorClass);
-		WaitTargetDataTask->ValidData.AddDynamic(this, &USkillModule_Charge::OnTargetDataReady);
-		WaitTargetDataTask->Cancelled.AddDynamic(this, &USkillModule_Charge::OnTargetDataCancelled);
-		WaitTargetDataTask->ReadyForActivation();
-
-		AGameplayAbilityTargetActor* SpawnedActor = nullptr;
-		if (WaitTargetDataTask->BeginSpawningActor(OwnerSkill, TargetConfig->TargetActorClass, SpawnedActor))
-		{
-			CurrentTargetActor = SpawnedActor;
-			TargetActor->StartTargeting(OwnerSkill);
-			TargetActor->Initialize(TargetConfig->MaxDistance,TargetConfig->MaxSize,TargetConfig->MinSize,CachedMaxChargeDuration);
-		}
-		WaitTargetDataTask->FinishSpawningActor(OwnerSkill,SpawnedActor);
-	}
-	*/
 }
 
 void USkillModule_Charge::FinishTargetingTask()
@@ -377,22 +338,16 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 	{
 		if (UAnimMontage* Montage = OwnerSkill->GetCurrentMontage())
 		{
-			// 속도 복구
 			OwnerSkill->Montage_SetPlayRate(Montage, 1.0f);
 
-			// Cast 섹션 길이 가져오기
 			int32 SectionIndex = Montage->GetSectionIndex(FName("Cast"));
 			if (SectionIndex != INDEX_NONE)
 			{
 				CastSectionLength = Montage->GetSectionLength(SectionIndex);
 			}
 		}
-		// 섹션 점프
 		OwnerSkill->Montage_SetSection(FName("Cast"));
 	}
-	
-	// [수정 2] Instant와 동일하게 WaitDelay로 종료 보장
-	// (단, -0.2f는 노티파이가 씹힐 위험이 있으니 0.0f나 -0.05f 정도로 안전하게 잡는 것을 추천)
 	UAbilityTask_WaitDelay* FinishTimer = UAbilityTask_WaitDelay::WaitDelay(OwnerSkill, CastSectionLength);
 	FinishTimer->OnFinish.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);
 	FinishTimer->ReadyForActivation();

@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
+class UNiagaraSystem;
 class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
@@ -26,6 +27,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UNiagaraComponent> Niagara;
 
+	void SetGameplayCueTag(FGameplayTag Tag);
+	void SetProjectileVFX(UNiagaraSystem* NewVFX);
 protected:
 	virtual void BeginPlay() override;
 	
@@ -36,7 +39,8 @@ protected:
 	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
-	
+
+	void SendLocalGameplayCue(const FHitResult& HitResult);
 public:	
 	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false);
 
@@ -46,4 +50,7 @@ private:
 	float ExplodeRadius;
 
 	bool bIsPenetrating = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Tag", meta=(Categories="GameplayCue"))
+	FGameplayTag HitGameplayCueTag;
 };

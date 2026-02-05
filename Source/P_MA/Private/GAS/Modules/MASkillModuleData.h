@@ -11,6 +11,8 @@
 #include "StructUtils/Public/InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
+class UMAProjectileSkinData;
+class UNiagaraSystem;
 class UMASkillVFXSet;
 class UMAGameplayAbility_Skill;
 class UGameplayEffect;
@@ -127,6 +129,9 @@ struct FModuleElementalData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Elemental"))
+	FGameplayTag ElementalTag;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> AdditionalEffect;
 
@@ -179,7 +184,7 @@ struct FActionConfig_Projectile : public FSkillActionConfig
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> ProjectileClass;
+	TObjectPtr<UMAProjectileSkinData> SkinData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
@@ -209,9 +214,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AMAProjectile> ProjectileClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMAAbilityRangeActor> RangeActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMAProjectileSkinData> SkinData;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;

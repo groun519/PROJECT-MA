@@ -11,6 +11,7 @@
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
+#include "GAS/Projectile/MAProjectileSkinData.h"
 #include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "GAS/Setting/MASkillSubsystem.h"
 #include "ProfilingDebugging/CookStats.h"
@@ -268,13 +269,23 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Projectile* ProjectileConfig = SkillData.ActionData.GetPtr<FActionConfig_Projectile>();
-	if (!ProjectileConfig || !ProjectileConfig->ProjectileClass)
+	if (!ProjectileConfig || !ProjectileConfig->SkinData)
 		return;
 
 	AActor* AvatarActor = GetAvatarActorFromActorInfo();
 	if (!AvatarActor)
 		return;
 
+	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
+	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CurrentElement);
+
+	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
+	FGameplayTag CueTag = FinalSkin.HitCueTag;
+
+	if (!ClassToSpawn)
+		return;
+	
 	FVector AvatarLoc = AvatarActor->GetActorLocation();
 	FRotator AvatarRotator = AvatarActor->GetActorRotation();
 	int32 Num = FMath::Max(1, ProjectileConfig->NumOfProjectiles);
@@ -303,8 +314,17 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
+
 		
-		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier, ProjectileConfig->ExplodeRadius, ProjectileConfig->bIsPenetrating);
+		AActor* SpawnedActor = SpawnProjectileActor(ClassToSpawn,SpawnLoc, SpawnRot, FinalDamageMultiplier, ProjectileConfig->ExplodeRadius, ProjectileConfig->bIsPenetrating);
+		if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
+		{
+			if (VFX)
+			{
+				Proj->SetProjectileVFX(VFX);
+			}
+			Proj->SetGameplayCueTag(CueTag);
+		}
 	}
 }
 
@@ -316,7 +336,17 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
 
-	if (!TargetConfig || !TargetConfig->ProjectileClass)
+	if (!TargetConfig || !TargetConfig->SkinData)
+		return;
+
+	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
+	FProjectileSkinInfo FinalSkin = TargetConfig->SkinData->GetSkinForTag(CurrentElement);
+
+	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
+	FGameplayTag CueTag = FinalSkin.HitCueTag;
+
+	if (!ClassToSpawn)
 		return;
 
 	FVector TargetLoc = FVector::ZeroVector;
@@ -364,32 +394,6 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
 		}
 	}
-		/*
-		const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(0);
-		if (Data)
-		{
-			const FHitResult* Hit = Data->GetHitResult();
-			if (Hit)
-			{
-				TargetLoc = Hit->ImpactPoint;
-				if (Hit->Distance >0.f)
-				{
-					FinalExplodeRadius = Hit->Distance;
-				}
-			}
-			else
-			{
-				TargetLoc = Data->GetEndPoint();
-			}
-		}
-	}
-	else
-	{
-		if (AActor* Avatar = GetAvatarActorFromActorInfo())
-		{
-			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
-		}
-	}*/
 
 	int32 Num = FMath::Max(1, TargetConfig->NumOfProjectiles);
 	float FinalDamageMultiplier = DamageMultiplier * TargetConfig->DamageMultiplierPerProjectile;
@@ -406,7 +410,15 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		}
 		if (K2_HasAuthority())
 		{
-			SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, FinalDamageMultiplier,FinalExplodeRadius);
+			AActor* SpawnedActor =SpawnProjectileActor(ClassToSpawn, SpawnLoc, SpawnRot, FinalDamageMultiplier,FinalExplodeRadius);
+			if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
+			{
+				if (VFX)
+				{
+					Proj->SetProjectileVFX(VFX);
+				}
+				Proj->SetGameplayCueTag(CueTag);
+			}
 		}
 	}
 }

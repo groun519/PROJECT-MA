@@ -31,6 +31,23 @@ AMAProjectile::AMAProjectile()
 }
 
 
+void AMAProjectile::SetGameplayCueTag(FGameplayTag Tag)
+{
+	if (Tag.IsValid())
+	{
+		HitGameplayCueTag = Tag;
+	}
+}
+
+void AMAProjectile::SetProjectileVFX(UNiagaraSystem* NewVFX)
+{
+	if (NewVFX && Niagara)
+	{
+		Niagara->SetAsset(NewVFX);
+		Niagara->ResetSystem();
+	}
+}
+
 void AMAProjectile::BeginPlay()
 {
 	Super::BeginPlay();
@@ -69,6 +86,16 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 			}
 		}
 	}
+	if (HitGameplayCueTag.IsValid())
+	{
+		FHitResult FinalHit = SweepResult;
+		if (!FinalHit.bBlockingHit)
+		{
+			FinalHit.ImpactPoint = GetActorLocation();
+			FinalHit.ImpactNormal = GetActorForwardVector() * -1.f;
+		}
+		SendLocalGameplayCue(FinalHit);
+	}
 	
 	if (!bIsPenetrating)
 	{
@@ -81,6 +108,11 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
 
+	if (HitGameplayCueTag.IsValid())
+	{
+		SendLocalGameplayCue(Hit);
+	}
+		
 	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
 	if (!SourceASC)
 		return;
@@ -109,6 +141,19 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		}
 	}
 	Destroy();
+}
+
+void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
+{
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
+	if (SourceASC)
+	{
+		FGameplayCueParameters CueParams;
+		CueParams.Location=HitResult.ImpactPoint;
+		CueParams.Normal = HitResult.ImpactNormal;
+
+		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
+	}
 }
 
 void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrating)

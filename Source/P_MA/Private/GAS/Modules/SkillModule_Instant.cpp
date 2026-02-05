@@ -113,7 +113,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 
 	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
-	if (!TargetConfig || !TargetConfig->TargetActorClass || !TargetConfig->ProjectileClass)
+	if (!TargetConfig || !TargetConfig->TargetActorClass || !TargetConfig->SkinData)
 	{
 		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 		return;
