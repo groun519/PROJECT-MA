@@ -117,7 +117,7 @@ void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 	
 	if (UAnimMontage* Montage = OwnerSkill->GetCurrentMontage())
 	{
-		OwnerSkill->Montage_SetPlayRate(Montage, 0.001f);
+		OwnerSkill->Montage_SetPlayRate(Montage, 0.004f);
 	}
 	
 	FinalChargedDuration = 0.f;
