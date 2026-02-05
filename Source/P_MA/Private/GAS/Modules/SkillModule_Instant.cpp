@@ -22,8 +22,8 @@ void USkillModule_Instant::OnAbilityActivated()
 	CachedTargetData = FGameplayAbilityTargetDataHandle();
 	
 	StartMontageTask();
-
-	//즉발 근저저로직
+	
+	//즉발 근접 로직
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.Damage"));

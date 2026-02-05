@@ -545,3 +545,14 @@ void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* 
 		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
 	}
 }
+
+void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage, FName SectionName)
+{
+	if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
+	{
+		if (Montage && AnimInst->Montage_IsPlaying(Montage))
+		{
+			AnimInst->Montage_JumpToSection(SectionName, Montage);
+		}
+	}
+}

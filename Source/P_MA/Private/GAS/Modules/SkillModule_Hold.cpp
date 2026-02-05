@@ -2,6 +2,9 @@
 
 
 #include "GAS/Modules/SkillModule_Hold.h"
+
+#include "AbilitySystemComponent.h"
+#include "Character/MACharacter.h"
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 #include "GAS/Modules/MASkillModuleData.h"
 
@@ -32,6 +35,11 @@ void USkillModule_Hold::OnAbilityActivated()
 	StartWaitInputReleaseTask();
 	StartMaxHoldDelayTask();
 
+	if (UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance())
+	{
+		AnimInst->Montage_SetNextSection(FName("Default"), FName("LoopStart"),SkillData.SkillMontage);
+	}
+	
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
 		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
@@ -104,9 +112,18 @@ void USkillModule_Hold::StartWaitJumpSectionEventTask()
 
 void USkillModule_Hold::OnJumpSectionEventReceived(FGameplayEventData Payload)
 {
-	if (OwnerSkill)
+	if (!OwnerSkill)	return;
+
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
+	AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
+	AMACharacter* Character = Cast<AMACharacter>(Avatar);
+
+	if (Character)
 	{
-		OwnerSkill -> Montage_SetSection(FName("LoopStart"));
+		if (Character->HasAuthority())
+		{
+			Character->Multicast_JumpToSection(SkillData.SkillMontage,FName("LoopStart"));
+		}
 	}
 }
 
@@ -122,10 +139,21 @@ void USkillModule_Hold::StartWaitInputReleaseTask()
 void USkillModule_Hold::OnInputRelease(float TimeHeld)
 {
 	if (!bIsHolding)	return;
+	
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 
-	if (OwnerSkill)
-		OwnerSkill -> Montage_SetSection(FName("LoopEnd"));
-
+	UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance();
+	UAnimMontage* Montage = SkillData.SkillMontage;
+	if (AnimInst && Montage)
+	{
+		int32 SectionIndex = Montage->GetSectionIndex("LoopEnd");
+		if (SectionIndex != INDEX_NONE)
+		{
+			float SectionStartTime = Montage->GetAnimCompositeSection(SectionIndex).GetTime();
+			AnimInst->Montage_Play(Montage,1.f,EMontagePlayReturnType::MontageLength,SectionStartTime);
+		}
+	}
+	
 	bIsHolding = false;
 	if (MaxHoldTask)
 			MaxHoldTask->EndTask();
@@ -144,8 +172,21 @@ void USkillModule_Hold::OnMaxHold()
 {
 	if (!bIsHolding)	return;
 
-	if (OwnerSkill)
-		OwnerSkill -> Montage_SetSection(FName("LoopEnd"));
+	//if (OwnerSkill)
+	//	OwnerSkill -> Montage_SetSection(FName("LoopEnd"));
+	const FSkillData& SkillData = OwnerSkill->GetSkillData();
+
+	UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance();
+	UAnimMontage* Montage = SkillData.SkillMontage;
+	if (AnimInst && Montage)
+	{
+		int32 SectionIndex = Montage->GetSectionIndex("LoopEnd");
+		if (SectionIndex != INDEX_NONE)
+		{
+			float SectionStartTime = Montage->GetAnimCompositeSection(SectionIndex).GetTime();
+			AnimInst->Montage_Play(Montage,1.f,EMontagePlayReturnType::MontageLength,SectionStartTime);
+		}
+	}
 
 	bIsHolding = false;
 	if (InputReleaseTask)
