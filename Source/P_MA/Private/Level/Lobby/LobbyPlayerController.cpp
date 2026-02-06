@@ -214,6 +214,14 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 					}
 					if (UWorld* World = GetWorld())
 					{
+						UE_LOG(LogTemp, Warning, TEXT("Lobby: Host starting ServerTravel to /Game/_Map/MainMap?listen"));
+						for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+						{
+							if (ALobbyPlayerController* PC = Cast<ALobbyPlayerController>(It->Get()))
+							{
+								PC->ClientStartLoadingScreen();
+							}
+						}
 						World->ServerTravel(TEXT("/Game/_Map/MainMap?listen"));
 					}
 				}
@@ -226,6 +234,14 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 	{
 		const bool bIsReady = LGS->IsPlayerReady(GetPlayerState<APlayerState>());
 		SetReady(!bIsReady);
+	}
+}
+
+void ALobbyPlayerController::ClientStartLoadingScreen_Implementation()
+{
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		GI->StartLoadingScreen();
 	}
 }
 

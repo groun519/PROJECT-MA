@@ -9,6 +9,8 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Net/UnrealNetwork.h"
+#include "Player/MAPlayerState.h"
+#include "Framework/MAGameInstance.h"
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
@@ -30,6 +32,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
+
+	ServerNotifyLoaded();
 	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
@@ -179,5 +183,13 @@ void AMAPlayerController::ToggleSkillBook()
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+	}
+}
+
+void AMAPlayerController::ServerNotifyLoaded_Implementation()
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadingComplete(true);
 	}
 }

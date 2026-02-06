@@ -65,6 +65,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerSetLobbyState(ELobbyAvatarState NewState);
 
+	UFUNCTION(Client, Reliable)
+	void ClientStartLoadingScreen();
+
 	FTimerHandle LobbyUiTimerHandle;
 
 	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")

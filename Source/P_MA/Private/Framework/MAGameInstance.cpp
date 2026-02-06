@@ -5,10 +5,18 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSessionSettings.h"
 #include "Kismet/GameplayStatics.h"
+#include "MoviePlayer.h"
+#include "Widget/Loading/LoadingScreenWidget.h"
+#include "Widget/Loading/LoadingScreenSlate.h"
+#include "GameFramework/GameStateBase.h"
+#include "Player/MAPlayerState.h"
 
 void UMAGameInstance::Init()
 {
 	Super::Init();
+
+	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UMAGameInstance::HandlePostLoadMapWithWorld);
 
 	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
 	{
@@ -20,6 +28,23 @@ void UMAGameInstance::Init()
 			);
 		}
 	}
+}
+
+void UMAGameInstance::Shutdown()
+{
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
+	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
+	if (LoadingStatusFrameHandle.IsValid())
+	{
+		FCoreDelegates::OnBeginFrame.Remove(LoadingStatusFrameHandle);
+		LoadingStatusFrameHandle.Reset();
+	}
+	if (MoviePlayerTickHandle.IsValid())
+	{
+		GetMoviePlayer()->OnMoviePlaybackTick().Remove(MoviePlayerTickHandle);
+		MoviePlayerTickHandle.Reset();
+	}
+	Super::Shutdown();
 }
 
 void UMAGameInstance::HostSession(int32 MaxPlayers, bool bIsLAN)
@@ -68,6 +93,329 @@ void UMAGameInstance::DestroySession()
 		FOnDestroySessionCompleteDelegate::CreateUObject(this, &UMAGameInstance::HandleDestroySessionComplete)
 	);
 	SessionInterface->DestroySession(NAME_GameSession);
+}
+
+void UMAGameInstance::StartLoadingScreen()
+{
+	if (bLoadingScreenActive)
+	{
+		return;
+	}
+	if (!bUseSlateLoadingScreen && !LoadingScreenWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Widget class missing."));
+		return;
+	}
+
+	LoadingScreenWidgetInstance = nullptr;
+	LoadingScreenSlateWidget.Reset();
+
+	if (bUseSlateLoadingScreen)
+	{
+		LoadingScreenSlateWidget = SNew(SLoadingScreenRoot)
+			.GameInstance(this);
+	}
+	else
+	{
+		LoadingScreenWidgetInstance = CreateWidget<ULoadingScreenWidget>(this, LoadingScreenWidgetClass);
+		if (!LoadingScreenWidgetInstance)
+		{
+			UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Failed to create widget instance."));
+			return;
+		}
+		LoadingScreenSlateWidget = LoadingScreenWidgetInstance->TakeWidget();
+	}
+
+	LoadingScreenStartTime = FPlatformTime::Seconds();
+	bLoadingScreenActive = true;
+	LoadingStatusLastUpdateSeconds = FPlatformTime::Seconds();
+
+	FLoadingScreenAttributes LoadingScreen;
+	LoadingScreen.MinimumLoadingScreenDisplayTime = 0.0f;
+	LoadingScreen.bAutoCompleteWhenLoadingCompletes = bAutoCompleteLoadingScreen;
+	LoadingScreen.bWaitForManualStop = !bAutoCompleteLoadingScreen;
+	LoadingScreen.bAllowEngineTick = true;
+	LoadingScreen.WidgetLoadingScreen = LoadingScreenSlateWidget;
+	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+	GetMoviePlayer()->PlayMovie();
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
+	}
+	if (!LoadingStatusFrameHandle.IsValid())
+	{
+		LoadingStatusFrameHandle = FCoreDelegates::OnBeginFrame.AddUObject(
+			this,
+			&UMAGameInstance::HandleBeginFrame
+		);
+	}
+	if (!MoviePlayerTickHandle.IsValid())
+	{
+		MoviePlayerTickHandle = GetMoviePlayer()->OnMoviePlaybackTick().AddUObject(
+			this,
+			&UMAGameInstance::HandleMoviePlayerTick
+		);
+	}
+	UpdateLoadingStatus();
+}
+
+void UMAGameInstance::StopLoadingScreen()
+{
+	if (!bLoadingScreenActive)
+	{
+		return;
+	}
+
+	bLoadingScreenActive = false;
+	GetMoviePlayer()->StopMovie();
+	LoadingScreenSlateWidget.Reset();
+	LoadingScreenWidgetInstance = nullptr;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
+	}
+	if (LoadingStatusFrameHandle.IsValid())
+	{
+		FCoreDelegates::OnBeginFrame.Remove(LoadingStatusFrameHandle);
+		LoadingStatusFrameHandle.Reset();
+	}
+	if (MoviePlayerTickHandle.IsValid())
+	{
+		GetMoviePlayer()->OnMoviePlaybackTick().Remove(MoviePlayerTickHandle);
+		MoviePlayerTickHandle.Reset();
+	}
+}
+
+void UMAGameInstance::HandlePreLoadMap(const FString& MapName)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
+	}
+}
+
+float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
+{
+	OutPercent = 0;
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.0f;
+	}
+
+	const AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	if (!GS)
+	{
+		return 0.0f;
+	}
+
+	int32 ValidPlayers = 0;
+	int32 LoadedPlayers = 0;
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		const AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS);
+		if (!MAPlayerState)
+		{
+			continue;
+		}
+
+		++ValidPlayers;
+		if (MAPlayerState->IsLoadingComplete())
+		{
+			++LoadedPlayers;
+		}
+	}
+
+	if (ValidPlayers <= 0)
+	{
+		return 0.0f;
+	}
+
+	const float Progress = FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f);
+	OutPercent = FMath::RoundToInt(Progress * 100.0f);
+
+	if (Progress >= 1.0f && bLoadingScreenActive)
+	{
+		const double Elapsed = FPlatformTime::Seconds() - LoadingScreenStartTime;
+		if (Elapsed >= LoadingScreenPostLoadHoldSeconds)
+		{
+			StopLoadingScreen();
+		}
+	}
+	return Progress;
+}
+
+void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
+{
+	if (!bLoadingScreenActive || !LoadedWorld)
+	{
+		return;
+	}
+
+	LoadingScreenStartTime = FPlatformTime::Seconds();
+
+	LoadedWorld->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
+	LoadedWorld->GetTimerManager().SetTimer(
+		LoadingStatusTimerHandle,
+		this,
+		&UMAGameInstance::UpdateLoadingStatus,
+		0.2f,
+		true
+	);
+	UpdateLoadingStatus();
+}
+
+void UMAGameInstance::HandleBeginFrame()
+{
+	if (!bLoadingScreenActive)
+	{
+		return;
+	}
+
+	if (LoadingScreenSlateWidget.IsValid() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	{
+		FLoadingScreenAttributes LoadingScreen;
+		LoadingScreen.MinimumLoadingScreenDisplayTime = 0.0f;
+		LoadingScreen.bAutoCompleteWhenLoadingCompletes = false;
+		LoadingScreen.bWaitForManualStop = true;
+		LoadingScreen.bAllowEngineTick = true;
+		LoadingScreen.WidgetLoadingScreen = LoadingScreenSlateWidget;
+		GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+		GetMoviePlayer()->PlayMovie();
+	}
+
+	const double Now = FPlatformTime::Seconds();
+	if ((Now - LoadingStatusLastUpdateSeconds) >= 0.2)
+	{
+		LoadingStatusLastUpdateSeconds = Now;
+		UpdateLoadingStatus();
+	}
+}
+
+void UMAGameInstance::HandleMoviePlayerTick(float DeltaTime)
+{
+	if (!bLoadingScreenActive)
+	{
+		return;
+	}
+
+	const double Now = FPlatformTime::Seconds();
+	if ((Now - LoadingStatusLastUpdateSeconds) >= 0.2)
+	{
+		LoadingStatusLastUpdateSeconds = Now;
+		UpdateLoadingStatus();
+	}
+}
+
+void UMAGameInstance::UpdateLoadingStatus()
+{
+	if (!bLoadingScreenActive)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	if (!GS)
+	{
+		return;
+	}
+
+	TArray<FLoadingPlayerStatus> Statuses;
+	Statuses.Reserve(GS->PlayerArray.Num());
+
+	int32 ValidPlayers = 0;
+	int32 LoadedPlayers = 0;
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS);
+		if (!MAPlayerState)
+		{
+			continue;
+		}
+		++ValidPlayers;
+
+		FLoadingPlayerStatus Status;
+		Status.PlayerName = MAPlayerState->GetPlayerName();
+		Status.SlotIndex = MAPlayerState->GetLobbySlotIndex();
+		Status.bLoaded = MAPlayerState->IsLoadingComplete();
+		if (Status.bLoaded)
+		{
+			++LoadedPlayers;
+		}
+		const FMaterialParamDataPair& Colors = MAPlayerState->GetLoadoutColor();
+		Status.BodyColor = Colors.BodyData.Color;
+		Status.EyeColor = Colors.EyeData.Color;
+		Statuses.Add(Status);
+
+	}
+
+	Statuses.Sort([](const FLoadingPlayerStatus& A, const FLoadingPlayerStatus& B)
+	{
+		return A.SlotIndex < B.SlotIndex;
+	});
+
+	if (LoadingScreenWidgetInstance)
+	{
+		LoadingScreenWidgetInstance->UpdateLoadingStatus(Statuses);
+	}
+
+	if (AreAllPlayersLoaded(World))
+	{
+		const double Elapsed = FPlatformTime::Seconds() - LoadingScreenStartTime;
+		if (Elapsed >= LoadingScreenPostLoadHoldSeconds)
+		{
+			if (World)
+			{
+				World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
+			}
+			StopLoadingScreen();
+		}
+	}
+	else
+	{
+	}
+}
+
+bool UMAGameInstance::AreAllPlayersLoaded(UWorld* World) const
+{
+	if (!World)
+	{
+		return false;
+	}
+
+	const AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	if (!GS)
+	{
+		return false;
+	}
+
+	int32 Total = 0;
+	int32 Loaded = 0;
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS);
+		if (!MAPlayerState)
+		{
+			continue;
+		}
+
+		++Total;
+		if (MAPlayerState->IsLoadingComplete())
+		{
+			++Loaded;
+		}
+	}
+
+	return Total > 0 && Loaded == Total;
 }
 
 void UMAGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful)

@@ -32,6 +32,9 @@ public:
 	
 	virtual void SetupInputComponent() override;
 
+	UFUNCTION(Server, Reliable)
+	void ServerNotifyLoaded();
+
 private:
 	void SpawnGameplayWidget();
 

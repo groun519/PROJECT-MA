@@ -42,6 +42,7 @@ void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 			LobbySlots[Index].PlayerState = PlayerState;
 			LobbySlots[Index].bReady = false;
 			LobbyStates[Index] = ELobbyAvatarState::Wait;
+			PlayerState->SetLobbySlotIndex(Index);
 			if (AvatarSlots[Index])
 			{
 				AvatarSlots[Index]->SetOccupant(PlayerState);
@@ -67,6 +68,7 @@ void ALobbyGameState::RemovePlayerFromSlot(AMAPlayerState* PlayerState)
 	{
 		if (LobbySlots[Index].PlayerState == PlayerState)
 		{
+			PlayerState->SetLobbySlotIndex(INDEX_NONE);
 			LobbySlots[Index].PlayerState = nullptr;
 			LobbySlots[Index].bReady = false;
 			if (LobbyStates.IsValidIndex(Index))

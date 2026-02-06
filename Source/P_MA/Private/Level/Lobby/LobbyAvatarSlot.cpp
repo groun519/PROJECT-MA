@@ -7,7 +7,6 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Player/MAPlayerState.h"
 #include "LobbyGameState.h"
-#include "Kismet/GameplayStatics.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarNameWidget.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarReadyWidget.h"
 #include "Widget/Lobby/LobbyInviteWidget.h"
