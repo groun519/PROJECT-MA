@@ -6,8 +6,7 @@
 #include "OnlineSessionSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "MoviePlayer.h"
-#include "Widget/Loading/LoadingScreenWidget.h"
-#include "Widget/Loading/LoadingScreenSlate.h"
+#include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
 #include "Player/MAPlayerState.h"
 
@@ -17,6 +16,19 @@ void UMAGameInstance::Init()
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UMAGameInstance::HandlePostLoadMapWithWorld);
+
+	if (bPlayStartupMovie && !StartupMovieName.IsEmpty())
+	{
+		FLoadingScreenAttributes StartupScreen;
+		StartupScreen.MinimumLoadingScreenDisplayTime = 0.0f;
+		StartupScreen.bAutoCompleteWhenLoadingCompletes = true;
+		StartupScreen.bWaitForManualStop = false;
+		StartupScreen.bMoviesAreSkippable = false;
+		StartupScreen.bAllowEngineTick = true;
+		StartupScreen.MoviePaths.Add(StartupMovieName);
+		GetMoviePlayer()->SetupLoadingScreen(StartupScreen);
+		GetMoviePlayer()->PlayMovie();
+	}
 
 	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
 	{
@@ -101,7 +113,7 @@ void UMAGameInstance::StartLoadingScreen()
 	{
 		return;
 	}
-	if (!bUseSlateLoadingScreen && !LoadingScreenWidgetClass)
+	if (!LoadingScreenWidgetClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Widget class missing."));
 		return;
@@ -110,21 +122,13 @@ void UMAGameInstance::StartLoadingScreen()
 	LoadingScreenWidgetInstance = nullptr;
 	LoadingScreenSlateWidget.Reset();
 
-	if (bUseSlateLoadingScreen)
+	LoadingScreenWidgetInstance = CreateWidget<ULoadingScreenWidget>(this, LoadingScreenWidgetClass);
+	if (!LoadingScreenWidgetInstance)
 	{
-		LoadingScreenSlateWidget = SNew(SLoadingScreenRoot)
-			.GameInstance(this);
+		UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Failed to create widget instance."));
+		return;
 	}
-	else
-	{
-		LoadingScreenWidgetInstance = CreateWidget<ULoadingScreenWidget>(this, LoadingScreenWidgetClass);
-		if (!LoadingScreenWidgetInstance)
-		{
-			UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Failed to create widget instance."));
-			return;
-		}
-		LoadingScreenSlateWidget = LoadingScreenWidgetInstance->TakeWidget();
-	}
+	LoadingScreenSlateWidget = LoadingScreenWidgetInstance->TakeWidget();
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	bLoadingScreenActive = true;
@@ -365,6 +369,21 @@ void UMAGameInstance::UpdateLoadingStatus()
 
 	if (LoadingScreenWidgetInstance)
 	{
+		const float Target = (ValidPlayers > 0)
+			? FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f)
+			: 0.0f;
+		const bool bLoadingComplete = (Target >= 1.0f) || AreAllPlayersLoaded(World);
+		const float WarmupDurationSeconds = 5.0f;
+		const float WarmupMax = 0.50f;
+		const float MainMax = 0.95f;
+		LoadingScreenWidgetInstance->UpdateLoadingProgress(
+			Target,
+			bLoadingComplete,
+			LoadingFinishDurationSeconds,
+			WarmupDurationSeconds,
+			WarmupMax,
+			MainMax
+		);
 		LoadingScreenWidgetInstance->UpdateLoadingStatus(Statuses);
 	}
 

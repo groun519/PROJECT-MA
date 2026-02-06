@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Widget/Loading/LoadingPlayerStatusWidget.h"
+#include "Widget/Lobby/Loading/LoadingPlayerStatusWidget.h"
 #include "Components/Image.h"
 
 void ULoadingPlayerStatusWidget::SetStatus(const FLoadingPlayerStatus& Status)

@@ -81,13 +81,16 @@ private:
 	float LoadingScreenPostLoadHoldSeconds = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Loading")
-	bool bUseSlateLoadingScreen = true;
-
-	UPROPERTY(EditAnywhere, Category = "Loading")
 	bool bAutoCompleteLoadingScreen = true;
 
 	UPROPERTY(EditAnywhere, Category = "Loading")
 	float LoadingFinishDurationSeconds = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Startup Movie")
+	bool bPlayStartupMovie = true;
+
+	UPROPERTY(EditAnywhere, Category = "Startup Movie")
+	FString StartupMovieName = TEXT("InitMovie");
 
 	UPROPERTY()
 	TObjectPtr<ULoadingScreenWidget> LoadingScreenWidgetInstance;

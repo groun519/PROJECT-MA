@@ -41,6 +41,18 @@ class P_MA_API ULoadingScreenWidget : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void UpdateLoadingStatus(const TArray<FLoadingPlayerStatus>& Statuses);
+	void UpdateLoadingProgress(
+		float TargetProgress,
+		bool bLoadingComplete,
+		float InFinishDurationSeconds,
+		float InWarmupDurationSeconds,
+		float InWarmupMax,
+		float InMainMax
+	);
+
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -57,6 +69,21 @@ protected:
 
 private:
 	void EnsureEntryWidgets(int32 Count);
+	void ApplyProgressFromTarget(float TargetProgress, bool bLoadingComplete);
+
+	float DisplayProgress = 0.0f;
+	double LastUpdateSeconds = 0.0;
+	double FirstSeenSeconds = 0.0;
+	bool bFinishPhase = false;
+	double FinishStartSeconds = 0.0;
+	float PendingTargetProgress = 0.0f;
+	bool bPendingLoadingComplete = false;
+	bool bHasPendingProgress = false;
+
+	float WarmupDurationSeconds = 3.0f;
+	float WarmupMax = 0.50f;
+	float MainMax = 0.95f;
+	float FinishDurationSeconds = 1.0f;
 
 	UPROPERTY()
 	TArray<TObjectPtr<ULoadingPlayerStatusWidget>> StatusWidgets;

@@ -10,7 +10,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
-#include "Widget/Lobby/LoadoutWidget.h"
+#include "Widget/Loadout/LoadoutWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "OnlineSubsystem.h"
