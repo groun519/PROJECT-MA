@@ -66,6 +66,45 @@ void ALobbyPlayerController::BeginPlay()
 			}
 		}
 
+		if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+		{
+			FMaterialParamDataPair LoadedColor;
+			FName LoadedWeaponId = NAME_None;
+			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Loadout: Lobby LoadLoadout PC=%s Role=%d Body=%s Eye=%s WeaponId=%s"),
+					*GetNameSafe(this),
+					static_cast<int32>(GetLocalRole()),
+					*LoadedColor.BodyData.Color.ToString(),
+					*LoadedColor.EyeData.Color.ToString(),
+					*LoadedWeaponId.ToString());
+				if (HasAuthority())
+				{
+					if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+					{
+						PS->SetLoadoutColor(LoadedColor);
+						if (!LoadedWeaponId.IsNone())
+						{
+							PS->SetLoadoutWeaponId(LoadedWeaponId);
+						}
+					}
+				}
+				else
+				{
+					ServerSetLoadoutColor(LoadedColor);
+					if (!LoadedWeaponId.IsNone())
+					{
+						ServerSetLoadoutWeaponId(LoadedWeaponId);
+					}
+				}
+
+				PendingLoadoutColor = LoadedColor;
+				bHasPendingLoadoutColor = true;
+				PendingWeaponId = LoadedWeaponId;
+				bHasPendingWeapon = !LoadedWeaponId.IsNone();
+			}
+		}
+
 		TArray<AActor*> TaggedActors;
 		UGameplayStatics::GetAllActorsWithTag(this, LobbyCameraTag, TaggedActors);
 		if (TaggedActors.Num() > 0 && TaggedActors[0])
@@ -200,12 +239,6 @@ void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData
 
 void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: PreviewWeapon PC=%s Role=%d WeaponId=%s Mesh=%s"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*WeaponId.ToString(),
-		*GetNameSafe(Mesh));
-
 	PendingWeaponId = WeaponId;
 	bHasPendingWeapon = !WeaponId.IsNone();
 
@@ -374,15 +407,33 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 
 void ALobbyPlayerController::ExitLoadoutView()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: ExitLoadoutView PC=%s Role=%d PendingWeaponId=%s bHasPendingWeapon=%d"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*PendingWeaponId.ToString(),
-		bHasPendingWeapon ? 1 : 0);
-
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CommitLoadoutColor();
 	CommitLoadoutWeapon();
+
+	if (IsLocalController())
+	{
+		if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+		{
+			FMaterialParamDataPair ColorToSave = PendingLoadoutColor;
+			FName WeaponToSave = PendingWeaponId;
+			if (!bHasPendingLoadoutColor || !bHasPendingWeapon)
+			{
+				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+				{
+					if (!bHasPendingLoadoutColor)
+					{
+						ColorToSave = PS->GetLoadoutColor();
+					}
+					if (!bHasPendingWeapon)
+					{
+						WeaponToSave = PS->GetLoadoutWeaponId();
+					}
+				}
+			}
+			GI->SaveLoadout(ColorToSave, WeaponToSave);
+		}
+	}
 	bInLoadoutView = false;
 	UpdateCameraTarget();
 
@@ -624,16 +675,8 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 {
 	if (!bHasPendingWeapon)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Loadout: CommitLoadoutWeapon skipped (no pending). PC=%s Role=%d"),
-			*GetNameSafe(this),
-			static_cast<int32>(GetLocalRole()));
 		return;
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: CommitLoadoutWeapon PC=%s Role=%d PendingWeaponId=%s"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*PendingWeaponId.ToString());
 
 	if (HasAuthority())
 	{
@@ -650,11 +693,6 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 
 void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: ServerSetLoadoutWeaponId PC=%s Role=%d WeaponId=%s"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*WeaponId.ToString());
-
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutWeaponId(WeaponId);

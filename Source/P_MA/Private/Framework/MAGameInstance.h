@@ -7,6 +7,7 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Widgets/SWidget.h"
 #include "Misc/CoreDelegates.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "MAGameInstance.generated.h"
 
 class ULoadingScreenWidget;
@@ -44,6 +45,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void UpdateLoadingStatus();
+
+	UFUNCTION(BlueprintCallable, Category = "Loadout")
+	void SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId);
+
+	UFUNCTION(BlueprintCallable, Category = "Loadout")
+	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId);
 
 	float CalculateLoadingProgress(int32& OutPercent);
 	float GetLoadingFinishDurationSeconds() const { return LoadingFinishDurationSeconds; }
@@ -102,4 +109,10 @@ private:
 	double LoadingStatusLastUpdateSeconds = 0.0;
 	double LoadingScreenStartTime = 0.0;
 	bool bLoadingScreenActive = false;
+
+	UPROPERTY(EditAnywhere, Category = "Loadout")
+	FString LoadoutSaveSlot = TEXT("LoadoutSlot");
+
+	UPROPERTY(EditAnywhere, Category = "Loadout")
+	int32 LoadoutSaveUserIndex = 0;
 };

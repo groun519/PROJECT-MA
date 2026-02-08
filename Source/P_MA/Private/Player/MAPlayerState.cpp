@@ -11,16 +11,17 @@ void AMAPlayerState::SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill)
 void AMAPlayerState::SetLoadoutColor(const FMaterialParamDataPair& NewColor)
 {
 	LoadoutColor = NewColor;
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS SetLoadoutColor PS=%s Role=%d Body=%s Eye=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*LoadoutColor.BodyData.Color.ToString(),
+		*LoadoutColor.EyeData.Color.ToString());
 	OnLoadoutColorChanged.Broadcast(LoadoutColor);
 }
 
 void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
 {
 	LoadoutWeaponId = NewWeaponId;
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS SetLoadoutWeaponId PS=%s Role=%d WeaponId=%s"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*LoadoutWeaponId.ToString());
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 
@@ -40,15 +41,16 @@ void AMAPlayerState::OnRep_DefaultSkill()
 
 void AMAPlayerState::OnRep_LoadoutColor()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS OnRep_LoadoutColor PS=%s Role=%d Body=%s Eye=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*LoadoutColor.BodyData.Color.ToString(),
+		*LoadoutColor.EyeData.Color.ToString());
 	OnLoadoutColorChanged.Broadcast(LoadoutColor);
 }
 
 void AMAPlayerState::OnRep_LoadoutWeaponId()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS OnRep_LoadoutWeaponId PS=%s Role=%d WeaponId=%s"),
-		*GetNameSafe(this),
-		static_cast<int32>(GetLocalRole()),
-		*LoadoutWeaponId.ToString());
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 

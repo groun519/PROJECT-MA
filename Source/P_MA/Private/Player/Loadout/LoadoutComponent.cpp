@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/Character.h"
 
 ULoadoutComponent::ULoadoutComponent()
 {
@@ -26,8 +27,17 @@ void ULoadoutComponent::InitializeMaterial(USkeletalMeshComponent* InMesh)
 		return;
 	}
 
-	DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(0);
-	if (DynMat)
+	DynMats.Reset();
+	const int32 MaterialCount = TargetMesh->GetNumMaterials();
+	for (int32 Index = 0; Index < MaterialCount; ++Index)
+	{
+		if (UMaterialInstanceDynamic* DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(Index))
+		{
+			DynMats.Add(DynMat);
+		}
+	}
+
+	if (DynMats.Num() > 0)
 	{
 		ApplyMaterialParam(BaseMaterialParam);
 	}
@@ -52,6 +62,12 @@ void ULoadoutComponent::Server_SetMaterialParams_Implementation(const FMaterialP
 	SetMaterialParams(BodyData, EyeData);
 }
 
+void ULoadoutComponent::ApplyMaterialParamsLocal(const FMaterialParamDataPair& Params)
+{
+	MaterialParamValue = Params;
+	ApplyMaterialParam(MaterialParamValue);
+}
+
 void ULoadoutComponent::OnRep_MaterialParam()
 {
 	ApplyMaterialParam(MaterialParamValue);
@@ -59,17 +75,46 @@ void ULoadoutComponent::OnRep_MaterialParam()
 
 void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params)
 {
-	if (!DynMat && TargetMesh)
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: ApplyMaterialParam Owner=%s TargetMesh=%s Mats=%d Body=%s Eye=%s"),
+		*GetNameSafe(GetOwner()),
+		*GetNameSafe(TargetMesh),
+		DynMats.Num(),
+		*Params.BodyData.Color.ToString(),
+		*Params.EyeData.Color.ToString());
+
+	if (!TargetMesh)
 	{
-		DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(0);
+		if (const ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
+		{
+			TargetMesh = OwnerCharacter->GetMesh();
+		}
 	}
-	if (!DynMat)
+
+	if (DynMats.Num() == 0 && TargetMesh)
+	{
+		const int32 MaterialCount = TargetMesh->GetNumMaterials();
+		for (int32 Index = 0; Index < MaterialCount; ++Index)
+		{
+			if (UMaterialInstanceDynamic* DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(Index))
+			{
+				DynMats.Add(DynMat);
+			}
+		}
+	}
+	if (DynMats.Num() == 0)
 	{
 		return;
 	}
 
-	DynMat->SetVectorParameterValue("Body_Color", Params.BodyData.Color);
-	DynMat->SetScalarParameterValue("Body_Emissive", Params.BodyData.Emissive);
-	DynMat->SetVectorParameterValue("Eye_Color", Params.EyeData.Color);
-	DynMat->SetScalarParameterValue("Eye_Emissive", Params.EyeData.Emissive);
+	for (UMaterialInstanceDynamic* DynMat : DynMats)
+	{
+		if (!DynMat)
+		{
+			continue;
+		}
+		DynMat->SetVectorParameterValue("Body_Color", Params.BodyData.Color);
+		DynMat->SetScalarParameterValue("Body_Emissive", Params.BodyData.Emissive);
+		DynMat->SetVectorParameterValue("Eye_Color", Params.EyeData.Color);
+		DynMat->SetScalarParameterValue("Eye_Emissive", Params.EyeData.Emissive);
+	}
 }

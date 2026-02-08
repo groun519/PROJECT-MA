@@ -9,6 +9,7 @@
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
 #include "Player/MAPlayerState.h"
+#include "Framework/LoadoutSaveGame.h"
 
 void UMAGameInstance::Init()
 {
@@ -402,6 +403,64 @@ void UMAGameInstance::UpdateLoadingStatus()
 	else
 	{
 	}
+}
+
+void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId)
+{
+	if (LoadoutSaveSlot.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: Save slot name is empty."));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: SaveLoadout Body=%s Eye=%s WeaponId=%s"),
+		*Color.BodyData.Color.ToString(),
+		*Color.EyeData.Color.ToString(),
+		*WeaponId.ToString());
+
+	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(UGameplayStatics::CreateSaveGameObject(ULoadoutSaveGame::StaticClass()));
+	if (!SaveGame)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: Failed to create save object."));
+		return;
+	}
+
+	SaveGame->SavedColor = Color;
+	SaveGame->SavedWeaponId = WeaponId;
+
+	if (!UGameplayStatics::SaveGameToSlot(SaveGame, LoadoutSaveSlot, LoadoutSaveUserIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: SaveGameToSlot failed. Slot=%s"), *LoadoutSaveSlot);
+	}
+}
+
+bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId)
+{
+	if (LoadoutSaveSlot.IsEmpty())
+	{
+		return false;
+	}
+
+	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex))
+	{
+		return false;
+	}
+
+	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
+	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(Loaded);
+	if (!SaveGame)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: LoadGameFromSlot returned invalid data. Slot=%s"), *LoadoutSaveSlot);
+		return false;
+	}
+
+	OutColor = SaveGame->SavedColor;
+	OutWeaponId = SaveGame->SavedWeaponId;
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: LoadLoadout Body=%s Eye=%s WeaponId=%s"),
+		*OutColor.BodyData.Color.ToString(),
+		*OutColor.EyeData.Color.ToString(),
+		*OutWeaponId.ToString());
+	return true;
 }
 
 bool UMAGameInstance::AreAllPlayersLoaded(UWorld* World) const

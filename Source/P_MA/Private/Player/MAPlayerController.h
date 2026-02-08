@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "MAPlayerController.generated.h"
 
 /**
@@ -21,6 +22,7 @@ public:
 	// 클라이언트에서만 호출됨, 리슨서버도.
 	void AcknowledgePossession(APawn* NewPawn) override;
 
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	
 	// TeamID에 Team Agent 할당
@@ -34,6 +36,12 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutWeaponId(FName WeaponId);
 
 private:
 	void SpawnGameplayWidget();

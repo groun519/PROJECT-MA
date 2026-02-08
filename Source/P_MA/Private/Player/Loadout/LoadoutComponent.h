@@ -27,6 +27,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 
+	void ApplyMaterialParamsLocal(const FMaterialParamDataPair& Params);
+
 	const FMaterialParamDataPair& GetBaseMaterialParam() const { return BaseMaterialParam; }
 
 	// TODO: Save/Load hooks for loadout data.
@@ -47,5 +49,5 @@ private:
 	TObjectPtr<USkeletalMeshComponent> TargetMesh;
 
 	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> DynMat;
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> DynMats;
 };

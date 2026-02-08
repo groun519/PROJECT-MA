@@ -12,6 +12,44 @@
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameInstance.h"
 
+void AMAPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		FMaterialParamDataPair LoadedColor;
+		FName LoadedWeaponId = NAME_None;
+		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+		{
+			if (HasAuthority())
+			{
+				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+				{
+					PS->SetLoadoutColor(LoadedColor);
+					if (!LoadedWeaponId.IsNone())
+					{
+						PS->SetLoadoutWeaponId(LoadedWeaponId);
+					}
+				}
+			}
+			else
+			{
+				ServerSetLoadoutColor(LoadedColor);
+				if (!LoadedWeaponId.IsNone())
+				{
+					ServerSetLoadoutWeaponId(LoadedWeaponId);
+				}
+			}
+		}
+	}
+}
+
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
 	Super::OnPossess(NewPawn);
@@ -191,5 +229,21 @@ void AMAPlayerController::ServerNotifyLoaded_Implementation()
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadingComplete(true);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutColor(ColorData);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutWeaponId(WeaponId);
 	}
 }
