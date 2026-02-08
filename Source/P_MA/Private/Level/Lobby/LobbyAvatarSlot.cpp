@@ -167,10 +167,7 @@ void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
 
 void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
 {
-	if (!AvatarMesh)
-	{
-		return;
-	}
+	if (!AvatarMesh) return;
 
 	if (!AvatarDynMat)
 	{
@@ -197,8 +194,14 @@ void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)
 
 void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: Slot ApplyLoadoutWeaponId Slot=%s Role=%d WeaponId=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*WeaponId.ToString());
+
 	if (!WeaponMesh)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Loadout: Slot WeaponMesh missing"));
 		return;
 	}
 
@@ -211,12 +214,14 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 	if (!WeaponDataTable)
 	{
 		// Keep current preview mesh if no table is assigned.
+		UE_LOG(LogTemp, Warning, TEXT("Loadout: Slot WeaponDataTable missing"));
 		return;
 	}
 
 	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LobbyAvatarSlot"));
 	if (!Row)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Loadout: Slot DT row not found (%s)"), *WeaponId.ToString());
 		WeaponMesh->SetSkeletalMesh(nullptr);
 		return;
 	}

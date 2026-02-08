@@ -8,6 +8,12 @@ void ULoadoutColorButtonWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (EquippedBorder)
+	{
+		EquippedBorder->SetVisibility(ESlateVisibility::HitTestInvisible);
+		EquippedBorder->SetOpacity(0.0f);
+	}
+
 	if (ColorButton)
 	{
 		FButtonStyle Style = ColorButton->GetStyle();
@@ -32,21 +38,17 @@ void ULoadoutColorButtonWidget::HandleColorClicked()
 	OnColorSelected.Broadcast(ColorData);
 }
 
-void ULoadoutColorButtonWidget::SetEquipped(bool bInEquipped)
+void ULoadoutColorButtonWidget::SetSelected(bool bInSelected)
 {
-	if (bEquipped == bInEquipped)
+	if (bSelected == bInSelected)
 	{
 		return;
 	}
 
-	bEquipped = bInEquipped;
-	if (ColorButton)
-	{
-		ColorButton->SetIsEnabled(!bEquipped);
-	}
+	bSelected = bInSelected;
 
 	if (EquippedBorder)
 	{
-		EquippedBorder->SetVisibility(bEquipped ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		EquippedBorder->SetOpacity(bSelected ? 1.0f : 0.0f);
 	}
 }

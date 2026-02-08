@@ -25,14 +25,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
 	TSubclassOf<ULoadoutWeaponButtonWidget> WeaponButtonClass;
 
-	void RefreshEquippedState();
-
 protected:
 	virtual void NativeConstruct() override;
 
 private:
 	void BuildWeaponButtons();
-	void UpdateEquippedWeapon(FName EquippedWeaponId);
 	void UpdateSelectedWeapon(FName WeaponId);
 
 	UFUNCTION()

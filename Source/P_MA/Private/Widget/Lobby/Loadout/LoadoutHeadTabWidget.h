@@ -26,14 +26,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Loadout|Head")
 	TSubclassOf<ULoadoutColorButtonWidget> EyeColorButtonClass;
 
-	void RefreshEquippedState();
-
 protected:
 	virtual void NativeConstruct() override;
 
 private:
 	void BuildEyeColorButtons();
-	void UpdateEquippedEyeColor(const FMaterialParamData& EquippedData);
+	void UpdateSelectedEyeColor(const FMaterialParamData& SelectedData);
 	static bool IsSameColor(const FMaterialParamData& A, const FMaterialParamData& B);
 
 	UFUNCTION()

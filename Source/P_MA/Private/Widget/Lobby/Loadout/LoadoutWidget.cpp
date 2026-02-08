@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Widget/Loadout/LoadoutWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutWidget.h"
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
 #include "Level/Lobby/LobbyPlayerController.h"
@@ -79,16 +79,4 @@ void ULoadoutWidget::SetActiveTab(int32 TabIndex)
 		WeaponTabButton->SetIsEnabled(TabIndex != 2);
 	}
 
-	if (HeadTabWidget)
-	{
-		HeadTabWidget->RefreshEquippedState();
-	}
-	if (BodyTabWidget)
-	{
-		BodyTabWidget->RefreshEquippedState();
-	}
-	if (WeaponTabWidget)
-	{
-		WeaponTabWidget->RefreshEquippedState();
-	}
 }

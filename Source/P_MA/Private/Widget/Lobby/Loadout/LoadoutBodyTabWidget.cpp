@@ -6,14 +6,12 @@
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Player/Loadout/Data/LoadoutBodyColorPresetData.h"
 #include "Level/Lobby/LobbyPlayerController.h"
-#include "Player/MAPlayerState.h"
 
 void ULoadoutBodyTabWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	BuildBodyColorButtons();
-	RefreshEquippedState();
 }
 
 void ULoadoutBodyTabWidget::BuildBodyColorButtons()
@@ -45,18 +43,7 @@ void ULoadoutBodyTabWidget::BuildBodyColorButtons()
 	}
 }
 
-void ULoadoutBodyTabWidget::RefreshEquippedState()
-{
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		if (AMAPlayerState* PS = PC->GetPlayerState<AMAPlayerState>())
-		{
-			UpdateEquippedBodyColor(PS->GetLoadoutColor().BodyData);
-		}
-	}
-}
-
-void ULoadoutBodyTabWidget::UpdateEquippedBodyColor(const FMaterialParamData& EquippedData)
+void ULoadoutBodyTabWidget::UpdateSelectedBodyColor(const FMaterialParamData& SelectedData)
 {
 	for (ULoadoutColorButtonWidget* Button : BodyColorButtons)
 	{
@@ -65,7 +52,7 @@ void ULoadoutBodyTabWidget::UpdateEquippedBodyColor(const FMaterialParamData& Eq
 			continue;
 		}
 
-		Button->SetEquipped(IsSameColor(Button->ColorData, EquippedData));
+		Button->SetSelected(IsSameColor(Button->ColorData, SelectedData));
 	}
 }
 
@@ -82,4 +69,6 @@ void ULoadoutBodyTabWidget::HandleBodyColorSelected(FMaterialParamData SelectedD
 	{
 		PC->PreviewBodyColor(SelectedData);
 	}
+
+	UpdateSelectedBodyColor(SelectedData);
 }

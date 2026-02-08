@@ -17,6 +17,10 @@ void AMAPlayerState::SetLoadoutColor(const FMaterialParamDataPair& NewColor)
 void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
 {
 	LoadoutWeaponId = NewWeaponId;
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS SetLoadoutWeaponId PS=%s Role=%d WeaponId=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*LoadoutWeaponId.ToString());
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 
@@ -41,6 +45,10 @@ void AMAPlayerState::OnRep_LoadoutColor()
 
 void AMAPlayerState::OnRep_LoadoutWeaponId()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: PS OnRep_LoadoutWeaponId PS=%s Role=%d WeaponId=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*LoadoutWeaponId.ToString());
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 

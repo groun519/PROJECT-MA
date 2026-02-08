@@ -17,7 +17,6 @@ void ULoadoutWeaponTabWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	BuildWeaponButtons();
-	RefreshEquippedState();
 }
 
 void ULoadoutWeaponTabWidget::BuildWeaponButtons()
@@ -69,17 +68,6 @@ void ULoadoutWeaponTabWidget::BuildWeaponButtons()
 	}
 }
 
-void ULoadoutWeaponTabWidget::RefreshEquippedState()
-{
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		if (AMAPlayerState* PS = PC->GetPlayerState<AMAPlayerState>())
-		{
-			UpdateEquippedWeapon(PS->GetLoadoutWeaponId());
-		}
-	}
-}
-
 void ULoadoutWeaponTabWidget::HandleWeaponSelected(FName WeaponId)
 {
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
@@ -110,17 +98,5 @@ void ULoadoutWeaponTabWidget::UpdateSelectedWeapon(FName WeaponId)
 			continue;
 		}
 		Button->SetSelected(Button->WeaponId == WeaponId);
-	}
-}
-
-void ULoadoutWeaponTabWidget::UpdateEquippedWeapon(FName EquippedWeaponId)
-{
-	for (ULoadoutWeaponButtonWidget* Button : WeaponButtons)
-	{
-		if (!Button)
-		{
-			continue;
-		}
-		Button->SetEquipped(Button->WeaponId == EquippedWeaponId);
 	}
 }

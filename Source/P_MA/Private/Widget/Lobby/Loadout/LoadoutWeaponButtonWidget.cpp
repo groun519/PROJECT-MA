@@ -9,6 +9,12 @@ void ULoadoutWeaponButtonWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (EquippedBorder)
+	{
+		EquippedBorder->SetVisibility(ESlateVisibility::HitTestInvisible);
+		EquippedBorder->SetOpacity(0.0f);
+	}
+
 	if (WeaponButton)
 	{
 		WeaponButton->OnClicked.AddDynamic(this, &ULoadoutWeaponButtonWidget::HandleWeaponClicked);
@@ -41,24 +47,10 @@ void ULoadoutWeaponButtonWidget::SetSelected(bool bInSelected)
 
 	bSelected = bInSelected;
 	ApplySelectedStyle();
-}
-
-void ULoadoutWeaponButtonWidget::SetEquipped(bool bInEquipped)
-{
-	if (bEquipped == bInEquipped)
-	{
-		return;
-	}
-
-	bEquipped = bInEquipped;
-	if (WeaponButton)
-	{
-		WeaponButton->SetIsEnabled(!bEquipped);
-	}
 
 	if (EquippedBorder)
 	{
-		EquippedBorder->SetVisibility(bEquipped ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		EquippedBorder->SetOpacity(bSelected ? 1.0f : 0.0f);
 	}
 }
 
@@ -92,14 +84,5 @@ void ULoadoutWeaponButtonWidget::ApplySelectedStyle()
 		return;
 	}
 
-	FButtonStyle Style = BaseStyle;
-	if (bSelected)
-	{
-		const FLinearColor SelectedTint(0.7f, 1.0f, 0.4f, 1.0f);
-		Style.Normal.TintColor = FSlateColor(SelectedTint);
-		Style.Hovered.TintColor = FSlateColor(SelectedTint);
-		Style.Pressed.TintColor = FSlateColor(SelectedTint);
-	}
-
-	WeaponButton->SetStyle(Style);
+	WeaponButton->SetStyle(BaseStyle);
 }

@@ -10,7 +10,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
-#include "Widget/Loadout/LoadoutWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "OnlineSubsystem.h"
@@ -21,6 +21,7 @@
 void ALobbyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	if (IsLocalController())
 	{
 		ShowLobbyUI();
@@ -85,6 +86,7 @@ void ALobbyPlayerController::BeginPlay()
 			}
 			ActiveViewSettings = LobbyView;
 			bUseCameraInterp = ActiveViewSettings.bUseInterp;
+
 		}
 	}
 
@@ -107,15 +109,8 @@ void ALobbyPlayerController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!IsLocalController() || !LobbyCameraActor)
-	{
-		return;
-	}
-
-	if (!bUseCameraInterp || bIsCameraFading)
-	{
-		return;
-	}
+	if (!IsLocalController() || !LobbyCameraActor) return;
+	if (!bUseCameraInterp || bIsCameraFading) return;
 
 	if (ActiveViewSettings.CameraInterpSpeed > 0.0f)
 	{
@@ -205,6 +200,12 @@ void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData
 
 void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: PreviewWeapon PC=%s Role=%d WeaponId=%s Mesh=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*WeaponId.ToString(),
+		*GetNameSafe(Mesh));
+
 	PendingWeaponId = WeaponId;
 	bHasPendingWeapon = !WeaponId.IsNone();
 
@@ -373,6 +374,12 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 
 void ALobbyPlayerController::ExitLoadoutView()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: ExitLoadoutView PC=%s Role=%d PendingWeaponId=%s bHasPendingWeapon=%d"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*PendingWeaponId.ToString(),
+		bHasPendingWeapon ? 1 : 0);
+
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CommitLoadoutColor();
 	CommitLoadoutWeapon();
@@ -617,8 +624,16 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 {
 	if (!bHasPendingWeapon)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Loadout: CommitLoadoutWeapon skipped (no pending). PC=%s Role=%d"),
+			*GetNameSafe(this),
+			static_cast<int32>(GetLocalRole()));
 		return;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: CommitLoadoutWeapon PC=%s Role=%d PendingWeaponId=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*PendingWeaponId.ToString());
 
 	if (HasAuthority())
 	{
@@ -635,6 +650,11 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 
 void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loadout: ServerSetLoadoutWeaponId PC=%s Role=%d WeaponId=%s"),
+		*GetNameSafe(this),
+		static_cast<int32>(GetLocalRole()),
+		*WeaponId.ToString());
+
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutWeaponId(WeaponId);

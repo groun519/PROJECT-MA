@@ -6,14 +6,12 @@
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Player/Loadout/Data/LoadoutEyeColorPresetData.h"
 #include "Level/Lobby/LobbyPlayerController.h"
-#include "Player/MAPlayerState.h"
 
 void ULoadoutHeadTabWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	BuildEyeColorButtons();
-	RefreshEquippedState();
 }
 
 void ULoadoutHeadTabWidget::BuildEyeColorButtons()
@@ -45,18 +43,7 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 	}
 }
 
-void ULoadoutHeadTabWidget::RefreshEquippedState()
-{
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		if (AMAPlayerState* PS = PC->GetPlayerState<AMAPlayerState>())
-		{
-			UpdateEquippedEyeColor(PS->GetLoadoutColor().EyeData);
-		}
-	}
-}
-
-void ULoadoutHeadTabWidget::UpdateEquippedEyeColor(const FMaterialParamData& EquippedData)
+void ULoadoutHeadTabWidget::UpdateSelectedEyeColor(const FMaterialParamData& SelectedData)
 {
 	for (ULoadoutColorButtonWidget* Button : EyeColorButtons)
 	{
@@ -65,7 +52,7 @@ void ULoadoutHeadTabWidget::UpdateEquippedEyeColor(const FMaterialParamData& Equ
 			continue;
 		}
 
-		Button->SetEquipped(IsSameColor(Button->ColorData, EquippedData));
+		Button->SetSelected(IsSameColor(Button->ColorData, SelectedData));
 	}
 }
 
@@ -82,4 +69,6 @@ void ULoadoutHeadTabWidget::HandleEyeColorSelected(FMaterialParamData SelectedDa
 	{
 		PC->PreviewEyeColor(SelectedData);
 	}
+
+	UpdateSelectedEyeColor(SelectedData);
 }

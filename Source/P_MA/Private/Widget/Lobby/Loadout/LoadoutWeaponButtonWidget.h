@@ -21,7 +21,7 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> WeaponButton;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> EquippedBorder;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout|Weapon")
@@ -37,7 +37,6 @@ public:
 	FOnWeaponSelected OnWeaponSelected;
 
 	void SetSelected(bool bInSelected);
-	void SetEquipped(bool bInEquipped);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -50,6 +49,5 @@ private:
 	void ApplySelectedStyle();
 
 	bool bSelected = false;
-	bool bEquipped = false;
 	FButtonStyle BaseStyle;
 };
