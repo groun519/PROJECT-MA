@@ -15,12 +15,16 @@ class P_MA_API AMAPlayerState : public APlayerState
 
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutColorChanged, const FMaterialParamDataPair&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponChanged, FName);
 
 	void SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill);
 	TSubclassOf<UGameplayAbility> GetDefaultSkill() const { return DefaultSkill; }
 
 	void SetLoadoutColor(const FMaterialParamDataPair& NewColor);
 	const FMaterialParamDataPair& GetLoadoutColor() const { return LoadoutColor; }
+
+	void SetLoadoutWeaponId(FName NewWeaponId);
+	FName GetLoadoutWeaponId() const { return LoadoutWeaponId; }
 
 	void SetLoadingComplete(bool bComplete);
 	bool IsLoadingComplete() const { return bHasFinishedLoading; }
@@ -29,6 +33,7 @@ public:
 	int32 GetLobbySlotIndex() const { return LobbySlotIndex; }
 
 	FOnLoadoutColorChanged OnLoadoutColorChanged;
+	FOnLoadoutWeaponChanged OnLoadoutWeaponChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -44,6 +49,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_LoadoutColor();
+
+	UPROPERTY(ReplicatedUsing = OnRep_LoadoutWeaponId)
+	FName LoadoutWeaponId = TEXT("1");
+
+	UFUNCTION()
+	void OnRep_LoadoutWeaponId();
 
 	UPROPERTY(ReplicatedUsing = OnRep_LoadingComplete)
 	bool bHasFinishedLoading = false;

@@ -15,6 +15,7 @@ class AMAPlayerState;
 class UMaterialInstanceDynamic;
 class ULobbyAvatarReadyWidget;
 class ULobbyAvatarAnimInstance;
+class UDataTable;
 
 UCLASS()
 class P_MA_API ALobbyAvatarSlot : public AActor
@@ -33,6 +34,8 @@ public:
 	void ApplyLoadoutColor(const FMaterialParamDataPair& ColorData);
 	void SetLobbyState(ELobbyAvatarState State);
 	void SetWeaponOnlyOwnerSee(bool bEnable);
+	void ApplyLoadoutWeaponId(FName WeaponId);
+	void ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransform& Offset);
 
 private:
 	UPROPERTY(VisibleAnywhere)
@@ -49,6 +52,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Lobby")
 	FName WeaponSocketName = TEXT("WeaponHandSocket");
+
+	UPROPERTY(EditAnywhere, Category = "Lobby|Weapon")
+	TObjectPtr<UDataTable> WeaponDataTable;
 
 	UPROPERTY(VisibleAnywhere)
 	UWidgetComponent* NameWidget = nullptr;
@@ -75,4 +81,5 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> AvatarDynMat;
 
 	FDelegateHandle LoadoutColorChangedHandle;
+	FDelegateHandle LoadoutWeaponChangedHandle;
 };

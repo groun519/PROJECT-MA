@@ -14,6 +14,12 @@ void AMAPlayerState::SetLoadoutColor(const FMaterialParamDataPair& NewColor)
 	OnLoadoutColorChanged.Broadcast(LoadoutColor);
 }
 
+void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
+{
+	LoadoutWeaponId = NewWeaponId;
+	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
+}
+
 void AMAPlayerState::SetLoadingComplete(bool bComplete)
 {
 	bHasFinishedLoading = bComplete;
@@ -33,6 +39,11 @@ void AMAPlayerState::OnRep_LoadoutColor()
 	OnLoadoutColorChanged.Broadcast(LoadoutColor);
 }
 
+void AMAPlayerState::OnRep_LoadoutWeaponId()
+{
+	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
+}
+
 void AMAPlayerState::OnRep_LoadingComplete()
 {
 }
@@ -47,6 +58,7 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
 	DOREPLIFETIME(AMAPlayerState, LoadoutColor);
+	DOREPLIFETIME(AMAPlayerState, LoadoutWeaponId);
 	DOREPLIFETIME(AMAPlayerState, bHasFinishedLoading);
 	DOREPLIFETIME(AMAPlayerState, LobbySlotIndex);
 }

@@ -11,6 +11,8 @@
 #include "Widget/Lobby/Avatar/LobbyAvatarReadyWidget.h"
 #include "Widget/Lobby/LobbyInviteWidget.h"
 #include "LobbyAvatarAnimInstance.h"
+#include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Engine/DataTable.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -86,6 +88,11 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 		Occupant->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
 		LoadoutColorChangedHandle.Reset();
 	}
+	if (Occupant && LoadoutWeaponChangedHandle.IsValid())
+	{
+		Occupant->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
+		LoadoutWeaponChangedHandle.Reset();
+	}
 
 	Occupant = NewPlayerState;
 	if (AActor* NewOwner = Occupant ? Occupant->GetOwner() : nullptr)
@@ -144,7 +151,12 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 			this,
 			&ALobbyAvatarSlot::ApplyLoadoutColor
 		);
+		LoadoutWeaponChangedHandle = Occupant->OnLoadoutWeaponChanged.AddUObject(
+			this,
+			&ALobbyAvatarSlot::ApplyLoadoutWeaponId
+		);
 		ApplyLoadoutColor(Occupant->GetLoadoutColor());
+		ApplyLoadoutWeaponId(Occupant->GetLoadoutWeaponId());
 	}
 }
 
@@ -181,6 +193,52 @@ void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)
 	{
 		WeaponMesh->SetOnlyOwnerSee(bEnable);
 	}
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
+{
+	if (!WeaponMesh)
+	{
+		return;
+	}
+
+	if (WeaponId.IsNone())
+	{
+		WeaponMesh->SetSkeletalMesh(nullptr);
+		return;
+	}
+
+	if (!WeaponDataTable)
+	{
+		// Keep current preview mesh if no table is assigned.
+		return;
+	}
+
+	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LobbyAvatarSlot"));
+	if (!Row)
+	{
+		WeaponMesh->SetSkeletalMesh(nullptr);
+		return;
+	}
+
+	USkeletalMesh* Mesh = Row->WeaponMesh.LoadSynchronous();
+	WeaponMesh->SetSkeletalMesh(Mesh);
+	WeaponMesh->SetRelativeTransform(Row->WeaponOffset);
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransform& Offset)
+{
+	if (!WeaponMesh)
+	{
+		return;
+	}
+
+	WeaponMesh->SetSkeletalMesh(Mesh);
+	WeaponMesh->SetRelativeTransform(Offset);
+	WeaponMesh->SetHiddenInGame(false);
+	WeaponMesh->SetVisibility(true, true);
+	WeaponMesh->SetOnlyOwnerSee(false);
+	WeaponMesh->SetOwnerNoSee(false);
 }
 
 void ALobbyAvatarSlot::SetLobbyState(ELobbyAvatarState State)

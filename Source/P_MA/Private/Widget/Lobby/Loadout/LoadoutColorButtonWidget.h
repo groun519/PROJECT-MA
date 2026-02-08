@@ -8,6 +8,7 @@
 #include "LoadoutColorButtonWidget.generated.h"
 
 class UButton;
+class UImage;
 
 UCLASS()
 class P_MA_API ULoadoutColorButtonWidget : public UUserWidget
@@ -20,11 +21,16 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> ColorButton;
 
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UImage> EquippedBorder;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Loadout|Color")
 	FMaterialParamData ColorData;
 
 	UPROPERTY(BlueprintAssignable, Category="Loadout|Color")
 	FOnColorSelected OnColorSelected;
+
+	void SetEquipped(bool bInEquipped);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -32,4 +38,6 @@ protected:
 private:
 	UFUNCTION()
 	void HandleColorClicked();
+
+	bool bEquipped = false;
 };

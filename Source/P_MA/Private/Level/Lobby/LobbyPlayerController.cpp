@@ -16,6 +16,7 @@
 #include "OnlineSubsystem.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "Player/MAPlayerState.h"
+#include "Level/Lobby/LobbyAvatarSlot.h"
 
 void ALobbyPlayerController::BeginPlay()
 {
@@ -71,17 +72,19 @@ void ALobbyPlayerController::BeginPlay()
 			LobbyCameraActor = TaggedActors[0];
 			SetViewTargetWithBlend(LobbyCameraActor, 0.0f);
 			LobbyCameraTransform = LobbyCameraActor->GetActorTransform();
-			TargetCameraTransform = LobbyCameraTransform;
+			TargetCameraTransform = LobbyCameraTransform * LobbyView.Offset;
 
 			LobbyCameraComponent = LobbyCameraActor->FindComponentByClass<UCameraComponent>();
 			if (LobbyCameraComponent)
 			{
-				if (LobbyFov > 0.0f)
+				if (LobbyView.Fov > 0.0f)
 				{
-					LobbyCameraComponent->SetFieldOfView(LobbyFov);
+					LobbyCameraComponent->SetFieldOfView(LobbyView.Fov);
 				}
 				TargetFov = LobbyCameraComponent->FieldOfView;
 			}
+			ActiveViewSettings = LobbyView;
+			bUseCameraInterp = ActiveViewSettings.bUseInterp;
 		}
 	}
 
@@ -109,7 +112,12 @@ void ALobbyPlayerController::Tick(float DeltaTime)
 		return;
 	}
 
-	if (CameraInterpSpeed > 0.0f)
+	if (!bUseCameraInterp || bIsCameraFading)
+	{
+		return;
+	}
+
+	if (ActiveViewSettings.CameraInterpSpeed > 0.0f)
 	{
 		const FVector CurLocation = LobbyCameraActor->GetActorLocation();
 		const FRotator CurRotation = LobbyCameraActor->GetActorRotation();
@@ -117,24 +125,24 @@ void ALobbyPlayerController::Tick(float DeltaTime)
 			CurLocation,
 			TargetCameraTransform.GetLocation(),
 			DeltaTime,
-			CameraInterpSpeed
+			ActiveViewSettings.CameraInterpSpeed
 		);
 		const FRotator NewRotation = FMath::RInterpTo(
 			CurRotation,
 			TargetCameraTransform.Rotator(),
 			DeltaTime,
-			CameraInterpSpeed
+			ActiveViewSettings.CameraInterpSpeed
 		);
 		LobbyCameraActor->SetActorLocationAndRotation(NewLocation, NewRotation);
 	}
 
-	if (LobbyCameraComponent && FovInterpSpeed > 0.0f)
+	if (LobbyCameraComponent && ActiveViewSettings.FovInterpSpeed > 0.0f)
 	{
 		const float NewFov = FMath::FInterpTo(
 			LobbyCameraComponent->FieldOfView,
 			TargetFov,
 			DeltaTime,
-			FovInterpSpeed
+			ActiveViewSettings.FovInterpSpeed
 		);
 		LobbyCameraComponent->SetFieldOfView(NewFov);
 	}
@@ -193,6 +201,21 @@ void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData
 
 	PendingLoadoutColor.BodyData = BodyData;
 	ApplyPreviewColor(PendingLoadoutColor);
+}
+
+void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset)
+{
+	PendingWeaponId = WeaponId;
+	bHasPendingWeapon = !WeaponId.IsNone();
+
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->ApplyLoadoutWeaponMesh(Mesh, Offset);
+		}
+	}
 }
 
 void ALobbyPlayerController::HandleReadyStartClicked()
@@ -292,13 +315,10 @@ void ALobbyPlayerController::UpdateLobbyUI()
 
 void ALobbyPlayerController::EnterLoadoutView()
 {
+	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	bInLoadoutView = true;
+	CurrentLoadoutView = ELoadoutView::Body;
 	UpdateCameraTarget();
-
-	if (LoadoutFov > 0.0f)
-	{
-		TargetFov = LoadoutFov;
-	}
 
 	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
 	{
@@ -333,18 +353,31 @@ void ALobbyPlayerController::EnterLoadoutView()
 	{
 		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
+
+	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
+}
+
+void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
+{
+	if (!bInLoadoutView)
+	{
+		return;
+	}
+
+	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
+	CurrentLoadoutView = NewView;
+	UpdateCameraTarget();
+
+	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
 }
 
 void ALobbyPlayerController::ExitLoadoutView()
 {
+	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CommitLoadoutColor();
+	CommitLoadoutWeapon();
 	bInLoadoutView = false;
 	UpdateCameraTarget();
-
-	if (LobbyFov > 0.0f)
-	{
-		TargetFov = LobbyFov;
-	}
 
 	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
 	{
@@ -375,6 +408,8 @@ void ALobbyPlayerController::ExitLoadoutView()
 	{
 		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
+
+	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
 }
 
 void ALobbyPlayerController::UpdateCameraTarget()
@@ -386,7 +421,14 @@ void ALobbyPlayerController::UpdateCameraTarget()
 
 	if (!bInLoadoutView)
 	{
-		TargetCameraTransform = LobbyCameraTransform;
+		TargetCameraTransform = LobbyCameraTransform * LobbyView.Offset;
+		ActiveViewSettings = LobbyView;
+
+		if (LobbyCameraComponent && ActiveViewSettings.Fov > 0.0f)
+		{
+			TargetFov = ActiveViewSettings.Fov;
+		}
+
 		return;
 	}
 
@@ -406,9 +448,137 @@ void ALobbyPlayerController::UpdateCameraTarget()
 	}
 
 	const FTransform SlotTransform = Slot->GetActorTransform();
-	const FVector WorldLocation = SlotTransform.TransformPosition(LoadoutCameraOffset.GetLocation());
-	const FQuat WorldRotation = SlotTransform.GetRotation() * LoadoutCameraOffset.GetRotation();
+	FLoadoutCameraViewSettings ViewSettings = LoadoutBodyView;
+	if (CurrentLoadoutView == ELoadoutView::Head)
+	{
+		ViewSettings = LoadoutHeadView;
+	}
+	else if (CurrentLoadoutView == ELoadoutView::Weapon)
+	{
+		ViewSettings = LoadoutWeaponView;
+	}
+
+	const FVector WorldLocation = SlotTransform.TransformPosition(ViewSettings.Offset.GetLocation());
+	const FQuat WorldRotation = SlotTransform.GetRotation() * ViewSettings.Offset.GetRotation();
 	TargetCameraTransform = FTransform(WorldRotation, WorldLocation, FVector::OneVector);
+
+	if (LobbyCameraComponent && ViewSettings.Fov > 0.0f)
+	{
+		TargetFov = ViewSettings.Fov;
+	}
+
+	ActiveViewSettings = ViewSettings;
+}
+
+void ALobbyPlayerController::ApplyCameraTransition(const FLoadoutCameraViewSettings& PrevViewSettings, const FLoadoutCameraViewSettings& NextViewSettings)
+{
+	const bool bUseFade = !PrevViewSettings.bUseInterp || !NextViewSettings.bUseInterp;
+	if (bUseFade)
+	{
+		const FLoadoutCameraViewSettings& FadeSettings = NextViewSettings.bUseInterp ? PrevViewSettings : NextViewSettings;
+		ApplyFadeTransition(FadeSettings);
+	}
+	else
+	{
+		ApplyInterpTransition();
+	}
+}
+
+void ALobbyPlayerController::ApplyFadeTransition(const FLoadoutCameraViewSettings& NextViewSettings)
+{
+	bUseCameraInterp = false;
+	TriggerInstantCameraFade(NextViewSettings);
+}
+
+void ALobbyPlayerController::ApplyInterpTransition()
+{
+	bIsCameraFading = false;
+	bUseCameraInterp = true;
+}
+
+void ALobbyPlayerController::ApplyInstantCameraTarget()
+{
+	if (!LobbyCameraActor)
+	{
+		return;
+	}
+
+	LobbyCameraActor->SetActorLocationAndRotation(
+		TargetCameraTransform.GetLocation(),
+		TargetCameraTransform.Rotator()
+	);
+
+	if (LobbyCameraComponent && TargetFov > 0.0f)
+	{
+		LobbyCameraComponent->SetFieldOfView(TargetFov);
+	}
+}
+
+void ALobbyPlayerController::TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings)
+{
+	bIsCameraFading = true;
+
+	if (!PlayerCameraManager)
+	{
+		ApplyInstantCameraTarget();
+		bIsCameraFading = false;
+		return;
+	}
+
+	const float FadeOut = FMath::Max(0.0f, ViewSettings.FadeSeconds.CameraFadeOutSeconds);
+	const float FadeIn = FMath::Max(0.0f, ViewSettings.FadeSeconds.CameraFadeInSeconds);
+	if (FadeOut <= 0.0f && FadeIn <= 0.0f)
+	{
+		bIsCameraFading = false;
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(CameraFadeTimerHandle);
+	GetWorldTimerManager().ClearTimer(CameraFadeEndTimerHandle);
+
+	if (FadeOut > 0.0f)
+	{
+		PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeOut, FLinearColor::Black, false, true);
+		FTimerDelegate FadeInDelegate;
+		FadeInDelegate.BindLambda([this, FadeIn]()
+		{
+			ApplyInstantCameraTarget();
+			if (PlayerCameraManager && FadeIn > 0.0f)
+			{
+				PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeIn, FLinearColor::Black, false, false);
+			}
+		});
+		GetWorldTimerManager().SetTimer(CameraFadeTimerHandle, FadeInDelegate, FadeOut, false);
+		GetWorldTimerManager().SetTimer(
+			CameraFadeEndTimerHandle,
+			[this]()
+			{
+				bIsCameraFading = false;
+			},
+			FadeOut + FMath::Max(0.0f, FadeIn),
+			false
+		);
+		return;
+	}
+
+	ApplyInstantCameraTarget();
+
+	if (FadeIn > 0.0f)
+	{
+		PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeIn, FLinearColor::Black, false, false);
+		GetWorldTimerManager().SetTimer(
+			CameraFadeEndTimerHandle,
+			[this]()
+			{
+				bIsCameraFading = false;
+			},
+			FadeIn,
+			false
+		);
+		return;
+	}
+
+	bIsCameraFading = false;
 }
 
 void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& ColorData)
@@ -440,6 +610,34 @@ void ALobbyPlayerController::CommitLoadoutColor()
 	else
 	{
 		ServerSetLoadoutColor(PendingLoadoutColor);
+	}
+}
+
+void ALobbyPlayerController::CommitLoadoutWeapon()
+{
+	if (!bHasPendingWeapon)
+	{
+		return;
+	}
+
+	if (HasAuthority())
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PS->SetLoadoutWeaponId(PendingWeaponId);
+		}
+	}
+	else
+	{
+		ServerSetLoadoutWeaponId(PendingWeaponId);
+	}
+}
+
+void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutWeaponId(WeaponId);
 	}
 }
 

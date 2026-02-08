@@ -2,6 +2,7 @@
 
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 
 void ULoadoutColorButtonWidget::NativeConstruct()
 {
@@ -29,4 +30,23 @@ void ULoadoutColorButtonWidget::NativeConstruct()
 void ULoadoutColorButtonWidget::HandleColorClicked()
 {
 	OnColorSelected.Broadcast(ColorData);
+}
+
+void ULoadoutColorButtonWidget::SetEquipped(bool bInEquipped)
+{
+	if (bEquipped == bInEquipped)
+	{
+		return;
+	}
+
+	bEquipped = bInEquipped;
+	if (ColorButton)
+	{
+		ColorButton->SetIsEnabled(!bEquipped);
+	}
+
+	if (EquippedBorder)
+	{
+		EquippedBorder->SetVisibility(bEquipped ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }
