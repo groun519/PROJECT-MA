@@ -24,6 +24,10 @@
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
+#include "Player/MAPlayerState.h"
+#include "Player/Loadout/LoadoutComponent.h"
+#include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Engine/DataTable.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -102,6 +106,18 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
 }
 
+void AMAPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	BindLoadoutDelegates();
+}
+
+void AMAPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	BindLoadoutDelegates();
+}
+
 void AMAPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -153,6 +169,12 @@ void AMAPlayerCharacter::PawnClientRestart()
 			InputSubsystem->AddMappingContext(GameplayInputMappingContext, 0);
 		}
 	}
+}
+
+void AMAPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	BindLoadoutDelegates();
 }
 
 void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -363,6 +385,97 @@ void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 	
 	CurrentInteractComp = nullptr;
 }
+
+void AMAPlayerCharacter::BindLoadoutDelegates()
+{
+	AMAPlayerState* NewPlayerState = GetPlayerState<AMAPlayerState>();
+	if (CachedLoadoutPlayerState.Get() == NewPlayerState && NewPlayerState)
+	{
+		ApplyLoadoutFromPlayerState();
+		return;
+	}
+
+	if (CachedLoadoutPlayerState)
+	{
+		if (LoadoutColorChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
+			LoadoutColorChangedHandle.Reset();
+		}
+		if (LoadoutWeaponChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
+			LoadoutWeaponChangedHandle.Reset();
+		}
+	}
+
+	CachedLoadoutPlayerState = NewPlayerState;
+	if (!NewPlayerState)
+	{
+		return;
+	}
+
+	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
+	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
+
+	ApplyLoadoutFromPlayerState();
+}
+
+void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
+{
+	if (!CachedLoadoutPlayerState)
+	{
+		return;
+	}
+
+	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
+	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
+}
+
+void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
+{
+	if (!LoadoutComponent)
+	{
+		return;
+	}
+
+	if (HasAuthority())
+	{
+		LoadoutComponent->SetMaterialParams(ColorData.BodyData, ColorData.EyeData);
+	}
+	else
+	{
+		LoadoutComponent->ApplyMaterialParamsLocal(ColorData);
+	}
+}
+
+void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
+{
+	if (!WeaponComponent || WeaponId.IsNone())
+	{
+		return;
+	}
+
+	if (!WeaponDataTable)
+	{
+		return;
+	}
+
+	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	if (!Row)
+	{
+		return;
+	}
+
+	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
+	if (WeaponMesh)
+	{
+		WeaponComponent->SetSkeletalMesh(WeaponMesh);
+	}
+
+	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
+}
+
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());

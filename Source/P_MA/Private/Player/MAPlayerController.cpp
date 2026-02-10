@@ -9,6 +9,46 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Net/UnrealNetwork.h"
+#include "Player/MAPlayerState.h"
+#include "Framework/MAGameInstance.h"
+
+void AMAPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		FMaterialParamDataPair LoadedColor;
+		FName LoadedWeaponId = NAME_None;
+		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+		{
+			if (HasAuthority())
+			{
+				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+				{
+					PS->SetLoadoutColor(LoadedColor);
+					if (!LoadedWeaponId.IsNone())
+					{
+						PS->SetLoadoutWeaponId(LoadedWeaponId);
+					}
+				}
+			}
+			else
+			{
+				ServerSetLoadoutColor(LoadedColor);
+				if (!LoadedWeaponId.IsNone())
+				{
+					ServerSetLoadoutWeaponId(LoadedWeaponId);
+				}
+			}
+		}
+	}
+}
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
@@ -30,6 +70,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
+
+	ServerNotifyLoaded();
 	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
@@ -179,5 +221,29 @@ void AMAPlayerController::ToggleSkillBook()
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+	}
+}
+
+void AMAPlayerController::ServerNotifyLoaded_Implementation()
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadingComplete(true);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutColor(ColorData);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutWeaponId(WeaponId);
 	}
 }

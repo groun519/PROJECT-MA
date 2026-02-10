@@ -10,36 +10,10 @@
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "Abilities/GameplayAbility.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
-
-USTRUCT(BlueprintType)
-struct FMaterialParamData
-{
-	GENERATED_BODY()
-	
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	//float Opacity = 1.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FLinearColor Color = FLinearColor::White;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float Emissive = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct FMaterialParamDataPair
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FMaterialParamData BodyData	= FMaterialParamData();
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FMaterialParamData EyeData	= FMaterialParamData();
-};
 
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
@@ -164,22 +138,10 @@ private:
 
 	/** Mat System **/
 protected:
-	UMaterialInstanceDynamic* DynMat;
-	
-	UPROPERTY(ReplicatedUsing=OnRep_MaterialParam)
-	FMaterialParamDataPair MaterialParamValue;
-	UFUNCTION()
-	void OnRep_MaterialParam();
-	
-	void ApplyMaterialParam();
-	
+	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
+	class ULoadoutComponent* LoadoutComponent;
+
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FMaterialParamDataPair BaseMaterialParam;
-	UFUNCTION()
-	FORCEINLINE FMaterialParamDataPair& GetBaseMaterialParam() { return BaseMaterialParam; }
-	
-	// 서버에서 파라미터를 바꾸는 함수
 	UFUNCTION(Server, Reliable)
 	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 

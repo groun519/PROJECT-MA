@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "Character/MACharacter.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "AnimNotifyState_SendNewPlayerMat.generated.h"
 
 
