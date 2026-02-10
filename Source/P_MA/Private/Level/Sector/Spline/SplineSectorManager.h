@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "SplineSector.h"
-#include "Framework/MAGameMode.h"
+#include "Framework/MAGameStateTypes.h"
 #include "GameFramework/Actor.h"
 #include "Level/Platform//PlatformRoot.h"
 #include "SplineSectorManager.generated.h"
+
+class AMAGameMode;
 
 USTRUCT()
 struct FSplineSectorManagerDebugSetting
@@ -80,8 +82,8 @@ public:
 	int32 GetNextSectorIndex(int32 InSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
-	FORCEINLINE AMAGameMode* GetMAGameMode(){ return CachedMAGameMode; }
-	FORCEINLINE EMAGameState GetMAGameState(){ return GetMAGameMode()->GetMAGameState(); }
+	FORCEINLINE AMAGameMode* GetMAGameMode() const { return CachedMAGameMode; }
+	EMAGameState GetMAGameState() const;
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
 	
 	/** Debug **/

@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
 #include "Player/Loadout/LoadoutColorTypes.h"
+#include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
 
 /**
@@ -43,8 +44,13 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutWeaponId(FName WeaponId);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoopReady(bool bReady);
+
+
 private:
 	void SpawnGameplayWidget();
+	void HandleGameStateChanged(EMAGameState NewState);
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
@@ -54,6 +60,9 @@ private:
 
 	UPROPERTY()
 	class UMAGameplayWidget* GameplayWidget;
+
+	bool bHasPendingLoopReadyVisibility = false;
+	bool bPendingLoopReadyVisible = false;
 	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;

@@ -32,6 +32,7 @@ public:
 	void SetLobbySlotIndex(int32 Index);
 	int32 GetLobbySlotIndex() const { return LobbySlotIndex; }
 
+
 	FOnLoadoutColorChanged OnLoadoutColorChanged;
 	FOnLoadoutWeaponChanged OnLoadoutWeaponChanged;
 
@@ -67,4 +68,5 @@ private:
 
 	UFUNCTION()
 	void OnRep_LobbySlotIndex();
+
 };

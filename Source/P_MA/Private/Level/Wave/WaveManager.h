@@ -7,10 +7,11 @@
 #include "GameFramework/Actor.h"
 #include "AI/Golem/Monster.h"
 #include "Level/Sector/Battle/BattleSpaceSpline.h"
-#include "Framework/MAGameMode.h"
+#include "Framework/MAGameStateTypes.h"
 #include "WaveManager.generated.h"
 
 class UDataTable;
+class AMAGameMode;
 
 USTRUCT()
 struct FWaveMonster

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "Widget/Loop/LoopPlayerStatusWidget.h"
 #include "MAGameplayWidget.generated.h"
 
 class UMASkillSlotWidget;
@@ -10,6 +11,7 @@ class UMAPassiveSlotWidget;
 class UHorizontalBox;
 class UMAValueGauge;
 class UMAMobilityChargeWidget;
+class ULoopReadyWidget;
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
 {
@@ -23,6 +25,10 @@ public:
 	
 	void ToggleShop();
 	void ToggleSkillBook();
+
+	// Loop Ready UI
+	void SetLoopReadyVisible(bool bVisible);
+	void RefreshLoopReady();
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
@@ -52,6 +58,11 @@ protected:
 	
 	UPROPERTY(meta=(BindWidget))
 	class USkillBookWidget* SkillBookWidget;
+
+	UPROPERTY(meta = (BindWidget))
+	ULoopReadyWidget* LoopReadyWidget;
+	
+	bool bLoopReadyInitialized = false;
 private:
 
 	UFUNCTION()

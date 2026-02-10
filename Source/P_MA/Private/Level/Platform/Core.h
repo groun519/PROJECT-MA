@@ -43,6 +43,7 @@ protected:
 
 public:
 	ACore();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Interact **/
 	UPROPERTY(VisibleAnywhere, Category="MA|Interact") 
@@ -66,11 +67,15 @@ public:
 	UPROPERTY(EditAnywhere, Category="MA|Move")
 	FCoreMoveSettings MoveSetting;
 
+	UFUNCTION(Server, Reliable)
+	void Server_ApplyBattleColor(bool bInBattle);
+
 	void ApplyBattleColor(bool bInBattle);
 
 private:
 	void HandleInteract(AMAPlayerCharacter* Interactor);
 	void ApplyCurrentColor();
+	void StartColorInterp(const FLinearColor& NewTarget);
 
 	/** Color Lerp member **/
 	UPROPERTY(EditAnywhere, Category="MA|Material")
@@ -81,6 +86,12 @@ private:
 	FLinearColor TargetColor = FLinearColor::White;
 	float ColorInterpElapsed = 0.f;
 	bool bColorInterpActive = false;
+
+	UPROPERTY(ReplicatedUsing=OnRep_TargetColor)
+	FLinearColor ReplicatedTargetColor = FLinearColor::White;
+
+	UFUNCTION()
+	void OnRep_TargetColor();
 
 	/** Move and Spin member **/
 	float BaseRelativeZ = 0.f;
