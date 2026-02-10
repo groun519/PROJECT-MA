@@ -1,104 +1,68 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "InteractComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Player/MAPlayerCharacter.h"
-
+#include "P_MA/P_MA.h"
 
 UInteractComponent::UInteractComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	SetGenerateOverlapEvents(true);
-	UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	UPrimitiveComponent::SetCollisionResponseToAllChannels(ECR_Ignore);
-	UPrimitiveComponent::SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
+	SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SetCollisionResponseToAllChannels(ECR_Ignore);
+	SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
+	InitSphereRadius(150.0f);
+	
+	InteractKeyWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractKeyWidgetComp"));
+	// 사실상 런타임에서는 의미 없지만 유지.
+	if (InteractKeyWidgetComp)
+	{
+		InteractKeyWidgetComp->SetupAttachment(this);
+		InteractKeyWidgetComp->SetVisibility(false);
+		InteractKeyWidgetComp->SetWidgetSpace(EWidgetSpace::Screen); 
+	}
 }
-
 
 void UInteractComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	if (InteractKeyWidgetComp)
+	{
+		InteractKeyWidgetComp->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetIncludingScale);
+		InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
+		InteractKeyWidgetComp->SetVisibility(false);
+	}
+	
 	OnComponentBeginOverlap.AddDynamic(this, &UInteractComponent::HandleBeginOverlap);
 	OnComponentEndOverlap.AddDynamic(this, &UInteractComponent::HandleEndOverlap);
 }
 
-void UInteractComponent::OnRegister()
-{
-	Super::OnRegister();
-
-	if (IsTemplate()) return;
-
-	AActor* Owner = GetOwner();
-	if (!Owner) return;
-
-	if (!InteractKeyWidgetComp)
-	{
-		InteractKeyWidgetComp = NewObject<UWidgetComponent>(Owner, TEXT("InteractKeyWidgetComp"));
-		if (!InteractKeyWidgetComp) return;
-
-		Owner->AddInstanceComponent(InteractKeyWidgetComp);
-		InteractKeyWidgetComp->RegisterComponent();
-		InteractKeyWidgetComp->SetVisibility(false, true);
-	}
-
-	InteractKeyWidgetComp->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
-	InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
-	InteractKeyWidgetComp->SetRelativeRotation(FRotator::ZeroRotator);
-
-	InteractKeyWidgetComp->SetVisibility(false);
-}
-
 void UInteractComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 {
-	OnInteractRequested.Broadcast(Interactor);
+	if (InteractionHandler) InteractionHandler(Interactor);
 }
 
-void UInteractComponent::SetActive(bool bNewActive, AMAPlayerCharacter* Interactor)
+void UInteractComponent::SetActive(bool bNewActive)
 {
-	if (bActive == bNewActive)
-		return;
-
+	if (bActive == bNewActive) return;
 	bActive = bNewActive;
+	if (InteractKeyWidgetComp) InteractKeyWidgetComp->SetVisibility(bActive);
+}
 
-	if (bActive)
+void UInteractComponent::HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep)
+{
+	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
-		ShowInteractKeyUI(Interactor);
+		Player->SetCurrentInteractComp(this);
+		SetActive(true);
 	}
-	else
+}
+
+void UInteractComponent::HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
-		HideInteractKeyUI();
+		Player->ClearCurrentInteractComp(this);
+		SetActive(false);
 	}
-}
-
-void UInteractComponent::ShowInteractKeyUI(AMAPlayerCharacter* Interactor)
-{
-	if (!InteractKeyWidgetComp) return;
-	InteractKeyWidgetComp->SetVisibility(true, true);
-}
-
-void UInteractComponent::HideInteractKeyUI()
-{
-	if (!InteractKeyWidgetComp) return;
-	InteractKeyWidgetComp->SetVisibility(false, true);
-}
-
-void UInteractComponent::HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep)
-{
-	AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor);
-	if (!Player) return;
-
-	Player->SetCurrentInteractComp(this);
-}
-
-void UInteractComponent::HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor);
-	if (!Player) return;
-
-	Player->ClearCurrentInteractComp(this);
 }

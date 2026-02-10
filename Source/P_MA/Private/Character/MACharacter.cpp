@@ -22,16 +22,14 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "P_MA/P_MA.h"
+#include "Player/Loadout/LoadoutComponent.h"
 
 AMACharacter::AMACharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	USceneComponent* SceneComp = CreateDefaultSubobject<USceneComponent>("Mesh Parent");
-	SceneComp->SetupAttachment(GetRootComponent());
-	SceneComp->SetRelativeLocationAndRotation(FVector(0,0,-90), FRotator(0,-90,0));
 
 	/** Mesh **/
-	GetMesh()->SetupAttachment(SceneComp);
+	GetMesh()->SetupAttachment(GetRootComponent());
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	/****/
 
@@ -44,6 +42,7 @@ AMACharacter::AMACharacter()
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
 
 	BindGASChangeDelegates();
 
@@ -72,7 +71,6 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMACharacter, TeamID);
-	DOREPLIFETIME(AMACharacter, MaterialParamValue);
 }
 
 const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AMACharacter::GetAbilities() const
@@ -89,21 +87,9 @@ void AMACharacter::BeginPlay()
 
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 
-	if (GetMesh())
+	if (LoadoutComponent)
 	{
-		DynMat = GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
-		if (DynMat)
-		{
-			// Body Param Update
-			//DynMat->SetScalarParameterValue("Body_Opacity",	BaseMaterialParam.BodyData.Opacity);
-			DynMat->SetVectorParameterValue("Body_Color",	BaseMaterialParam.BodyData.Color);
-			DynMat->SetScalarParameterValue("Body_Emissive",BaseMaterialParam.BodyData.Emissive);
-
-			// Eye Param Update
-			//DynMat->SetScalarParameterValue("Eye_Opacity",	BaseMaterialParam.EyeData.Opacity);
-			DynMat->SetVectorParameterValue("Eye_Color",	BaseMaterialParam.EyeData.Color);
-			DynMat->SetScalarParameterValue("Eye_Emissive", BaseMaterialParam.EyeData.Emissive);
-		}
+		LoadoutComponent->InitializeMaterial(GetMesh());
 	}
 }
 
@@ -115,7 +101,6 @@ void AMACharacter::PossessedBy(AController* NewController)
 		ServerSideInit();
 	}
 }
-
 
 void AMACharacter::Tick(float DeltaTime)
 {
@@ -158,6 +143,7 @@ void AMACharacter::BindGASChangeDelegates()
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
+		MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("Stats.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
 	}
 }
 
@@ -410,38 +396,81 @@ void AMACharacter::UpdateHeadGaugeVisibility()
 	}
 }
 
-/** Mat System Section **//**
- *	머티리얼 파라미터 변경하는 섹션
- */
-void AMACharacter::OnRep_MaterialParam()
+void AMACharacter::Landed(const FHitResult& Hit)
 {
-	ApplyMaterialParam();
+	Super::Landed(Hit);
+
+	if (!bPendingKnockdown)
+		return;
+
+	bPendingKnockdown = false;
+
+	if (!KnockdownMontage)
+		return;
+
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (!Anim)
+		return;
+
+	Anim->Montage_Play(KnockdownMontage);
+
+	FOnMontageBlendingOutStarted BlendOutDelegate;
+	BlendOutDelegate.BindUObject(this, &AMACharacter::OnKnockdownMontageBlendingOut);
+
+	Anim->Montage_SetBlendingOutDelegate(BlendOutDelegate, KnockdownMontage);
 }
 
-void AMACharacter::ApplyMaterialParam()
-{
-	if (DynMat)
-	{
-		// Body Param Update
-		//DynMat->SetScalarParameterValue("Body_Opacity", MaterialParamValue.BodyData.Opacity);
-		DynMat->SetVectorParameterValue("Body_Color", MaterialParamValue.BodyData.Color);
-		DynMat->SetScalarParameterValue("Body_Emissive", MaterialParamValue.BodyData.Emissive);
 
-		// Eye Param Update
-		//DynMat->SetScalarParameterValue("Eye_Opacity", MaterialParamValue.EyeData.Opacity);
-		DynMat->SetVectorParameterValue("Eye_Color", MaterialParamValue.EyeData.Color);
-		DynMat->SetScalarParameterValue("Eye_Emissive", MaterialParamValue.EyeData.Emissive);
+void AMACharacter::OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
+{
+	if (IsDead())
+		return;
+
+	bPendingKnockdown = true;
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetKnockdownTag());
 	}
 }
 
+void AMACharacter::ResetKnockdownState()
+{
+	bPendingKnockdown = false;
+
+	if (MAAbilitySystemComponent)
+	{
+		MAAbilitySystemComponent->RemoveLooseGameplayTag(
+			UMAAbilitySystemStatics::GetKnockdownTag());
+	}
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		if (Move->MovementMode == MOVE_None)
+		{
+			Move->SetMovementMode(MOVE_Walking);
+		}
+	}
+}
+
+void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != KnockdownMontage)
+		return;
+
+	if (IsDead())
+		return;
+
+	ResetKnockdownState();
+}
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
                                                            const FMaterialParamData& EyeData)
 {
-	MaterialParamValue.BodyData = BodyData;
-	MaterialParamValue.EyeData  = EyeData;
-
-	ApplyMaterialParam();
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->SetMaterialParams(BodyData, EyeData);
+	}
 }
 
 

@@ -30,6 +30,7 @@ public:
 	// 클라이언트에서만 호출됨, 리슨서버도.
 	void AcknowledgePossession(APawn* NewPawn) override;
 
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	
 	// TeamID에 Team Agent 할당
@@ -40,6 +41,15 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	virtual void SetupInputComponent() override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerNotifyLoaded();
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutWeaponId(FName WeaponId);
 
 	// [추가 3] 채팅 수신 알리미 (UI가 구독함)
 	UPROPERTY(BlueprintAssignable, Category = "Chat")

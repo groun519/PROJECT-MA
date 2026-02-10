@@ -5,6 +5,7 @@
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "Level/Platform/Core.h"
 
 ASplineSectorManager::ASplineSectorManager()
 {
@@ -21,15 +22,125 @@ void ASplineSectorManager::BeginPlay()
 
 	if (HasAuthority())
 	{
-		CachingMAGameMode();
-		SetSplinesWithMAGameState(CachedMAGameMode->GetMAGameState());
+		/** GameMode **/
+		AMAGameMode* MAGM = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+		if (MAGM)
+		{
+			CachedMAGameMode = MAGM;
+			CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleGameStateChanged);
+			OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+			CachedMAGameMode->OnReadyCountChanged.AddUObject(this, &ASplineSectorManager::OnHandleReadyCountChanged);
+		}
+		
+		/** PlatformRoot **/
+		APlatformRoot* PR = Cast<APlatformRoot>(UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass()));
+		if (PR)
+		{
+			CachedPlatformRoot = PR;
+			CachedPlatformRoot->OnPlatformReachedEnd.AddUObject(this, &ASplineSectorManager::OnHandlePlatformReachedEnd);
+			if (CachedMAGameMode)
+			{
+				bool bWaitMoveIn =
+					CachedMAGameState == EMAGameState::Wait || CachedMAGameState == EMAGameState::EndBattle;
+				CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
+				CachedPlatformRoot->SetHeight(bIsMoving);
+			}
+		}
 	}
 }
 
-int32 ASplineSectorManager::GetNextSectorIndex(int32 CurSectorIndex)
+void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
+{
+	LogStateChange(NewState);
+	bool bWasMoving = bIsMoving;
+	
+	// Set IsMoving
+	FSplineSectorData SSData = SplineSectorsByState[NewState];
+	bIsMoving = SSData.bIsMoving;
+	bIsAutoPass = SSData.bIsAutoPass;
+
+	// 만약 이전 상태가 Start였다면,
+	// 스플라인의 끝에 도달하지 못하는 상태기에 한번 ApplyCurSplineAndSeed를 실행하여 게임 루프를 시작시킴.
+	if (bWasMoving == false && bIsMoving == true)
+	{
+		CurSectorIndex = 0;
+		SetSectorsByState(NewState);
+		
+		if (CachedPlatformRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
+		{
+			USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
+			if (IsValid(CurSpline)) CachedPlatformRoot->SetCurSpline(CurSpline);
+		}
+	}
+
+	// 스테이트 캐시
+	CachedMAGameState = NewState;
+	
+	if (CachedPlatformRoot)
+	{
+		bool bWaitMoveIn =
+			NewState == EMAGameState::Wait || NewState == EMAGameState::EndBattle;
+		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
+		CachedPlatformRoot->SetHeight(bIsMoving);
+
+		if (ACore* Core = CachedPlatformRoot->GetCore())
+		{
+			const bool bIsBattle = (NewState == EMAGameState::Battle);
+			Core->ApplyBattleColor(bIsBattle);
+		}
+	}
+
+	if (DebugSetting.bUseStateDebug)
+	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 상태 변화 감지 -> %d"), (int32)NewState);
+}
+
+void ASplineSectorManager::OnHandlePlatformReachedEnd()
+{
+	if (CurSectors.IsEmpty() || !CachedPlatformRoot) return;
+
+	// 마지막 스테이트인가 ?
+	bool bIsLastSector = CurSectorIndex >= CurSectors.Num() - 1;
+	if (bIsLastSector)
+	{
+		// 만약 자동으로 넘겨야 하는 스테이트라면 넘김.
+		IsAutoPassState(CachedMAGameState);
+
+		// 섹터 세팅
+		SetSectorsByState(CachedMAGameState);
+		CurSectorIndex = 0;
+		
+		// 스테이트 넘어갈 때 로그 찍기
+		LogStateChange(CachedMAGameState);
+	}
+	else
+	{
+		CurSectorIndex++;
+	}
+	
+	// 타고 갈 스플라인을 적용, 다음 섹터 시드 변경.
+	ApplyCurSplineAndSeed();
+
+	if (DebugSetting.bUseSplineEndTimeDebug)
+	UE_LOG(LogTemp, Warning, TEXT("SplineManager: 플랫폼 섹터 끝 도달!"));
+}
+
+void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount)
+{
+	if (!CachedPlatformRoot) return;
+	CachedPlatformRoot->SetReadyText(ReadyCount, TotalCount);
+}
+
+int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 {
 	int32 LastSectorIndex = CurSectors.Num() - 1;
-	return CurSectorIndex == LastSectorIndex ? 0 : CurSectorIndex + 1;
+	if (InSectorIndex == LastSectorIndex)
+	{
+		return 0;
+	}
+	else
+	{
+		return InSectorIndex + 1;
+	}
 }
 
 ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* World)
@@ -39,93 +150,81 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	return SSM;
 }
 
-void ASplineSectorManager::CachingMAGameMode()
-{
-	AMAGameMode* MAGM = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (MAGM) CachedMAGameMode = MAGM;
-}
-
-void ASplineSectorManager::SetSplinesWithMAGameState(EMAGameState InMAGS)
-{
-	if (bUseStateDebug)
-	{
-		const UEnum* EnumPtr = StaticEnum<EMAGameState>();
-		const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);
-		const FString CurrName = EnumPtr->GetNameStringByValue((int64)InMAGS);
-		UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
-		UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
-		UE_LOG(LogTemp, Display, TEXT("- - - - -"));
-	}
-	
-	if (InMAGS == EMAGameState::Wait)
-	{
-		if (SameAsCachedState(InMAGS))
-			return;
-	}
-	else if (InMAGS == EMAGameState::Start)
-	{
-		if (SameAsCachedState(InMAGS))
-		{
-			GoToNextState(InMAGS, EMAGameState::InBattle);
-			return;
-		}
-	}
-	else if (InMAGS == EMAGameState::InBattle)
-	{
-		if (SameAsCachedState(InMAGS))
-		{
-			GoToNextState(InMAGS, EMAGameState::Battle);
-			CachedMAGameMode->StartWave();
-			return;
-		}
-	}
-	else if (InMAGS == EMAGameState::Battle)
-	{
-		if (SameAsCachedState(InMAGS))
-			return;
-	}
-	else if (InMAGS == EMAGameState::EndBattle)
-	{
-		if (SameAsCachedState(InMAGS))
-			return;
-		
-		if (CachedMAGameMode->bIsWaving)
-		{
-			CachedMAGameMode->EndWave();
-		}
-	}
-	else if (InMAGS == EMAGameState::OutBattle)
-	{
-		if (SameAsCachedState(InMAGS))
-		{
-			GoToNextState(InMAGS, EMAGameState::Loop);
-			return;
-		}
-	}
-	else if (InMAGS == EMAGameState::Loop)
-	{
-		if (SameAsCachedState(InMAGS))
-			return;
-	}
-	SetSectorsByState(InMAGS);
-	CachedMAGameState = InMAGS;
-}
-
-void ASplineSectorManager::GoToNextState(EMAGameState InCurState,EMAGameState InNextState)
-{
-	CachedMAGameState = InCurState;
-	SetSplinesWithMAGameState(InNextState);
-	CachedMAGameMode->SetMAGameState(InNextState);
-}
-
 void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 {
 	FSplineSectorData SSData = SplineSectorsByState[InState];
 	
 	bIsMoving = SSData.bIsMoving;
+
+	if (PlatformRoot)
+	{
+		if (SSData.MoveInState == EMoveInState::Nothing)
+		{
+			PlatformRoot->SetWaitMoveIn(false);
+		}
+		else if (SSData.MoveInState == EMoveInState::CanMoveIn)
+		{
+			PlatformRoot->SetWaitMoveIn(true);
+		}
+		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
+		{
+			PlatformRoot->SetWaitMoveIn(false);
+			if (CachedMAGameMode) CachedMAGameMode->ResetAllPlayersReady();
+		}
+	}
 	
 	if (bIsMoving)
 		CurSectors = SSData.Sectors;
 	else
 		CurSectors.Empty();
+}
+
+bool ASplineSectorManager::IsAutoPassState(EMAGameState InState)
+{
+	int32 StateNum = static_cast<int32>(InState);
+	if (StateNum == 6) return false;
+	
+	if (bIsAutoPass)
+	{
+		if (CachedMAGameMode) CachedMAGameMode->RequestNextState(InState);
+		return true;
+	}
+	return false;
+}
+
+void ASplineSectorManager::ApplyCurSplineAndSeed()
+{
+	if (!CachedPlatformRoot) return;
+
+	// If Stop Sector, assign nullptr to CurSpline
+	if (!bIsMoving || CurSectors.IsEmpty() || !CurSectors[CurSectorIndex])
+	{
+		CachedPlatformRoot->SetCurSpline(nullptr);
+		return;
+	}
+	USplineComponent* CurSpline = CurSectors[CurSectorIndex]->RoadSpline;
+	if (!IsValid(CurSpline))
+	{
+		CachedPlatformRoot->SetCurSpline(nullptr);
+		return;
+	}
+
+	// Change Seed
+	int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
+	CurSectors[NextIndex]->SetRandomSeed();
+
+	// Set Spline
+	CachedPlatformRoot->SetCurSpline(CurSpline);
+}
+
+void ASplineSectorManager::LogStateChange(EMAGameState InState) const
+{
+	if (!DebugSetting.bUseStateDebug) return;
+
+	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
+	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);
+	const FString CurrName = EnumPtr->GetNameStringByValue((int64)InState);
+	UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
+	UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
+	UE_LOG(LogTemp, Display, TEXT("- - - - -"));
 }

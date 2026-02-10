@@ -2,10 +2,12 @@
 
 
 #include "Framework/MAGameMode.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
-#include "AI/Data/MonstersByEnvironmentData.h"
-#include "Kismet/GameplayStatics.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerState.h"
+#include "Player/ReadyStateComponent.h"
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
 {
@@ -24,15 +26,156 @@ APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, con
 void AMAGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	RefreshPlayerCache();
 
-	if (GetWorld())
+	const UWorld* World = GetWorld();
+	const FString MapName = World ? World->GetMapName() : FString();
+	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
+	if (bResetLoadingState && GameState)
 	{
-		ABattleSpaceSpline* Found = Cast<ABattleSpaceSpline>(
-			UGameplayStatics::GetActorOfClass(GetWorld(), ABattleSpaceSpline::StaticClass())
-		);
-
-		SpawnSpline = Found;
+		for (APlayerState* PS : GameState->PlayerArray)
+		{
+			if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS))
+			{
+				MAPlayerState->SetLoadingComplete(false);
+			}
+		}
 	}
+}
+
+void AMAGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
+	const UWorld* World = GetWorld();
+	const FString MapName = World ? World->GetMapName() : FString();
+	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
+	if (bResetLoadingState && NewPlayer)
+	{
+		if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(NewPlayer->PlayerState))
+		{
+			MAPlayerState->SetLoadingComplete(false);
+		}
+	}
+	RefreshPlayerCache();
+}
+
+void AMAGameMode::RequestStateChange(EMAGameState NewState)
+{
+	if (MAGameState == NewState) return;
+
+	MAGameState = NewState;
+
+	if (OnMAGameStateChanged.IsBound())
+	{
+		OnMAGameStateChanged.Broadcast(MAGameState);
+	}
+}
+
+EMAGameState AMAGameMode::GetNextState(EMAGameState CurState) const
+{
+	if (CurState == EMAGameState::Loop)
+	{
+		return EMAGameState::Start;
+	}
+
+	return static_cast<EMAGameState>(static_cast<int32>(CurState) + 1);
+}
+
+void AMAGameMode::RequestNextState(EMAGameState CurState)
+{
+	RequestStateChange(GetNextState(CurState));
+}
+
+void AMAGameMode::RefreshPlayerCache()
+{
+	CachedPlayers.Reset();
+
+	if (!GetWorld()) return;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(PC->GetPawn());
+		if (!Player) continue;
+
+		CachedPlayers.Add(Player);
+	}
+
+	BroadcastReadyCounts();
+}
+
+void AMAGameMode::ResetAllPlayersReady()
+{
+	bAllPlayersReady = false;
+
+	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
+	{
+		AMAPlayerCharacter* Player = PlayerPtr.Get();
+		if (!Player) continue;
+
+		UReadyStateComponent* ReadyComp = Player->GetReadyComponent();
+		if (!ReadyComp) continue;
+
+		ReadyComp->SetReady(false);
+	}
+
+	BroadcastReadyCounts();
+}
+
+void AMAGameMode::GetReadyCounts(int32& OutReady, int32& OutTotal) const
+{
+	OutReady = 0;
+	OutTotal = 0;
+
+	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
+	{
+		AMAPlayerCharacter* Player = PlayerPtr.Get();
+		if (!Player) continue;
+
+		UReadyStateComponent* ReadyComp = Player->GetReadyComponent();
+		if (!ReadyComp) continue;
+
+		OutTotal++;
+		if (ReadyComp->IsReady())
+		{
+			OutReady++;
+		}
+	}
+}
+
+void AMAGameMode::BroadcastReadyCounts()
+{
+	int32 ReadyCount = 0;
+	int32 TotalCount = 0;
+	GetReadyCounts(ReadyCount, TotalCount);
+
+	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
+	if (bAllPlayersReady != bIsAllReady)
+	{
+		bAllPlayersReady = bIsAllReady;
+		if (bAllPlayersReady)
+		{
+			RequestNextState(MAGameState);
+		}
+	}
+
+	if (OnReadyCountChanged.IsBound())
+	{
+		OnReadyCountChanged.Broadcast(ReadyCount, TotalCount);
+	}
+}
+
+void AMAGameMode::SetMAState(int32 NewState)
+{
+	if (NewState < 0 || NewState > static_cast<int32>(EMAGameState::Loop))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetMAState: invalid state %d"), NewState);
+		return;
+	}
+
+	RequestStateChange(static_cast<EMAGameState>(NewState));
 }
 
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const
@@ -55,168 +198,4 @@ AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) cons
 	}
 
 	return nullptr;
-}
-
-TArray<FWaveMonster> AMAGameMode::GetNewWaveMonsters()
-{
-	SetTotalWaveCost();
-	int32 UsingCost = 0;
-	TArray<FWaveMonster> OutWaveMonsters;
-	
-	while (UsingCost != TotalWaveCost)
-	{
-		TSubclassOf<AMonster> Monster; int32 Cost = 0;
-		GetRandomMonsterByEnv(Monster, Cost, CurEnvTag);
-
-		if (Cost == 0)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Monster Cost is Zero !"));
-			break;
-		}
-		if (UsingCost + Cost > TotalWaveCost) continue;
-
-		FWaveMonster NewMonster(Monster, Cost);
-		OutWaveMonsters.Add(NewMonster);
-		UsingCost += Cost;
-	}
-
-	OutWaveMonsters.Sort([](const FWaveMonster& A, const FWaveMonster& B)
-	{
-		return A.Cost < B.Cost;   
-	});
-	
-	return OutWaveMonsters;
-}
-
-void AMAGameMode::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutCost, FGameplayTag InEnvTag)
-{
-	if (!MonsByEnvData) return;
-	
-	FString TagString = InEnvTag.ToString();
-	FString Last;
-	TagString.Split(TEXT("."), nullptr, &Last, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	FName RowName(*Last);
-
-	FMonstersByEnvironmentData* Data = MonsByEnvData->FindRow<FMonstersByEnvironmentData>(
-		RowName,
-		TEXT("GetRandomMonsterByEnv"),
-		false
-	);
-	if (!Data) return;
-	if (InEnvTag != Data->EnvGameplayTag) return;
-	
-	TArray<TSubclassOf<AMonster>> Keys;
-	Data->MonsterData.GetKeys(Keys);
-
-	if (Keys.Num() == 0) return;
-	
-	int32 RandomIndex = FMath::RandRange(0, Data->MonsterData.Num() - 1);
-	
-	OutMonster = Keys[RandomIndex];
-	OutCost = Data->MonsterData[OutMonster];
-}
-
-void AMAGameMode::StartWave()
-{
-	if (bIsWaving) return;
-	
-	bIsWaving = true;
-	WaveMonsters = GetNewWaveMonsters();
-	CreateBaseIntervalTimer();
-}
-
-void AMAGameMode::EndWave()
-{
-	if (!bIsWaving) return;
-	
-	bIsWaving = false;
-	if (Wave == 5)
-	{
-		Stage++;
-		Wave = 1;
-	}
-	else
-	{
-		Wave++;
-	}
-}
-
-void AMAGameMode::SpawnMonsters(int32 SpawnAtOnce)
-{
-	if (WaveMonsters.IsEmpty()) return;
-	
-	TArray<FVector> SpawnLocations
-		= SpawnSpline->GetMonsterSpawnLocations(SpawnAtOnce);
-
-	for (FVector SpawnLoc : SpawnLocations)
-	{
-		if (WaveMonsters.Num() == 0) return;
-		FWaveMonster Monster = WaveMonsters[0];
-		if (!Monster.Class) continue;
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride =
-			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-		FVector SpawnLocation = SpawnSpline->GetActorLocation() + SpawnLoc;
-		FRotator SpawnRotation = (-SpawnLoc).Rotation();
-		
-		AMonster* Spawned = GetWorld()->SpawnActor<AMonster>(
-			Monster.Class,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParams
-		);
-		Spawned->SetGoal(SpawnSpline);
-
-		WaveMonsters.RemoveAt(0);
-	}
-}
-
-void AMAGameMode::CreateBaseIntervalTimer()
-{
-	LastCostUnit = CostUnit;
-	
-	int32 IntervalCount = TotalWaveCost / CostUnit + 1;
-
-	int32 IntervalLimit = 20;
-	float IntervalSeconds = 1.f;
-	while (IntervalCount > IntervalLimit)
-	{
-		IntervalLimit *= 2;
-		IntervalSeconds /= 2;
-	}
-
-	if (!GetWorld()) return;
-
-	GetWorldTimerManager().SetTimer(
-		BaseIntervalTimerHandle,
-		this,
-		&AMAGameMode::SpawnMonstersByInterval,
-		IntervalSeconds,
-		true 
-	);
-}
-
-void AMAGameMode::SpawnMonstersByInterval()
-{
-	TArray<TSubclassOf<AMonster>> Monsters;
-	int32 Count = 0;
-	while (true)
-	{
-		Count++;
-		if (Count > WaveMonsters.Num()) break;
-
-		FWaveMonster Monster = WaveMonsters[Count-1];
-		if (LastCostUnit - Monster.Cost <= 0)
-		{
-			LastCostUnit += CostUnit;
-			break;
-		}
-		else
-		{
-			LastCostUnit -= Monster.Cost;
-		}
-	}
-	SpawnMonsters(Count);
 }

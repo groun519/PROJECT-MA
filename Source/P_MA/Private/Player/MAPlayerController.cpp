@@ -10,6 +10,46 @@
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
+#include "Player/MAPlayerState.h"
+#include "Framework/MAGameInstance.h"
+
+void AMAPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		FMaterialParamDataPair LoadedColor;
+		FName LoadedWeaponId = NAME_None;
+		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+		{
+			if (HasAuthority())
+			{
+				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+				{
+					PS->SetLoadoutColor(LoadedColor);
+					if (!LoadedWeaponId.IsNone())
+					{
+						PS->SetLoadoutWeaponId(LoadedWeaponId);
+					}
+				}
+			}
+			else
+			{
+				ServerSetLoadoutColor(LoadedColor);
+				if (!LoadedWeaponId.IsNone())
+				{
+					ServerSetLoadoutWeaponId(LoadedWeaponId);
+				}
+			}
+		}
+	}
+}
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
@@ -213,4 +253,28 @@ void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString
 {
 	// UI에게 알림 방송 (이전에 작성한 코드)
 	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
+}
+
+void AMAPlayerController::ServerNotifyLoaded_Implementation()
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadingComplete(true);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutColor(ColorData);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutWeaponId(WeaponId);
+	}
 }

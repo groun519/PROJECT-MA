@@ -8,8 +8,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
-#include "Engine/CanvasRenderTarget2D.h"
-#include "PaperSpriteComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -20,7 +18,16 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
+#include "PaperSpriteComponent.h"
+#include "ReadyStateComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
+#include "Engine/CanvasRenderTarget2D.h"
+#include "P_MA/P_MA.h"
+#include "Player/MAPlayerState.h"
+#include "Player/Loadout/LoadoutComponent.h"
+#include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Engine/DataTable.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -56,14 +63,14 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 	
 	/** Create SKCs **//*
-	 * - Child Relationship : Mesh - Handle
+	 * - Child Relationship: Mesh - Handle
 	 */
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map 아래 코드는 공부할 필요 없음 강의 에는 없는 코드 입니다 **/
-	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+	/** Mini Map **/
+	/*MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
 	MinimapCameraBoom->SetupAttachment(RootComponent);
 	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
 
@@ -79,19 +86,36 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	MinimapCapture->OrthoWidth = 7000.0f;
 	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
 
-	RotationLockTag=UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag=UMAAbilitySystemStatics::GetRushingTag();
-	
-
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())
 	{
 		MinimapCapture->TextureTarget = renderObj.Object;
 	}
 	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
-	/** 여기 위에 까지는 별도의 코드 입니다 **/
+	MinimapSprite->SetupAttachment(GetMesh());*/
 	
+	/** Capsule Collision **/
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
+	
+	/** Tag Init **/
+	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
+	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
+	
+	/** Ready State Component **/
+	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+}
+
+void AMAPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	BindLoadoutDelegates();
+}
+
+void AMAPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	BindLoadoutDelegates();
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
@@ -145,6 +169,12 @@ void AMAPlayerCharacter::PawnClientRestart()
 			InputSubsystem->AddMappingContext(GameplayInputMappingContext, 0);
 		}
 	}
+}
+
+void AMAPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	BindLoadoutDelegates();
 }
 
 void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -337,18 +367,12 @@ void AMAPlayerCharacter::SnapRotationToMouse()
 
 void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 {
-	if (!NewComp) return;
+	if (!NewComp || CurrentInteractComp == NewComp) return;
 
-	UInteractComponent* Prev = CurrentInteractComp.Get();
-	if (Prev == NewComp) return;
-
-	if (Prev)
-	{
-		Prev->SetActive(false, nullptr);
-	}
-
+	if (CurrentInteractComp.IsValid())
+		CurrentInteractComp->SetActive(false);
+	
 	CurrentInteractComp = NewComp;
-	NewComp->SetActive(true, this);
 }
 
 void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
@@ -357,12 +381,101 @@ void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 		return;
 
 	if (Comp)
-	{
-		Comp->SetActive(false, nullptr);
-	}
-
+		Comp->SetActive(false);
+	
 	CurrentInteractComp = nullptr;
 }
+
+void AMAPlayerCharacter::BindLoadoutDelegates()
+{
+	AMAPlayerState* NewPlayerState = GetPlayerState<AMAPlayerState>();
+	if (CachedLoadoutPlayerState.Get() == NewPlayerState && NewPlayerState)
+	{
+		ApplyLoadoutFromPlayerState();
+		return;
+	}
+
+	if (CachedLoadoutPlayerState)
+	{
+		if (LoadoutColorChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
+			LoadoutColorChangedHandle.Reset();
+		}
+		if (LoadoutWeaponChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
+			LoadoutWeaponChangedHandle.Reset();
+		}
+	}
+
+	CachedLoadoutPlayerState = NewPlayerState;
+	if (!NewPlayerState)
+	{
+		return;
+	}
+
+	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
+	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
+
+	ApplyLoadoutFromPlayerState();
+}
+
+void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
+{
+	if (!CachedLoadoutPlayerState)
+	{
+		return;
+	}
+
+	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
+	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
+}
+
+void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
+{
+	if (!LoadoutComponent)
+	{
+		return;
+	}
+
+	if (HasAuthority())
+	{
+		LoadoutComponent->SetMaterialParams(ColorData.BodyData, ColorData.EyeData);
+	}
+	else
+	{
+		LoadoutComponent->ApplyMaterialParamsLocal(ColorData);
+	}
+}
+
+void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
+{
+	if (!WeaponComponent || WeaponId.IsNone())
+	{
+		return;
+	}
+
+	if (!WeaponDataTable)
+	{
+		return;
+	}
+
+	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	if (!Row)
+	{
+		return;
+	}
+
+	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
+	if (WeaponMesh)
+	{
+		WeaponComponent->SetSkeletalMesh(WeaponMesh);
+	}
+
+	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
+}
+
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());

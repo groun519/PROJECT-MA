@@ -13,7 +13,8 @@
 				"GameplayAbilities",
 				"UMG",
 				"AIModule",
-				"CoreUObject"
+				"CoreUObject",
+				"DeveloperSettings"
 			]
 		}
 	],
@@ -51,6 +52,10 @@
 		},
 		{
 			"Name": "PCGExternalDataInterop",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineSubsystemSteam",
 			"Enabled": true
 		}
 	]
