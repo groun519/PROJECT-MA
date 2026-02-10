@@ -72,12 +72,6 @@ void ALobbyPlayerController::BeginPlay()
 			FName LoadedWeaponId = NAME_None;
 			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Loadout: Lobby LoadLoadout PC=%s Role=%d Body=%s Eye=%s WeaponId=%s"),
-					*GetNameSafe(this),
-					static_cast<int32>(GetLocalRole()),
-					*LoadedColor.BodyData.Color.ToString(),
-					*LoadedColor.EyeData.Color.ToString(),
-					*LoadedWeaponId.ToString());
 				if (HasAuthority())
 				{
 					if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())

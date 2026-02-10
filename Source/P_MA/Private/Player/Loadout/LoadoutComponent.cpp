@@ -75,13 +75,6 @@ void ULoadoutComponent::OnRep_MaterialParam()
 
 void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: ApplyMaterialParam Owner=%s TargetMesh=%s Mats=%d Body=%s Eye=%s"),
-		*GetNameSafe(GetOwner()),
-		*GetNameSafe(TargetMesh),
-		DynMats.Num(),
-		*Params.BodyData.Color.ToString(),
-		*Params.EyeData.Color.ToString());
-
 	if (!TargetMesh)
 	{
 		if (const ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))

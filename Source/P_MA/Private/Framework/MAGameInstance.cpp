@@ -413,11 +413,6 @@ void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName Wea
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: SaveLoadout Body=%s Eye=%s WeaponId=%s"),
-		*Color.BodyData.Color.ToString(),
-		*Color.EyeData.Color.ToString(),
-		*WeaponId.ToString());
-
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(UGameplayStatics::CreateSaveGameObject(ULoadoutSaveGame::StaticClass()));
 	if (!SaveGame)
 	{
@@ -456,10 +451,6 @@ bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWe
 
 	OutColor = SaveGame->SavedColor;
 	OutWeaponId = SaveGame->SavedWeaponId;
-	UE_LOG(LogTemp, Warning, TEXT("Loadout: LoadLoadout Body=%s Eye=%s WeaponId=%s"),
-		*OutColor.BodyData.Color.ToString(),
-		*OutColor.EyeData.Color.ToString(),
-		*OutWeaponId.ToString());
 	return true;
 }
 
