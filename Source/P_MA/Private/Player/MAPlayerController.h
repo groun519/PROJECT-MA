@@ -7,6 +7,15 @@
 #include "GenericTeamAgentInterface.h"
 #include "MAPlayerController.generated.h"
 
+UENUM(BlueprintType)
+enum class EChatType : uint8
+{
+	Normal		UMETA(DisplayName = "Normal"), // 일반 채팅 (흰색)
+	System		UMETA(DisplayName = "System")  // 시스템 공지 (노란색)
+};
+// UI 알림용 델리게이트 정의
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FString&, SenderName, const FString&, Message, EChatType, ChatType);
+
 /**
  * 
  */
@@ -31,6 +40,17 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	virtual void SetupInputComponent() override;
+
+	// [추가 3] 채팅 수신 알리미 (UI가 구독함)
+	UPROPERTY(BlueprintAssignable, Category = "Chat")
+	FOnChatMessageReceived OnChatMessageReceived;
+
+	// [추가 4] 서버로 메시지 전송 요청 (Client -> Server)
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Chat")
+	void Server_SendChatMessage(const FString& Message, EChatType ChatType);
+
+	UFUNCTION(Client, Reliable, Category = "Chat")
+	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
 private:
 	void SpawnGameplayWidget();

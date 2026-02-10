@@ -106,6 +106,9 @@ public:
 	}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
-	TSubclassOf<UGameplayAbility> GrantedAbility; 
+	TSubclassOf<UGameplayAbility> GrantedAbility;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill", meta=(MultiLine=true))
+	FText SkillDescription;
 	
 };

@@ -9,6 +9,7 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/PlayerState.h" 
 
 void AMAPlayerController::OnPossess(APawn* NewPawn)
 {
@@ -180,4 +181,36 @@ void AMAPlayerController::ToggleSkillBook()
 	{
 		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
 	}
+}
+
+bool AMAPlayerController::Server_SendChatMessage_Validate(const FString& Message, EChatType ChatType)
+{
+	return true;
+}
+
+void AMAPlayerController::Server_SendChatMessage_Implementation(const FString& Message, EChatType ChatType)
+{
+	// 1. 보낸 사람 이름
+	FString SenderName = TEXT("Unknown");
+	if (PlayerState)
+	{
+		SenderName = PlayerState->GetPlayerName();
+	}
+
+	// 2. ★단순화됨★ : 조건 검사 없이 접속한 모든 사람에게 쏩니다.
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMAPlayerController* TargetPC = Cast<AMAPlayerController>(It->Get());
+		
+		if (TargetPC)
+		{
+			// "팀 확인" 로직 삭제됨 -> 그냥 보냄
+			TargetPC->Client_ReceiveChatMessage(SenderName, Message, ChatType);
+		}
+	}
+}
+void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString& SenderName, const FString& Message, EChatType ChatType)
+{
+	// UI에게 알림 방송 (이전에 작성한 코드)
+	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
 }
