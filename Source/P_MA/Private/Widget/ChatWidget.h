@@ -23,7 +23,6 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* ChatInputBox;
 	
-	// 현재 채팅 모드 (기본값: Normal)
 	EChatType CurrentChatType = EChatType::Normal; 
 
 private:

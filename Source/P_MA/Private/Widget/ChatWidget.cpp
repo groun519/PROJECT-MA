@@ -12,8 +12,7 @@ void UChatWidget::NativeConstruct()
 	{
 		ChatInputBox->OnTextCommitted.AddDynamic(this, &UChatWidget::OnChatTextCommitted);
 	}
-
-	// 컨트롤러의 델리게이트에 내 함수 연결
+	
 	if (AMAPlayerController* PC = Cast<AMAPlayerController>(GetOwningPlayer()))
 	{
 		PC->OnChatMessageReceived.AddDynamic(this, &UChatWidget::HandleChatMessageReceived);
@@ -29,7 +28,6 @@ void UChatWidget::OnChatTextCommitted(const FText& Text, ETextCommit::Type Commi
 		{
 			if (AMAPlayerController* PC = Cast<AMAPlayerController>(GetOwningPlayer()))
 			{
-				// 서버로 전송!
 				PC->Server_SendChatMessage(Msg, CurrentChatType);
 			}
 			ChatInputBox->SetText(FText::GetEmpty());
@@ -51,18 +49,15 @@ void UChatWidget::AddMessageToUI(const FString& SenderName, const FString& Messa
 	{
 		FString FinalMsg;
 		FSlateColor Color = FSlateColor(FLinearColor::White);
-
-		// [변경] 단순해진 분기 처리
+		
 		switch (ChatType)
 		{
 		case EChatType::Normal:
-			// 일반 채팅: [이름] 메시지 (흰색)
 			FinalMsg = FString::Printf(TEXT("%s : %s"), *SenderName, *Message);
 			Color = FSlateColor(FLinearColor::White);
 			break;
 		
 		case EChatType::System:
-			// 시스템: [알림] 메시지 (노란색) - 예: "누구님이 입장했습니다."
 			FinalMsg = FString::Printf(TEXT("[System] : %s"), *Message);
 			Color = FSlateColor(FLinearColor::Yellow);
 			break;

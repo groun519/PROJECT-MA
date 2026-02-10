@@ -70,11 +70,11 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
 	/** Mini Map **/
-	/*MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
 	MinimapCameraBoom->SetupAttachment(RootComponent);
-	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f));
+	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
 
-	MinimapCameraBoom->TargetArmLength = 3000.0f;
+	MinimapCameraBoom->TargetArmLength = 2000.0f;
 	MinimapCameraBoom->bUsePawnControlRotation = false;
 	MinimapCameraBoom->bInheritPitch = false;
 	MinimapCameraBoom->bInheritRoll = false;
@@ -92,7 +92,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 		MinimapCapture->TextureTarget = renderObj.Object;
 	}
 	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());*/
+	MinimapSprite->SetupAttachment(GetMesh());
 	
 	/** Capsule Collision **/
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
