@@ -2,10 +2,8 @@
 
 #include "AI/Ability/GA_SuicideAttack.h"
 
-#include "AI/Golem/Monster.h"
-#include "AbilitySystemComponent.h"
 #include "AIController.h"
-#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -24,7 +22,6 @@ void UGA_SuicideAttack::ActivateAbility(
 
 	IgnoreTargets.Empty();
 	bHasTriggeredExplosion = false;
-	bKillDelayStarted = false;
 
 	if (!K2_CommitAbility())
 	{
@@ -38,7 +35,7 @@ void UGA_SuicideAttack::ActivateAbility(
 		K2_EndAbility();
 		return;
 	}
-	
+
 	UAbilityTask_WaitDelay* DistanceCheckTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
 	if (!DistanceCheckTask)
 	{
@@ -80,21 +77,18 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 			Target = Cast<AActor>(BB->GetValueAsObject(TEXT("Target")));
 		}
 	}
-	
+
 	if (!Target)
 	{
-		if (!bHasTriggeredExplosion)
+		UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
+		if (LoopTask)
 		{
-			UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
-			if (LoopTask)
-			{
-				LoopTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
-				LoopTask->ReadyForActivation();
-			}
+			LoopTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
+			LoopTask->ReadyForActivation();
 		}
 		return;
 	}
-	
+
 	FVector ML = Monster->GetActorLocation();
 	FVector TL = Target->GetActorLocation();
 	ML.Z = TL.Z = 0;
@@ -112,9 +106,9 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 			}
 		}
 	}
-	
+
 	const float VisualDist = RawDist - CapsuleOffset;
-	
+
 	if (VisualDist <= TriggerRange)
 	{
 		UAnimInstance* Anim = Monster->GetMesh() ? Monster->GetMesh()->GetAnimInstance() : nullptr;
@@ -125,7 +119,7 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 		}
 
 		bHasTriggeredExplosion = true;
-		
+
 		UAbilityTask_PlayMontageAndWait* PlayTask =	UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SuicideMontage);
 
 		if (!PlayTask)
@@ -134,13 +128,12 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 			return;
 		}
 
-		PlayTask->OnCompleted.AddDynamic(this, &UGA_SuicideAttack::OnMontageCompleted);
-		PlayTask->OnBlendOut.AddDynamic(this, &UGA_SuicideAttack::OnMontageCompleted);
-		PlayTask->OnCancelled.AddDynamic(this, &UGA_SuicideAttack::OnMontageCancelled);
-		PlayTask->OnInterrupted.AddDynamic(this, &UGA_SuicideAttack::OnMontageCancelled);
-
+		PlayTask->OnBlendOut.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
+		PlayTask->OnCancelled.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
+		PlayTask->OnCompleted.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
+		PlayTask->OnInterrupted.AddDynamic(this, &UGA_SuicideAttack::K2_EndAbility);
 		PlayTask->ReadyForActivation();
-		
+
 		UAbilityTask_WaitGameplayEvent* DamageEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Damage")));
 
 		if (DamageEvent)
@@ -151,15 +144,12 @@ void UGA_SuicideAttack::OnDistanceCheckTick()
 
 		return;
 	}
-	
-	if (!bHasTriggeredExplosion)
+
+	UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
+	if (LoopTask)
 	{
-		UAbilityTask_WaitDelay* LoopTask = UAbilityTask_WaitDelay::WaitDelay(this, CheckInterval);
-		if (LoopTask)
-		{
-			LoopTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
-			LoopTask->ReadyForActivation();
-		}
+		LoopTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnDistanceCheckTick);
+		LoopTask->ReadyForActivation();
 	}
 }
 
@@ -177,64 +167,26 @@ void UGA_SuicideAttack::OnDamageEvent(FGameplayEventData Data)
 			continue;
 
 		if (DamageEffect)
-			ApplyGameplayEffectToHitResultActor(Hit, DamageEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
-		
+		{
+			ApplyGameplayEffectToHitResultActor(
+				Hit,
+				DamageEffect,
+				GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+		}
+
 		IgnoreTargets.Add(HitActor);
 	}
 }
 
-void UGA_SuicideAttack::OnMontageCompleted()
+void UGA_SuicideAttack::EndAbility(
+	const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility,
+	bool bWasCancelled)
 {
-	if (bKillDelayStarted)
-	{
-		return;
-	}
+	IgnoreTargets.Empty();
+	bHasTriggeredExplosion = false;
 
-	bKillDelayStarted = true;
-
-	UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, KillDelay);
-	if (!DelayTask)
-	{
-		OnKillDelayFinished();
-		return;
-	}
-
-	DelayTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnKillDelayFinished);
-	DelayTask->ReadyForActivation();
-}
-
-void UGA_SuicideAttack::OnMontageCancelled()
-{
-	if (bKillDelayStarted)
-	{
-		return;
-	}
-
-	bKillDelayStarted = true;
-
-	UAbilityTask_WaitDelay* DelayTask = UAbilityTask_WaitDelay::WaitDelay(this, KillDelay);
-	if (!DelayTask)
-	{
-		OnKillDelayFinished();
-		return;
-	}
-
-	DelayTask->OnFinish.AddDynamic(this, &UGA_SuicideAttack::OnKillDelayFinished);
-	DelayTask->ReadyForActivation();
-}
-
-void UGA_SuicideAttack::OnKillDelayFinished()
-{
-	if (!CurrentActorInfo || !CurrentActorInfo->AvatarActor.IsValid())
-	{
-		K2_EndAbility();
-		return;
-	}
-
-	if (AMonster* Monster = Cast<AMonster>(CurrentActorInfo->AvatarActor.Get()))
-	{
-		Monster->Deactivate();
-	}
-
-	K2_EndAbility();
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

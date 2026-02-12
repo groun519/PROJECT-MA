@@ -13,6 +13,8 @@ class UInputAction;
 class UNiagaraComponent;
 class UInteractComponent;
 class UReadyStateComponent;
+class AMAPlayerState;
+class UDataTable;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
@@ -31,6 +33,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void OnRep_PlayerState() override;
+	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
 
 	UFUNCTION(Exec)
 	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
@@ -106,6 +111,20 @@ public:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:
+	void BindLoadoutDelegates();
+	void ApplyLoadoutFromPlayerState();
+	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
+	void HandleLoadoutWeaponChanged(FName WeaponId);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
+	TObjectPtr<UDataTable> WeaponDataTable;
+
+	FDelegateHandle LoadoutColorChangedHandle;
+	FDelegateHandle LoadoutWeaponChangedHandle;
+
+	UPROPERTY()
+	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
+
 	
 	UFUNCTION(Server, Reliable)
 	void Server_SetRotation(FVector LookDirection);

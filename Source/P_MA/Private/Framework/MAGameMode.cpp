@@ -2,9 +2,11 @@
 
 
 #include "Framework/MAGameMode.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerState.h"
 #include "Player/ReadyStateComponent.h"
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
@@ -25,11 +27,35 @@ void AMAGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	RefreshPlayerCache();
+
+	const UWorld* World = GetWorld();
+	const FString MapName = World ? World->GetMapName() : FString();
+	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
+	if (bResetLoadingState && GameState)
+	{
+		for (APlayerState* PS : GameState->PlayerArray)
+		{
+			if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS))
+			{
+				MAPlayerState->SetLoadingComplete(false);
+			}
+		}
+	}
 }
 
 void AMAGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+	const UWorld* World = GetWorld();
+	const FString MapName = World ? World->GetMapName() : FString();
+	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
+	if (bResetLoadingState && NewPlayer)
+	{
+		if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(NewPlayer->PlayerState))
+		{
+			MAPlayerState->SetLoadingComplete(false);
+		}
+	}
 	RefreshPlayerCache();
 }
 
