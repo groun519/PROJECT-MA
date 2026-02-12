@@ -9,7 +9,7 @@
 
 class UGameplayEffect;
 class UGameplayAbility;
-class UUtilityModule;
+
 /**
  * 
  */
@@ -26,12 +26,7 @@ public:
 	FORCEINLINE const TArray<TSubclassOf<UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
 	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
 	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
-	
-	UUtilityModule* FindSkillUtilityModuleByTag(const FGameplayTag& UtilityTag, UObject* Outer) const;
-	FORCEINLINE const UDataTable* GetElementDataTable() const {return ElementModuleDataTable;}
-	FORCEINLINE const UDataTable* GetBehaviorDataTable() const {return BehaviorModuleDataTable;}
-	FORCEINLINE const UDataTable* GetSkillInformationDataTable() const { return SkillInformationDT; }
-	FORCEINLINE const UDataTable* GetUtilityModuleDataTable() const { return UtilityModuleDataTable; }
+
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
@@ -52,13 +47,4 @@ private:
 	UDataTable* PlayerBaseStatDataTable;
 	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
 	UDataTable* MonsterBaseStatDataTable;
-	
-	UPROPERTY(EditDefaultsOnly, Category="Module")
-	UDataTable* UtilityModuleDataTable;
-	UPROPERTY(EditDefaultsOnly, Category="Module")
-	TObjectPtr<UDataTable> ElementModuleDataTable;
-	UPROPERTY(EditDefaultsOnly, Category="Module")
-	TObjectPtr<UDataTable> BehaviorModuleDataTable;
-	UPROPERTY(EditDefaultsOnly, Category="Skill")
-	TObjectPtr<UDataTable> SkillInformationDT;
 };

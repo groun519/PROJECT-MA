@@ -28,12 +28,19 @@ struct FSkillData : public FTableRowBase
 
 public:
 	FSkillData();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	UAnimMontage* SkillMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
-	UTexture2D* SkillIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
+	FName SkillID;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSoftObjectPtr<UTexture2D> SkillIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Traits")
 	FGameplayTagContainer SkillTraits;
@@ -46,15 +53,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
 	FGameplayTagContainer ActionTags;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"), Category="Action Resource")
 	FInstancedStruct ActionData;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Skill Stat")
-	FGameplayTag CooldownTag;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
-	float BaseCooldown = 10.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
 	float BaseDamageMultiplier=1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
+	float BaseCooldown = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Stat")
+	FGameplayTag CooldownTag;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;

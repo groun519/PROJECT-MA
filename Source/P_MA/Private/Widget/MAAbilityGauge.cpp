@@ -8,9 +8,8 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "GAS/Ability/MAGameplayAbility_SkillBase.h"
-#include "GAS/Ability/SkillBehaviorConfig.h"
-
+#include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Setting/MASkillSubsystem.h"
 #include "Widget/SkillDragDropOperation.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Inventory/SkillBookComponent.h"
@@ -131,36 +130,35 @@ void UMAAbilityGauge::InitializeAbility(TSubclassOf<UGameplayAbility> NewAbility
 	if (!NewAbilityClass)
 	{
 		AbilityCDO = nullptr;
+		SharedCooldownTag = FGameplayTag();
 		return;
 	}
-	SharedCooldownTag = FGameplayTag();
+
 	AbilityCDO = NewAbilityClass->GetDefaultObject<UGameplayAbility>();
-	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(OwnerASC);
-	if (!ASC || !ASC->GetSystemGenerics())
-		return;
-	const UDataTable* SkillInfoDT = ASC->GetSystemGenerics()->GetSkillInformationDataTable();
-	if (!SkillInfoDT)
-		return;
-	UMAGameplayAbility_SkillBase* SkillCDO = Cast<UMAGameplayAbility_SkillBase>(AbilityCDO);
-	if (SkillCDO && OwnerASC.IsValid())
+	if (UMAGameplayAbility_Skill* SkillCDO = Cast<UMAGameplayAbility_Skill>(AbilityCDO))
 	{
-		const FSkillInformationDT* SkillInfoRow = SkillInfoDT->FindRow<FSkillInformationDT>(NewAbilityClass->GetFName(),"");
-		if (SkillInfoRow)
+		SharedCooldownTag = FGameplayTag::EmptyTag;
+
+		if (UWorld* World = GetWorld())
 		{
-			SharedCooldownTag = SkillInfoRow->CooldownTag;
-			if (SharedCooldownTag.IsValid())
+			if (UMASkillSubsystem* SkillSys = World->GetGameInstance()->GetSubsystem<UMASkillSubsystem>())
 			{
-				OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);
+				const FSkillData* SkillData = SkillSys->GetSkillData(SkillCDO->GetSkillID());
+				if (SkillData && SkillData->CooldownTag.IsValid())
+				{
+					SharedCooldownTag = SkillData->CooldownTag;
+				}
 			}
 		}
+		if (SharedCooldownTag.IsValid() && OwnerASC.IsValid())
+		{
+			OwnerASC->RegisterGameplayTagEvent(SharedCooldownTag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &UMAAbilityGauge::OnCooldownTagChanged);
+		}
 	}
+
 	UpdateMaxCooldownText();
-
-	//float CooldownDuration = UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(AbilityCDO);
 	float Cost = UMAAbilitySystemStatics::GetStaticCostForAbility(AbilityCDO);
-
-	//if(CooldownDurationText) CooldownDurationText->SetText(FText::AsNumber(CooldownDuration));
-	if(CostText) CostText->SetText(FText::AsNumber(Cost));
+	if (CostText)	CostText->SetText(FText::AsNumber(Cost));
 }
 
 void UMAAbilityGauge::UpdateMaxCooldownText()

@@ -22,7 +22,8 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
-
+	TSubclassOf<UGameplayEffect> GetBaseCooldownEffect() const;
+	
 	const FSkillData& GetSkillData() const {return CachedSkillData;}
 	const FModuleBehaviorData& GetBehaviorData() const {return CachedBehaviorData;}
 	const FModuleElementalData& GetElementalData() const {return CachedElementalData;}
@@ -35,6 +36,10 @@ public:
 	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, float DamageMultiplier =1.f);
 	void ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier = 1.f);
 	
+
+	UFUNCTION(BlueprintCallable)
+	FName GetSkillID() const {return SkillID;}
+	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 protected:
 	TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const;
 	

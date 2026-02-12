@@ -14,8 +14,6 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
-#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"

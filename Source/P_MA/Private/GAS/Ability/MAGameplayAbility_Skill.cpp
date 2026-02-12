@@ -12,9 +12,7 @@
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Projectile/MAProjectileSkinData.h"
-#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
 #include "GAS/Setting/MASkillSubsystem.h"
-#include "ProfilingDebugging/CookStats.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
@@ -29,6 +27,12 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
 		return;
 	}
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
+		return;
+	}
+	
 	IgnoreTargets.Empty();
 
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
@@ -76,11 +80,17 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
-	if (!CooldownGE)	return;
-
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE->GetClass(), GetAbilityLevel());
+	
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(GetBaseCooldownEffect(), GetAbilityLevel());
 	if (!SpecHandle.IsValid())	return;
+
+	float Duration = CachedSkillData.BaseCooldown;
+	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Cooldown.Duration")), Duration);
+
+	if (CachedSkillData.CooldownTag.IsValid())
+	{
+		SpecHandle.Data->DynamicGrantedTags.AddTag(CachedSkillData.CooldownTag);
+	}
 
 	for (const auto& Module : ActiveModules)
 	{
@@ -90,6 +100,27 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 		}
 	}
 	FActiveGameplayEffectHandle EffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+}
+
+
+const FGameplayTagContainer* UMAGameplayAbility_Skill::GetCooldownTags() const
+{
+	if (CachedSkillData.CooldownTag.IsValid())
+	{
+		static FGameplayTagContainer CooldownTags;
+		CooldownTags.Reset();
+		CooldownTags.AddTag(CachedSkillData.CooldownTag);
+		return &CooldownTags;
+	}
+	return Super::GetCooldownTags();
+}
+
+TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseCooldownEffect() const
+{
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	if (ASC && ASC->GetSystemGenerics())
+		return ASC->GetSystemGenerics()->GetCooldownEffect();
+	return nullptr;
 }
 
 /********************************************************************************************/
