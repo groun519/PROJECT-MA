@@ -9,6 +9,7 @@
 #include "Components/SphereComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "P_MA/P_MA.h"
 
 
@@ -41,10 +42,10 @@ void AMAProjectile::SetGameplayCueTag(FGameplayTag Tag)
 
 void AMAProjectile::SetProjectileVFX(UNiagaraSystem* NewVFX)
 {
-	if (NewVFX && Niagara)
+	if (HasAuthority())
 	{
-		Niagara->SetAsset(NewVFX);
-		Niagara->ResetSystem();
+		Rep_ProjectileVFX = NewVFX;
+		OnRep_ProjectileVFX();
 	}
 }
 
@@ -63,36 +64,60 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
+	if (HitActors.Contains(OtherActor)) return;
 
-	TArray<FOverlapResult> Overlaps;
-	FCollisionObjectQueryParams ObjectQueryParams(ECC_Hitbox);
-	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ExplodeRadius);
-
-	GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape);
-	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplodeRadius, 12, FColor::Red, false, 2.0f);
-	
-	for (const FOverlapResult& OverlapResult : Overlaps)
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
+	if (TargetASC && DamageEffectSpecHandle.IsValid())
 	{
-		AActor* TargetActor = OverlapResult.GetActor();
-		if (TargetActor && TargetActor != GetInstigator() && TargetActor != this)
+		TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+	}
+	HitActors.Add(OtherActor);
+
+	if (ExplodeRadius > 0.f)
+	{
+		TArray<FOverlapResult> Overlaps;
+		FCollisionObjectQueryParams ObjectQueryParams(ECC_Hitbox);
+		FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ExplodeRadius);
+		
+		GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), ExplodeRadius, 12, FColor::Red, false, 2.0f);
+
+		for (const FOverlapResult& OverlapResult : Overlaps)
 		{
-			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-			if (TargetASC)
+			AActor* AoE_Target = OverlapResult.GetActor();
+			if (AoE_Target && AoE_Target != GetInstigator() && AoE_Target != this && !HitActors.Contains(AoE_Target))
 			{
-				if (DamageEffectSpecHandle.IsValid())
+				UAbilitySystemComponent* AoE_ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AoE_Target);
+				if (AoE_ASC && DamageEffectSpecHandle.IsValid())
 				{
-					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+					AoE_ASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+					HitActors.Add(AoE_Target);
 				}
 			}
 		}
 	}
+
+	
 	if (HitGameplayCueTag.IsValid())
 	{
 		FHitResult FinalHit = SweepResult;
 		if (!FinalHit.bBlockingHit)
 		{
-			FinalHit.ImpactPoint = GetActorLocation();
-			FinalHit.ImpactNormal = GetActorForwardVector() * -1.f;
+			FVector ImpactPoint = GetActorLocation();
+			FVector ImpactNormal = -GetActorForwardVector();
+
+			if (OtherComp)
+			{
+				FVector ClosestPointOnEnemy;
+				float Distance = OtherComp->GetClosestPointOnCollision(GetActorLocation(), ClosestPointOnEnemy);
+				if (Distance >= 0.f && !ClosestPointOnEnemy.IsZero())
+				{
+					ImpactPoint = ClosestPointOnEnemy;
+					ImpactNormal = (GetActorLocation() - ClosestPointOnEnemy).GetSafeNormal();
+				}
+			}
+			FinalHit.ImpactPoint = ImpactPoint;
+			FinalHit.ImpactNormal = ImpactNormal;
 		}
 		SendLocalGameplayCue(FinalHit);
 	}
@@ -143,6 +168,12 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	Destroy();
 }
 
+void AMAProjectile::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAProjectile, Rep_ProjectileVFX);
+}
+
 void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
 {
 	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
@@ -153,6 +184,15 @@ void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
 		CueParams.Normal = HitResult.ImpactNormal;
 
 		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
+	}
+}
+
+void AMAProjectile::OnRep_ProjectileVFX()
+{
+	if (Niagara && Rep_ProjectileVFX)
+	{
+		Niagara->SetAsset(Rep_ProjectileVFX);
+		Niagara->ResetSystem();
 	}
 }
 

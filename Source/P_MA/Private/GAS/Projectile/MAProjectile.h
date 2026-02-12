@@ -38,9 +38,17 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
 
 	void SendLocalGameplayCue(const FHitResult& HitResult);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVFX)
+	TObjectPtr<UNiagaraSystem> Rep_ProjectileVFX;
+
+	UFUNCTION()
+	void OnRep_ProjectileVFX();
 public:	
 	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false);
 
@@ -53,4 +61,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Cue Tag", meta=(Categories="GameplayCue"))
 	FGameplayTag HitGameplayCueTag;
+
+	UPROPERTY()
+	TArray<AActor*> HitActors;
 };
