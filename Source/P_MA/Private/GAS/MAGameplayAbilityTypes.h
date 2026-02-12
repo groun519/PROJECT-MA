@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
-#include "UtilityModule/UtilityModule.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
 UENUM(BlueprintType)
@@ -108,35 +107,4 @@ struct FMonsterBaseStats : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	float BaseFuryMax;
-};
-
-USTRUCT(BlueprintType)
-struct FSkillUtilityModule : public FTableRowBase
-{
-	GENERATED_BODY()
-	FSkillUtilityModule();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGameplayTag UtilityTag;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DamagePercentAdditive;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MontagePlayRate;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CooldownMultiplier;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="CooldownMultiplier ==0.0"))
-	float ChanceToReset;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UGameplayEffect> BuffGEOnActive;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UGameplayEffect> BuffGEOnEnd;
-	
-	UPROPERTY(EditAnywhere)
-	FText Description;
 };

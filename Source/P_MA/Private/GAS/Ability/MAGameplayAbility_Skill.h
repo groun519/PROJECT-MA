@@ -22,7 +22,8 @@ public:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
-
+	TSubclassOf<UGameplayEffect> GetBaseCooldownEffect() const;
+	
 	const FSkillData& GetSkillData() const {return CachedSkillData;}
 	const FModuleBehaviorData& GetBehaviorData() const {return CachedBehaviorData;}
 	const FModuleElementalData& GetElementalData() const {return CachedElementalData;}
@@ -32,8 +33,13 @@ public:
 	float GetTotalAnimSpeed() const;
 	
 	void ApplyDamageToHitResults(const TArray<FHitResult>& HitResults, float DamageMultiplier = 1.f);
+	void ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData, float DamageMultiplier =1.f);
 	void ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier = 1.f);
 	
+
+	UFUNCTION(BlueprintCallable)
+	FName GetSkillID() const {return SkillID;}
+	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 protected:
 	TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const;
 	
@@ -54,7 +60,7 @@ protected:
 	void PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier);
 	void SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier);
 	void SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier);
-	void SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier);
+	AActor* SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier, float ExplodeRadius = 0.f, bool bIsPenetrating=false);
 	bool LoadSkillData();
 
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);

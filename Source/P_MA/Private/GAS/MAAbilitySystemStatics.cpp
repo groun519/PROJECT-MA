@@ -8,7 +8,8 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MAAbilitySystemComponent.h"
-#include "Ability/SkillBehaviorConfig.h"
+#include "Ability/MAGameplayAbility_Skill.h"
+#include "Setting/MASkillSubsystem.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
@@ -218,46 +219,26 @@ float UMAAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* A
 
 float UMAAbilitySystemStatics::GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO,	const UAbilitySystemComponent* ASC)
 {
-	if (!AbilityCDO && !ASC)
+	if (!AbilityCDO || !ASC)
 		return 0.f;
 
-	const UMAAbilitySystemComponent* CurASC= Cast<UMAAbilitySystemComponent>(ASC);
-	if (!CurASC || !CurASC->GetSystemGenerics())
+	const UMAGameplayAbility_Skill* SkillAbility = Cast<UMAGameplayAbility_Skill>(AbilityCDO);
+	if (!SkillAbility)
 		return 0.f;
 
-	const UDataTable* SkillTable = CurASC->GetSystemGenerics()->GetSkillInformationDataTable();
-	if (!SkillTable)
-		return 0.f;
-
-	const FSkillInformationDT* SkillRow = SkillTable->FindRow<FSkillInformationDT>(AbilityCDO->GetClass()->GetFName(),"");
-	if (!SkillRow)
-		return 0.f;
-
-	float FinalCooldown = SkillRow->BaseCooldownDuration;
-	const FGameplayAbilitySpec* Spec = CurASC->FindAbilitySpecFromClass(AbilityCDO->GetClass());
-	if (!Spec)
-		return FinalCooldown;
-
-	FGameplayTag UtilityTag = SkillRow->DefaultUtilityTag;
-	FGameplayTagContainer UtilityFilter = Spec->DynamicAbilityTags.Filter(FGameplayTagContainer(FGameplayTag::RequestGameplayTag("Ability.Utility")));
-	if (UtilityFilter.Num() > 0)
-		UtilityTag=UtilityFilter.First();
-
-	if (UtilityTag.IsValid())
+	float FinalCooldown = 0.f;
+	const FSkillData* FetchedSkillData = nullptr;
+	
+	if (UWorld* World = ASC->GetWorld())
 	{
-		const UDataTable* UtilityTable = CurASC->GetSystemGenerics()->GetUtilityModuleDataTable();
-		if (UtilityTable)
+		if (UMASkillSubsystem* SkillSys = World->GetGameInstance()->GetSubsystem<UMASkillSubsystem>())
 		{
-			TArray<FName> TagNames;
-			UGameplayTagsManager::Get().SplitGameplayTagFName(UtilityTag, TagNames);
-			FName UtilityRowName = TagNames.Last();
-
-			const FSkillUtilityModule* UtilityRow = UtilityTable->FindRow<FSkillUtilityModule>(UtilityRowName, "");
-            
-			if (UtilityRow)
+			FetchedSkillData = SkillSys->GetSkillData(SkillAbility->GetSkillID());
+			if (FetchedSkillData)
 			{
-				// 쿨타임 배율 적용 (0이면 초기화 확률 로직이므로 여기서는 표기상 0초 혹은 원본 유지가 맞음. UI 표기용이므로 원본 유지 혹은 별도 처리)
-				if (UtilityRow->CooldownMultiplier != 0.f)
+				FinalCooldown = FetchedSkillData->BaseCooldown;
+
+				if (const FModuleUtilityData* UtilityRow = SkillSys->GetUtilityData(FetchedSkillData->DefaultUtilityTag))
 				{
 					FinalCooldown *= UtilityRow->CooldownMultiplier;
 				}

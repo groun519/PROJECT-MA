@@ -20,7 +20,10 @@ public:
 	virtual void ConfirmTargetingAndContinue() override;
 	virtual void Tick(float DeltaSeconds) override;
 	void Initialize(float InMaxDistance, float InMaxSize, float InMinSize, float InMaxHoldDuration);
+	void InitializeFixed(float InMaxDistance, float InRadius);
 
+	FGameplayAbilityTargetDataHandle GetTargetData();
+	
 private:
 	UPROPERTY(VisibleAnywhere)
 	class USphereComponent* CollisionComp;
@@ -34,6 +37,8 @@ private:
 	float MaxHoldDuration;
 	float CurrentSize;
 
+	bool bIsFixedSize = false;
+	
 	FVector GetTargetPoint() const;
 	void HandleUpdate(float InElapsedTime);
 };

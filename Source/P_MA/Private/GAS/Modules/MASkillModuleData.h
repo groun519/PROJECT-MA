@@ -6,9 +6,13 @@
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
+#include "GAS/Projectile/MAAbilityRangeActor.h"
+#include "GAS/Projectile/MAProjectile.h"
 #include "StructUtils/Public/InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
+class UMAProjectileSkinData;
+class UNiagaraSystem;
 class UMASkillVFXSet;
 class UMAGameplayAbility_Skill;
 class UGameplayEffect;
@@ -24,12 +28,19 @@ struct FSkillData : public FTableRowBase
 
 public:
 	FSkillData();
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	UAnimMontage* SkillMontage;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Resource")
-	UTexture2D* SkillIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
+	FName SkillID;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSoftObjectPtr<UTexture2D> SkillIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Traits")
 	FGameplayTagContainer SkillTraits;
@@ -42,19 +53,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
 	FGameplayTagContainer ActionTags;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource", meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"), Category="Action Resource")
 	FInstancedStruct ActionData;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
-	TSubclassOf<AActor> ChargeActorClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Action Resource")
-	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Skill Stat")
-	FGameplayTag CooldownTag;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
-	float BaseCooldown = 10.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skill Stat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
 	float BaseDamageMultiplier=1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
+	float BaseCooldown = 10.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Stat")
+	FGameplayTag CooldownTag;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;
@@ -80,8 +87,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Requirement")
 	FGameplayTagContainer RequiredTraits;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
-	bool bReplaceActionTags = true;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
+	//bool bReplaceActionTags = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
 	FGameplayTagContainer ActionTagOverride;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "/Script/P_MA.SkillActionConfig"))
@@ -129,6 +136,9 @@ struct FModuleElementalData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Elemental"))
+	FGameplayTag ElementalTag;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> AdditionalEffect;
 
@@ -181,11 +191,17 @@ struct FActionConfig_Projectile : public FSkillActionConfig
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> ProjectileClass;
+	TObjectPtr<UMAProjectileSkinData> SkinData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplierPerProjectile = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ExplodeRadius = 200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsPenetrating = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsRadial = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="!bIsRadial"))
@@ -203,7 +219,33 @@ struct FActionConfig_Targeting : public FSkillActionConfig
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> ProjectileClass;
+	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AMAAbilityRangeActor> RangeActorClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UMAProjectileSkinData> SkinData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 NumOfProjectiles = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageMultiplierPerProjectile = 1.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SpawnHeight = 600.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ExplodeRadius = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MinDistance = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxDistance = 700.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Box")
+	float SkillWidth = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Box")
+	float DecalDepth = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Circle")
+	float MinSize = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Charge Circle")
+	float MaxSize = 500.f;
 };

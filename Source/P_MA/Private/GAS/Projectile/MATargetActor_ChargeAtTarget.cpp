@@ -92,13 +92,60 @@ void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 
 void AMATargetActor_ChargeAtTarget::Initialize(float InMaxDistance, float InMaxSize, float InMinSize, float InMaxHoldDuration)
 {
+	UE_LOG(LogTemp,Warning, TEXT("Charing Indicatior Initialized"));
 	MaxDistance = InMaxDistance;
 	MaxSize = InMaxSize;
 	MinSize = InMinSize;
 	MaxHoldDuration = InMaxHoldDuration;
+	bIsFixedSize = false;
 
 	StartTime = GetWorld()->GetTimeSeconds();
 	HandleUpdate(0.f);
+}
+
+void AMATargetActor_ChargeAtTarget::InitializeFixed(float InMaxDistance, float InRadius)
+{
+	MaxDistance = InMaxDistance;
+	MinSize = InRadius;
+	MaxSize = InRadius;
+	MaxHoldDuration = 0.f;
+	bIsFixedSize=true;
+	CurrentSize = InRadius;
+
+	CollisionComp->SetSphereRadius(CurrentSize);
+	SkillRangeDecal->DecalSize = FVector(10.f, CurrentSize, CurrentSize);
+	SkillRangeDecal->MarkRenderStateDirty();
+
+	StartTime = GetWorld()->GetTimeSeconds();
+}
+
+FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtTarget::GetTargetData()
+{
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
+
+	TArray<AActor*> TargetActors;
+	CollisionComp->GetOverlappingActors(TargetActors);
+	if (TargetActors.Num() > 0)
+	{
+		FGameplayAbilityTargetData_ActorArray* TargetData = new FGameplayAbilityTargetData_ActorArray();
+		TargetData->TargetActorArray.Reserve(TargetActors.Num());
+
+		AActor* OwnerActor = OwningAbility ? OwningAbility->GetActorInfo().OwnerActor.Get() : nullptr;
+		for (AActor* Actor : TargetActors)
+		{
+			if (Actor && Actor!=OwnerActor)
+			{
+				TargetData->TargetActorArray.Add(Actor);
+			}
+		}
+		TargetDataHandle.Add(TargetData);
+	}
+	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
+	NewData->HitResult.ImpactPoint = GetActorLocation(); // 현재 액터 위치(마우스 위치)
+	NewData->HitResult.Distance = CurrentSize;           // 현재 커진 크기
+	TargetDataHandle.Add(NewData);
+	
+	return TargetDataHandle;
 }
 
 FVector AMATargetActor_ChargeAtTarget::GetTargetPoint() const
@@ -116,8 +163,15 @@ FVector AMATargetActor_ChargeAtTarget::GetTargetPoint() const
 
 void AMATargetActor_ChargeAtTarget::HandleUpdate(float InElapsedTime)
 {
-	float ChargeRatio = FMath::Clamp(InElapsedTime / MaxHoldDuration, 0.f, 1.f);
-	CurrentSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
+	if (bIsFixedSize || MaxHoldDuration <= 0.f)
+	{
+		CurrentSize = MinSize;
+	}
+	else
+	{
+		float ChargeRatio = FMath::Clamp(InElapsedTime / MaxHoldDuration, 0.f, 1.f);
+		CurrentSize = FMath::Lerp(MinSize, MaxSize, ChargeRatio);
+	}
 
 	CollisionComp->SetSphereRadius(CurrentSize);
 	SkillRangeDecal->DecalSize = FVector(10.f, CurrentSize, CurrentSize);

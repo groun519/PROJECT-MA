@@ -11,6 +11,7 @@
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
+#include "GAS/Projectile/MAProjectileSkinData.h"
 #include "GAS/Setting/MASkillSubsystem.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
@@ -26,6 +27,12 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
 		return;
 	}
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
+		return;
+	}
+	
 	IgnoreTargets.Empty();
 
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
@@ -73,11 +80,17 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
-	if (!CooldownGE)	return;
-
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownGE->GetClass(), GetAbilityLevel());
+	
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(GetBaseCooldownEffect(), GetAbilityLevel());
 	if (!SpecHandle.IsValid())	return;
+
+	float Duration = CachedSkillData.BaseCooldown;
+	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Cooldown.Duration")), Duration);
+
+	if (CachedSkillData.CooldownTag.IsValid())
+	{
+		SpecHandle.Data->DynamicGrantedTags.AddTag(CachedSkillData.CooldownTag);
+	}
 
 	for (const auto& Module : ActiveModules)
 	{
@@ -87,6 +100,27 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 		}
 	}
 	FActiveGameplayEffectHandle EffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+}
+
+
+const FGameplayTagContainer* UMAGameplayAbility_Skill::GetCooldownTags() const
+{
+	if (CachedSkillData.CooldownTag.IsValid())
+	{
+		static FGameplayTagContainer CooldownTags;
+		CooldownTags.Reset();
+		CooldownTags.AddTag(CachedSkillData.CooldownTag);
+		return &CooldownTags;
+	}
+	return Super::GetCooldownTags();
+}
+
+TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseCooldownEffect() const
+{
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
+	if (ASC && ASC->GetSystemGenerics())
+		return ASC->GetSystemGenerics()->GetCooldownEffect();
+	return nullptr;
 }
 
 /********************************************************************************************/
@@ -155,7 +189,7 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 		}
-		for (const FGameplayEffectSpecHandle& AddSpec : AdditionalSpecs)
+		for (const auto& AddSpec : AdditionalSpecs)
 		{
 			if (AddSpec.IsValid())
 			{
@@ -164,6 +198,49 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 				AddSpec.Data->SetContext(AddContext);
 				
 				ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+			}
+		}
+	}
+}
+
+void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTargetDataHandle& TargetData,float DamageMultiplier)
+{
+	if (!HasAuthority(&CurrentActivationInfo))
+		return;
+	
+	FGameplayEffectSpecHandle MainSpecHandle = MakeSkillDamageSpec(DamageMultiplier);
+	if (!MainSpecHandle.IsValid())
+		return;
+
+	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (Module)
+		{
+			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
+		}
+	}
+	
+	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData,0);
+	for (AActor* HitActor : TargetActors)
+	{
+		if (HitActor && !IgnoreTargets.Contains(HitActor))
+		{
+			FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+			EffectContext.AddInstigator(GetAvatarActorFromActorInfo(), GetAvatarActorFromActorInfo());
+			MainSpecHandle.Data->SetContext(EffectContext);
+			
+			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+			IgnoreTargets.Add(HitActor);
+
+			for (const auto& AddSpec : AdditionalSpecs)
+			{
+				if (AddSpec.IsValid())
+				{
+					FGameplayEffectContextHandle AddContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+					AddSpec.Data->SetContext(AddContext);
+					ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
+				}
 			}
 		}
 	}
@@ -223,16 +300,28 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Projectile* ProjectileConfig = SkillData.ActionData.GetPtr<FActionConfig_Projectile>();
-	if (!ProjectileConfig || !ProjectileConfig->ProjectileClass)
+	if (!ProjectileConfig || !ProjectileConfig->SkinData)
 		return;
 
 	AActor* AvatarActor = GetAvatarActorFromActorInfo();
 	if (!AvatarActor)
 		return;
 
+	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
+	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CurrentElement);
+
+	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
+	FGameplayTag CueTag = FinalSkin.HitCueTag;
+
+	if (!ClassToSpawn)
+		return;
+	
 	FVector AvatarLoc = AvatarActor->GetActorLocation();
 	FRotator AvatarRotator = AvatarActor->GetActorRotation();
 	int32 Num = FMath::Max(1, ProjectileConfig->NumOfProjectiles);
+
+	float FinalDamageMultiplier = DamageMultiplier * ProjectileConfig->DamageMultiplierPerProjectile;
 
 	for (int32 i=0 ; i<Num ; i++)
 	{
@@ -257,8 +346,16 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 		FVector SpawnDirection = SpawnRot.Vector();
 		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
 
-		DrawDebugSphere(GetWorld(), SpawnLoc, 20.f, 12, FColor::Red, false, 2.0f);
-		SpawnProjectileActor(ProjectileConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+		
+		AActor* SpawnedActor = SpawnProjectileActor(ClassToSpawn,SpawnLoc, SpawnRot, FinalDamageMultiplier, ProjectileConfig->ExplodeRadius, ProjectileConfig->bIsPenetrating);
+		if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
+		{
+			if (VFX)
+			{
+				Proj->SetProjectileVFX(VFX);
+			}
+			Proj->SetGameplayCueTag(CueTag);
+		}
 	}
 }
 
@@ -270,22 +367,55 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 	const FSkillData& SkillData = GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
 
-	if (!TargetConfig || !TargetConfig->ProjectileClass)
+	if (!TargetConfig || !TargetConfig->SkinData)
+		return;
+
+	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
+	FProjectileSkinInfo FinalSkin = TargetConfig->SkinData->GetSkinForTag(CurrentElement);
+
+	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
+	FGameplayTag CueTag = FinalSkin.HitCueTag;
+
+	if (!ClassToSpawn)
 		return;
 
 	FVector TargetLoc = FVector::ZeroVector;
+	float FinalExplodeRadius = TargetConfig->ExplodeRadius;
+
+	const FGameplayAbilityTargetData* ValidData = nullptr;
+	const FHitResult* ValidHit = nullptr;
+	
 	if (Payload.TargetData.Num() > 0)
 	{
-		const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(0);
-		if (Data)
+		for (int32 i=0; i<Payload.TargetData.Num() ; ++i)
 		{
-			const FHitResult* Hit = Data->GetHitResult();
-			if (Hit)
-				TargetLoc = Hit->ImpactPoint;
-			else
+			const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(i);
+			if (Data)
 			{
-				TargetLoc = Data->GetEndPoint();
+				const FHitResult* Hit = Data->GetHitResult();
+				if (Hit)
+				{
+					ValidData = Data;
+					ValidHit = Hit;
+					break;
+				}
 			}
+		}
+	}
+	if (ValidData)
+	{
+		if (ValidHit)
+		{
+			TargetLoc = ValidHit->ImpactPoint;
+			if (ValidHit->Distance > 0.f)
+			{
+				FinalExplodeRadius = ValidHit->Distance;
+			}
+		}
+		else
+		{
+			TargetLoc = ValidData->GetEndPoint();
 		}
 	}
 	else
@@ -296,16 +426,39 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 		}
 	}
 
-	FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
-	FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
-	if (K2_HasAuthority())
-		SpawnProjectileActor(TargetConfig->ProjectileClass, SpawnLoc, SpawnRot, DamageMultiplier);
+	int32 Num = FMath::Max(1, TargetConfig->NumOfProjectiles);
+	float FinalDamageMultiplier = DamageMultiplier * TargetConfig->DamageMultiplierPerProjectile;
+
+	for (int32 i=0 ; i<Num ; i++)
+	{
+		FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
+		FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
+
+		if (Num > 1 && TargetConfig->ExplodeRadius > 0.f)
+		{
+			FVector2D RandPoint = FMath::RandPointInCircle(TargetConfig->ExplodeRadius);
+			SpawnLoc += FVector(RandPoint.X, RandPoint.Y, 0.f);
+		}
+		if (K2_HasAuthority())
+		{
+			AActor* SpawnedActor =SpawnProjectileActor(ClassToSpawn, SpawnLoc, SpawnRot, FinalDamageMultiplier,FinalExplodeRadius);
+			if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
+			{
+				if (VFX)
+				{
+					Proj->SetProjectileVFX(VFX);
+				}
+				Proj->SetGameplayCueTag(CueTag);
+			}
+		}
+	}
 }
 
-void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier)
+AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier, float ExplodeRadius, bool bIsPenetrating)
 {
 	if (!Class)
-		return;
+		return nullptr;
+	
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetAvatarActorFromActorInfo();
 	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
@@ -317,9 +470,10 @@ void UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, F
 		FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
 		if (SpecHandle.IsValid())
 		{
-			Projectile->InitializeProjectile(SpecHandle);
+			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
 		}
 	}
+	return SpawnedActor;
 }
 
 

@@ -14,8 +14,6 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Projectile/MAProjectile_GroundTargetedAOE.h"
-#include "GAS/Projectile/MAProjectile_OverlapAOE.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
@@ -508,5 +506,16 @@ void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* 
 	if (SpawnedVFX && bApplyColor)
 	{
 		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
+	}
+}
+
+void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage, FName SectionName)
+{
+	if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
+	{
+		if (Montage && AnimInst->Montage_IsPlaying(Montage))
+		{
+			AnimInst->Montage_JumpToSection(SectionName, Montage);
+		}
 	}
 }

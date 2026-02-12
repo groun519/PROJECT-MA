@@ -155,7 +155,8 @@ public:
 	//소켓에 VFX 부착
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
-
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
 	/** Knockdown **/
 public:
 	virtual void Landed(const FHitResult& Hit) override;

@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Components/BoxComponent.h"
 #include "Components/DecalComponent.h"
+#include "P_MA/P_MA.h"
 
 AMATargetActor_ChargeAtFwd::AMATargetActor_ChargeAtFwd()
 {
@@ -24,6 +25,12 @@ AMATargetActor_ChargeAtFwd::AMATargetActor_ChargeAtFwd()
 	CurrentRangeDecal=CreateDefaultSubobject<UDecalComponent>("Current Range Decal");
 	CurrentRangeDecal->SetupAttachment(RootComp);
 
+	CollisionComp->SetCollisionProfileName(TEXT("Custom")); 
+	CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionComp->SetCollisionResponseToAllChannels(ECR_Overlap); 
+	CollisionComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	CollisionComp->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
+	
 	StartTime =0.f;
 }
 
@@ -59,6 +66,8 @@ FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtFwd::GetTargetData()
 	TArray<AActor*> TargetActors;
 	CollisionComp->GetOverlappingActors(TargetActors);
 
+	//UE_LOG(LogTemp, Warning, TEXT("[ChargeFwd] Overlapping Actors Count: %d"), TargetActors.Num());
+	
 	if (TargetActors.Num() > 0)
 	{
 		FGameplayAbilityTargetData_ActorArray* TargetData = new FGameplayAbilityTargetData_ActorArray();
@@ -70,9 +79,14 @@ FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtFwd::GetTargetData()
 			if (Actor && Actor!=OwnerActor)
 			{
 				TargetData->TargetActorArray.Add(Actor);
+				//UE_LOG(LogTemp, Warning, TEXT(" - Found Target: %s"), *Actor->GetName());
 			}
 		}
 		TargetDataHandle.Add(TargetData);
+	}
+	else
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("[ChargeFwd] No actors found in collision box!"));
 	}
 	return TargetDataHandle;
 }

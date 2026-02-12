@@ -7,6 +7,7 @@
 #include "DebugShapeHelper.h"
 #include "GA_Combo.generated.h"
 
+class UMASkillVFXSet;
 /**
  * 
  */
@@ -56,8 +57,16 @@ private:
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData Data);
 
+	UFUNCTION()
+	void HandleVFXSpawnEvent(FGameplayEventData Payload);
+	
 	FName NextComboName;
 
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
+
+	UPROPERTY(EditAnywhere, Category="VFX")
+	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	
+	FGameplayTag VFXRootTag;
 };

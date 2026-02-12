@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
+class UNiagaraSystem;
+class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 
@@ -22,7 +24,11 @@ public:
 	TObjectPtr<USphereComponent> SphereComp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
-	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
+	TObjectPtr<UNiagaraComponent> Niagara;
+
+	void SetGameplayCueTag(FGameplayTag Tag);
+	void SetProjectileVFX(UNiagaraSystem* NewVFX);
 protected:
 	virtual void BeginPlay() override;
 	
@@ -32,9 +38,30 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
-	
+
+	void SendLocalGameplayCue(const FHitResult& HitResult);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVFX)
+	TObjectPtr<UNiagaraSystem> Rep_ProjectileVFX;
+
+	UFUNCTION()
+	void OnRep_ProjectileVFX();
 public:	
-	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle);
-	
+	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false);
+
+
+private:
+	UPROPERTY()
+	float ExplodeRadius;
+
+	bool bIsPenetrating = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cue Tag", meta=(Categories="GameplayCue"))
+	FGameplayTag HitGameplayCueTag;
+
+	UPROPERTY()
+	TArray<AActor*> HitActors;
 };
