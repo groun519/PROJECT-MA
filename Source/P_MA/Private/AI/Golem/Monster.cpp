@@ -74,6 +74,38 @@ void AMonster::Deactivate()
 	}
 }
 
+void AMonster::ApplyEnvMaterials()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return;
+	}
+
+	const FMonsterEnvData* Found = nullptr;
+	for (const FMonsterEnvData& Data : EnvTagToMaterial)
+	{
+		if (Data.EnvTag == EnvGameplayTag)
+		{
+			Found = &Data;
+			break;
+		}
+	}
+	if (!Found)
+	{
+		return;
+	}
+
+	const TArray<UMaterialInterface*>& MIList = Found->MIList;
+	for (int32 Index = 0; Index < MIList.Num(); ++Index)
+	{
+		if (MIList[Index])
+		{
+			MeshComp->SetMaterial(Index, MIList[Index]);
+		}
+	}
+}
+
 void AMonster::SetGoal(AActor* Goal)
 {
 	if (AAIController* AIController = GetController<AAIController>())

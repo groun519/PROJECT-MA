@@ -130,6 +130,23 @@ void AMAGameState::GetLoopReadyCounts(int32& OutReady, int32& OutTotal) const
 	}
 }
 
+void AMAGameState::ResetLoopReadyEntries()
+{
+	bool bChanged = false;
+	for (FLoopReadyEntry& Entry : LoopReadyEntries)
+	{
+		if (Entry.bReady)
+		{
+			Entry.bReady = false;
+			bChanged = true;
+		}
+	}
+	if (bChanged)
+	{
+		OnLoopReadyEntriesChanged.Broadcast();
+	}
+}
+
 void AMAGameState::OnRep_LoopReadyEntries()
 {
 	OnLoopReadyEntriesChanged.Broadcast();

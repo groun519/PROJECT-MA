@@ -39,6 +39,7 @@ public:
 	void SetLoopReadyForPlayer(APlayerState* PlayerState, bool bReady);
 	bool GetLoopReadyForPlayer(const APlayerState* PlayerState) const;
 	void GetLoopReadyCounts(int32& OutReady, int32& OutTotal) const;
+	void ResetLoopReadyEntries();
 	const TArray<FLoopReadyEntry>& GetLoopReadyEntries() const { return LoopReadyEntries; }
 	FOnLoopReadyEntriesChanged OnLoopReadyEntriesChanged;
 	FOnMAGameStateChanged OnMAGameStateChanged;

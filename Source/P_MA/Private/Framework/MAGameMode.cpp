@@ -212,6 +212,10 @@ void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)
 	if (bIsAllReady && MAGameState == EMAGameState::Loop)
 	{
 		RequestStateChange(EMAGameState::Start);
+		if (AMAGameState* GS = GetGameState<AMAGameState>())
+		{
+			GS->ResetLoopReadyEntries();
+		}
 	}
 }
 
