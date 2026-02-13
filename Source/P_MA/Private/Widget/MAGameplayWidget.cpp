@@ -8,6 +8,7 @@
 #include "Widget/MAValueGauge.h"
 #include "Widget/ShopWidget.h"
 #include "Widget/SkillBookWidget.h"
+#include "Widget/Loop/LoopReadyWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
@@ -27,6 +28,7 @@ void UMAGameplayWidget::NativeConstruct()
     {
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
     }
+
 }
 
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
@@ -93,4 +95,30 @@ void UMAGameplayWidget::ToggleSkillBook()
         }
         
     }
+}
+
+void UMAGameplayWidget::SetLoopReadyVisible(bool bVisible)
+{
+	if (!LoopReadyWidget)
+	{
+		return;
+	}
+
+	const ESlateVisibility TargetVis = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+	LoopReadyWidget->SetVisibility(TargetVis);
+
+	if (bVisible && !bLoopReadyInitialized)
+	{
+		RefreshLoopReady();
+		bLoopReadyInitialized = true;
+	}
+}
+
+void UMAGameplayWidget::RefreshLoopReady()
+{
+	if (!LoopReadyWidget)
+	{
+		return;
+	}
+	LoopReadyWidget->RefreshFromGameState();
 }

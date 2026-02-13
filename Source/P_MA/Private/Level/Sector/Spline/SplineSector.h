@@ -29,6 +29,7 @@ public:
 	void SetRandomSeed(int32 MaxValue = INT32_MAX);
 	FVector GetSectorBound();
 	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	
 	/** Spline **/
@@ -59,7 +60,11 @@ public:
 	TObjectPtr<UPCGComponent> PCGComponent;
 
 private:
+	UPROPERTY(ReplicatedUsing=OnRep_SectorSeed)
 	int32 SectorSeed = 0;
 	void UpdatePCGComponent();
 	void UpdateSeed();
+
+	UFUNCTION()
+	void OnRep_SectorSeed();
 };

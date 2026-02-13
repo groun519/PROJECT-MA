@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/SplineComponent.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/PlayerStart.h"
 #include "BattleSpaceSpline.generated.h"
 
 UCLASS()

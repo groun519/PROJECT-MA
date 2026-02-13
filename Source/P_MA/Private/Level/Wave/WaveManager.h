@@ -7,10 +7,11 @@
 #include "GameFramework/Actor.h"
 #include "AI/Golem/Monster.h"
 #include "Level/Sector/Battle/BattleSpaceSpline.h"
-#include "Framework/MAGameMode.h"
+#include "Framework/MAGameStateTypes.h"
 #include "WaveManager.generated.h"
 
 class UDataTable;
+class AMAGameMode;
 
 USTRUCT()
 struct FWaveMonster
@@ -21,7 +22,26 @@ struct FWaveMonster
 	TSubclassOf<AMonster> Class;
 
 	UPROPERTY()
-	int32 Cost = 0;
+	int32 Gold = 0;
+};
+
+USTRUCT()
+struct FWaveSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 BaseGold = 1000;
+	UPROPERTY()
+	int32 AddingGoldPerWave = 50;
+
+	UPROPERTY()
+	int32 MaxMonsterNum = 30;
+
+	UPROPERTY()
+	float MonsterStatCoefficient = 1.0;
+	UPROPERTY()
+	float AddingMonsterStatCoefficientPerWave = 0.01;
 };
 
 UCLASS()
@@ -58,31 +78,45 @@ public:
 	// 몬스터를 데이터에서 뽑아 배열에 저장
 	TArray<FWaveMonster> GetNewWaveMonsters();
 	// 몬스터 뽑기
-	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutCost, FGameplayTag InEnvTag);
+	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutGold, FGameplayTag InEnvTag);
 
-	// CostUnit 기반으로 BaseInterval을 나눔
 	void CreateBaseIntervalTimer();
-	void SpawnMonstersByInterval();
-	// 개수만큼 몬스터 생성
-	void SpawnMonsters(int32 SpawnAtOnce = 3);
+	// 개수만큼 몬스터 생성 후 골드량 리턴
+	int32 SpawnMonstersAndReturnGold(int32 SpawnAtOnce = 3);
 	void OnMonsterDead();
 	void TryEndWave();
 
 private:
+	// 몬스터 스폰
+	FTimerHandle BaseIntervalTimerHandle;
+	float SpawnInterval = 1.f;
+	void SpawnMonstersByInterval();
+	
 	UPROPERTY()
 	AMAGameMode* CachedMAGameMode = nullptr;
 
-	int32 Stage	= 1;
+	UPROPERTY()
+	FWaveSetting WaveSetting;
+	
+	int32 TotalGold = 0;
 	int32 Wave = 1;
-	int32 TotalWaveCost = 51;
-	FORCEINLINE void SetTotalWaveCost(){ TotalWaveCost = 45 + Stage * 5 + Wave; }
-
-	// 코스트 단위
-	int32 CostUnit = 10;
-	int32 LastCostUnit = 10;
-
-	// 베이스 핸들
-	FTimerHandle BaseIntervalTimerHandle;
-
+	float MonsterStatCoefficient = 1.0;
+	int32 LastGold = 0;
+	
+	FORCEINLINE void SetTotalGoldByWave()
+	{
+		TotalGold =
+			WaveSetting.BaseGold + WaveSetting.AddingGoldPerWave * Wave;
+	}
+	FORCEINLINE void SetStatCoefficientByWave()
+	{
+		MonsterStatCoefficient =
+			WaveSetting.MonsterStatCoefficient + WaveSetting.AddingMonsterStatCoefficientPerWave * Wave;
+	}
+	
 	int32 AliveMonsterCount = 0;
+
+	/** Init **/
+	bool InitCachedMAGameMode();
+	bool InitSpawnSpline();
 };

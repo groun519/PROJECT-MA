@@ -21,6 +21,7 @@ public:
 	APlatformRoot();
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Delegate **/
 	FOnPlatformReachedEnd OnPlatformReachedEnd;
@@ -54,6 +55,18 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	UTextRenderComponent* ReadyText = nullptr;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_ReadyCounts)
+	FIntPoint ReplicatedReadyCounts = FIntPoint::ZeroValue;
+
+	UFUNCTION()
+	void OnRep_ReadyCounts();
+
+	UPROPERTY(ReplicatedUsing=OnRep_ReadyTextVisible)
+	bool bReadyTextVisible = false;
+
+	UFUNCTION()
+	void OnRep_ReadyTextVisible();
 
 	UPROPERTY()
 	TObjectPtr<ACore> CoreInstance;

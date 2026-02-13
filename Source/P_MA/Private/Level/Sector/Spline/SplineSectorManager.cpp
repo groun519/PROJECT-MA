@@ -143,6 +143,15 @@ int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 	}
 }
 
+EMAGameState ASplineSectorManager::GetMAGameState() const
+{
+	if (CachedMAGameMode)
+	{
+		return CachedMAGameMode->GetMAGameState();
+	}
+	return EMAGameState::Wait;
+}
+
 ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* World)
 {
 	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());

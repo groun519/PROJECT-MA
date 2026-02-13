@@ -5,17 +5,26 @@
 #include "MAPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "P_MA/P_MA.h"
 #include "Framework/MAGameMode.h"
+#include "Net/UnrealNetwork.h"
 
 UReadyStateComponent::UReadyStateComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetIsReplicatedByDefault(true);
 
 }
 
 void UReadyStateComponent::ReadyAndMoveIn(FVector InDir, float MovingUnit)
 {
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		ServerReadyAndMoveIn(InDir, MovingUnit);
+		return;
+	}
+
 	if (IsReady()) return;
 	SetReady(true);
 
@@ -53,16 +62,56 @@ void UReadyStateComponent::ReadyAndMoveIn(FVector InDir, float MovingUnit)
 	}
 
 	/** Teleport **/
-	Owner->SetActorLocation(FinalLoc, false, nullptr, ETeleportType::TeleportPhysics);
+	ACharacter* Character = Cast<ACharacter>(Owner);
+	if (!Character) return;
+
+	Character->GetCharacterMovement()->StopMovementImmediately();
+	Character->TeleportTo(FinalLoc, Character->GetActorRotation(), false, true);
+	Character->ForceNetUpdate();
+
+	if (APlayerController* PC = Cast<APlayerController>(Character->GetController()))
+	{
+		PC->ClientSetLocation(FinalLoc, Character->GetActorRotation());
+	}
+}
+
+void UReadyStateComponent::ServerReadyAndMoveIn_Implementation(FVector InDir, float MovingUnit)
+{
+	ReadyAndMoveIn(InDir, MovingUnit);
 }
 
 void UReadyStateComponent::SetReady(bool bNewReady)
 {
-	bIsReady = bNewReady;
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		ServerSetReady(bNewReady);
+		return;
+	}
 
+	if (bIsReady == bNewReady)
+	{
+		return;
+	}
+
+	bIsReady = bNewReady;
+	HandleReadyStateChanged();
+}
+
+void UReadyStateComponent::ServerSetReady_Implementation(bool bNewReady)
+{
+	SetReady(bNewReady);
+}
+
+void UReadyStateComponent::OnRep_IsReady()
+{
+	HandleReadyStateChanged();
+}
+
+void UReadyStateComponent::HandleReadyStateChanged()
+{
 	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!PlayerCharacter) return;
-	
+
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(
 		ECC_ReadyWall,
 		IsReady() ? ECR_Block : ECR_Overlap
@@ -75,4 +124,10 @@ void UReadyStateComponent::SetReady(bool bNewReady)
 			GameMode->BroadcastReadyCounts();
 		}
 	}
+}
+
+void UReadyStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UReadyStateComponent, bIsReady);
 }

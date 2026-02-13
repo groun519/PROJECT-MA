@@ -4,6 +4,7 @@
 #include "Convenience/InteractComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Net/UnrealNetwork.h"
 
 ACore::ACore()
 {
@@ -116,12 +117,20 @@ void ACore::HandleInteract(AMAPlayerCharacter* Interactor)
 
 void ACore::ApplyBattleColor(bool bInBattle)
 {
-	TargetColor = bInBattle ? BattleColor : BaseColor;
-	if (TargetColor == CurrentColor) return;
+	if (HasAuthority())
+	{
+		const FLinearColor NewTarget = bInBattle ? BattleColor : BaseColor;
+		ReplicatedTargetColor = NewTarget;
+		StartColorInterp(NewTarget);
+		return;
+	}
 
-	StartColor = CurrentColor;
-	ColorInterpElapsed = 0.f;
-	bColorInterpActive = true;
+	Server_ApplyBattleColor(bInBattle);
+}
+
+void ACore::Server_ApplyBattleColor_Implementation(bool bInBattle)
+{
+	ApplyBattleColor(bInBattle);
 }
 
 void ACore::ApplyCurrentColor()
@@ -133,4 +142,25 @@ void ACore::ApplyCurrentColor()
 		if (!DynMatPtr) continue;
 		DynMatPtr->SetVectorParameterValue(ColorParamName, CurrentColor);
 	}
+}
+
+void ACore::StartColorInterp(const FLinearColor& NewTarget)
+{
+	TargetColor = NewTarget;
+	if (TargetColor == CurrentColor) return;
+
+	StartColor = CurrentColor;
+	ColorInterpElapsed = 0.f;
+	bColorInterpActive = true;
+}
+
+void ACore::OnRep_TargetColor()
+{
+	StartColorInterp(ReplicatedTargetColor);
+}
+
+void ACore::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ACore, ReplicatedTargetColor);
 }

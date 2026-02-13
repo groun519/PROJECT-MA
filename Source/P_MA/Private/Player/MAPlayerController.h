@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
 
 UENUM(BlueprintType)
@@ -45,12 +47,18 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
 
+	/** Loadout **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutWeaponId(FName WeaponId);
-	
+
+	/** LoopReady **/
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoopReady(bool bReady);
+
+	/** ChatMessage **/
 	UPROPERTY(BlueprintAssignable, Category = "Chat")
 	FOnChatMessageReceived OnChatMessageReceived;
 	
@@ -62,6 +70,7 @@ public:
 
 private:
 	void SpawnGameplayWidget();
+	void HandleGameStateChanged(EMAGameState NewState);
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
@@ -71,6 +80,9 @@ private:
 
 	UPROPERTY()
 	class UMAGameplayWidget* GameplayWidget;
+
+	bool bHasPendingLoopReadyVisibility = false;
+	bool bPendingLoopReadyVisible = false;
 	
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;

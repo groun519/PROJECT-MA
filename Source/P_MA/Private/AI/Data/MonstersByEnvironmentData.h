@@ -19,12 +19,9 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 	FGameplayTag EnvGameplayTag = FGameplayTag();
 
 	UPROPERTY(EditAnywhere)
-	UPCGGraph* SplinePCGGraph = nullptr;
+	UPCGGraph* EnvPCGGraph = nullptr;
 
-	UPROPERTY(EditAnywhere)
-	UPCGGraph* BattlePCGGraph = nullptr;
-
-	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10"))
-	TMap<TSubclassOf<AMonster>, int32> MonsterData;
+	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10000"))
+	TMap<TSubclassOf<AMonster>, int32> MonsterToGold;
 };
 

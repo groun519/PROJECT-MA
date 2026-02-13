@@ -12,10 +12,21 @@
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameInstance.h"
+#include "Framework/MAGameMode.h"
+#include "Framework/MAGameState.h"
 
 void AMAPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (IsLocalController())
+	{
+		if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
+		{
+			GS->OnMAGameStateChanged.AddUObject(this, &AMAPlayerController::HandleGameStateChanged);
+			HandleGameStateChanged(GS->GetMAGameState());
+		}
+	}
 
 	if (!IsLocalController())
 	{
@@ -120,6 +131,11 @@ void AMAPlayerController::SpawnGameplayWidget()
 	{
 		GameplayWidget->AddToViewport();
 		GameplayWidget->ConfigureAbilities(MAPlayerCharacter->GetAbilities());
+		if (bHasPendingLoopReadyVisibility)
+		{
+			GameplayWidget->SetLoopReadyVisible(bPendingLoopReadyVisible);
+			bHasPendingLoopReadyVisibility = false;
+		}
 	}
 }
 
@@ -276,5 +292,27 @@ void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutWeaponId(WeaponId);
+	}
+}
+
+void AMAPlayerController::ServerSetLoopReady_Implementation(bool bReady)
+{
+	if (AMAGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AMAGameMode>() : nullptr)
+	{
+		GM->SetPlayerLoopReady(GetPlayerState<APlayerState>(), bReady);
+	}
+}
+
+void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
+{
+	const bool bShowLoopReady = (NewState == EMAGameState::Loop);
+	if (GameplayWidget)
+	{
+		GameplayWidget->SetLoopReadyVisible(bShowLoopReady);
+	}
+	else
+	{
+		bHasPendingLoopReadyVisibility = true;
+		bPendingLoopReadyVisible = bShowLoopReady;
 	}
 }

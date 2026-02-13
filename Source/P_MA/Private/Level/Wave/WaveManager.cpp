@@ -14,19 +14,13 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedMAGameMode = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-	if (CachedMAGameMode)
+	if (!InitCachedMAGameMode())
 	{
-		CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &AWaveManager::OnHandleGameStateChanged);
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: MAGameMode not Found"));
 	}
-
-	if (GetWorld())
+	if (!InitSpawnSpline())
 	{
-		ABattleSpaceSpline* Found = Cast<ABattleSpaceSpline>(
-			UGameplayStatics::GetActorOfClass(GetWorld(), ABattleSpaceSpline::StaticClass())
-		);
-
-		SpawnSpline = Found;
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: SpawnSpline not Found"));
 	}
 }
 
@@ -46,36 +40,78 @@ void AWaveManager::OnHandleGameStateChanged(EMAGameState NewState)
 
 TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 {
-	SetTotalWaveCost();
-	int32 UsingCost = 0;
+	SetTotalGoldByWave();
+	SetStatCoefficientByWave();
+	int32 UsingGold = 0;
 	TArray<FWaveMonster> OutWaveMonsters;
-	
-	while (UsingCost != TotalWaveCost)
-	{
-		TSubclassOf<AMonster> Monster; int32 Cost = 0;
-		GetRandomMonsterByEnv(Monster, Cost, CurEnvTag);
 
-		if (Cost == 0)
+	int32 MinGold = 0;
+	if (MonsByEnvData)
+	{
+		FString TagString = CurEnvTag.ToString();
+		FString Last;
+		TagString.Split(TEXT("."), nullptr, &Last, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		FName RowName(*Last);
+
+		FMonstersByEnvironmentData* Data = MonsByEnvData->FindRow<FMonstersByEnvironmentData>(
+			RowName,
+			TEXT("GetNewWaveMonsters"),
+			false
+		);
+		if (Data && CurEnvTag == Data->EnvGameplayTag)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Monster Cost is Zero !"));
+			for (const auto& Pair : Data->MonsterToGold)
+			{
+				if (Pair.Value <= 0) continue;
+				MinGold = (MinGold == 0) ? Pair.Value : FMath::Min(MinGold, Pair.Value);
+			}
+		}
+	}
+	
+	if (MinGold == 0 || TotalGold <= 0)
+	{
+		return OutWaveMonsters;
+	}
+
+	while (UsingGold + MinGold <= TotalGold && OutWaveMonsters.Num() < WaveSetting.MaxMonsterNum)
+	{
+		TSubclassOf<AMonster> Monster;
+		int32 Gold = 0;
+		GetRandomMonsterByEnv(Monster, Gold, CurEnvTag);
+
+		if (Gold == 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Monster Gold is Zero"));
 			break;
 		}
-		if (UsingCost + Cost > TotalWaveCost) continue;
+		if (UsingGold + Gold > TotalGold)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Skip monster gold=%d (UsingGold=%d TotalGold=%d)"),
+				Gold, UsingGold, TotalGold);
+			continue;
+		}
 
-		FWaveMonster NewMonster(Monster, Cost);
+		FWaveMonster NewMonster(Monster, Gold);
 		OutWaveMonsters.Add(NewMonster);
-		UsingCost += Cost;
+		UsingGold += Gold;
+	}
+
+	LastGold = FMath::Max(0, TotalGold - UsingGold);
+	if (TotalGold > 0 && LastGold > 0)
+	{
+		const float RemainRatio = static_cast<float>(LastGold) / static_cast<float>(TotalGold);
+		MonsterStatCoefficient *= (1.0f + RemainRatio);
 	}
 
 	OutWaveMonsters.Sort([](const FWaveMonster& A, const FWaveMonster& B)
 	{
-		return A.Cost < B.Cost;   
+		return A.Gold < B.Gold;   
 	});
 	
 	return OutWaveMonsters;
 }
 
-void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutCost, FGameplayTag InEnvTag)
+void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutGold, FGameplayTag InEnvTag)
 {
 	if (!MonsByEnvData) return;
 	
@@ -93,14 +129,14 @@ void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int3
 	if (InEnvTag != Data->EnvGameplayTag) return;
 	
 	TArray<TSubclassOf<AMonster>> Keys;
-	Data->MonsterData.GetKeys(Keys);
+	Data->MonsterToGold.GetKeys(Keys);
 
 	if (Keys.Num() == 0) return;
 	
-	int32 RandomIndex = FMath::RandRange(0, Data->MonsterData.Num() - 1);
+	int32 RandomIndex = FMath::RandRange(0, Data->MonsterToGold.Num() - 1);
 	
 	OutMonster = Keys[RandomIndex];
-	OutCost = Data->MonsterData[OutMonster];
+	OutGold = Data->MonsterToGold[OutMonster];
 }
 
 void AWaveManager::StartWave()
@@ -122,29 +158,28 @@ void AWaveManager::EndWave()
 	bWaveSpawnFinished = false;
 	GetWorldTimerManager().ClearTimer(BaseIntervalTimerHandle);
 
-	if (Wave == 5)
-	{
-		Stage++;
-		Wave = 1;
-	}
-	else
-	{
-		Wave++;
-	}
+	Wave++;
 }
 
-void AWaveManager::SpawnMonsters(int32 SpawnAtOnce)
+int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 {
-	if (WaveMonsters.IsEmpty() || !SpawnSpline) return;
+	if (WaveMonsters.IsEmpty() || !SpawnSpline) return 0;
 	
 	TArray<FVector> SpawnLocations
 		= SpawnSpline->GetMonsterSpawnLocations(SpawnAtOnce);
 
+	int32 UsingGold = 0;
+	
 	for (FVector SpawnLoc : SpawnLocations)
 	{
-		if (WaveMonsters.Num() == 0) return;
+		if (WaveMonsters.Num() == 0) return 0;
+
+		// 첫 인덱스의 몬스터 픽
 		FWaveMonster Monster = WaveMonsters[0];
 		if (!Monster.Class) continue;
+
+		// 골드 +
+		UsingGold += Monster.Gold;
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride =
@@ -153,33 +188,35 @@ void AWaveManager::SpawnMonsters(int32 SpawnAtOnce)
 		FVector SpawnLocation = SpawnSpline->GetActorLocation() + SpawnLoc;
 		FRotator SpawnRotation = (-SpawnLoc).Rotation();
 		
-		AMonster* Spawned = GetWorld()->SpawnActor<AMonster>(
+		const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+		AMonster* Spawned = GetWorld()->SpawnActorDeferred<AMonster>(
 			Monster.Class,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParams
+			SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
 		);
-		Spawned->SetGoal(SpawnSpline);
-		Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
-		AliveMonsterCount++;
+		if (Spawned)
+		{
+			Spawned->SetEnvTag(CurEnvTag);
+			Spawned->SetDropGold(Monster.Gold);
+			Spawned->SetStatCoefficient(MonsterStatCoefficient);
+			Spawned->ApplyEnvMaterials();
+			Spawned->FinishSpawning(SpawnTransform);
+			Spawned->SetGoal(SpawnSpline);
+			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
+			AliveMonsterCount++;
+		}
 
 		WaveMonsters.RemoveAt(0);
 	}
+
+	return UsingGold;
 }
 
 void AWaveManager::CreateBaseIntervalTimer()
 {
-	LastCostUnit = CostUnit;
-	
-	int32 IntervalCount = TotalWaveCost / CostUnit + 1;
-
-	int32 IntervalLimit = 20;
-	float IntervalSeconds = 1.f;
-	while (IntervalCount > IntervalLimit)
-	{
-		IntervalLimit *= 2;
-		IntervalSeconds /= 2;
-	}
+	LastGold = TotalGold;
 
 	if (!GetWorld()) return;
 
@@ -187,7 +224,7 @@ void AWaveManager::CreateBaseIntervalTimer()
 		BaseIntervalTimerHandle,
 		this,
 		&AWaveManager::SpawnMonstersByInterval,
-		IntervalSeconds,
+		SpawnInterval,
 		true 
 	);
 }
@@ -196,26 +233,11 @@ void AWaveManager::SpawnMonstersByInterval()
 {
 	if (!bIsWaving) return;
 
-	TArray<TSubclassOf<AMonster>> Monsters;
-	int32 Count = 0;
-	while (true)
-	{
-		Count++;
-		if (Count > WaveMonsters.Num()) break;
+	int32 UsingGold =
+		SpawnMonstersAndReturnGold(1);
 
-		FWaveMonster Monster = WaveMonsters[Count-1];
-		if (LastCostUnit - Monster.Cost <= 0)
-		{
-			LastCostUnit += CostUnit;
-			break;
-		}
-		else
-		{
-			LastCostUnit -= Monster.Cost;
-		}
-	}
-	SpawnMonsters(Count);
-
+	LastGold -= UsingGold;
+	
 	if (WaveMonsters.IsEmpty())
 	{
 		bWaveSpawnFinished = true;
@@ -243,4 +265,48 @@ void AWaveManager::TryEndWave()
 	{
 		CachedMAGameMode->RequestStateChange(EMAGameState::EndBattle);
 	}
+}
+
+/** Init Helper **/
+
+bool AWaveManager::InitCachedMAGameMode()
+{
+	CachedMAGameMode = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (CachedMAGameMode)
+	{
+		CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &AWaveManager::OnHandleGameStateChanged);
+		OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+		return true;
+	}
+	return false;
+}
+
+bool AWaveManager::InitSpawnSpline()
+{
+	if (SpawnSpline) return true;
+	if (GetWorld())
+	{
+		TArray<AActor*> FoundSplines;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABattleSpaceSpline::StaticClass(), FoundSplines);
+
+		const FName BattleSpaceTag(TEXT("BattleSpace"));
+		for (AActor* Actor : FoundSplines)
+		{
+			if (Actor && Actor->ActorHasTag(BattleSpaceTag))
+			{
+				SpawnSpline = Cast<ABattleSpaceSpline>(Actor);
+				break;
+			}
+		}
+
+		if (!SpawnSpline)
+		{
+			SpawnSpline = Cast<ABattleSpaceSpline>(
+				UGameplayStatics::GetActorOfClass(GetWorld(), ABattleSpaceSpline::StaticClass())
+			);
+			return false;
+		}
+		return true;
+	}
+	return false;
 }

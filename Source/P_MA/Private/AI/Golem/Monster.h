@@ -7,6 +7,18 @@
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
+USTRUCT(BlueprintType)
+struct FMonsterEnvData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Env")
+	FGameplayTag EnvTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Env")
+	TArray<UMaterialInterface*> MIList;
+};
+
 /**
  * 
  */
@@ -27,6 +39,20 @@ public:
 	void Activate();
 	void SetGoal(AActor* Goal);
 	void Deactivate();
+	
+	FORCEINLINE void SetEnvTag(const FGameplayTag& InEnvTag)
+	{
+		EnvGameplayTag = InEnvTag;
+	};
+	void SetDropGold(int32 InGold)
+	{
+		DropGold = InGold;
+	};
+	void SetStatCoefficient(float InCoefficient)
+	{
+		StatCoefficient = InCoefficient;
+	};
+	void ApplyEnvMaterials();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float FuryThreshold = 50.f;
@@ -35,6 +61,20 @@ private:
 	virtual void OnRep_TeamID() override;
 	virtual void OnDead() override;
 
+	UPROPERTY(EditAnywhere, Category = "Env")
+	FGameplayTag EnvGameplayTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Env")
+	TArray<FMonsterEnvData> EnvTagToMaterial;
+
+	// 죽었을 때 줄 골드량
+	UPROPERTY()
+	int32 DropGold = 0;
+
+	// 생성될 때 곱해질 스테이터스 계수
+	UPROPERTY()
+	float StatCoefficient = 1.f;
+	
 	UPROPERTY()
 	bool bActiveInPool = true;
 	

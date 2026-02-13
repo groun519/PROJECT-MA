@@ -16,10 +16,24 @@ public:
 
 	/** Ready by Montage **/
 	void ReadyAndMoveIn(FVector InDir, float MovingUnit);
+
+	UFUNCTION(Server, Reliable)
+	void ServerReadyAndMoveIn(FVector InDir, float MovingUnit);
 	
 	void SetReady(bool bNewReady);
 	FORCEINLINE bool IsReady() const { return bIsReady; }
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetReady(bool bNewReady);
+
 private:
+	void HandleReadyStateChanged();
+
+	UPROPERTY(ReplicatedUsing=OnRep_IsReady)
 	bool bIsReady = false;
+
+	UFUNCTION()
+	void OnRep_IsReady();
 };

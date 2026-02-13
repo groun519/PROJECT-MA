@@ -5,10 +5,18 @@
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Level/Platform/Core.h"
+#include "Net/UnrealNetwork.h"
 
 APlatformRoot::APlatformRoot()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
+	SetReplicateMovement(true);
+	{
+		FRepMovement RepMove = GetReplicatedMovement();
+		RepMove.RotationQuantizationLevel = ERotatorQuantization::ShortComponents;
+		SetReplicatedMovement(RepMove);
+	}
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
@@ -31,7 +39,14 @@ APlatformRoot::APlatformRoot()
 void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnCore();
+	if (!HasAuthority())
+	{
+		SetActorTickEnabled(false);
+	}
+	if (HasAuthority())
+	{
+		SpawnCore();
+	}
 	PlatformMatrixComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	PlatformMatrixComponent->InitMatrix();
 }
@@ -41,6 +56,10 @@ void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 	// bool bWaitMoveIn =
 	// 	CurState == EMAGameState::Wait || CurState == EMAGameState::EndBattle;
 	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
+	if (HasAuthority())
+	{
+		bReadyTextVisible = bWaitMoveIn;
+	}
 	if (ReadyText)
 	{
 		ReadyText->SetVisibility(bWaitMoveIn, true);
@@ -65,10 +84,34 @@ void APlatformRoot::SetCurSpline(USplineComponent* Spline)
 
 void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 {
+	if (HasAuthority())
+	{
+		ReplicatedReadyCounts = FIntPoint(ReadyCount, TotalCount);
+	}
 	if (!ReadyText) return;
 
 	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
 	ReadyText->SetText(FText::FromString(NewText));
+}
+
+void APlatformRoot::OnRep_ReadyCounts()
+{
+	if (!ReadyText) return;
+	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
+	ReadyText->SetText(FText::FromString(NewText));
+}
+
+void APlatformRoot::OnRep_ReadyTextVisible()
+{
+	if (!ReadyText) return;
+	ReadyText->SetVisibility(bReadyTextVisible, true);
+}
+
+void APlatformRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(APlatformRoot, ReplicatedReadyCounts);
+	DOREPLIFETIME(APlatformRoot, bReadyTextVisible);
 }
 
 void APlatformRoot::Tick(float DeltaTime)

@@ -4,10 +4,18 @@
 #include "Framework/MAGameMode.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
+#include "GameFramework/PlayerState.h"
 #include "EngineUtils.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerState.h"
 #include "Player/ReadyStateComponent.h"
+#include "Framework/MAGameState.h"
+
+AMAGameMode::AMAGameMode()
+{
+	MAGameState = EMAGameState::Wait;
+	GameStateClass = AMAGameState::StaticClass();
+}
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
 {
@@ -26,6 +34,11 @@ APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, con
 void AMAGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	if (AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		GS->SetMAGameState(MAGameState);
+		GS->SyncLoopReadyEntries(GameState ? GameState->PlayerArray : TArray<APlayerState*>());
+	}
 	RefreshPlayerCache();
 
 	const UWorld* World = GetWorld();
@@ -64,6 +77,10 @@ void AMAGameMode::RequestStateChange(EMAGameState NewState)
 	if (MAGameState == NewState) return;
 
 	MAGameState = NewState;
+	if (AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		GS->SetMAGameState(MAGameState);
+	}
 
 	if (OnMAGameStateChanged.IsBound())
 	{
@@ -101,6 +118,11 @@ void AMAGameMode::RefreshPlayerCache()
 		if (!Player) continue;
 
 		CachedPlayers.Add(Player);
+	}
+
+	if (AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		GS->SyncLoopReadyEntries(GameState ? GameState->PlayerArray : TArray<APlayerState*>());
 	}
 
 	BroadcastReadyCounts();
@@ -166,6 +188,51 @@ void AMAGameMode::BroadcastReadyCounts()
 		OnReadyCountChanged.Broadcast(ReadyCount, TotalCount);
 	}
 }
+
+void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)
+{
+	if (!PlayerState)
+	{
+		return;
+	}
+
+	if (AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		GS->SetLoopReadyForPlayer(PlayerState, bReady);
+	}
+
+	int32 ReadyCount = 0;
+	int32 TotalCount = 0;
+	if (AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		GS->GetLoopReadyCounts(ReadyCount, TotalCount);
+	}
+
+	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
+	if (bIsAllReady && MAGameState == EMAGameState::Loop)
+	{
+		RequestStateChange(EMAGameState::Start);
+		if (AMAGameState* GS = GetGameState<AMAGameState>())
+		{
+			GS->ResetLoopReadyEntries();
+		}
+	}
+}
+
+bool AMAGameMode::IsPlayerLoopReady(const APlayerState* PlayerState) const
+{
+	if (!PlayerState)
+	{
+		return false;
+	}
+
+	if (const AMAGameState* GS = GetGameState<AMAGameState>())
+	{
+		return GS->GetLoopReadyForPlayer(PlayerState);
+	}
+	return false;
+}
+
 
 void AMAGameMode::SetMAState(int32 NewState)
 {

@@ -2,9 +2,12 @@
 
 #include "SplineSector.h"
 #include "Components/SplineComponent.h"
+#include "Net/UnrealNetwork.h"
 
 ASplineSector::ASplineSector()
 {
+    bReplicates = true;
+
     /** Ground **/
     PCGExtentBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
     SetRootComponent(PCGExtentBox);
@@ -51,7 +54,10 @@ void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
     //PCGComponent->Cleanup();
-    SetRandomSeed();
+    if (HasAuthority())
+    {
+        SetRandomSeed();
+    }
 }
 
 void ASplineSector::UpdatePCGComponent()
@@ -91,7 +97,6 @@ void ASplineSector::UpdateSeed()
 
         RoadSpline->AddSplinePoint(EndPoint, ESplineCoordinateSpace::Local);
 
-        RoadSpline->ScaleVisualizationWidth = SplineWidth;
         int32 LastIndex = RoadSpline->GetNumberOfSplinePoints() - 1;
         RoadSpline->SetTangentAtSplinePoint(LastIndex, FVector(1,0,0), ESplineCoordinateSpace::Local);
         RoadSpline->SetTangentAtSplinePoint(0, FVector(1,0,0), ESplineCoordinateSpace::Local);
@@ -117,9 +122,23 @@ void ASplineSector::SetSectorSeed(int32 InSeed)
 
 void ASplineSector::SetRandomSeed(int32 MaxValue)
 {
+    if (!HasAuthority()) return;
+
     SectorSeed = FMath::RandRange(1, MaxValue);
     UpdateSeed();
     UpdatePCGComponent();
+}
+
+void ASplineSector::OnRep_SectorSeed()
+{
+    UpdateSeed();
+    UpdatePCGComponent();
+}
+
+void ASplineSector::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+    DOREPLIFETIME(ASplineSector, SectorSeed);
 }
 
 FVector ASplineSector::GetSectorBound()
