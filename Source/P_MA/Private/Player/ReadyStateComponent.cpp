@@ -124,6 +124,8 @@ void UReadyStateComponent::HandleReadyStateChanged()
 			GameMode->BroadcastReadyCounts();
 		}
 	}
+
+	OnReadyStateChanged.Broadcast(IsReady());
 }
 
 void UReadyStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

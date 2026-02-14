@@ -15,6 +15,7 @@ class UInteractComponent;
 class UReadyStateComponent;
 class AMAPlayerState;
 class UDataTable;
+class UPlayerCameraManagerComponent;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
@@ -64,6 +65,9 @@ private:
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
 	class UCameraComponent* Cam;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "View")
+	UPlayerCameraManagerComponent* PlayerCameraManagerComponent;
 	
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;

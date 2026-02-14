@@ -20,6 +20,7 @@
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "ReadyStateComponent.h"
+#include "Player/PlayerCameraManagerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -45,6 +46,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+
+	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
+	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
 
 	/** Controller Set **//*
 	 * 1. Player cannot use "Controller Rot"

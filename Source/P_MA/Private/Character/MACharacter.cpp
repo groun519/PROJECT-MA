@@ -299,7 +299,17 @@ void AMACharacter::Respawn()
 	//SetRagdollEnabled(false);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-	GetMesh()->GetAnimInstance()->StopAllMontages(0.f);
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (UAnimInstance* AnimInst = MeshComp->GetAnimInstance())
+		{
+			AnimInst->StopAllMontages(0.f);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Respawn: AnimInstance is null. Char=%s"), *GetName());
+		}
+	}
 	SetStatusGaugeEnabled(true);
 
 	if (HasAuthority() && GetController())

@@ -12,6 +12,8 @@ class P_MA_API UReadyStateComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnReadyStateChanged, bool /*bIsReady*/);
+
 	UReadyStateComponent();
 
 	/** Ready by Montage **/
@@ -27,6 +29,8 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetReady(bool bNewReady);
+
+	FOnReadyStateChanged OnReadyStateChanged;
 
 private:
 	void HandleReadyStateChanged();

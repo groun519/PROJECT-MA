@@ -20,6 +20,10 @@ ACore::ACore()
 void ACore::BeginPlay()
 {
 	Super::BeginPlay();
+	if (HasAuthority())
+	{
+		SetGenericTeamId(FGenericTeamId(0));
+	}
 	if (InteractComp)
 	{
 		// 사용예시. 매크로로 함수 쉽게 넘김.

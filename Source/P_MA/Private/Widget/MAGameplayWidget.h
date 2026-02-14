@@ -12,6 +12,8 @@ class UHorizontalBox;
 class UMAValueGauge;
 class UMAMobilityChargeWidget;
 class ULoopReadyWidget;
+class ACore;
+class AActor;
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
 {
@@ -19,6 +21,7 @@ class UMAGameplayWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
 
 	class USkillBookWidget* GetSkillBookWidget() const { return SkillBookWidget; }
@@ -32,6 +35,9 @@ public:
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
+
+	UPROPERTY(meta = (BindWidget))
+	class UMAValueGauge* CoreHealthBar;
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
@@ -64,6 +70,13 @@ protected:
 	
 	bool bLoopReadyInitialized = false;
 private:
+	bool TryBindCoreHealthFromWorld();
+	void TryBindCoreHealthFromActor(ACore* CoreActor);
+	void HandleActorSpawned(AActor* SpawnedActor);
+
+	FDelegateHandle CoreSpawnedHandle;
+	bool bCoreHealthBound = false;
+
 
 	UFUNCTION()
 	void OnShopButtonClicked();

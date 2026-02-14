@@ -12,7 +12,10 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
+#include "Kismet/GameplayStatics.h"
+#include "Level/Platform/Core.h"
 #include "GameFramework/PlayerController.h" // [필수] InputMode 설정을 위해 추가
+#include "Engine/World.h"
 
 void UMAGameplayWidget::NativeConstruct()
 {
@@ -29,6 +32,32 @@ void UMAGameplayWidget::NativeConstruct()
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
     }
 
+    if (CoreHealthBar)
+    {
+        if (!TryBindCoreHealthFromWorld())
+        {
+            if (UWorld* World = GetWorld())
+            {
+                CoreSpawnedHandle = World->AddOnActorSpawnedHandler(
+                    FOnActorSpawned::FDelegate::CreateUObject(this, &UMAGameplayWidget::HandleActorSpawned)
+                );
+            }
+        }
+    }
+
+}
+
+void UMAGameplayWidget::NativeDestruct()
+{
+    if (UWorld* World = GetWorld())
+    {
+        if (CoreSpawnedHandle.IsValid())
+        {
+            World->RemoveOnActorSpawnedHandler(CoreSpawnedHandle);
+            CoreSpawnedHandle.Reset();
+        }
+    }
+    Super::NativeDestruct();
 }
 
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
@@ -121,4 +150,60 @@ void UMAGameplayWidget::RefreshLoopReady()
 		return;
 	}
 	LoopReadyWidget->RefreshFromGameState();
+}
+
+bool UMAGameplayWidget::TryBindCoreHealthFromWorld()
+{
+    if (bCoreHealthBound || !CoreHealthBar)
+    {
+        return bCoreHealthBound;
+    }
+
+    ACore* CoreActor = Cast<ACore>(UGameplayStatics::GetActorOfClass(GetWorld(), ACore::StaticClass()));
+    if (CoreActor)
+    {
+        TryBindCoreHealthFromActor(CoreActor);
+    }
+
+    return bCoreHealthBound;
+}
+
+void UMAGameplayWidget::TryBindCoreHealthFromActor(ACore* CoreActor)
+{
+    if (bCoreHealthBound || !CoreHealthBar || !CoreActor)
+    {
+        return;
+    }
+
+    UAbilitySystemComponent* CoreASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CoreActor);
+    if (CoreASC)
+    {
+        CoreHealthBar->SetAndBoundToGameplayAttribute(
+            CoreASC,
+            UMAAttributeSet::GetHealthAttribute(),
+            UMAAttributeSet::GetMaxHealthAttribute());
+        bCoreHealthBound = true;
+
+        if (UWorld* World = GetWorld())
+        {
+            if (CoreSpawnedHandle.IsValid())
+            {
+                World->RemoveOnActorSpawnedHandler(CoreSpawnedHandle);
+                CoreSpawnedHandle.Reset();
+            }
+        }
+    }
+}
+
+void UMAGameplayWidget::HandleActorSpawned(AActor* SpawnedActor)
+{
+    if (bCoreHealthBound || !SpawnedActor)
+    {
+        return;
+    }
+
+    if (ACore* CoreActor = Cast<ACore>(SpawnedActor))
+    {
+        TryBindCoreHealthFromActor(CoreActor);
+    }
 }
