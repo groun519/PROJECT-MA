@@ -29,6 +29,7 @@ class P_MA_API AMAGameState : public AGameStateBase
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnLoopReadyEntriesChanged);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMAGameStateChanged, EMAGameState);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageCycleChanged, const FStageCycle&);
 
 	AMAGameState();
 
@@ -43,6 +44,10 @@ public:
 	const TArray<FLoopReadyEntry>& GetLoopReadyEntries() const { return LoopReadyEntries; }
 	FOnLoopReadyEntriesChanged OnLoopReadyEntriesChanged;
 	FOnMAGameStateChanged OnMAGameStateChanged;
+	FOnStageCycleChanged OnStageCycleChanged;
+
+	void SetStageCycle(const FStageCycle& NewStageCycle);
+	const FStageCycle& GetStageCycle() const { return ReplicatedStageCycle; }
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -58,5 +63,11 @@ private:
 
 	UFUNCTION()
 	void OnRep_LoopReadyEntries();
+
+	UPROPERTY(ReplicatedUsing=OnRep_StageCycle)
+	FStageCycle ReplicatedStageCycle;
+
+	UFUNCTION()
+	void OnRep_StageCycle();
 
 };

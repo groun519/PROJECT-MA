@@ -8,12 +8,14 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
+#include "Widget/Battle/InBattleStageWidget.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
+#include "TimerManager.h"
 
 void AMAPlayerController::BeginPlay()
 {
@@ -314,5 +316,74 @@ void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
 	{
 		bHasPendingLoopReadyVisibility = true;
 		bPendingLoopReadyVisible = bShowLoopReady;
+	}
+
+	if (NewState == EMAGameState::InBattle)
+	{
+		ShowInBattleStageWidget();
+	}
+}
+
+void AMAPlayerController::ShowInBattleStageWidget()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	if (!InBattleStageWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InBattleStageWidgetClass is not set."));
+		return;
+	}
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(InBattleStageWidgetTimer);
+	}
+
+	if (InBattleStageWidget)
+	{
+		InBattleStageWidget->RemoveFromParent();
+		InBattleStageWidget = nullptr;
+	}
+
+	InBattleStageWidget = CreateWidget<UInBattleStageWidget>(this, InBattleStageWidgetClass);
+	if (!InBattleStageWidget)
+	{
+		return;
+	}
+
+	InBattleStageWidget->AddToViewport();
+
+	if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
+	{
+		const FStageCycle& StageCycle = GS->GetStageCycle();
+		const FString StageText = FString::Printf(TEXT("%d-%d"), StageCycle.Round, StageCycle.Stage);
+		InBattleStageWidget->SetStageText(FText::FromString(StageText));
+	}
+
+	InBattleStageWidget->PlayShowAnimation();
+
+	const float Duration = InBattleStageWidget->GetShowAnimationDuration();
+	const float RemoveDelay = (Duration > 0.0f) ? Duration : 2.0f;
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			InBattleStageWidgetTimer,
+			this,
+			&AMAPlayerController::RemoveInBattleStageWidget,
+			RemoveDelay,
+			false
+		);
+	}
+}
+
+void AMAPlayerController::RemoveInBattleStageWidget()
+{
+	if (InBattleStageWidget)
+	{
+		InBattleStageWidget->RemoveFromParent();
+		InBattleStageWidget = nullptr;
 	}
 }

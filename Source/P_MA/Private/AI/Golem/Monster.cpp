@@ -91,10 +91,7 @@ void AMonster::ApplyEnvMaterials()
 			break;
 		}
 	}
-	if (!Found)
-	{
-		return;
-	}
+	if (!Found) return;
 
 	const TArray<UMaterialInterface*>& MIList = Found->MIList;
 	for (int32 Index = 0; Index < MIList.Num(); ++Index)

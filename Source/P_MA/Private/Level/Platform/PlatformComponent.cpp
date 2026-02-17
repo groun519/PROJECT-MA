@@ -85,7 +85,7 @@ void UPlatformComponent::InitReadyWall()
 		ReadyWallBox->SetRelativeLocation(FVector(0, 0, BoxWidth * 25 * 10));
 
 		// debug
-		ReadyWallBox->SetHiddenInGame(false);
+		// ReadyWallBox->SetHiddenInGame(false);
 	}
 }
 

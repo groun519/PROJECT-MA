@@ -56,10 +56,7 @@ void UPlayerCameraManagerComponent::Initialize(USpringArmComponent* InCameraBoom
 
 void UPlayerCameraManagerComponent::CacheReadySettingsFromCurrent()
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	ReadySettings.TargetArmLength = CameraBoom->TargetArmLength;
 	ReadySettings.BoomPitch = CameraBoom->GetRelativeRotation().Pitch;
@@ -69,10 +66,7 @@ void UPlayerCameraManagerComponent::CacheReadySettingsFromCurrent()
 
 void UPlayerCameraManagerComponent::CacheNotReadySettingsFromCurrent()
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	NotReadySettings.TargetArmLength = CameraBoom->TargetArmLength;
 	NotReadySettings.BoomPitch = CameraBoom->GetRelativeRotation().Pitch;
@@ -82,20 +76,14 @@ void UPlayerCameraManagerComponent::CacheNotReadySettingsFromCurrent()
 
 void UPlayerCameraManagerComponent::ApplyReadySettings()
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	StartTransition(ReadySettings);
 }
 
 void UPlayerCameraManagerComponent::ApplyNotReadySettings()
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	StartTransition(NotReadySettings);
 }
@@ -113,10 +101,7 @@ void UPlayerCameraManagerComponent::HandleReadyStateChanged(bool bIsReady)
 
 void UPlayerCameraManagerComponent::ApplySettings(const FCameraBoomOffsetSettings& Settings)
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	CameraBoom->TargetArmLength = Settings.TargetArmLength;
 
@@ -128,10 +113,7 @@ void UPlayerCameraManagerComponent::ApplySettings(const FCameraBoomOffsetSetting
 
 void UPlayerCameraManagerComponent::StartTransition(const FCameraBoomOffsetSettings& Settings)
 {
-	if (!CameraBoom)
-	{
-		return;
-	}
+	if (!CameraBoom) return;
 
 	TransitionTargetSettings = Settings;
 	TransitionElapsed = 0.f;

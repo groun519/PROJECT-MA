@@ -71,6 +71,8 @@ public:
 private:
 	void SpawnGameplayWidget();
 	void HandleGameStateChanged(EMAGameState NewState);
+	void ShowInBattleStageWidget();
+	void RemoveInBattleStageWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
@@ -80,6 +82,14 @@ private:
 
 	UPROPERTY()
 	class UMAGameplayWidget* GameplayWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UInBattleStageWidget> InBattleStageWidgetClass;
+
+	UPROPERTY()
+	class UInBattleStageWidget* InBattleStageWidget;
+
+	FTimerHandle InBattleStageWidgetTimer;
 
 	bool bHasPendingLoopReadyVisibility = false;
 	bool bPendingLoopReadyVisible = false;
