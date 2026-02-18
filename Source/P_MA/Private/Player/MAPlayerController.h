@@ -27,6 +27,8 @@ class AMAPlayerController : public APlayerController, public IGenericTeamAgentIn
 	GENERATED_BODY()
 
 public:
+	AMAPlayerController();
+
 	// 서버에서만 호출됨
 	void OnPossess(APawn* NewPawn) override;
 	// 클라이언트에서만 호출됨, 리슨서버도.

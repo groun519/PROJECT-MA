@@ -29,6 +29,7 @@ public:
 
 	void SetGameplayCueTag(FGameplayTag Tag);
 	void SetProjectileVFX(UNiagaraSystem* NewVFX);
+	void SetOnlyDamageTarget(AActor* InTarget) { OnlyDamageTarget = InTarget; }
 protected:
 	virtual void BeginPlay() override;
 	
@@ -64,4 +65,7 @@ private:
 
 	UPROPERTY()
 	TArray<AActor*> HitActors;
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> OnlyDamageTarget;
 };

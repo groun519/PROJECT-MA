@@ -28,13 +28,22 @@ void UInteractComponent::BeginPlay()
 	
 	if (InteractKeyWidgetComp)
 	{
-		InteractKeyWidgetComp->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetIncludingScale);
 		InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
 		InteractKeyWidgetComp->SetVisibility(false);
 	}
 	
 	OnComponentBeginOverlap.AddDynamic(this, &UInteractComponent::HandleBeginOverlap);
 	OnComponentEndOverlap.AddDynamic(this, &UInteractComponent::HandleEndOverlap);
+}
+
+void UInteractComponent::OnRegister()
+{
+	if (InteractKeyWidgetComp && InteractKeyWidgetComp->GetAttachParent() != this)
+	{
+		InteractKeyWidgetComp->SetupAttachment(this);
+	}
+
+	Super::OnRegister();
 }
 
 void UInteractComponent::RequestInteract(AMAPlayerCharacter* Interactor)

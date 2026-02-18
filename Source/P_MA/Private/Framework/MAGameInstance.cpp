@@ -110,25 +110,14 @@ void UMAGameInstance::DestroySession()
 
 void UMAGameInstance::StartLoadingScreen()
 {
-	if (bLoadingScreenActive)
-	{
-		return;
-	}
-	if (!LoadingScreenWidgetClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Widget class missing."));
-		return;
-	}
+	if (bLoadingScreenActive) return;
+	if (!LoadingScreenWidgetClass) return;
 
 	LoadingScreenWidgetInstance = nullptr;
 	LoadingScreenSlateWidget.Reset();
 
 	LoadingScreenWidgetInstance = CreateWidget<ULoadingScreenWidget>(this, LoadingScreenWidgetClass);
-	if (!LoadingScreenWidgetInstance)
-	{
-		UE_LOG(LogTemp, Error, TEXT("LoadingScreen: Failed to create widget instance."));
-		return;
-	}
+	if (!LoadingScreenWidgetInstance) return;
 	LoadingScreenSlateWidget = LoadingScreenWidgetInstance->TakeWidget();
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
@@ -242,14 +231,6 @@ float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
 	const float Progress = FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f);
 	OutPercent = FMath::RoundToInt(Progress * 100.0f);
 
-	if (Progress >= 1.0f && bLoadingScreenActive)
-	{
-		const double Elapsed = FPlatformTime::Seconds() - LoadingScreenStartTime;
-		if (Elapsed >= LoadingScreenPostLoadHoldSeconds)
-		{
-			StopLoadingScreen();
-		}
-	}
 	return Progress;
 }
 
@@ -261,7 +242,6 @@ void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
 	}
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
-
 	LoadedWorld->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
 	LoadedWorld->GetTimerManager().SetTimer(
 		LoadingStatusTimerHandle,
@@ -298,6 +278,7 @@ void UMAGameInstance::HandleBeginFrame()
 		LoadingStatusLastUpdateSeconds = Now;
 		UpdateLoadingStatus();
 	}
+
 }
 
 void UMAGameInstance::HandleMoviePlayerTick(float DeltaTime)
@@ -313,26 +294,18 @@ void UMAGameInstance::HandleMoviePlayerTick(float DeltaTime)
 		LoadingStatusLastUpdateSeconds = Now;
 		UpdateLoadingStatus();
 	}
+
 }
 
 void UMAGameInstance::UpdateLoadingStatus()
 {
-	if (!bLoadingScreenActive)
-	{
-		return;
-	}
+	if (!bLoadingScreenActive) return;
 
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	if (!World) return;
 
 	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
-	if (!GS)
-	{
-		return;
-	}
+	if (!GS) return;
 
 	TArray<FLoadingPlayerStatus> Statuses;
 	Statuses.Reserve(GS->PlayerArray.Num());
@@ -342,10 +315,7 @@ void UMAGameInstance::UpdateLoadingStatus()
 	for (APlayerState* PS : GS->PlayerArray)
 	{
 		AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS);
-		if (!MAPlayerState)
-		{
-			continue;
-		}
+		if (!MAPlayerState) continue;
 		++ValidPlayers;
 
 		FLoadingPlayerStatus Status;
@@ -373,7 +343,8 @@ void UMAGameInstance::UpdateLoadingStatus()
 		const float Target = (ValidPlayers > 0)
 			? FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f)
 			: 0.0f;
-		const bool bLoadingComplete = (Target >= 1.0f) || AreAllPlayersLoaded(World);
+		const bool bAllLoaded = AreAllPlayersLoaded(World);
+		const bool bLoadingComplete = (Target >= 1.0f) || bAllLoaded;
 		const float WarmupDurationSeconds = 5.0f;
 		const float WarmupMax = 0.50f;
 		const float MainMax = 0.95f;
@@ -388,37 +359,19 @@ void UMAGameInstance::UpdateLoadingStatus()
 		LoadingScreenWidgetInstance->UpdateLoadingStatus(Statuses);
 	}
 
-	if (AreAllPlayersLoaded(World))
+	if (bAllLoaded)
 	{
-		const double Elapsed = FPlatformTime::Seconds() - LoadingScreenStartTime;
-		if (Elapsed >= LoadingScreenPostLoadHoldSeconds)
-		{
-			if (World)
-			{
-				World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
-			}
-			StopLoadingScreen();
-		}
+		StopLoadingScreen();
 	}
-	else
-	{
-	}
+
 }
 
 void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId)
 {
-	if (LoadoutSaveSlot.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: Save slot name is empty."));
-		return;
-	}
+	if (LoadoutSaveSlot.IsEmpty()) return;
 
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(UGameplayStatics::CreateSaveGameObject(ULoadoutSaveGame::StaticClass()));
-	if (!SaveGame)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("LoadoutSave: Failed to create save object."));
-		return;
-	}
+	if (!SaveGame) return;
 
 	SaveGame->SavedColor = Color;
 	SaveGame->SavedWeaponId = WeaponId;
@@ -431,15 +384,9 @@ void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName Wea
 
 bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId)
 {
-	if (LoadoutSaveSlot.IsEmpty())
-	{
-		return false;
-	}
+	if (LoadoutSaveSlot.IsEmpty()) return false;
 
-	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex))
-	{
-		return false;
-	}
+	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex)) return false;
 
 	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(Loaded);
@@ -456,26 +403,17 @@ bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWe
 
 bool UMAGameInstance::AreAllPlayersLoaded(UWorld* World) const
 {
-	if (!World)
-	{
-		return false;
-	}
+	if (!World) return false;
 
 	const AGameStateBase* GS = World->GetGameState<AGameStateBase>();
-	if (!GS)
-	{
-		return false;
-	}
+	if (!GS) return false;
 
 	int32 Total = 0;
 	int32 Loaded = 0;
 	for (APlayerState* PS : GS->PlayerArray)
 	{
 		AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS);
-		if (!MAPlayerState)
-		{
-			continue;
-		}
+		if (!MAPlayerState) continue;
 
 		++Total;
 		if (MAPlayerState->IsLoadingComplete())

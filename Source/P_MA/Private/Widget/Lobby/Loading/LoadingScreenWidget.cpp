@@ -1,7 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "LoadingScreenWidget.h"
+#include "Widget/Lobby/Loading/LoadingBackgroundData.h"
 #include "Widget/Lobby/Loading/LoadingPlayerStatusWidget.h"
+#include "Widget/Lobby/Loading/LoadingTooltipData.h"
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
@@ -18,6 +21,24 @@ void ULoadingScreenWidget::NativeConstruct()
 	PendingTargetProgress = 0.0f;
 	bPendingLoadingComplete = false;
 	bHasPendingProgress = false;
+
+	if (LoadingBackgroundImage && BackgroundData && BackgroundData->BackgroundImages.Num() > 0)
+	{
+		const int32 Index = FMath::RandRange(0, BackgroundData->BackgroundImages.Num() - 1);
+		if (BackgroundData->BackgroundImages.IsValidIndex(Index) && BackgroundData->BackgroundImages[Index])
+		{
+			LoadingBackgroundImage->SetBrushFromTexture(BackgroundData->BackgroundImages[Index], true);
+		}
+	}
+
+	if (LoadingTooltipText && TooltipData && TooltipData->Tips.Num() > 0)
+	{
+		const int32 Index = FMath::RandRange(0, TooltipData->Tips.Num() - 1);
+		if (TooltipData->Tips.IsValidIndex(Index))
+		{
+			LoadingTooltipText->SetText(TooltipData->Tips[Index]);
+		}
+	}
 }
 
 void ULoadingScreenWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -89,6 +110,7 @@ void ULoadingScreenWidget::UpdateLoadingProgress(
 	this->WarmupDurationSeconds = InWarmupDurationSeconds;
 	this->WarmupMax = InWarmupMax;
 	this->MainMax = InMainMax;
+
 }
 
 void ULoadingScreenWidget::ApplyProgressFromTarget(float TargetProgress, bool bLoadingComplete)
@@ -136,3 +158,4 @@ void ULoadingScreenWidget::ApplyProgressFromTarget(float TargetProgress, bool bL
 		LoadingPercentText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), Percent)));
 	}
 }
+

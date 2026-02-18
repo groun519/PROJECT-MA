@@ -17,6 +17,11 @@
 #include "Framework/MAGameState.h"
 #include "TimerManager.h"
 
+AMAPlayerController::AMAPlayerController()
+{
+	TeamID = FGenericTeamId(0);
+}
+
 void AMAPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -70,6 +75,10 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 	MAPlayerCharacter = Cast<AMAPlayerCharacter>(NewPawn);
 	if (MAPlayerCharacter)
 	{
+		if (TeamID == FGenericTeamId::NoTeam)
+		{
+			TeamID = FGenericTeamId(0);
+		}
 		MAPlayerCharacter->ServerSideInit();
 		MAPlayerCharacter->SetGenericTeamId(TeamID);
 	}
@@ -84,6 +93,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
+	
+	ServerNotifyLoaded();
 	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;

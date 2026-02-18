@@ -21,6 +21,8 @@ AMAProjectile::AMAProjectile()
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
 	SetRootComponent(SphereComp);
 	SphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SphereComp->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
 
 	Niagara = CreateDefaultSubobject<UNiagaraComponent>("Niagara");
 	Niagara->SetupAttachment(SphereComp);
@@ -29,6 +31,8 @@ AMAProjectile::AMAProjectile()
 	ProjectileMovement->UpdatedComponent = SphereComp;
 	ProjectileMovement->InitialSpeed = 1000.f;
 	ProjectileMovement->MaxSpeed = 1000.f;
+	ProjectileMovement->bRotationFollowsVelocity = true;
+	ProjectileMovement->bShouldBounce = false;
 }
 
 
@@ -65,6 +69,7 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 	if (HitActors.Contains(OtherActor)) return;
+	if (OnlyDamageTarget.IsValid() && OtherActor != OnlyDamageTarget.Get()) return;
 
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (TargetASC && DamageEffectSpecHandle.IsValid())
@@ -132,6 +137,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
+	if (OnlyDamageTarget.IsValid() && OtherActor != OnlyDamageTarget.Get()) return;
 
 	if (HitGameplayCueTag.IsValid())
 	{
@@ -155,6 +161,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		AActor* TargetActor = OverlapResult.GetActor();
 		if (TargetActor && TargetActor != GetInstigator())
 		{
+			if (OnlyDamageTarget.IsValid() && TargetActor != OnlyDamageTarget.Get()) continue;
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 			if (TargetASC)
 			{
