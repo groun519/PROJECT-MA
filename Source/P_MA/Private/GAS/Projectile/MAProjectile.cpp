@@ -12,10 +12,12 @@
 #include "Net/UnrealNetwork.h"
 #include "P_MA/P_MA.h"
 
-
 AMAProjectile::AMAProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickInterval = 0.05f; // 틱 오버헤드 낮춤
+	SetActorTickEnabled(false); // 기본적으로 false로 두어, 타게팅 투사체가 아니면 틱을 안 쓰게 함.
+	
 	bReplicates = true;
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
@@ -35,6 +37,13 @@ AMAProjectile::AMAProjectile()
 	ProjectileMovement->bShouldBounce = false;
 }
 
+void AMAProjectile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (!HasAuthority()) return;
+
+	CheckAndHandleNearTargetDestroy();
+}
 
 void AMAProjectile::SetGameplayCueTag(FGameplayTag Tag)
 {
@@ -69,7 +78,10 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 	if (HitActors.Contains(OtherActor)) return;
-	if (OnlyDamageTarget.IsValid() && OtherActor != OnlyDamageTarget.Get()) return;
+	if (bHitOnlyDamageTarget)
+	{
+		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
+	}
 
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (TargetASC && DamageEffectSpecHandle.IsValid())
@@ -137,7 +149,10 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
-	if (OnlyDamageTarget.IsValid() && OtherActor != OnlyDamageTarget.Get()) return;
+	if (bHitOnlyDamageTarget)
+	{
+		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
+	}
 
 	if (HitGameplayCueTag.IsValid())
 	{
@@ -161,7 +176,10 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		AActor* TargetActor = OverlapResult.GetActor();
 		if (TargetActor && TargetActor != GetInstigator())
 		{
-			if (OnlyDamageTarget.IsValid() && TargetActor != OnlyDamageTarget.Get()) continue;
+			if (bHitOnlyDamageTarget)
+			{
+				if (!DamageTarget.IsValid() || TargetActor != DamageTarget.Get()) continue;
+			}
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 			if (TargetASC)
 			{
@@ -209,3 +227,60 @@ void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpec
 	ExplodeRadius = InExplodeRadius;
 	bIsPenetrating = bInPenetrating;
 }
+
+/** Targeting Logics **/
+void AMAProjectile::CheckAndHandleNearTargetDestroy()
+{
+	const float NearTargetDestroyDistance = 25.f;
+
+	if (!bHitOnlyDamageTarget) return;
+	FHitResult CueHitResult;
+	bool bShouldDestroy = false;
+
+	if (!DamageTarget.IsValid())
+	{
+		CueHitResult.ImpactPoint = GetActorLocation();
+		CueHitResult.ImpactNormal = -GetActorForwardVector();
+		bShouldDestroy = true;
+	}
+	else
+	{
+		if (HitActors.Contains(DamageTarget.Get()))
+		{
+			SetActorTickEnabled(false);
+			return;
+		}
+
+		const float DistanceSq = FVector::DistSquared(GetActorLocation(), DamageTarget->GetActorLocation());
+		if (DistanceSq <= FMath::Square(NearTargetDestroyDistance))
+		{
+			CueHitResult.ImpactPoint = DamageTarget->GetActorLocation();
+			CueHitResult.ImpactNormal = (GetActorLocation() - DamageTarget->GetActorLocation()).GetSafeNormal();
+			if (CueHitResult.ImpactNormal.IsNearlyZero())
+			{
+				CueHitResult.ImpactNormal = -GetActorForwardVector();
+			}
+			bShouldDestroy = true;
+		}
+	}
+
+	if (bShouldDestroy)
+	{
+		if (HitGameplayCueTag.IsValid()) SendLocalGameplayCue(CueHitResult);
+		Destroy();
+	}
+}
+
+void AMAProjectile::SetDamageTarget(AActor* InTarget)
+{
+	DamageTarget = InTarget;
+	bHitOnlyDamageTarget = DamageTarget.IsValid();
+	SetActorTickEnabled(bHitOnlyDamageTarget && DamageTarget.IsValid());
+}
+
+void AMAProjectile::SetHitOnlyDamageTargetEnabled(bool bInEnabled)
+{
+	bHitOnlyDamageTarget = bInEnabled;
+	SetActorTickEnabled(bHitOnlyDamageTarget && DamageTarget.IsValid());
+}
+/**/

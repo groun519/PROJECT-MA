@@ -43,6 +43,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritYaw = false;    
+	CameraBoom->bDoCollisionTest = false;
 	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);

@@ -54,7 +54,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	void OnHandleGameStateChanged(EMAGameState NewState);
+	void OnHandleSectorStateChanged(EMASectorState NewState);
 
 	/** Wave **/
 public:

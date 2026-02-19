@@ -57,7 +57,7 @@ public:
 	TArray<FStageSetting> StageSettings;
 
 private:
-	void OnHandleGameStateChanged(EMAGameState NewState);
+	void OnHandleSectorStateChanged(EMASectorState NewState);
 	void AdvanceStage();
 	// 최대 스테이지 수 getter
 	FORCEINLINE int32 GetMaxStageCount() { return StageSettings.Num(); }
@@ -65,7 +65,7 @@ private:
 	/** Cache **/
 	UPROPERTY()
 	AMAGameMode* CachedMAGameMode = nullptr;
-	EMAGameState CachedMAGameState = EMAGameState::Wait;
+	EMASectorState CachedMASectorState = EMASectorState::Wait;
 	/**/
 
 	// 스테이지 정보 관리

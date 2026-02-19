@@ -13,7 +13,7 @@
 
 AMAGameMode::AMAGameMode()
 {
-	MAGameState = EMAGameState::Wait;
+	CurrentMASectorState = EMASectorState::Wait;
 	GameStateClass = AMAGameState::StaticClass();
 }
 
@@ -36,7 +36,7 @@ void AMAGameMode::BeginPlay()
 	Super::BeginPlay();
 	if (AMAGameState* GS = GetGameState<AMAGameState>())
 	{
-		GS->SetMAGameState(MAGameState);
+		GS->SetMASectorState(CurrentMASectorState);
 		GS->SyncLoopReadyEntries(GameState ? GameState->PlayerArray : TArray<APlayerState*>());
 	}
 	RefreshPlayerCache();
@@ -72,33 +72,33 @@ void AMAGameMode::PostLogin(APlayerController* NewPlayer)
 	RefreshPlayerCache();
 }
 
-void AMAGameMode::RequestStateChange(EMAGameState NewState)
+void AMAGameMode::RequestStateChange(EMASectorState NewState)
 {
-	if (MAGameState == NewState) return;
+	if (CurrentMASectorState == NewState) return;
 
-	MAGameState = NewState;
+	CurrentMASectorState = NewState;
 	if (AMAGameState* GS = GetGameState<AMAGameState>())
 	{
-		GS->SetMAGameState(MAGameState);
+		GS->SetMASectorState(CurrentMASectorState);
 	}
 
-	if (OnMAGameStateChanged.IsBound())
+	if (OnMASectorStateChanged.IsBound())
 	{
-		OnMAGameStateChanged.Broadcast(MAGameState);
+		OnMASectorStateChanged.Broadcast(CurrentMASectorState);
 	}
 }
 
-EMAGameState AMAGameMode::GetNextState(EMAGameState CurState) const
+EMASectorState AMAGameMode::GetNextState(EMASectorState CurState) const
 {
-	if (CurState == EMAGameState::Loop)
+	if (CurState == EMASectorState::Loop)
 	{
-		return EMAGameState::Start;
+		return EMASectorState::Start;
 	}
 
-	return static_cast<EMAGameState>(static_cast<int32>(CurState) + 1);
+	return static_cast<EMASectorState>(static_cast<int32>(CurState) + 1);
 }
 
-void AMAGameMode::RequestNextState(EMAGameState CurState)
+void AMAGameMode::RequestNextState(EMASectorState CurState)
 {
 	RequestStateChange(GetNextState(CurState));
 }
@@ -179,7 +179,7 @@ void AMAGameMode::BroadcastReadyCounts()
 		bAllPlayersReady = bIsAllReady;
 		if (bAllPlayersReady)
 		{
-			RequestNextState(MAGameState);
+			RequestNextState(CurrentMASectorState);
 		}
 	}
 
@@ -209,9 +209,9 @@ void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)
 	}
 
 	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
-	if (bIsAllReady && MAGameState == EMAGameState::Loop)
+	if (bIsAllReady && CurrentMASectorState == EMASectorState::Loop)
 	{
-		RequestStateChange(EMAGameState::Start);
+		RequestStateChange(EMASectorState::Start);
 		if (AMAGameState* GS = GetGameState<AMAGameState>())
 		{
 			GS->ResetLoopReadyEntries();
@@ -236,13 +236,13 @@ bool AMAGameMode::IsPlayerLoopReady(const APlayerState* PlayerState) const
 
 void AMAGameMode::SetMAState(int32 NewState)
 {
-	if (NewState < 0 || NewState > static_cast<int32>(EMAGameState::Loop))
+	if (NewState < 0 || NewState > static_cast<int32>(EMASectorState::Loop))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SetMAState: invalid state %d"), NewState);
 		return;
 	}
 
-	RequestStateChange(static_cast<EMAGameState>(NewState));
+	RequestStateChange(static_cast<EMASectorState>(NewState));
 }
 
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const

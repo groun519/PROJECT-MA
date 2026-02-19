@@ -62,6 +62,7 @@ void UInteractComponent::HandleBeginOverlap(UPrimitiveComponent* OverlappedComp,
 {
 	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
+		if (!Player->IsLocallyControlled()) return;
 		Player->SetCurrentInteractComp(this);
 		SetActive(true);
 	}
@@ -71,6 +72,7 @@ void UInteractComponent::HandleEndOverlap(UPrimitiveComponent* OverlappedComp, A
 {
 	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
+		if (!Player->IsLocallyControlled()) return;
 		Player->ClearCurrentInteractComp(this);
 		SetActive(false);
 	}

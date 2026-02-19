@@ -338,12 +338,12 @@ void UMAGameInstance::UpdateLoadingStatus()
 		return A.SlotIndex < B.SlotIndex;
 	});
 
+	const bool bAllLoaded = AreAllPlayersLoaded(World);
 	if (LoadingScreenWidgetInstance)
 	{
 		const float Target = (ValidPlayers > 0)
 			? FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f)
 			: 0.0f;
-		const bool bAllLoaded = AreAllPlayersLoaded(World);
 		const bool bLoadingComplete = (Target >= 1.0f) || bAllLoaded;
 		const float WarmupDurationSeconds = 5.0f;
 		const float WarmupMax = 0.50f;

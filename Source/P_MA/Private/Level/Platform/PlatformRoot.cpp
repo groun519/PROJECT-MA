@@ -54,7 +54,7 @@ void APlatformRoot::BeginPlay()
 void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 {
 	// bool bWaitMoveIn =
-	// 	CurState == EMAGameState::Wait || CurState == EMAGameState::EndBattle;
+	// 	CurState == EMASectorState::Wait || CurState == EMASectorState::EndBattle;
 	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
 	if (HasAuthority())
 	{

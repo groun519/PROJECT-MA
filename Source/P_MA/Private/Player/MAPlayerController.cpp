@@ -30,8 +30,8 @@ void AMAPlayerController::BeginPlay()
 	{
 		if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
 		{
-			GS->OnMAGameStateChanged.AddUObject(this, &AMAPlayerController::HandleGameStateChanged);
-			HandleGameStateChanged(GS->GetMAGameState());
+			GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
+			HandleSectorStateChanged(GS->GetMASectorState());
 		}
 	}
 
@@ -316,9 +316,9 @@ void AMAPlayerController::ServerSetLoopReady_Implementation(bool bReady)
 	}
 }
 
-void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
+void AMAPlayerController::HandleSectorStateChanged(EMASectorState NewState)
 {
-	const bool bShowLoopReady = (NewState == EMAGameState::Loop);
+	const bool bShowLoopReady = (NewState == EMASectorState::Loop);
 	if (GameplayWidget)
 	{
 		GameplayWidget->SetLoopReadyVisible(bShowLoopReady);
@@ -329,7 +329,7 @@ void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
 		bPendingLoopReadyVisible = bShowLoopReady;
 	}
 
-	if (NewState == EMAGameState::InBattle)
+	if (NewState == EMASectorState::InBattle)
 	{
 		ShowInBattleStageWidget();
 	}

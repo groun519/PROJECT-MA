@@ -143,7 +143,7 @@ void UGA_CoreAttack::SpawnProjectile()
 	{
 		if (CachedTarget.IsValid())
 		{
-			Projectile->SetOnlyDamageTarget(CachedTarget.Get());
+			Projectile->SetDamageTarget(CachedTarget.Get());
 		}
 
 		FGameplayEffectSpecHandle SpecHandle = MakeDamageSpec();

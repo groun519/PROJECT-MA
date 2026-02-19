@@ -19,9 +19,9 @@ void AStageManager::BeginPlay()
 	CachedMAGameMode = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (CachedMAGameMode)
 	{
-		CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &AStageManager::OnHandleGameStateChanged);
-		CachedMAGameState = CachedMAGameMode->GetMAGameState();
-		OnHandleGameStateChanged(CachedMAGameState);
+		CachedMAGameMode->OnMASectorStateChanged.AddUObject(this, &AStageManager::OnHandleSectorStateChanged);
+		CachedMASectorState = CachedMAGameMode->GetMASectorState();
+		OnHandleSectorStateChanged(CachedMASectorState);
 		if (AMAGameState* GS = CachedMAGameMode->GetGameState<AMAGameState>())
 		{
 			GS->SetStageCycle(CurStageCycleData);
@@ -29,16 +29,16 @@ void AStageManager::BeginPlay()
 	}
 }
 
-void AStageManager::OnHandleGameStateChanged(EMAGameState NewState)
+void AStageManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	if (!HasAuthority()) return;
 
-	if (NewState == EMAGameState::Loop && CachedMAGameState != EMAGameState::Loop)
+	if (NewState == EMASectorState::Loop && CachedMASectorState != EMASectorState::Loop)
 	{
 		AdvanceStage();
 	}
 
-	CachedMAGameState = NewState;
+	CachedMASectorState = NewState;
 }
 
 void AStageManager::AdvanceStage()

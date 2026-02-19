@@ -27,8 +27,8 @@ void ASplineSectorManager::BeginPlay()
 		if (MAGM)
 		{
 			CachedMAGameMode = MAGM;
-			CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleGameStateChanged);
-			OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+			CachedMAGameMode->OnMASectorStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleSectorStateChanged);
+			OnHandleSectorStateChanged(CachedMAGameMode->GetMASectorState());
 			CachedMAGameMode->OnReadyCountChanged.AddUObject(this, &ASplineSectorManager::OnHandleReadyCountChanged);
 		}
 		
@@ -41,7 +41,7 @@ void ASplineSectorManager::BeginPlay()
 			if (CachedMAGameMode)
 			{
 				bool bWaitMoveIn =
-					CachedMAGameState == EMAGameState::Wait || CachedMAGameState == EMAGameState::EndBattle;
+					CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle;
 				CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 				CachedPlatformRoot->SetHeight(bIsMoving);
 			}
@@ -49,7 +49,7 @@ void ASplineSectorManager::BeginPlay()
 	}
 }
 
-void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
+void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
@@ -74,18 +74,18 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 	}
 
 	// 스테이트 캐시
-	CachedMAGameState = NewState;
+	CachedMASectorState = NewState;
 	
 	if (CachedPlatformRoot)
 	{
 		bool bWaitMoveIn =
-			NewState == EMAGameState::Wait || NewState == EMAGameState::EndBattle;
+			NewState == EMASectorState::Wait || NewState == EMASectorState::EndBattle;
 		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 		CachedPlatformRoot->SetHeight(bIsMoving);
 
 		if (ACore* Core = CachedPlatformRoot->GetCore())
 		{
-			const bool bIsBattle = (NewState == EMAGameState::Battle);
+			const bool bIsBattle = (NewState == EMASectorState::Battle);
 			Core->ApplyBattleColor(bIsBattle);
 		}
 	}
@@ -103,14 +103,14 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 	if (bIsLastSector)
 	{
 		// 만약 자동으로 넘겨야 하는 스테이트라면 넘김.
-		IsAutoPassState(CachedMAGameState);
+		IsAutoPassState(CachedMASectorState);
 
 		// 섹터 세팅
-		SetSectorsByState(CachedMAGameState);
+		SetSectorsByState(CachedMASectorState);
 		CurSectorIndex = 0;
 		
 		// 스테이트 넘어갈 때 로그 찍기
-		LogStateChange(CachedMAGameState);
+		LogStateChange(CachedMASectorState);
 	}
 	else
 	{
@@ -143,13 +143,13 @@ int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 	}
 }
 
-EMAGameState ASplineSectorManager::GetMAGameState() const
+EMASectorState ASplineSectorManager::GetMASectorState() const
 {
 	if (CachedMAGameMode)
 	{
-		return CachedMAGameMode->GetMAGameState();
+		return CachedMAGameMode->GetMASectorState();
 	}
-	return EMAGameState::Wait;
+	return EMASectorState::Wait;
 }
 
 ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* World)
@@ -159,7 +159,7 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	return SSM;
 }
 
-void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
+void ASplineSectorManager::SetSectorsByState(EMASectorState InState)
 {
 	FSplineSectorData SSData = SplineSectorsByState[InState];
 	
@@ -188,7 +188,7 @@ void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 		CurSectors.Empty();
 }
 
-bool ASplineSectorManager::IsAutoPassState(EMAGameState InState)
+bool ASplineSectorManager::IsAutoPassState(EMASectorState InState)
 {
 	int32 StateNum = static_cast<int32>(InState);
 	if (StateNum == 6) return false;
@@ -219,19 +219,24 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 	}
 
 	// Change Seed
-	int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
-	CurSectors[NextIndex]->SetRandomSeed();
+	const int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
+	const int32 PrevIndex = (CurSectorIndex == 0) ? (CurSectors.Num() - 1) : (CurSectorIndex - 1);
+	const bool bNextIsJustPassedSector = (NextIndex == PrevIndex);
+	if (!bNextIsJustPassedSector && CurSectors.IsValidIndex(NextIndex) && CurSectors[NextIndex])
+	{
+		CurSectors[NextIndex]->SetRandomSeed();
+	}
 
 	// Set Spline
 	CachedPlatformRoot->SetCurSpline(CurSpline);
 }
 
-void ASplineSectorManager::LogStateChange(EMAGameState InState) const
+void ASplineSectorManager::LogStateChange(EMASectorState InState) const
 {
 	if (!DebugSetting.bUseStateDebug) return;
 
-	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
-	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);
+	const UEnum* EnumPtr = StaticEnum<EMASectorState>();
+	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMASectorState);
 	const FString CurrName = EnumPtr->GetNameStringByValue((int64)InState);
 	UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
 	UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);

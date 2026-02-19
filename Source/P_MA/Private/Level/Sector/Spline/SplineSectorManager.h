@@ -63,7 +63,7 @@ public:
 	ASplineSectorManager();
 
 	/** Delegate **/
-	void OnHandleGameStateChanged(EMAGameState NewState);
+	void OnHandleSectorStateChanged(EMASectorState NewState);
 	UFUNCTION()
 	void OnHandlePlatformReachedEnd();
 	void OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount);
@@ -77,13 +77,13 @@ public:
 	TArray<TObjectPtr<ASplineSector>> CurSectors;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
-	TMap<EMAGameState, FSplineSectorData> SplineSectorsByState;
+	TMap<EMASectorState, FSplineSectorData> SplineSectorsByState;
 
 	int32 GetNextSectorIndex(int32 InSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
 	FORCEINLINE AMAGameMode* GetMAGameMode() const { return CachedMAGameMode; }
-	EMAGameState GetMAGameState() const;
+	EMASectorState GetMASectorState() const;
 	FORCEINLINE bool IsMoving(){ return bIsMoving; }
 	
 	/** Debug **/
@@ -96,14 +96,14 @@ private:
 
 	/** Cache **/
 	AMAGameMode* CachedMAGameMode;
-	EMAGameState CachedMAGameState = EMAGameState::Wait;
+	EMASectorState CachedMASectorState = EMASectorState::Wait;
 	APlatformRoot* CachedPlatformRoot;
 
 	/** Sector **/
 	// 섹터 끝에 도달했을 때, 리퀘스트 받아 사용.
-	void SetSectorsByState(EMAGameState InState);
-	bool IsAutoPassState(EMAGameState InState);
+	void SetSectorsByState(EMASectorState InState);
+	bool IsAutoPassState(EMASectorState InState);
 	void ApplyCurSplineAndSeed();
-	void LogStateChange(EMAGameState InState) const;
+	void LogStateChange(EMASectorState InState) const;
 	int32 CurSectorIndex = 0;
 };

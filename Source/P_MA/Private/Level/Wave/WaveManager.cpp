@@ -24,15 +24,15 @@ void AWaveManager::BeginPlay()
 	}
 }
 
-void AWaveManager::OnHandleGameStateChanged(EMAGameState NewState)
+void AWaveManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	if (!HasAuthority()) return;
 
-	if (NewState == EMAGameState::Battle)
+	if (NewState == EMASectorState::Battle)
 	{
 		StartWave();
 	}
-	else if (NewState == EMAGameState::EndBattle)
+	else if (NewState == EMASectorState::EndBattle)
 	{
 		EndWave();
 	}
@@ -263,7 +263,7 @@ void AWaveManager::TryEndWave()
 
 	if (CachedMAGameMode)
 	{
-		CachedMAGameMode->RequestStateChange(EMAGameState::EndBattle);
+		CachedMAGameMode->RequestStateChange(EMASectorState::EndBattle);
 	}
 }
 
@@ -274,8 +274,8 @@ bool AWaveManager::InitCachedMAGameMode()
 	CachedMAGameMode = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (CachedMAGameMode)
 	{
-		CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &AWaveManager::OnHandleGameStateChanged);
-		OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+		CachedMAGameMode->OnMASectorStateChanged.AddUObject(this, &AWaveManager::OnHandleSectorStateChanged);
+		OnHandleSectorStateChanged(CachedMAGameMode->GetMASectorState());
 		return true;
 	}
 	return false;

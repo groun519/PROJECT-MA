@@ -6,7 +6,7 @@
 #include "MAGameStateTypes.generated.h"
 
 UENUM(BlueprintType)
-enum class EMAGameState : uint8
+enum class EMASectorState : uint8
 {
 	// 멈춤
 	Wait = 0,

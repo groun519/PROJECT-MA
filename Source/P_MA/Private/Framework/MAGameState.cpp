@@ -8,17 +8,17 @@ AMAGameState::AMAGameState()
 {
 }
 
-void AMAGameState::SetMAGameState(EMAGameState NewState)
+void AMAGameState::SetMASectorState(EMASectorState NewState)
 {
 	if (ReplicatedState == NewState) return;
 
 	ReplicatedState = NewState;
-	OnMAGameStateChanged.Broadcast(ReplicatedState);
+	OnMASectorStateChanged.Broadcast(ReplicatedState);
 }
 
-void AMAGameState::OnRep_MAGameState()
+void AMAGameState::OnRep_MASectorState()
 {
-	OnMAGameStateChanged.Broadcast(ReplicatedState);
+	OnMASectorStateChanged.Broadcast(ReplicatedState);
 }
 
 void AMAGameState::SetStageCycle(const FStageCycle& NewStageCycle)
@@ -81,10 +81,8 @@ void AMAGameState::SetLoopReadyForPlayer(APlayerState* PlayerState, bool bReady)
 	{
 		if (Entry.PlayerState == PlayerState)
 		{
-			if (Entry.bReady == bReady)
-			{
-				return;
-			}
+			if (Entry.bReady == bReady) return;
+			
 			Entry.bReady = bReady;
 			OnLoopReadyEntriesChanged.Broadcast();
 			return;

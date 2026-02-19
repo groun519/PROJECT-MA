@@ -72,7 +72,7 @@ public:
 
 private:
 	void SpawnGameplayWidget();
-	void HandleGameStateChanged(EMAGameState NewState);
+	void HandleSectorStateChanged(EMASectorState NewState);
 	void ShowInBattleStageWidget();
 	void RemoveInBattleStageWidget();
 
