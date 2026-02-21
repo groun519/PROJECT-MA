@@ -67,4 +67,7 @@ private:
 
 	UFUNCTION()
 	void OnShopButtonClicked();
+
+	UFUNCTION()
+	void HandleShopClosedFromX();
 };

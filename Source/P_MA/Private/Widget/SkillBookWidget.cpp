@@ -41,11 +41,12 @@ void USkillBookWidget::NativeConstruct()
 
 void USkillBookWidget::OnCloseClicked()
 {
-	RemoveFromParent();
+	//RemoveFromParent();
+	SetVisibility(ESlateVisibility::Collapsed);
 	
 	if (APlayerController* PC = GetOwningPlayer())
 	{
-		PC->bShowMouseCursor = true;
+		PC->bShowMouseCursor = false;
 		
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);

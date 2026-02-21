@@ -16,6 +16,7 @@ class UShopItemDataObject;
 
 class UButton;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShopClosedDelegate);
 UCLASS()
 class UShopWidget : public UMovableWindowWidget
 {
@@ -26,6 +27,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Shop")
 	void InitShop(const TArray<UDataTable*>& InDataTables);
 
+	UPROPERTY(BlueprintAssignable, Category = "Shop")
+	FOnShopClosedDelegate OnShopClosed;
 private:
 	UPROPERTY(meta = (BindWidget))
 	UButton* CloseButton;

@@ -18,6 +18,9 @@ UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
 	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 	IgnoreClearTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
 void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

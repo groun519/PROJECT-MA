@@ -22,13 +22,17 @@ void UMAGameplayWidget::NativeConstruct()
     {
         ShopButton->OnClicked.AddDynamic(this, &UMAGameplayWidget::OnShopButtonClicked);
     }
+    if (ShopWidget)
+    {
+        ShopWidget->OnShopClosed.AddDynamic(this, &UMAGameplayWidget::HandleShopClosedFromX);
+    }
     
     UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
     if (OwnerAbilitySystemComponent && HealthBar)
     {
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
     }
-
+    
 }
 
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
@@ -68,6 +72,15 @@ void UMAGameplayWidget::PlayShopPopupAnimation(bool bPlayForward)
 void UMAGameplayWidget::OnShopButtonClicked()
 {
     ToggleShop();
+}
+
+void UMAGameplayWidget::HandleShopClosedFromX()
+{
+    if (ShopWidget->GetVisibility() == ESlateVisibility::Visible)
+    {
+        ShopWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+        PlayShopPopupAnimation(false);
+    }
 }
 
 void UMAGameplayWidget::ToggleSkillBook()

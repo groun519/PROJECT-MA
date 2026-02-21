@@ -29,6 +29,8 @@ public:
 
 	void EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, EMAAbilityInputID SlotInputID);
 
+	UFUNCTION(Server, Reliable)
+	void Server_EquipSkill(TSubclassOf<UGameplayAbility> SkillCalss, EMAAbilityInputID SlotInputID);
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

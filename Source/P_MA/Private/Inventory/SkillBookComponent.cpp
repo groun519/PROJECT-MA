@@ -49,6 +49,14 @@ void USkillBookComponent::Client_UnlockSkill_Implementation(TSubclassOf<UGamepla
 
 void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, EMAAbilityInputID SlotInputID)
 {
+	//클라이언트에서 호출 시, 서버에게 장착하라고 부탁
+	if (!GetOwner()->HasAuthority())
+	{
+		Server_EquipSkill(SkillClass, SlotInputID);
+		return;
+	}
+
+	//서버에서 호출 시
 	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
 	if (!ASC || !SkillClass) return;
 	
@@ -71,4 +79,10 @@ void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, E
 		EquippedSkills.Add(SlotInputID, NewHandle);
 	}
 	UE_LOG(LogTemp, Warning, TEXT("Equipped Skill [%s] to InputID [%d]"), *SkillClass->GetName(), (int32)SlotInputID);
+}
+
+void USkillBookComponent::Server_EquipSkill_Implementation(TSubclassOf<UGameplayAbility> SkillCalss,
+	EMAAbilityInputID SlotInputID)
+{
+	EquipSkill(SkillCalss, SlotInputID);
 }
