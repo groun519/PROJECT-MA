@@ -18,6 +18,7 @@ protected:
 public:
 	UPlatformMatrixComponent();
 	void InitMatrix();
+	void ResolveReadyWallOverlapsOnce();
 
 	/** Matrix Cols **/
 	UPROPERTY(EditAnywhere, Category="Grid")

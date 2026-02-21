@@ -19,8 +19,9 @@
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
-#include "ReadyStateComponent.h"
-#include "Player/PlayerCameraManagerComponent.h"
+#include "Player/Components/ReadyStateComponent.h"
+#include "Player/Components/ReadyCheckWidgetComponent.h"
+#include "Player/Components/PlayerCameraManagerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -109,6 +110,15 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	
 	/** Ready State Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+
+	/** Ready Check Widget **/
+	ReadyCheckWidget = CreateDefaultSubobject<UReadyCheckWidgetComponent>(TEXT("ReadyCheckWidget"));
+	ReadyCheckWidget->SetupAttachment(GetMesh());
+	ReadyCheckWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	ReadyCheckWidget->SetDrawAtDesiredSize(true);
+	ReadyCheckWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ReadyCheckWidget->SetHiddenInGame(true);
+	ReadyCheckWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
 }
 
 void AMAPlayerCharacter::BeginPlay()
@@ -415,10 +425,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 	}
 
 	CachedLoadoutPlayerState = NewPlayerState;
-	if (!NewPlayerState)
-	{
-		return;
-	}
+	if (!NewPlayerState) return;
 
 	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
 	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
@@ -428,10 +435,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 
 void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 {
-	if (!CachedLoadoutPlayerState)
-	{
-		return;
-	}
+	if (!CachedLoadoutPlayerState) return;
 
 	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
 	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
@@ -439,10 +443,7 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
 {
-	if (!LoadoutComponent)
-	{
-		return;
-	}
+	if (!LoadoutComponent) return;
 
 	if (HasAuthority())
 	{
@@ -456,21 +457,11 @@ void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair&
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (!WeaponComponent || WeaponId.IsNone())
-	{
-		return;
-	}
-
-	if (!WeaponDataTable)
-	{
-		return;
-	}
+	if (!WeaponComponent || WeaponId.IsNone()) return;
+	if (!WeaponDataTable) return;
 
 	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
-	if (!Row)
-	{
-		return;
-	}
+	if (!Row) return;
 
 	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
 	if (WeaponMesh)

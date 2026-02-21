@@ -45,6 +45,7 @@ public:
 	void SetCurSpline(USplineComponent* Spline);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
 	ACore* GetCore() const { return CoreInstance; }
+	void ResolveReadyWallOverlapsOnce();
 	
 private:
 	/** Input by Manager **/
@@ -64,6 +65,8 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyTextVisible)
 	bool bReadyTextVisible = false;
+
+	bool bPrevWaitMoveIn = false;
 
 	UFUNCTION()
 	void OnRep_ReadyTextVisible();

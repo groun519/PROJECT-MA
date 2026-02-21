@@ -156,10 +156,7 @@ void UMAGameInstance::StartLoadingScreen()
 
 void UMAGameInstance::StopLoadingScreen()
 {
-	if (!bLoadingScreenActive)
-	{
-		return;
-	}
+	if (!bLoadingScreenActive) return;
 
 	bLoadingScreenActive = false;
 	GetMoviePlayer()->StopMovie();
@@ -195,16 +192,10 @@ float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
 	OutPercent = 0;
 
 	const UWorld* World = GetWorld();
-	if (!World)
-	{
-		return 0.0f;
-	}
+	if (!World) return 0.0f;
 
 	const AGameStateBase* GS = World->GetGameState<AGameStateBase>();
-	if (!GS)
-	{
-		return 0.0f;
-	}
+	if (!GS) return 0.0f;
 
 	int32 ValidPlayers = 0;
 	int32 LoadedPlayers = 0;
@@ -223,10 +214,7 @@ float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
 		}
 	}
 
-	if (ValidPlayers <= 0)
-	{
-		return 0.0f;
-	}
+	if (ValidPlayers <= 0) return 0.0f;
 
 	const float Progress = FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f);
 	OutPercent = FMath::RoundToInt(Progress * 100.0f);
@@ -236,10 +224,7 @@ float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
 
 void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
 {
-	if (!bLoadingScreenActive || !LoadedWorld)
-	{
-		return;
-	}
+	if (!bLoadingScreenActive || !LoadedWorld) return;
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	LoadedWorld->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
@@ -255,10 +240,7 @@ void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
 
 void UMAGameInstance::HandleBeginFrame()
 {
-	if (!bLoadingScreenActive)
-	{
-		return;
-	}
+	if (!bLoadingScreenActive) return;
 
 	if (LoadingScreenSlateWidget.IsValid() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
@@ -283,10 +265,7 @@ void UMAGameInstance::HandleBeginFrame()
 
 void UMAGameInstance::HandleMoviePlayerTick(float DeltaTime)
 {
-	if (!bLoadingScreenActive)
-	{
-		return;
-	}
+	if (!bLoadingScreenActive) return;
 
 	const double Now = FPlatformTime::Seconds();
 	if ((Now - LoadingStatusLastUpdateSeconds) >= 0.2)

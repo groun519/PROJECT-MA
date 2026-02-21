@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Player/PlayerCameraManagerComponent.h"
+#include "Player/Components/PlayerCameraManagerComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Player/ReadyStateComponent.h"
+#include "Player/Components/ReadyStateComponent.h"
 
 UPlayerCameraManagerComponent::UPlayerCameraManagerComponent()
 {

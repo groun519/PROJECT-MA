@@ -2,7 +2,7 @@
 
 
 #include "ReadyStateComponent.h"
-#include "MAPlayerCharacter.h"
+#include "Player/MAPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -31,9 +31,6 @@ void UReadyStateComponent::ReadyAndMoveIn(FVector InDir, float MovingUnit)
 	AActor* Owner = GetOwner();
 	if (!Owner) return;
 	
-	/** Debug **/
-	UE_LOG(LogTemp, Warning, TEXT("UReadyStateComponent::ReadyAndMoveIn Execute"));
-
 	/** Multiple MovingUnit by PlayerLoc **/
 	FVector HorizontalTarget = Owner->GetActorLocation() + (InDir * MovingUnit);
 
@@ -88,10 +85,7 @@ void UReadyStateComponent::SetReady(bool bNewReady)
 		return;
 	}
 
-	if (bIsReady == bNewReady)
-	{
-		return;
-	}
+	if (bIsReady == bNewReady) return;
 
 	bIsReady = bNewReady;
 	HandleReadyStateChanged();
@@ -102,19 +96,44 @@ void UReadyStateComponent::ServerSetReady_Implementation(bool bNewReady)
 	SetReady(bNewReady);
 }
 
+void UReadyStateComponent::SetLoopReady(bool bNewReady)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		ServerSetLoopReady(bNewReady);
+		return;
+	}
+
+	if (bIsLoopReady == bNewReady) return;
+
+	bIsLoopReady = bNewReady;
+	HandleLoopReadyStateChanged();
+}
+
+void UReadyStateComponent::ServerSetLoopReady_Implementation(bool bNewReady)
+{
+	SetLoopReady(bNewReady);
+}
+
 void UReadyStateComponent::OnRep_IsReady()
 {
 	HandleReadyStateChanged();
+}
+
+void UReadyStateComponent::OnRep_IsLoopReady()
+{
+	HandleLoopReadyStateChanged();
 }
 
 void UReadyStateComponent::HandleReadyStateChanged()
 {
 	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!PlayerCharacter) return;
+	const ECollisionResponse NewResponse = IsReady() ? ECR_Block : ECR_Overlap;
 
 	PlayerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(
 		ECC_ReadyWall,
-		IsReady() ? ECR_Block : ECR_Overlap
+		NewResponse
 		);
 
 	if (PlayerCharacter->HasAuthority())
@@ -128,8 +147,14 @@ void UReadyStateComponent::HandleReadyStateChanged()
 	OnReadyStateChanged.Broadcast(IsReady());
 }
 
+void UReadyStateComponent::HandleLoopReadyStateChanged()
+{
+	OnLoopReadyStateChanged.Broadcast(IsLoopReady());
+}
+
 void UReadyStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UReadyStateComponent, bIsReady);
+	DOREPLIFETIME(UReadyStateComponent, bIsLoopReady);
 }

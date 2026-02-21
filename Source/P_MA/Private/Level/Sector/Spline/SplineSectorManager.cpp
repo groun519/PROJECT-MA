@@ -178,7 +178,10 @@ void ASplineSectorManager::SetSectorsByState(EMASectorState InState)
 		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
 		{
 			PlatformRoot->SetWaitMoveIn(false);
-			if (CachedMAGameMode) CachedMAGameMode->ResetAllPlayersReady();
+			if (CachedMAGameMode)
+			{
+				CachedMAGameMode->ResetAllPlayersReady();
+			}
 		}
 	}
 	

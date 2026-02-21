@@ -5,7 +5,7 @@
 #include "P_MA/P_MA.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Player/ReadyStateComponent.h"
+#include "Player/Components/ReadyStateComponent.h"
 
 class AMAPlayerCharacter;
 

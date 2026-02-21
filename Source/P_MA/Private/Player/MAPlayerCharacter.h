@@ -13,6 +13,7 @@ class UInputAction;
 class UNiagaraComponent;
 class UInteractComponent;
 class UReadyStateComponent;
+class UReadyCheckWidgetComponent;
 class AMAPlayerState;
 class UDataTable;
 class UPlayerCameraManagerComponent;
@@ -53,11 +54,16 @@ public:
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyComponent(){ return ReadyStateComponent; }
+	FORCEINLINE const UReadyStateComponent* GetReadyComponent() const { return ReadyStateComponent; }
 	
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;
+
+	/** Ready Check Widget **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
+	UReadyCheckWidgetComponent* ReadyCheckWidget;
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")

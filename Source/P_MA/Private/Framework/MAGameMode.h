@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "GameFramework/GameModeBase.h"
 #include "GenericTeamAgentInterface.h"
 #include "Framework/MAGameStateTypes.h"
@@ -11,9 +10,9 @@
 
 
 class UPCGGraph;
-class AMAPlayerCharacter;
 class AMAGameState;
 class APlayerState;
+class UReadyManagerComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMASectorStateChanged, EMASectorState);
 DECLARE_MULTICAST_DELEGATE(FOnAllPlayersReady);
@@ -67,9 +66,13 @@ public:
 	
 private:
 	EMASectorState CurrentMASectorState;
-	TArray<TWeakObjectPtr<AMAPlayerCharacter>> CachedPlayers;
+
+	UPROPERTY(VisibleAnywhere, Category = "Ready")
+	TObjectPtr<UReadyManagerComponent> ReadyManagerComponent = nullptr;
 
 	AActor* FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const;
+	void HandleReadyCountsChanged(int32 ReadyCount, int32 TotalCount);
+	void HandleAllPlayersReadyChanged(bool bIsAllReady);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Team")
 	TMap<FGenericTeamId, FName> TeamStartSpotTagMap;

@@ -53,6 +53,9 @@ void APlatformRoot::BeginPlay()
 
 void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 {
+	const bool bOpenReadyEdge = (!bPrevWaitMoveIn && bWaitMoveIn);
+	bPrevWaitMoveIn = bWaitMoveIn;
+
 	// bool bWaitMoveIn =
 	// 	CurState == EMASectorState::Wait || CurState == EMASectorState::EndBattle;
 	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
@@ -63,6 +66,11 @@ void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 	if (ReadyText)
 	{
 		ReadyText->SetVisibility(bWaitMoveIn, true);
+	}
+
+	if (HasAuthority() && bOpenReadyEdge)
+	{
+		ResolveReadyWallOverlapsOnce();
 	}
 }
 
@@ -92,6 +100,14 @@ void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 
 	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
 	ReadyText->SetText(FText::FromString(NewText));
+}
+
+void APlatformRoot::ResolveReadyWallOverlapsOnce()
+{
+	if (PlatformMatrixComponent)
+	{
+		PlatformMatrixComponent->ResolveReadyWallOverlapsOnce();
+	}
 }
 
 void APlatformRoot::OnRep_ReadyCounts()
