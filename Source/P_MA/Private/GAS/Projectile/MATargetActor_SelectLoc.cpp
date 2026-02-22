@@ -71,7 +71,13 @@ void AMATargetActor_SelectLoc::ConfirmTargetingAndContinue()
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	// 타겟 히트 위치 저장 데이터
 	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit;
-	NewData->HitResult.ImpactPoint = GetActorLocation();
+
+	FVector TargetLoc = GetActorLocation();
+	NewData->HitResult.bBlockingHit=true;
+	NewData->HitResult.ImpactPoint = TargetLoc;
+
+	NewData->HitResult.TraceStart = TargetLoc;
+	NewData->HitResult.Location = TargetLoc;
 	TargetDataHandle.Add(NewData);
 
 	TargetDataReadyDelegate.Broadcast(TargetDataHandle);

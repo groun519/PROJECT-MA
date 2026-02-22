@@ -590,7 +590,8 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 		return;
 
 	bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
-	if (!bHasMeleeTrait)
+	bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
+	if (!bHasMeleeTrait && !bHasTargetingTrait)
 		return;
 	
 	const F_SkillVFX_Info* VFXInfo = CachedSkillData.VFXDataSet->VFXDataMap.Find(Payload.EventTag);

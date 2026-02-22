@@ -123,7 +123,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 	{
 		DestroyRangeActor();
 		AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
-		if (Avatar)
+		if (Avatar && OwnerSkill->GetCurrentActorInfo()->IsLocallyControlled())
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = Avatar;

@@ -83,7 +83,12 @@ void AMATargetActor_ChargeAtTarget::ConfirmTargetingAndContinue()
 	}
 	//데이터 인덱스 1 : 위치
 	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
-	NewData->HitResult.ImpactPoint = GetActorLocation();
+	FVector TargetLoc = GetActorLocation();
+
+	NewData->HitResult.bBlockingHit=true;
+	NewData->HitResult.ImpactPoint = TargetLoc;
+	NewData->HitResult.TraceStart = TargetLoc;
+	NewData->HitResult.Location = TargetLoc + FVector(0.f,0.f,CurrentSize);
 	NewData->HitResult.Distance = CurrentSize;
 	TargetDataHandle.Add(NewData);
 	
@@ -141,8 +146,13 @@ FGameplayAbilityTargetDataHandle AMATargetActor_ChargeAtTarget::GetTargetData()
 		TargetDataHandle.Add(TargetData);
 	}
 	FGameplayAbilityTargetData_SingleTargetHit* NewData = new FGameplayAbilityTargetData_SingleTargetHit();
-	NewData->HitResult.ImpactPoint = GetActorLocation(); // 현재 액터 위치(마우스 위치)
-	NewData->HitResult.Distance = CurrentSize;           // 현재 커진 크기
+	FVector TargetLoc = GetActorLocation();
+
+	NewData->HitResult.bBlockingHit=true;
+	NewData->HitResult.ImpactPoint = TargetLoc;
+	NewData->HitResult.TraceStart = TargetLoc;
+	NewData->HitResult.Location = TargetLoc + FVector(0.f,0.f,CurrentSize);
+	NewData->HitResult.Distance = CurrentSize;
 	TargetDataHandle.Add(NewData);
 	
 	return TargetDataHandle;
