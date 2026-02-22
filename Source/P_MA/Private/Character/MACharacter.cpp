@@ -3,9 +3,11 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AIController.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -391,6 +393,201 @@ void AMACharacter::UpdateHeadGaugeVisibility()
 		// 상대방일 경우 거리 기반 표시
 		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());
 		OverHeadWidgetComponent->SetHiddenInGame(DistSquared > HeadStatGaugeVisibilityRangeSquared);
+	}
+}
+
+void AMACharacter::Multicast_PlayFlinchMontage_Implementation(FName SectionName)
+{
+	if (IsDead() || bPendingKnockdown)
+	{
+		return;
+	}
+	if (MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Immunity.Flinch")))
+	{
+		return;
+	}
+	if (FlinchMontage)
+	{
+		if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
+		{
+			AnimInst->Montage_Play(FlinchMontage);
+			AnimInst->Montage_JumpToSection(SectionName, FlinchMontage);
+		}
+	}
+}
+
+void AMACharacter::Server_ApplyFlinch(AActor* Attacker)
+{
+	if (!HasAuthority() || IsDead() || bPendingKnockdown)
+		return;
+	
+	FGameplayTag FlinchImmunityTag = FGameplayTag::RequestGameplayTag("Stats.Immunity.Flinch");
+	if (MAAbilitySystemComponent && !MAAbilitySystemComponent->HasMatchingGameplayTag(FlinchImmunityTag))
+	{
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(FGameplayTag::RequestGameplayTag("Ability.BasicAttack"));
+		MAAbilitySystemComponent->CancelAbilities(&CancelTags);
+
+		FGameplayTag FlinchingTag = FGameplayTag::RequestGameplayTag("Stats.Flinching");
+		MAAbilitySystemComponent->AddLooseGameplayTag(FlinchingTag);
+
+		if (AAIController* AIC = Cast<AAIController>(GetController()))
+		{
+			if (UBlackboardComponent* BBC = AIC->GetBlackboardComponent())
+			{
+				BBC->SetValueAsBool(FName("IsFlinching"),true);
+			}
+		}
+		FName SectionName = FName("Front");
+		float MontageLength = 1.f;
+
+		if (Attacker && FlinchMontage)
+		{
+			FVector DirToAttacker = (Attacker->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+			DirToAttacker.Z = 0.f;
+
+			FVector MyForward = GetActorForwardVector();
+			FVector MyRight = GetActorRightVector();
+
+			float ForwardDot = FVector::DotProduct(DirToAttacker, MyForward);
+			float RightDot = FVector::DotProduct(DirToAttacker, MyRight);
+			
+			if (ForwardDot >= 0.5f)
+			{	//앞피격
+				SectionName = FName("Front");
+				UE_LOG(LogTemp,Warning,TEXT("Section Name == Front"));
+			}
+			else if (ForwardDot <= -0.5f)
+			{	//뒤피격
+				SectionName = FName("Back");
+				UE_LOG(LogTemp,Warning,TEXT("Section Name == Back"));
+			}
+			else if (RightDot >= 0.5f)
+			{	//우피격
+				SectionName = FName("Right");
+				UE_LOG(LogTemp,Warning,TEXT("Section Name == Right"));
+			}
+			else if (RightDot <= -0.5f)
+			{	//좌피격
+				SectionName = FName("Left");
+				UE_LOG(LogTemp,Warning,TEXT("Section Name == Left"));
+			}
+
+			int32 SectionIndex = FlinchMontage->GetSectionIndex(SectionName);
+			if (SectionIndex != INDEX_NONE)
+			{
+				MontageLength = FlinchMontage->GetSectionLength(SectionIndex);
+			}
+		}
+		
+		Multicast_PlayFlinchMontage(SectionName);
+
+		FTimerHandle FlinchTimerHandle;
+		GetWorldTimerManager().SetTimer(FlinchTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this, FlinchingTag]()
+		{
+			if (MAAbilitySystemComponent)
+			{
+				MAAbilitySystemComponent->RemoveLooseGameplayTag(FlinchingTag);
+			}
+			
+			if (AAIController* AIC = Cast<AAIController>(GetController()))
+			{
+				if (UBlackboardComponent* BBC = AIC->GetBlackboardComponent())
+				{
+					BBC->SetValueAsBool(FName("IsFlinching"),false);
+				}
+			}
+		}), MontageLength, false);
+	}
+}
+
+void AMACharacter::Server_ApplyHitReaction(FGameplayTag ReactionTag, float Force, AActor* Attacker)
+{
+	if (!HasAuthority() || IsDead() || bPendingKnockdown)
+		return;
+
+	//스턴 처리
+	if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Stun"))
+	{
+		if (MAAbilitySystemComponent && !MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Immunity.Stun")))
+		{
+			MAAbilitySystemComponent->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Stun"));
+			UE_LOG(LogTemp,Warning,TEXT("스턴"));
+		}
+	}
+
+	//위치 이동계 처리 (넉백, 에어본, 넉다운)
+	bool bIsPushReaction = ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockback")) ||
+			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Airborne")) ||
+			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockdown"));
+
+	if (bIsPushReaction)
+	{
+		if (MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Immunity.Push")))
+			return;
+
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(FGameplayTag::RequestGameplayTag("Ability.BasicAttack"));
+		MAAbilitySystemComponent->CancelAbilities(&CancelTags);
+		
+		FVector PushDirection = FVector::ZeroVector;
+		if (Attacker)
+		{
+			PushDirection = (GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal();
+		}else
+		{
+			PushDirection = -GetActorForwardVector();
+		}
+
+		if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockback"))
+		{
+			UE_LOG(LogTemp,Warning,TEXT("넉백"));
+			PushDirection.Z = 0.2f;
+			LaunchCharacter(PushDirection * Force,true, true);
+			Multicast_PlayFlinchMontage(FName("Front"));
+		}
+		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Airborne"))
+		{
+			UE_LOG(LogTemp,Warning,TEXT("에어본"));
+			PushDirection = FVector(0.f, 0.f, 1.f); // 위로 솟구침
+			LaunchCharacter(PushDirection * Force, true, true);
+			// TODO: 에어본 전용 몽타주 Multicast
+		}
+		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockdown"))
+		{
+			UE_LOG(LogTemp,Warning,TEXT("넉다운"));
+			PushDirection.Z = 0.5f; 
+			LaunchCharacter(PushDirection * Force, true, true);
+			
+			FGameplayEventData Payload;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, FGameplayTag::RequestGameplayTag("Stats.Knockdown"), Payload);
+		}
+
+		// Behavior Tree 블랙보드 중단 (기존 로직 동일)
+		if (AAIController* AIController = Cast<AAIController>(GetController()))
+		{
+			if (UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent())
+				BlackboardComp->SetValueAsBool(FName("IsFlinching"), true);
+		}
+		// 블랙보드 중단 해제
+		FTimerHandle PushTimerHandle;
+		GetWorldTimerManager().SetTimer(PushTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (AAIController* AIC = Cast<AAIController>(GetController()))
+			{
+				if (UBlackboardComponent* BBC = AIC->GetBlackboardComponent())
+				{
+					BBC->SetValueAsBool(FName("IsFlinching"), false);
+				}
+			}
+		}), 1.0f, false);
+		return;
+	}
+
+	if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Flinch") || !ReactionTag.IsValid())
+	{
+		UE_LOG(LogTemp,Warning,TEXT("짧은 경직"));
+		Server_ApplyFlinch(Attacker);
 	}
 }
 

@@ -192,6 +192,11 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
+
+			if (AMACharacter* TargetChar = Cast<AMACharacter>(HitActor))
+			{
+				TargetChar->Server_ApplyHitReaction(CachedSkillData.HitReactionTag, CachedSkillData.ReactionForce, GetAvatarActorFromActorInfo());
+			}
 		}
 		for (const auto& AddSpec : AdditionalSpecs)
 		{
@@ -237,6 +242,11 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 
+			if (AMACharacter* TargetChar = Cast<AMACharacter>(HitActor))
+			{
+				TargetChar->Server_ApplyHitReaction(CachedSkillData.HitReactionTag, CachedSkillData.ReactionForce, GetAvatarActorFromActorInfo());
+			}
+			
 			for (const auto& AddSpec : AdditionalSpecs)
 			{
 				if (AddSpec.IsValid())

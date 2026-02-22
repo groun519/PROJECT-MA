@@ -70,6 +70,11 @@ public:
 	bool bCanMove=false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")
 	bool bCanRotate=true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Reaction"), Category="Hit Reaction")
+	FGameplayTag HitReactionTag;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category="Hit Reaction")
+	float ReactionForce = 200.f;
 };
 
 // 행동 모듈 데이터 테이블

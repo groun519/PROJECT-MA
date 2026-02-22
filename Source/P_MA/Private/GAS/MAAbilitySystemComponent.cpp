@@ -215,6 +215,9 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			SetNumericAttributeBase(UMAAttributeSet::GetMaxFuryAttribute(), BaseStats->BaseFuryMax);
+
+			AppliedBaseTags = BaseStats->BaseImmunityTags;
+			AddLooseGameplayTags(BaseStats->BaseImmunityTags);
 		}
 	}
 }

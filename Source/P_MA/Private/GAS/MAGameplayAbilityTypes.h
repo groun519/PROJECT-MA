@@ -107,4 +107,7 @@ struct FMonsterBaseStats : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	float BaseFuryMax;
+	
+	UPROPERTY(EditAnywhere, meta=(Categories="Stats.Immunity"))
+	FGameplayTagContainer BaseImmunityTags;
 };

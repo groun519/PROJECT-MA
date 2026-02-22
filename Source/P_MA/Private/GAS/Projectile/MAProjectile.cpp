@@ -183,6 +183,16 @@ void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
 		CueParams.Location=HitResult.ImpactPoint;
 		CueParams.Normal = HitResult.ImpactNormal;
 
+		float BaseVFXRadius = 300.f;
+		float ScaleMultiplier = 1.0f;
+		
+		if (BaseVFXRadius > 0.f && ExplodeRadius > 0.f)
+		{
+			ScaleMultiplier = ExplodeRadius / BaseVFXRadius;
+		}
+	
+		CueParams.RawMagnitude = ScaleMultiplier;
+
 		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
 	}
 }

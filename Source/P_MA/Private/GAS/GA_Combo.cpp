@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MASkillVFXSet.h"
 #include "Character/MACharacter.h"
@@ -154,6 +155,11 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
 		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		IgnoreTargets.Add(HitResult.GetActor());
+
+		if (AMACharacter* TargetChar = Cast<AMACharacter>(HitResult.GetActor()))
+		{
+			TargetChar->Server_ApplyFlinch(GetAvatarActorFromActorInfo());
+		}
 	}
 
 	if (FuryEffect && !IgnoreTargets.IsEmpty())

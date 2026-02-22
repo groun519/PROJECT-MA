@@ -24,7 +24,9 @@ public:
 	void ApplyFullStatEffect();
 	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
-	
+
+	UPROPERTY(Transient)
+	FGameplayTagContainer AppliedBaseTags;
 private:
 	void ApplyInitialEffects();
 	void GiveInitialAbilities();
