@@ -5,6 +5,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Level/Platform/Core.h"
+#include "NiagaraComponent.h"
 #include "Net/UnrealNetwork.h"
 
 APlatformRoot::APlatformRoot()
@@ -34,21 +35,23 @@ APlatformRoot::APlatformRoot()
 	ReadyText->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
 	ReadyText->SetText(FText::FromString(TEXT("[ 0 / 0 ]")));
 	ReadyText->SetVisibility(false, true);
+
+	RangeClampVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("RangeClampVFX"));
+	RangeClampVFX->SetupAttachment(RootComponent);
+	RangeClampVFX->SetVisibility(false, true);
+	RangeClampVFX->SetAutoActivate(false);
 }
 
 void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!HasAuthority())
-	{
-		SetActorTickEnabled(false);
-	}
 	if (HasAuthority())
 	{
 		SpawnCore();
 	}
 	PlatformMatrixComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	PlatformMatrixComponent->InitMatrix();
+	UpdateRangeClampVFXWorldLocation();
 }
 
 void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
@@ -102,6 +105,14 @@ void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 	ReadyText->SetText(FText::FromString(NewText));
 }
 
+void APlatformRoot::SetRangeClampVisual(bool bVisible, float InSize)
+{
+	bReplicatedRangeClampVisible = bVisible;
+	ReplicatedRangeClampSize = InSize;
+
+	ApplyRangeClampVisual();
+}
+
 void APlatformRoot::ResolveReadyWallOverlapsOnce()
 {
 	if (PlatformMatrixComponent)
@@ -123,23 +134,26 @@ void APlatformRoot::OnRep_ReadyTextVisible()
 	ReadyText->SetVisibility(bReadyTextVisible, true);
 }
 
+void APlatformRoot::OnRep_RangeClampVisual()
+{
+	ApplyRangeClampVisual();
+}
+
 void APlatformRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(APlatformRoot, ReplicatedReadyCounts);
 	DOREPLIFETIME(APlatformRoot, bReadyTextVisible);
+	DOREPLIFETIME(APlatformRoot, bReplicatedRangeClampVisible);
+	DOREPLIFETIME(APlatformRoot, ReplicatedRangeClampSize);
 }
 
 void APlatformRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UpdateRangeClampVFXWorldLocation();
+	if (!HasAuthority()) return;
 
-	/** TODO **//*
-	 * 1. SetWaitMoveIn() when state change in manager
-	 * 2. SetHeight() when state change in manager
-	 * 3. SetCurSpline() when sector change in manager
-	 */
-	
 	/** Set Height **/
 	const float LocationInterpSpeed = 1.0f; 
 	const float CurrentLocZ = GetActorLocation().Z;
@@ -186,6 +200,7 @@ void APlatformRoot::Tick(float DeltaTime)
 
 	SetActorLocation(TargetLoc);
 	SetActorRotation(SmoothedRot);
+	UpdateRangeClampVFXWorldLocation();
 }
 
 void APlatformRoot::MoveEnd()
@@ -213,4 +228,35 @@ void APlatformRoot::SpawnCore()
 		);
 	}
 	Core->SetActorRelativeLocation(FVector(0, 0, 100.f));
+}
+
+void APlatformRoot::ApplyRangeClampVisual()
+{
+	if (!RangeClampVFX) return;
+
+	UpdateRangeClampVFXWorldLocation();
+	RangeClampVFX->SetVariableFloat(RangeClampSizeParamName, ReplicatedRangeClampSize);
+	RangeClampVFX->SetVisibility(bReplicatedRangeClampVisible, true);
+
+	if (bReplicatedRangeClampVisible)
+	{
+		if (!RangeClampVFX->IsActive())
+		{
+			RangeClampVFX->Activate(true);
+		}
+	}
+	else
+	{
+		if (RangeClampVFX->IsActive())
+		{
+			RangeClampVFX->Deactivate();
+		}
+	}
+}
+
+void APlatformRoot::UpdateRangeClampVFXWorldLocation()
+{
+	if (!RangeClampVFX) return;
+	const FVector RootLoc = GetActorLocation();
+	RangeClampVFX->SetWorldLocation(FVector(RootLoc.X, RootLoc.Y, -100.f));
 }

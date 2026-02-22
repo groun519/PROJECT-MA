@@ -3,6 +3,37 @@
 #include "MAPlayerState.h"
 #include "Net/UnrealNetwork.h"
 
+// NOTE:
+// Seamless travel 과정에서 새 PlayerState 인스턴스로 교체될 때
+// 로드아웃/슬롯 정보가 기본값으로 돌아가지 않게 수동 복사한다.
+void AMAPlayerState::CopyProperties(APlayerState* PlayerState)
+{
+	Super::CopyProperties(PlayerState);
+
+	AMAPlayerState* NewPS = Cast<AMAPlayerState>(PlayerState);
+	if (!NewPS) return;
+
+	NewPS->DefaultSkill = DefaultSkill;
+	NewPS->LoadoutColor = LoadoutColor;
+	NewPS->LoadoutWeaponId = LoadoutWeaponId;
+	NewPS->bHasFinishedLoading = bHasFinishedLoading;
+	NewPS->LobbySlotIndex = LobbySlotIndex;
+}
+
+void AMAPlayerState::OverrideWith(APlayerState* PlayerState)
+{
+	Super::OverrideWith(PlayerState);
+
+	const AMAPlayerState* OldPS = Cast<AMAPlayerState>(PlayerState);
+	if (!OldPS) return;
+
+	DefaultSkill = OldPS->DefaultSkill;
+	LoadoutColor = OldPS->LoadoutColor;
+	LoadoutWeaponId = OldPS->LoadoutWeaponId;
+	bHasFinishedLoading = OldPS->bHasFinishedLoading;
+	LobbySlotIndex = OldPS->LobbySlotIndex;
+}
+
 void AMAPlayerState::SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill)
 {
 	DefaultSkill = NewSkill;

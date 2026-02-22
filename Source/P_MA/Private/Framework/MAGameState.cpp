@@ -3,6 +3,7 @@
 #include "Framework/MAGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h"
+#include "Player/MAPlayerCharacter.h"
 
 AMAGameState::AMAGameState()
 {
@@ -26,6 +27,22 @@ void AMAGameState::SetStageCycle(const FStageCycle& NewStageCycle)
 	ReplicatedStageCycle = NewStageCycle;
 	OnStageCycleChanged.Broadcast(ReplicatedStageCycle);
 	UE_LOG(LogTemp, Warning, TEXT("GameState: StageCycle set %d-%d"), ReplicatedStageCycle.Round, ReplicatedStageCycle.Stage);
+}
+
+void AMAGameState::GetPlayerCharacters(TArray<AMAPlayerCharacter*>& OutPlayers, bool bAliveOnly) const
+{
+	OutPlayers.Reset();
+
+	for (APlayerState* PS : PlayerArray)
+	{
+		if (!PS) continue;
+
+		AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(PS->GetPawn());
+		if (!Player) continue;
+
+		if (bAliveOnly && Player->IsDead()) continue;
+		OutPlayers.Add(Player);
+	}
 }
 
 void AMAGameState::SyncLoopReadyEntries(const TArray<APlayerState*>& Players)

@@ -8,6 +8,7 @@
 #include "MAGameState.generated.h"
 
 class APlayerState;
+class AMAPlayerCharacter;
 
 USTRUCT()
 struct FLoopReadyEntry
@@ -54,6 +55,7 @@ public:
 
 	void SetStageCycle(const FStageCycle& NewStageCycle);
 	const FStageCycle& GetStageCycle() const { return ReplicatedStageCycle; }
+	void GetPlayerCharacters(TArray<AMAPlayerCharacter*>& OutPlayers, bool bAliveOnly = false) const;
 	/**/
 
 private:

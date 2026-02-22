@@ -10,6 +10,7 @@
 #include "SplineSectorManager.generated.h"
 
 class AMAGameMode;
+class AMAPlayerCharacter;
 
 USTRUCT()
 struct FSplineSectorManagerDebugSetting
@@ -51,6 +52,27 @@ struct FSplineSectorData
 	TArray<TObjectPtr<ASplineSector>> Sectors;
 };
 
+USTRUCT(BlueprintType)
+struct FPlayerRangeClampSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp")
+	bool bUse = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.0"))
+	float Radius = 1200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.01"))
+	float Interval = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.0"))
+	float DeadZone = 30.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp")
+	TArray<EMASectorState> States = { EMASectorState::Wait, EMASectorState::EndBattle, EMASectorState::Loop };
+};
+
 UCLASS()
 class P_MA_API ASplineSectorManager : public AActor
 {
@@ -89,6 +111,10 @@ public:
 	/** Debug **/
 	UPROPERTY(EditAnywhere)
 	FSplineSectorManagerDebugSetting DebugSetting;
+
+	/** Player Range Clamp **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp")
+	FPlayerRangeClampSettings PlayerRangeClamp;
 	
 private:
 	bool bIsMoving = false;
@@ -106,4 +132,10 @@ private:
 	void ApplyCurSplineAndSeed();
 	void LogStateChange(EMASectorState InState) const;
 	int32 CurSectorIndex = 0;
+
+	/** Player Range Clamp **/
+	void UpdatePlayerRangeClamp();
+	void UpdatePlayerRangeClampVisual();
+	bool CanApplyPlayerRangeClamp() const;
+	FTimerHandle PlayerRangeClampTimerHandle;
 };
