@@ -19,6 +19,7 @@ AMAProjectile::AMAProjectile()
 	SetActorTickEnabled(false); // 기본적으로 false로 두어, 타게팅 투사체가 아니면 틱을 안 쓰게 함.
 	
 	bReplicates = true;
+	SetReplicateMovement(true);
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
 	SetRootComponent(SphereComp);

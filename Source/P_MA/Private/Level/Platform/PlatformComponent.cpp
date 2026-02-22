@@ -7,8 +7,6 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Player/Components/ReadyStateComponent.h"
 
-class AMAPlayerCharacter;
-
 UPlatformComponent::UPlatformComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -23,15 +21,6 @@ UPlatformComponent::UPlatformComponent()
 	}
 	SetRelativeScale3D(GetPlatformBoxExtent(0.5f));
 
-	/** Trigger Box **/
-	// ReadyWallBox = CreateDefaultSubobject<UBoxComponent>("ReadyWallBox");
-	// ReadyWallBox->SetupAttachment(this);
-	// ReadyWallBox->SetBoxExtent(GetPlatformBoxExtent(BoxWidth));
-	// ReadyWallBox->SetCollisionObjectType(ECC_ReadyWall);
-	// ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	// ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
-	//TriggerBox->SetRelativeLocation()
 }
 
 void UPlatformComponent::BeginPlay()
@@ -72,6 +61,7 @@ void UPlatformComponent::InitReadyWall()
 	if (ReadyWallBox)
 	{
 		ReadyWallBox->bEditableWhenInherited = true;
+		ReadyWallBox->SetNetAddressable();
 
 		ReadyWallBox->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		ReadyWallBox->RegisterComponent();

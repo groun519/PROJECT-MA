@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Convenience/InteractComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 
@@ -20,6 +21,14 @@ ACore::ACore()
 void ACore::BeginPlay()
 {
 	Super::BeginPlay();
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		// Core is platform-attached object; disable character movement correction/smoothing jitter.
+		MoveComp->StopMovementImmediately();
+		MoveComp->SetMovementMode(MOVE_None);
+		MoveComp->NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
+	}
+
 	if (HasAuthority())
 	{
 		SetGenericTeamId(FGenericTeamId(0));

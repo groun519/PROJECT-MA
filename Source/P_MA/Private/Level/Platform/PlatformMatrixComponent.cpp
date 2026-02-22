@@ -58,6 +58,8 @@ void UPlatformMatrixComponent::CreatePlatforms()
 			if (Platform)
 			{
 				Platform->CreationMethod = EComponentCreationMethod::Instance;
+				// Runtime-created components used as movement bases must have stable net identity.
+				Platform->SetNetAddressable();
 				Platform->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 				Platform->RegisterComponent();
 				Platform->SetRelativeLocation(FVector(-(X - OddCols / 2) * 200.f, (Y - OddCols / 2) * 200.f, 0.f));

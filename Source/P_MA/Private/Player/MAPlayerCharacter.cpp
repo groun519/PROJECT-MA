@@ -22,6 +22,8 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
 #include "Player/Components/PlayerCameraManagerComponent.h"
+#include "Level/Platform/PlatformComponent.h"
+#include "EngineUtils.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -61,6 +63,13 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	// Block each other but prevent pawn-vs-pawn push/depenetration jitter.
+	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	GetCharacterMovement()->InitialPushForceFactor = 0.f;
+	GetCharacterMovement()->PushForceFactor = 0.f;
+	GetCharacterMovement()->RepulsionForce = 0.f;
+	GetCharacterMovement()->MaxDepenetrationWithPawn = 8.f;
+	GetCharacterMovement()->MaxDepenetrationWithPawnAsProxy = 4.f;
 
 	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
 
@@ -125,12 +134,19 @@ void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	BindLoadoutDelegates();
+	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	BindLoadoutDelegates();
+}
+
+void AMAPlayerCharacter::BaseChange()
+{
+	Super::BaseChange();
+	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
@@ -497,6 +513,47 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
+void AMAPlayerCharacter::RefreshRideCollisionMode()
+{
+	if (!GetCapsuleComponent()) return;
+
+	const bool bNowRidingPlatform = Cast<UPlatformComponent>(GetMovementBase()) != nullptr;
+	if (bNowRidingPlatform == bIsRidingPlatform) return;
+
+	bIsRidingPlatform = bNowRidingPlatform;
+
+	if (!GetWorld()) return;
+
+	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
+	{
+		AMAPlayerCharacter* OtherPlayer = *It;
+		if (!OtherPlayer || OtherPlayer == this) continue;
+		UpdateRideCollisionWithOtherPlayer(OtherPlayer);
+	}
+}
+
+void AMAPlayerCharacter::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer)
+{
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	UCapsuleComponent* OtherCapsule = OtherPlayer ? OtherPlayer->GetCapsuleComponent() : nullptr;
+	if (!Capsule || !OtherCapsule) return;
+
+	const bool bShouldIgnorePair = bIsRidingPlatform || OtherPlayer->bIsRidingPlatform;
+	Capsule->IgnoreActorWhenMoving(OtherPlayer, bShouldIgnorePair);
+	OtherCapsule->IgnoreActorWhenMoving(this, bShouldIgnorePair);
+
+	if (bShouldIgnorePair)
+	{
+		MoveIgnoreActorAdd(OtherPlayer);
+		OtherPlayer->MoveIgnoreActorAdd(this);
+	}
+	else
+	{
+		MoveIgnoreActorRemove(OtherPlayer);
+		OtherPlayer->MoveIgnoreActorRemove(this);
+	}
+}
+
 void AMAPlayerCharacter::OnStun()
 {
 	SetInputEnabledFromPlayerController(false);
@@ -516,11 +573,6 @@ void AMAPlayerCharacter::OnDead()
 void AMAPlayerCharacter::OnRespawn()
 {
 	SetInputEnabledFromPlayerController(true);
-}
-
-void AMAPlayerCharacter::OnGhostMode()
-{
-	
 }
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)

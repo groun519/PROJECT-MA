@@ -38,6 +38,7 @@ public:
 	virtual void OnRep_PlayerState() override;
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void BaseChange() override;
 
 	UFUNCTION(Exec)
 	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
@@ -121,6 +122,10 @@ public:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:
+	void RefreshRideCollisionMode();
+	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer);
+	bool bIsRidingPlatform = false;
+
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
@@ -150,7 +155,6 @@ private:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
-	virtual void OnGhostMode();
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")

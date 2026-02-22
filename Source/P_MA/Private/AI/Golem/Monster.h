@@ -29,6 +29,7 @@ class AMonster : public AMACharacter
 	
 public:
 	AMonster();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
 	FOnMonsterDead OnMonsterDead;
@@ -40,10 +41,7 @@ public:
 	void SetGoal(AActor* Goal);
 	void Deactivate();
 	
-	FORCEINLINE void SetEnvTag(const FGameplayTag& InEnvTag)
-	{
-		EnvGameplayTag = InEnvTag;
-	};
+	void SetEnvTag(const FGameplayTag& InEnvTag);
 	void SetDropGold(int32 InGold)
 	{
 		DropGold = InGold;
@@ -57,12 +55,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float FuryThreshold = 50.f;
 	
+protected:
+	virtual void BeginPlay() override;
+
 private:
 	virtual void OnRep_TeamID() override;
 	virtual void OnDead() override;
 
-	UPROPERTY(EditAnywhere, Category = "Env")
+	UPROPERTY(ReplicatedUsing=OnRep_EnvGameplayTag, EditAnywhere, Category = "Env")
 	FGameplayTag EnvGameplayTag;
+
+	UFUNCTION()
+	void OnRep_EnvGameplayTag();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Env")
 	TArray<FMonsterEnvData> EnvTagToMaterial;

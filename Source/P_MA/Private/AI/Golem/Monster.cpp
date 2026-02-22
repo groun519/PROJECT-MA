@@ -5,15 +5,41 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 AMonster::AMonster()
 {
 	CoinDropComp = CreateDefaultSubobject<UCoinDrop>(TEXT("CoinDropComp"));
 }
 
+void AMonster::BeginPlay()
+{
+	Super::BeginPlay();
+	ApplyEnvMaterials();
+}
+
+void AMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMonster, EnvGameplayTag);
+}
+
 void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
 {
 	Super::SetGenericTeamId(NewTeamId);
+}
+
+void AMonster::SetEnvTag(const FGameplayTag& InEnvTag)
+{
+	if (EnvGameplayTag == InEnvTag) return;
+
+	EnvGameplayTag = InEnvTag;
+	ApplyEnvMaterials();
+
+	if (HasAuthority())
+	{
+		ForceNetUpdate();
+	}
 }
 
 bool AMonster::IsActive() const
@@ -117,6 +143,11 @@ void AMonster::SetGoal(AActor* Goal)
 void AMonster::OnRep_TeamID()
 {
 	
+}
+
+void AMonster::OnRep_EnvGameplayTag()
+{
+	ApplyEnvMaterials();
 }
 
 void AMonster::OnDead()
