@@ -43,6 +43,9 @@ struct F_SkillVFX_Info
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	FVector Scale = FVector(1.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
+	float BaseVFXLength = 500.f;
+
 	/** true면 월드 공간에 스폰 (캐릭터 따라다니지 않음), false면 소켓에 부착 (캐릭터 따라다님) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VFX")
 	bool bSpawnInWorld = true;

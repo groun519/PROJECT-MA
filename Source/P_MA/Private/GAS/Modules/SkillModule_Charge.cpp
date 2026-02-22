@@ -159,7 +159,11 @@ void USkillModule_Charge::OnInputReleased(float TimeHeld)
 	if (!bIsCharging || !OwnerSkill)	return;
 	
 	FinalChargedDuration = TimeHeld;
-	
+
+	if (CachedMaxChargeDuration > 0.f)
+	{
+		OwnerSkill->ChargeRatio = FMath::Clamp(FinalChargedDuration / CachedMaxChargeDuration, 0.f, 1.f);
+	}
 	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
 		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);
@@ -196,6 +200,8 @@ void USkillModule_Charge::OnMaxCharged()
 	if (!bIsCharging || !OwnerSkill)	return;
 
 	FinalChargedDuration = CachedMaxChargeDuration;
+	OwnerSkill->ChargeRatio = 1.f;
+	
 	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
 		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);

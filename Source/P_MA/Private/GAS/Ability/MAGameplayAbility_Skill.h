@@ -84,4 +84,7 @@ public:
 
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
+
+	UPROPERTY()
+	float ChargeRatio = 1.f;
 };

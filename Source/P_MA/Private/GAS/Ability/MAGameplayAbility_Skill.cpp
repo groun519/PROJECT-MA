@@ -37,6 +37,7 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 	}
 	
 	IgnoreTargets.Empty();
+	ChargeRatio = 1.f;
 
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
 	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
@@ -598,6 +599,22 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 	if (!VFXInfo || !VFXInfo->DefaultVFX)
 		return;
 
+	FVector FinalScale = VFXInfo->Scale;
+	if (bHasTargetingTrait)
+	{
+		if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
+		{
+			float CurrentLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
+			float VFXLength = VFXInfo->BaseVFXLength;
+			
+			if (VFXLength > 0.f)
+			{
+				float ScaleMultiplier = CurrentLength/ VFXLength;
+				FinalScale.X = VFXInfo->Scale.X * ScaleMultiplier;
+			}
+		}
+	}
+	
 	FLinearColor SpawnColor = FLinearColor::White;
 	bool bApplyColor = false;
 	if (VFXInfo->bUseElementColor)
@@ -615,13 +632,13 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 	if (VFXInfo->bSpawnInWorld)
 	{
 		FTransform SocketTransform = (VFXInfo->SocketName != NAME_None)? MeshComp->GetSocketTransform(VFXInfo->SocketName) : MeshComp->GetComponentTransform();
-		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset, VFXInfo->Scale);
+		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset,FinalScale);
 		FTransform WorldSPawnTransform = OffsetTransform * SocketTransform;
 
 		Character->Multicast_PlayNiagara(VFXInfo->DefaultVFX, WorldSPawnTransform, bApplyColor, SpawnColor);
 	}
 	else
 	{
-		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,VFXInfo->Scale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
+		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,FinalScale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
 }
