@@ -74,6 +74,7 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 	FSplineSectorData SSData = SplineSectorsByState[NewState];
 	bIsMoving = SSData.bIsMoving;
 	bIsAutoPass = SSData.bIsAutoPass;
+	ApplyRegenTargetsOnEnter(SSData);
 
 	// 만약 이전 상태가 Start였다면,
 	// 스플라인의 끝에 도달하지 못하는 상태기에 한번 ApplyCurSplineAndSeed를 실행하여 게임 루프를 시작시킴.
@@ -249,6 +250,17 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 
 	// Set Spline
 	CachedPlatformRoot->SetCurSpline(CurSpline);
+}
+
+void ASplineSectorManager::ApplyRegenTargetsOnEnter(const FSplineSectorData& InData)
+{
+	if (!HasAuthority()) return;
+
+	for (ASplineSector* RegenTarget : InData.RegenTargetsOnEnter)
+	{
+		if (!RegenTarget) continue;
+		RegenTarget->SetRandomSeed();
+	}
 }
 
 void ASplineSectorManager::LogStateChange(EMASectorState InState) const

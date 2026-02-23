@@ -50,6 +50,9 @@ struct FSplineSectorData
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (EditCondition = bIsMoving, EditConditionHides))
 	TArray<TObjectPtr<ASplineSector>> Sectors;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<ASplineSector>> RegenTargetsOnEnter;
 };
 
 USTRUCT(BlueprintType)
@@ -130,6 +133,7 @@ private:
 	void SetSectorsByState(EMASectorState InState);
 	bool IsAutoPassState(EMASectorState InState);
 	void ApplyCurSplineAndSeed();
+	void ApplyRegenTargetsOnEnter(const FSplineSectorData& InData);
 	void LogStateChange(EMASectorState InState) const;
 	int32 CurSectorIndex = 0;
 

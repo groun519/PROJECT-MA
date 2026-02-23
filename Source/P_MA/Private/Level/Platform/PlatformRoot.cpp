@@ -205,7 +205,7 @@ void APlatformRoot::Tick(float DeltaTime)
 
 void APlatformRoot::MoveEnd()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
+	//UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
 	OnPlatformReachedEnd.Broadcast();
 }
 

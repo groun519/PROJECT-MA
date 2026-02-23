@@ -8,6 +8,8 @@
 #include "PCGComponent.h"
 #include "SplineSector.generated.h"
 
+class ASplineSector;
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSplineSectorUpdated, ASplineSector*);
 
 UCLASS()
 class P_MA_API ASplineSector : public AActor
@@ -26,10 +28,11 @@ public:
 
 	/** Seed and Sector **/
 	void SetSectorSeed(int32 InSeed = 0);
-	void SetRandomSeed(int32 MaxValue = INT32_MAX);
+	virtual void SetRandomSeed(int32 MaxValue = INT32_MAX);
 	FVector GetSectorBound();
-	FORCEINLINE int32 GetSectorSeed() { return SectorSeed; }
+	FORCEINLINE int32 GetSectorSeed() const { return SectorSeed; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	FOnSplineSectorUpdated OnSplineSectorUpdated;
 	
 	
 	/** Spline **/

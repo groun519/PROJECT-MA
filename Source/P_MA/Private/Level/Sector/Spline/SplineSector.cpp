@@ -118,6 +118,7 @@ void ASplineSector::SetSectorSeed(int32 InSeed)
     UE_LOG(LogTemp, Warning, TEXT("Copied New Seed at Last Sector!: %d"), InSeed);
     UpdateSeed();
     UpdatePCGComponent();
+    OnSplineSectorUpdated.Broadcast(this);
 }
 
 void ASplineSector::SetRandomSeed(int32 MaxValue)
@@ -127,12 +128,14 @@ void ASplineSector::SetRandomSeed(int32 MaxValue)
     SectorSeed = FMath::RandRange(1, MaxValue);
     UpdateSeed();
     UpdatePCGComponent();
+    OnSplineSectorUpdated.Broadcast(this);
 }
 
 void ASplineSector::OnRep_SectorSeed()
 {
     UpdateSeed();
     UpdatePCGComponent();
+    OnSplineSectorUpdated.Broadcast(this);
 }
 
 void ASplineSector::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
