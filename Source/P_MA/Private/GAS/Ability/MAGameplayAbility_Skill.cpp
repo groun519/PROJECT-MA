@@ -511,7 +511,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 	const FModuleBehaviorData* BehaviorRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultBehaviorTag);
 	if (BehaviorRow && BehaviorRow->ModuleClass)
 	{
-
+		//스킬 특성에 맞는 모듈을 장착했는지 || 만족하는 태그를 모두 소유했는지 확인
 		bool bIsCompatible = BehaviorRow->RequiredTraits.IsEmpty() || CachedSkillData.SkillTraits.HasAll(BehaviorRow->RequiredTraits);
 
 		if (bIsCompatible)
@@ -525,6 +525,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 				ActiveModules.Add(NewModule);
 			}
 		}
+		//TODO -> 아예 모듈 장착을 못하도록 했으면 좋겠음
 	}
 
 	const FModuleElementalData* ElementalRow = SkillSys->GetElementalData(CachedSkillData.DefaultElementalTag);

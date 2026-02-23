@@ -421,14 +421,14 @@ void AMACharacter::Server_ApplyFlinch(AActor* Attacker)
 	if (!HasAuthority() || IsDead() || bPendingKnockdown)
 		return;
 	
-	FGameplayTag FlinchImmunityTag = FGameplayTag::RequestGameplayTag("Stats.Immunity.Flinch");
+	FGameplayTag FlinchImmunityTag = FGameplayTag::RequestGameplayTag("State.Immune.Flinch");
 	if (MAAbilitySystemComponent && !MAAbilitySystemComponent->HasMatchingGameplayTag(FlinchImmunityTag))
 	{
 		FGameplayTagContainer CancelTags;
-		CancelTags.AddTag(FGameplayTag::RequestGameplayTag("Ability.BasicAttack"));
+		CancelTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 		MAAbilitySystemComponent->CancelAbilities(&CancelTags);
 
-		FGameplayTag FlinchingTag = FGameplayTag::RequestGameplayTag("Stats.Flinching");
+		FGameplayTag FlinchingTag = FGameplayTag::RequestGameplayTag("State.Debuff.Flinch");
 		MAAbilitySystemComponent->AddLooseGameplayTag(FlinchingTag);
 
 		if (AAIController* AIC = Cast<AAIController>(GetController()))
@@ -507,27 +507,27 @@ void AMACharacter::Server_ApplyHitReaction(FGameplayTag ReactionTag, float Force
 		return;
 
 	//스턴 처리
-	if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Stun"))
+	if (ReactionTag == FGameplayTag::RequestGameplayTag("Effect.Reaction.Stun"))
 	{
-		if (MAAbilitySystemComponent && !MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Immunity.Stun")))
+		if (MAAbilitySystemComponent && !MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("State.Immune.Stun")))
 		{
-			MAAbilitySystemComponent->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Stun"));
+			MAAbilitySystemComponent->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag("State.Debuff.Stun"));
 			UE_LOG(LogTemp,Warning,TEXT("스턴"));
 		}
 	}
 
 	//위치 이동계 처리 (넉백, 에어본, 넉다운)
-	bool bIsPushReaction = ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockback")) ||
-			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Airborne")) ||
-			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockdown"));
+	bool bIsPushReaction = ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Effect.Reaction.Knockback")) ||
+			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Effect.Reaction.Airborne")) ||
+			ReactionTag.MatchesTag(FGameplayTag::RequestGameplayTag("Effect.Reaction.Knockdown"));
 
 	if (bIsPushReaction)
 	{
-		if (MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("Stats.Immunity.Push")))
+		if (MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag("State.Immune.Push")))
 			return;
 
 		FGameplayTagContainer CancelTags;
-		CancelTags.AddTag(FGameplayTag::RequestGameplayTag("Ability.BasicAttack"));
+		CancelTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 		MAAbilitySystemComponent->CancelAbilities(&CancelTags);
 		
 		FVector PushDirection = FVector::ZeroVector;
@@ -539,28 +539,28 @@ void AMACharacter::Server_ApplyHitReaction(FGameplayTag ReactionTag, float Force
 			PushDirection = -GetActorForwardVector();
 		}
 
-		if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockback"))
+		if (ReactionTag == FGameplayTag::RequestGameplayTag("Effect.Reaction.Knockback"))
 		{
 			UE_LOG(LogTemp,Warning,TEXT("넉백"));
 			PushDirection.Z = 0.2f;
 			LaunchCharacter(PushDirection * Force,true, true);
 			Multicast_PlayFlinchMontage(FName("Front"));
 		}
-		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Airborne"))
+		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Effect.Reaction.Airborne"))
 		{
 			UE_LOG(LogTemp,Warning,TEXT("에어본"));
 			PushDirection = FVector(0.f, 0.f, 1.f); // 위로 솟구침
 			LaunchCharacter(PushDirection * Force, true, true);
 			// TODO: 에어본 전용 몽타주 Multicast
 		}
-		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Knockdown"))
+		else if (ReactionTag == FGameplayTag::RequestGameplayTag("Effect.Reaction.Knockdown"))
 		{
 			UE_LOG(LogTemp,Warning,TEXT("넉다운"));
 			PushDirection.Z = 0.5f; 
 			LaunchCharacter(PushDirection * Force, true, true);
 			
 			FGameplayEventData Payload;
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, FGameplayTag::RequestGameplayTag("Stats.Knockdown"), Payload);
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, FGameplayTag::RequestGameplayTag("State.Debuff.Knockdown"), Payload);
 		}
 
 		// Behavior Tree 블랙보드 중단 (기존 로직 동일)
@@ -584,7 +584,7 @@ void AMACharacter::Server_ApplyHitReaction(FGameplayTag ReactionTag, float Force
 		return;
 	}
 
-	if (ReactionTag == FGameplayTag::RequestGameplayTag("Ability.Reaction.Flinch") || !ReactionTag.IsValid())
+	if (ReactionTag == FGameplayTag::RequestGameplayTag("Effect.Reaction.Flinch") || !ReactionTag.IsValid())
 	{
 		UE_LOG(LogTemp,Warning,TEXT("짧은 경직"));
 		Server_ApplyFlinch(Attacker);

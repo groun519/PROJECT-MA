@@ -269,7 +269,7 @@ void AMAPlayerCharacter::Server_SetUtility_Implementation(const FString& SkillCl
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
 	if (!AbilitySpec) return;
 	
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Utility"));
+	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Module.Utility"));
 	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
 	
 	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*UtilityName));

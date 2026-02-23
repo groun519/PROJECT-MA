@@ -28,53 +28,74 @@ struct FSkillData : public FTableRowBase
 
 public:
 	FSkillData();
+	/** 해당 스킬의 GA 블루프린트 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
+	/** 해당 스킬의 애니메이션 몽타주 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	UAnimMontage* SkillMontage;
+	/** GA 블루프린트 안에 설정해 놓은 ID값과 동일하게 입력 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	FName SkillID;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	TSoftObjectPtr<UTexture2D> SkillIcon;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	FText DisplayName;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Traits")
+	/** 이 스킬이 가진 특성 (근접공격 or 투사체 공격 or 타게팅 공격) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Trait"), Category="Traits")
 	FGameplayTagContainer SkillTraits;
+	/** 이 스킬의 초기 행동 모듈 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Behavior"), Category="Module")
 	FGameplayTag DefaultBehaviorTag;
+	/** 이 스킬의 초기 속성 모듈 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Elemental"), Category="Module")
 	FGameplayTag DefaultElementalTag;
+	/** 이 스킬의 초기 유틸리티 모듈 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Utility"), Category="Module")
 	FGameplayTag DefaultUtilityTag;
 
+	/** 이 스킬이 어떤 액션을 취하는 지에 대한 태그 (특성과 비슷) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
 	FGameplayTagContainer ActionTags;
+	/** 액션을 취하는데 필요한 데이터 (필요 없는 경우 생략 가능) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct ="/Script/P_MA.SkillActionConfig"), Category="Action Resource")
 	FInstancedStruct ActionData;
+
 	
+	/** 이 스킬의 데미지 배율 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
 	float BaseDamageMultiplier=1.f;
+	/** 이 스킬의 쿨타임 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stat")
 	float BaseCooldown = 10.f;
+	/** 이 스킬의 쿨타임 태그(스킬마다 별도로 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Stat")
 	FGameplayTag CooldownTag;
 	
+	/** 출력할 스킬 이펙트 - (공격 몽타주에서 공격 범위 지정하는 경우에 사용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
 	TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
+	/** 스킬 사용 중 움직임이 가능한지 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")
 	bool bCanMove=false;
+	/** 스킬 사용 중 캐릭터 회전이 가능한지 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")
 	bool bCanRotate=true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Reaction"), Category="Hit Reaction")
+	/** 스킬로 타격 시의 이펙트 (경직) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Effect.Reaction"), Category="Hit Reaction")
 	FGameplayTag HitReactionTag;
+	/** 경직의 힘 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category="Hit Reaction")
 	float ReactionForce = 200.f;
+
+	/** UI용 Icon 항목 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSoftObjectPtr<UTexture2D> SkillIcon;
+	/** UI용 스킬 이름 항목 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText DisplayName;
+	/** UI용 스킬 설명 항목 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	FText Description;
 };
 
 // 행동 모듈 데이터 테이블
@@ -89,7 +110,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "/Script/P_MA.SkillBehaviorConfig"))
 	FInstancedStruct ModuleConfig;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Skill.Trait"), Category="Requirement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Trait"), Category="Requirement")
 	FGameplayTagContainer RequiredTraits;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
