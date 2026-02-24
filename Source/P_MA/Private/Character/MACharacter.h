@@ -15,6 +15,17 @@
 
 class UNiagaraSystem;
 
+USTRUCT()
+struct FReactionAnimConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	UAnimMontage* Montage = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	float VerticalLaunchScale = 0.f;
+};
+
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
@@ -43,7 +54,7 @@ public:
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
-
+	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
 	
@@ -165,18 +176,16 @@ public:
 	void OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
 	void ResetKnockdownState();
 	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
-
-	UFUNCTION(BlueprintCallable)
-	UAnimMontage* GetFlinchMontage() const { return FlinchMontage; }
-	UFUNCTION(BlueprintCallable)
-	UAnimMontage* GetKnockdownMontage() const { return KnockdownMontage; }
+	
+	UFUNCTION()
+	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;
 	
 private:
 	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* KnockdownMontage;
-
-	UPROPERTY(EditDefaultsOnly)
-	UAnimMontage* FlinchMontage;
 	
 	bool bPendingKnockdown = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reaction", meta=(Categories="Effect.Reaction"))
+	TMap<FGameplayTag, FReactionAnimConfig> ReactionAnimMap;
 };

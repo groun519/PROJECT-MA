@@ -49,6 +49,8 @@ public:
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
 
+	static FGameplayTag GetHitReactTag();
+	static FGameplayTag GetAnyReactionStateTag();
 	static FGameplayTag GetAirborneTag();
 	static FGameplayTag GetKnockdownTag();
 	static FGameplayTag GetRecoveryTag();

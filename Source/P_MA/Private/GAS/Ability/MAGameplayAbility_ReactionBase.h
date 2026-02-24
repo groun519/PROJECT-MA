@@ -19,13 +19,19 @@ public:
 
 protected:
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	
+private:
 	UFUNCTION()
 	void OnMontageCompleted();
+	
+	FVector GetPushDirection(const AActor* Avatar,const AActor* Attacker) const;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Reaction")
+	TMap<FGameplayTag, FGameplayTag> ReactionToDebuffTagMap;
+	UPROPERTY(EditDefaultsOnly, Category = "Reaction")
+	TMap<FGameplayTag, FGameplayTag> ReactionToImmunityTagMap;
 
-	UFUNCTION(BlueprintPure)
-	FVector GetPushDirectionFromEvent(const FGameplayEventData& EventData) const;
-
-	UFUNCTION(BlueprintCallable)
-	FName GetFlinchSectionFromEvent(const FGameplayEventData& EventData) const;
+	FGameplayTag CurrentDebuffTag;
+	FGameplayTagContainer CancelTagsOnHit;
 };
