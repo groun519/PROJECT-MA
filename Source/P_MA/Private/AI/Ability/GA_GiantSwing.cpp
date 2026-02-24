@@ -191,7 +191,7 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
 				Character,
-				FGameplayTag::RequestGameplayTag(TEXT("Stats.Knockdown")),
+				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockdown")),
 				EventData
 			);
 		}

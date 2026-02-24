@@ -24,23 +24,23 @@ void USkillModule_Instant::OnAbilityActivated()
 	StartMontageTask();
 	
 	//즉발 근접 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+	if (SkillData.ActionTags.HasTag(MeleeActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(MontageDamageTag);
 	}
 	//즉발 투사체 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	if (SkillData.ActionTags.HasTag(ProjectileActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 	}
 	//즉발 타게팅 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+	if (SkillData.ActionTags.HasTag(TargetingActionTag))
 	{
 		if (UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance())
 		{
 			AnimInst->Montage_SetNextSection(FName("Aiming"), FName("Aiming"),SkillData.SkillMontage);
 		}
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 		StartWaitTargetDataTask();
 	}
 }
@@ -84,10 +84,9 @@ void USkillModule_Instant::OnMontageEnded()
 	}
 }
 
-void USkillModule_Instant::StartWaitDamageEventTask(FName TagName)
+void USkillModule_Instant::StartWaitDamageEventTask(FGameplayTag EventTag)
 {
 	if (!OwnerSkill)	return;
-	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
 	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag,nullptr,false,true);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Instant::OnDamageEventReceived);

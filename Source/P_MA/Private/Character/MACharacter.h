@@ -157,13 +157,7 @@ public:
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayFlinchMontage(FName SectionName);
-
-	void Server_ApplyFlinch(AActor* Attacker);
-
-	void Server_ApplyHitReaction(FGameplayTag ReactionTag, float Force, AActor* Attacker);
+	
 	/** Knockdown **/
 public:
 	virtual void Landed(const FHitResult& Hit) override;
@@ -172,7 +166,11 @@ public:
 	void ResetKnockdownState();
 	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 
-
+	UFUNCTION(BlueprintCallable)
+	UAnimMontage* GetFlinchMontage() const { return FlinchMontage; }
+	UFUNCTION(BlueprintCallable)
+	UAnimMontage* GetKnockdownMontage() const { return KnockdownMontage; }
+	
 private:
 	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* KnockdownMontage;

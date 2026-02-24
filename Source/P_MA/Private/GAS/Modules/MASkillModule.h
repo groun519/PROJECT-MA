@@ -19,6 +19,7 @@ class UMASkillModule : public UObject
 	GENERATED_BODY()
 
 public:
+	UMASkillModule();
 	// 초기화
 	virtual void InitializeModule(class UMAGameplayAbility_Skill* InSkill){OwnerSkill = InSkill;}
 	// 활성화
@@ -40,4 +41,16 @@ public:
 protected:
 	UPROPERTY(Transient, BlueprintReadOnly)
 	TObjectPtr<UMAGameplayAbility_Skill> OwnerSkill;
+
+	
+	UPROPERTY()
+	FGameplayTag MeleeActionTag;
+	UPROPERTY()
+	FGameplayTag ProjectileActionTag;
+	UPROPERTY()
+	FGameplayTag TargetingActionTag;
+	UPROPERTY()
+	FGameplayTag MontageDamageTag;
+	UPROPERTY()
+	FGameplayTag MontageSpawnProjectileTag;
 };

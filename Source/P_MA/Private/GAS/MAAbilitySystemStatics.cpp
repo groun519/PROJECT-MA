@@ -16,6 +16,11 @@ FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
 {
 	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
@@ -66,9 +71,29 @@ FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 	return FGameplayTag::RequestGameplayTag("attr.gold");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetMeleeActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Melee");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetProjectileActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Projectile");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetTargetingActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Targeting");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()

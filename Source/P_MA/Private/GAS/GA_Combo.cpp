@@ -17,6 +17,7 @@ UGA_Combo::UGA_Combo()
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAimingTag());
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Debuff"));
 
 	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 }
@@ -155,11 +156,6 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
 		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		IgnoreTargets.Add(HitResult.GetActor());
-
-		if (AMACharacter* TargetChar = Cast<AMACharacter>(HitResult.GetActor()))
-		{
-			TargetChar->Server_ApplyFlinch(GetAvatarActorFromActorInfo());
-		}
 	}
 
 	if (FuryEffect && !IgnoreTargets.IsEmpty())

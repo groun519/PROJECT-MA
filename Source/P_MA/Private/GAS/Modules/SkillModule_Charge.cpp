@@ -43,17 +43,17 @@ void USkillModule_Charge::OnAbilityActivated()
 	StartMaxChargeDelayTask();
 
 	//차징 근접 공격 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+	if (SkillData.ActionTags.HasTag(MeleeActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(MontageDamageTag);
 	}
 	//차징 투사체 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	if (SkillData.ActionTags.HasTag(ProjectileActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 	}
 	//차징 타게팅 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+	if (SkillData.ActionTags.HasTag(TargetingActionTag))
 	{
 		StartWaitTargetDataTask();
 	}
@@ -123,10 +123,9 @@ void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 	FinalChargedDuration = 0.f;
 }
 
-void USkillModule_Charge::StartWaitDamageEventTask(FName TagName)
+void USkillModule_Charge::StartWaitDamageEventTask(FGameplayTag EventTag)
 {
 	if (!OwnerSkill)	return;
-	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
 	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Charge::OnDamageEventReceived);
@@ -336,7 +335,7 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 		return;
 
 	CachedTargetData = Data;
-	StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+	StartWaitDamageEventTask(MontageSpawnProjectileTag);
 
 	float CastSectionLength = 1.0f;
 

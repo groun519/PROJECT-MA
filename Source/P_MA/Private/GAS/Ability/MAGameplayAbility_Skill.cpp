@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Character/MACharacter.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
@@ -16,8 +17,9 @@
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
+	AbilityTags.AddTag(UMAAbilitySystemStatics::GetSkillAttackTag());
 	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
-	IgnoreClearTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+	IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
@@ -193,10 +195,13 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 
-			if (AMACharacter* TargetChar = Cast<AMACharacter>(HitActor))
-			{
-				TargetChar->Server_ApplyHitReaction(CachedSkillData.HitReactionTag, CachedSkillData.ReactionForce, GetAvatarActorFromActorInfo());
-			}
+			FGameplayEventData EventPayload;
+			EventPayload.EventTag = CachedSkillData.HitReactionTag;
+			EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+			EventPayload.Instigator = GetAvatarActorFromActorInfo();
+			EventPayload.Target = HitActor;
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
 		}
 		for (const auto& AddSpec : AdditionalSpecs)
 		{
@@ -242,10 +247,13 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 
-			if (AMACharacter* TargetChar = Cast<AMACharacter>(HitActor))
-			{
-				TargetChar->Server_ApplyHitReaction(CachedSkillData.HitReactionTag, CachedSkillData.ReactionForce, GetAvatarActorFromActorInfo());
-			}
+			FGameplayEventData EventPayload;
+			EventPayload.EventTag = CachedSkillData.HitReactionTag;
+			EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+			EventPayload.Instigator = GetAvatarActorFromActorInfo();
+			EventPayload.Target = HitActor;
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
 			
 			for (const auto& AddSpec : AdditionalSpecs)
 			{
@@ -268,7 +276,7 @@ void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, f
 	const FSkillData& SkillData = GetSkillData();
 	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
 
-	bool bIsDamageEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+	bool bIsDamageEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageDamageTag();
 	bool bIsProjectileEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
 
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
