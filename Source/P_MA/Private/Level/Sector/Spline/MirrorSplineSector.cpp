@@ -5,6 +5,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "PCGComponent.h"
+#include "PCGGraph.h"
 
 AMirrorSplineSector::AMirrorSplineSector()
 {
@@ -39,6 +40,16 @@ void AMirrorSplineSector::SetRandomSeed(int32 MaxValue)
 	}
 
 	ActiveSourceSector = SourceSectors[0];
+	if (PCGComponent && ActiveSourceSector->PCGComponent)
+	{
+		if (UPCGGraph* Graph = PCGComponent->GetGraph())
+		{
+			if (ActiveSourceSector->PCGComponent->GetGraph() != Graph)
+			{
+				ActiveSourceSector->PCGComponent->SetGraph(Graph);
+			}
+		}
+	}
 	SourceSectors[0]->SetRandomSeed(MaxValue);
 }
 

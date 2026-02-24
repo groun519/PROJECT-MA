@@ -95,6 +95,8 @@ private:
 	UPROPERTY()
 	AMAGameMode* CachedMAGameMode = nullptr;
 
+	void OnEnvironmentChanged(const FGameplayTag& NewEnvTag);
+	
 	UPROPERTY()
 	FWaveSetting WaveSetting;
 	
@@ -119,4 +121,5 @@ private:
 	/** Init **/
 	bool InitCachedMAGameMode();
 	bool InitSpawnSpline();
+	bool BindEnvironmentManager();
 };

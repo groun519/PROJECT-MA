@@ -4,6 +4,7 @@
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"
+#include "Level/Environment/EnvironmentManager.h"
 
 AWaveManager::AWaveManager()
 {
@@ -21,6 +22,10 @@ void AWaveManager::BeginPlay()
 	if (!InitSpawnSpline())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WaveManager: SpawnSpline not Found"));
+	}
+	if (HasAuthority() && !BindEnvironmentManager())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: EnvironmentManager not Found"));
 	}
 }
 
@@ -309,4 +314,19 @@ bool AWaveManager::InitSpawnSpline()
 		return true;
 	}
 	return false;
+}
+
+bool AWaveManager::BindEnvironmentManager()
+{
+	AEnvironmentManager* EnvironmentManager = AEnvironmentManager::FindEnvironmentManager(GetWorld());
+	if (!EnvironmentManager) return false;
+
+	EnvironmentManager->OnEnvironmentTagChanged.AddUObject(this, &AWaveManager::OnEnvironmentChanged);
+	EnvironmentManager->BroadcastCurrentEnvironment();
+	return true;
+}
+
+void AWaveManager::OnEnvironmentChanged(const FGameplayTag& NewEnvTag)
+{
+	CurEnvTag = NewEnvTag;
 }

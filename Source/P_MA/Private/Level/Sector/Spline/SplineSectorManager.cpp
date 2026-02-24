@@ -7,6 +7,8 @@
 #include "Framework/MAGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Level/Platform/Core.h"
+#include "Level/Environment/EnvironmentManager.h"
+#include "PCGGraph.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "TimerManager.h"
@@ -62,6 +64,7 @@ void ASplineSectorManager::BeginPlay()
 		}
 
 		UpdatePlayerRangeClampVisual();
+		BindEnvironmentManager();
 	}
 }
 
@@ -245,6 +248,7 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 	const bool bNextIsJustPassedSector = (NextIndex == PrevIndex);
 	if (!bNextIsJustPassedSector && CurSectors.IsValidIndex(NextIndex) && CurSectors[NextIndex])
 	{
+		ApplyCachedEnvironmentToSector(CurSectors[NextIndex]);
 		CurSectors[NextIndex]->SetRandomSeed();
 	}
 
@@ -259,8 +263,20 @@ void ASplineSectorManager::ApplyRegenTargetsOnEnter(const FSplineSectorData& InD
 	for (ASplineSector* RegenTarget : InData.RegenTargetsOnEnter)
 	{
 		if (!RegenTarget) continue;
+		ApplyCachedEnvironmentToSector(RegenTarget);
 		RegenTarget->SetRandomSeed();
 	}
+}
+
+void ASplineSectorManager::ApplyCachedEnvironmentToSector(ASplineSector* InSector) const
+{
+	if (!HasAuthority()) return;
+	if (!InSector || !InSector->PCGComponent) return;
+	UPCGGraph* TargetPCGGraph = CachedEnvPCGGraph.Get();
+	if (!TargetPCGGraph) return;
+	if (InSector->PCGComponent->GetGraph() == TargetPCGGraph) return;
+
+	InSector->PCGComponent->SetGraph(TargetPCGGraph);
 }
 
 void ASplineSectorManager::LogStateChange(EMASectorState InState) const
@@ -333,4 +349,28 @@ bool ASplineSectorManager::CanApplyPlayerRangeClamp() const
 	}
 
 	return PlayerRangeClamp.States.Contains(CachedMASectorState);
+}
+
+bool ASplineSectorManager::BindEnvironmentManager()
+{
+	AEnvironmentManager* EnvironmentManager = AEnvironmentManager::FindEnvironmentManager(GetWorld());
+	if (!EnvironmentManager) return false;
+
+	EnvironmentManager->OnEnvironmentPCGChanged.AddUObject(this, &ASplineSectorManager::OnHandleEnvironmentPCGChanged);
+	EnvironmentManager->BroadcastCurrentEnvironment();
+	return true;
+}
+
+void ASplineSectorManager::OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph)
+{
+	if (CachedEnvPCGGraph == NewPCGGraph) return;
+	CachedEnvPCGGraph = NewPCGGraph;
+
+	// State-entry-only regen targets are not touched by path progression,
+	// so refresh them immediately when environment PCG changes.
+	if (!HasAuthority()) return;
+
+	const FSplineSectorData* CurrentStateData = SplineSectorsByState.Find(CachedMASectorState);
+	if (!CurrentStateData) return;
+	ApplyRegenTargetsOnEnter(*CurrentStateData);
 }

@@ -11,6 +11,7 @@
 
 class AMAGameMode;
 class AMAPlayerCharacter;
+class UPCGGraph;
 
 USTRUCT()
 struct FSplineSectorManagerDebugSetting
@@ -92,6 +93,7 @@ public:
 	UFUNCTION()
 	void OnHandlePlatformReachedEnd();
 	void OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount);
+	void OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph);
 	
 	/** Platform **/
 	UPROPERTY()
@@ -128,12 +130,16 @@ private:
 	EMASectorState CachedMASectorState = EMASectorState::Wait;
 	APlatformRoot* CachedPlatformRoot;
 
+	UPROPERTY(VisibleAnywhere, Category = "Environment")
+	TObjectPtr<UPCGGraph> CachedEnvPCGGraph = nullptr;
+
 	/** Sector **/
 	// 섹터 끝에 도달했을 때, 리퀘스트 받아 사용.
 	void SetSectorsByState(EMASectorState InState);
 	bool IsAutoPassState(EMASectorState InState);
 	void ApplyCurSplineAndSeed();
 	void ApplyRegenTargetsOnEnter(const FSplineSectorData& InData);
+	void ApplyCachedEnvironmentToSector(ASplineSector* InSector) const;
 	void LogStateChange(EMASectorState InState) const;
 	int32 CurSectorIndex = 0;
 
@@ -142,4 +148,7 @@ private:
 	void UpdatePlayerRangeClampVisual();
 	bool CanApplyPlayerRangeClamp() const;
 	FTimerHandle PlayerRangeClampTimerHandle;
+
+	/** Environment **/
+	bool BindEnvironmentManager();
 };

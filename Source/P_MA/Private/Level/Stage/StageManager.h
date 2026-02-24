@@ -9,6 +9,8 @@
 
 class AMAGameMode;
 
+DECLARE_MULTICAST_DELEGATE(FOnStageChangeEnvRequested);
+
 UENUM(BlueprintType)
 enum class EStageType : uint8
 {
@@ -41,6 +43,8 @@ protected:
 
 public:
 	AStageManager();
+
+	FOnStageChangeEnvRequested OnStageChangeEnvRequested;
 	
 	/** Helper **/
 	UFUNCTION(BlueprintPure, Category="Stage")

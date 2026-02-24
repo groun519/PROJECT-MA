@@ -63,6 +63,12 @@ void AStageManager::AdvanceStage()
 			GS->SetStageCycle(CurStageCycleData);
 		}
 	}
+
+	const FStageSetting& NewStageSetting = GetCurrentStageSetting();
+	if (NewStageSetting.bChangeEnv)
+	{
+		OnStageChangeEnvRequested.Broadcast();
+	}
 }
 
 const FStageSetting& AStageManager::GetCurrentStageSetting() const
