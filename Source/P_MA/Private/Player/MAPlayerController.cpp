@@ -9,6 +9,7 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
+#include "Widget/SkillBookWidget.h" 
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
@@ -106,8 +107,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 
 	// 마우스 삭제떄문에 일단 추가해봄 테스트
 	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 가두지 않기
-	InputMode.SetHideCursorDuringCapture(false); // ★핵심: 클릭해도 커서 숨기지 않기
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); 
+	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
 }
 
@@ -208,12 +209,13 @@ void AMAPlayerController::SetupInputComponent()
 	{
 		InputSubsystem->RemoveMappingContext(UIInputMapping);
 		InputSubsystem->AddMappingContext(UIInputMapping, 1);
+		InputSubsystem->AddMappingContext(UIInputMapping, 1);
 	}
 
 	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComp)
 	{
-		//EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
+		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
 		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 	}
 }
@@ -259,28 +261,27 @@ bool AMAPlayerController::Server_SendChatMessage_Validate(const FString& Message
 
 void AMAPlayerController::Server_SendChatMessage_Implementation(const FString& Message, EChatType ChatType)
 {
-	// 1. 보낸 사람 이름
+	// 보낸 사람 이름
 	FString SenderName = TEXT("Unknown");
 	if (PlayerState)
 	{
 		SenderName = PlayerState->GetPlayerName();
 	}
 
-	// 2. ★단순화됨★ : 조건 검사 없이 접속한 모든 사람에게 쏩니다.
+	// 조건 검사 없이 접속한 모든 사람에게
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		AMAPlayerController* TargetPC = Cast<AMAPlayerController>(It->Get());
 		
 		if (TargetPC)
 		{
-			// "팀 확인" 로직 삭제됨 -> 그냥 보냄
+			// 팀 확인 없이 그냥 보냄
 			TargetPC->Client_ReceiveChatMessage(SenderName, Message, ChatType);
 		}
 	}
 }
 void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString& SenderName, const FString& Message, EChatType ChatType)
 {
-	// UI에게 알림 방송 (이전에 작성한 코드)
 	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
 }
 

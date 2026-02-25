@@ -84,22 +84,38 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map **/
-	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
-	MinimapCameraBoom->SetupAttachment(RootComponent);
-	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    /** Mini Map **/
+    // 스프라이트부터 먼저 생성 
+    MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+    if (MinimapSprite)
+    {
+        MinimapSprite->SetupAttachment(GetMesh());
+        // 네비게이션 경고해결 
+        MinimapSprite->SetCanEverAffectNavigation(false); 
+    }
 
-	MinimapCameraBoom->TargetArmLength = 2000.0f;
-	MinimapCameraBoom->bUsePawnControlRotation = false;
-	MinimapCameraBoom->bInheritPitch = false;
-	MinimapCameraBoom->bInheritRoll = false;
-	MinimapCameraBoom->bInheritYaw = false;
+    MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+    MinimapCameraBoom->SetupAttachment(RootComponent);
+    MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    MinimapCameraBoom->TargetArmLength = 2000.0f;
+    MinimapCameraBoom->bUsePawnControlRotation = false;
+    MinimapCameraBoom->bInheritPitch = false;
+    MinimapCameraBoom->bInheritRoll = false;
+    MinimapCameraBoom->bInheritYaw = false;
 
-	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
-	MinimapCapture->SetupAttachment(MinimapCameraBoom);
-	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
-	MinimapCapture->OrthoWidth = 7000.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+    // 2. 캡처 컴포넌트 생성 및 설정
+    MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
+    if (MinimapCapture)
+    {
+        MinimapCapture->SetupAttachment(MinimapCameraBoom);
+        MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+        MinimapCapture->OrthoWidth = 7000.0f;
+    	
+        if (MinimapSprite)
+        {
+            MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+        }
+    }
 
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())

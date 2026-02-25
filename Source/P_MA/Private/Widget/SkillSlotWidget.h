@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Abilities/GameplayAbility.h"
+#include "GAS/MAGameplayAbilityTypes.h" // 💡 EMAAbilityInputID 사용을 위해 추가
 #include "Inventory/MAItemTypes.h" 
 #include "SkillSlotWidget.generated.h"
 
@@ -14,8 +15,12 @@ class USkillSlotWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void Init(TSubclassOf<UGameplayAbility> NewSkillClass);
+	void Init(TSubclassOf<UGameplayAbility> NewSkillClass, EMAAbilityInputID NewInputID);
+	
 	TSubclassOf<UGameplayAbility> GetSkillClass() const { return SkillClass; }
+	
+	UFUNCTION(BlueprintPure, Category = "UI")
+	FString GetShortKeyName(FKey Key) const;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
@@ -30,12 +35,12 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UImage* SkillIcon;
 	
+	UPROPERTY(meta = (BindWidget, OptionalWidget = true))
+	class UTextBlock* HotkeyText;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Data")
 	class UDataTable* AbilityDataTable;
     
 	virtual void NativeOnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation ) override;
 	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Drag Drop")
-	TSubclassOf<class UUserWidget> DragVisualClass;
 };

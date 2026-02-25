@@ -14,6 +14,9 @@ class UMAMobilityChargeWidget;
 class ULoopReadyWidget;
 class ACore;
 class AActor;
+class UShopWidget; 
+class USkillBookWidget; 
+
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
 {
@@ -24,7 +27,8 @@ public:
 	virtual void NativeDestruct() override;
 	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
 
-	class USkillBookWidget* GetSkillBookWidget() const { return SkillBookWidget; }
+	// 💡 Getter 함수가 이제 'ActiveSkillBookWidget'을 반환하도록 수정
+	class USkillBookWidget* GetSkillBookWidget() const { return ActiveSkillBookWidget; }
 	
 	void ToggleShop();
 	void ToggleSkillBook();
@@ -32,6 +36,7 @@ public:
 	// Loop Ready UI
 	void SetLoopReadyVisible(bool bVisible);
 	void RefreshLoopReady();
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
@@ -41,29 +46,30 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
-
-	UPROPERTY(Transient, meta=(BindWidgetAnim))
-	class UWidgetAnimation* ShopPopupAnimation;
-
-	UPROPERTY(Transient, meta=(BindWidgetAnim))
-	class UWidgetAnimation* SkillBookPopupAnimation;
-
-	void PlayShopPopupAnimation(bool bPlayForward);
-
+	
 	UPROPERTY(meta = (BindWidget))
 	UMAMobilityChargeWidget* ChargeBar;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Shop UI")
+	TSubclassOf<class UShopWidget> ShopWidgetClass;
 
-	UPROPERTY(meta=(BindWidget))
-	class UShopWidget* ShopWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "Shop UI")
+	TArray<class UDataTable*> ShopDataTables;
 
-	UPROPERTY(meta=(BindWidget))
-	class UInventoryWidget* InventoryWidget;
+	UPROPERTY()
+	class UShopWidget* ActiveShopWidget;
 
 	UPROPERTY(meta=(BindWidget))
 	class UButton *ShopButton;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Skill UI")
+	TSubclassOf<class USkillBookWidget> SkillBookWidgetClass;
+
+	UPROPERTY()
+	class USkillBookWidget* ActiveSkillBookWidget;
+
 	UPROPERTY(meta=(BindWidget))
-	class USkillBookWidget* SkillBookWidget;
+	class UInventoryWidget* InventoryWidget;
 
 	UPROPERTY(meta = (BindWidget))
 	ULoopReadyWidget* LoopReadyWidget;
