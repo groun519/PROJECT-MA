@@ -31,79 +31,77 @@
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
-	/** Camera Set **//*
-	 * 1. CameraBoom cannot use "Pawn Control Rot"
-	 *		-> Because, player looks mouse pointer.
-	 * 2. CameraBoom must lock Yaw
-	 *		-> Because, Camera must not rotate z axis.
-	 */
-	// 1) CameraBoom
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
-	CameraBoom->SetupAttachment(GetRootComponent());
-	CameraBoom->bUsePawnControlRotation = false;
-	CameraBoom->bInheritYaw = false;    
-	// 2) Cam
-	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
-	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+    /** Camera Set **/
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
+    CameraBoom->SetupAttachment(GetRootComponent());
+    CameraBoom->bUsePawnControlRotation = false;
+    CameraBoom->bInheritYaw = false;    
 
-	/** Controller Set **//*
-	 * 1. Player cannot use "Controller Rot"
-	 *		-> Because, player cam's rot must be fixed.
-	 * 2. Player cannot use "Origin Rot to Movement"
-	 *		-> Because, player must look mouse pointer.
-	 */
-	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = false;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+    Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
+    Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
-	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
+    /** Controller Set **/
+    bUseControllerRotationYaw = false;
+    GetCharacterMovement()->bOrientRotationToMovement = false;
+    GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
 
-	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
+    PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
+    InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
+    SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
+    
+    // Create and Attach Weapon
+    WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
+    WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
-	
-	/** Create SKCs **//*
-	 * - Child Relationship: Mesh - Handle
-	 */
-	// Create and Attach Weapon
-	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
-	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+    /** Mini Map **/
+    // 스프라이트부터 먼저 생성 
+    MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+    if (MinimapSprite)
+    {
+        MinimapSprite->SetupAttachment(GetMesh());
+        // 네비게이션 경고해결 
+        MinimapSprite->SetCanEverAffectNavigation(false); 
+    }
 
-	/** Mini Map **/
-	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
-	MinimapCameraBoom->SetupAttachment(RootComponent);
-	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+    MinimapCameraBoom->SetupAttachment(RootComponent);
+    MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    MinimapCameraBoom->TargetArmLength = 2000.0f;
+    MinimapCameraBoom->bUsePawnControlRotation = false;
+    MinimapCameraBoom->bInheritPitch = false;
+    MinimapCameraBoom->bInheritRoll = false;
+    MinimapCameraBoom->bInheritYaw = false;
 
-	MinimapCameraBoom->TargetArmLength = 2000.0f;
-	MinimapCameraBoom->bUsePawnControlRotation = false;
-	MinimapCameraBoom->bInheritPitch = false;
-	MinimapCameraBoom->bInheritRoll = false;
-	MinimapCameraBoom->bInheritYaw = false;
+    // 2. 캡처 컴포넌트 생성 및 설정
+    MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
+    if (MinimapCapture)
+    {
+        MinimapCapture->SetupAttachment(MinimapCameraBoom);
+        MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+        MinimapCapture->OrthoWidth = 7000.0f;
+    	
+        if (MinimapSprite)
+        {
+            MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+        }
+    }
 
-	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
-	MinimapCapture->SetupAttachment(MinimapCameraBoom);
-	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
-	MinimapCapture->OrthoWidth = 7000.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
-
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
-	if (renderObj.Succeeded())
-	{
-		MinimapCapture->TextureTarget = renderObj.Object;
-	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
-	
-	/** Capsule Collision **/
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
-	
-	/** Tag Init **/
-	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
-	
-	/** Ready State Component **/
-	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+    static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+    if (renderObj.Succeeded())
+    {
+       MinimapCapture->TextureTarget = renderObj.Object;
+    }
+    
+    /** Capsule Collision **/
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,   ECR_Block);
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
+    
+    /** Tag Init **/
+    RotationLockTag = UMAAbilitySystemStatics::GetRotationLockTag();
+    RushingTag = UMAAbilitySystemStatics::GetRushingTag();
+    
+    /** Ready State Component **/
+    ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
 }
 
 void AMAPlayerCharacter::BeginPlay()

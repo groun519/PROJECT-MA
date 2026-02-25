@@ -4,30 +4,26 @@
 #include "Widget/MAAbilityListView.h"
 #include "Abilities/GameplayAbility.h"
 #include "Widget/MAAbilityGauge.h"
+#include "Widget/SkillSlotWidget.h"
+
 
 void UMAAbilityListView::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& Abilities)
 {
 	ClearListItems();
-	
+    
 	TArray<EMAAbilityInputID> TargetSlots = { 
 		EMAAbilityInputID::Skill1, 
 		EMAAbilityInputID::Skill2, 
 		EMAAbilityInputID::Skill3 
-	};
+	 };
 
 	for (EMAAbilityInputID TargetInputID : TargetSlots)
 	{
 		UMAAbilitySlotDataObject* DataItem = NewObject<UMAAbilitySlotDataObject>(this);
 		DataItem->InputID = TargetInputID;
+		DataItem->AbilityClass = Abilities.Contains(TargetInputID) ? Abilities[TargetInputID] : nullptr;
 
-		if (Abilities.Contains(TargetInputID))
-		{
-			DataItem->AbilityClass = Abilities[TargetInputID];
-		}
-		else
-		{
-			DataItem->AbilityClass = nullptr;
-		}
+		// 데이터만 추가하면, SkillSlotWidget 내부의 NativeOnListItemObjectSet이 자동 실행
 		AddItem(DataItem);
 	}
 }

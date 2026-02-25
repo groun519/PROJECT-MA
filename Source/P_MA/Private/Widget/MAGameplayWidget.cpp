@@ -38,30 +38,39 @@ void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubcla
 
 void UMAGameplayWidget::ToggleShop()
 {
-    // 기존 HitTestInvisible 로직 유지하되 InputMode 변경 적용
-    if (ShopWidget->GetVisibility() == ESlateVisibility::HitTestInvisible)
+    APlayerController* PC = GetOwningPlayer();
+    if (!PC) return; // 💡 안전을 위한 널 체크 추가
+    
+    if (ActiveShopWidget && ActiveShopWidget->IsInViewport())
     {
-        // 상점 열기
-        ShopWidget->SetVisibility(ESlateVisibility::Visible);
-        PlayShopPopupAnimation(true);
+        ActiveShopWidget->RemoveFromParent();
+        ActiveShopWidget = nullptr;
+        
+        // 💡 닫을 때 게임 전용 모드로 복구
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode);
+        PC->bShowMouseCursor = true; 
     }
     else
     {
-        // 상점 닫기
-        ShopWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
-        PlayShopPopupAnimation(false);
-    }
-}
-
-void UMAGameplayWidget::PlayShopPopupAnimation(bool bPlayForward)
-{
-    if (bPlayForward)
-    {
-        PlayAnimationForward(ShopPopupAnimation);
-    }
-    else
-    {
-        PlayAnimationReverse(ShopPopupAnimation);
+        if (ShopWidgetClass)
+        {
+            ActiveShopWidget = CreateWidget<UShopWidget>(PC, ShopWidgetClass);
+            if (ActiveShopWidget)
+            {
+                ActiveShopWidget->InitShop(ShopDataTables);
+                ActiveShopWidget->AddToViewport(100);
+                
+                // ✨ 상점도 스킬북처럼 깜빡임 방지 옵션 적용!
+                FInputModeGameAndUI InputMode;
+                InputMode.SetWidgetToFocus(ActiveShopWidget->TakeWidget());
+                InputMode.SetHideCursorDuringCapture(false); // 👈 클릭 시 커서 사라짐 방지
+                InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                
+                PC->SetInputMode(InputMode);
+                PC->bShowMouseCursor = true;
+            }
+        }
     }
 }
 
@@ -70,30 +79,49 @@ void UMAGameplayWidget::OnShopButtonClicked()
     ToggleShop();
 }
 
+// ==========================================================
+// 🚨 아래부터는 스킬북 및 기타 로직 (원본 100% 그대로 유지!)
+// ==========================================================
+
 void UMAGameplayWidget::ToggleSkillBook()
 {
-    if (!SkillBookWidget) return;
+    APlayerController* PC = GetOwningPlayer();
+    if (!PC) return;
 
-    if (SkillBookWidget->GetVisibility() == ESlateVisibility::Visible)
+    if (ActiveSkillBookWidget && ActiveSkillBookWidget->IsInViewport())
     {
-        // 스킬북 닫기
-        if(SkillBookPopupAnimation)
-        {
-            PlayAnimationReverse(SkillBookPopupAnimation);
-        }
-        
-        SkillBookWidget->SetVisibility(ESlateVisibility::Hidden);
+        // 닫을 때
+        ActiveSkillBookWidget->RemoveFromParent();
+        ActiveSkillBookWidget = nullptr;
+
+        // 💡 닫을 때 마우스 상태가 꼬이지 않게 게임 전용 모드로 확실히 돌려줍니다.
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode);
+        PC->bShowMouseCursor = true; // 범님 설정 유지
     }
     else
     {
-        // 스킬북 열기
-        SkillBookWidget->SetVisibility(ESlateVisibility::Visible);
-        
-        if(SkillBookPopupAnimation)
+        // 열 때
+        if (SkillBookWidgetClass)
         {
-            PlayAnimationForward(SkillBookPopupAnimation);
+            ActiveSkillBookWidget = CreateWidget<USkillBookWidget>(PC, SkillBookWidgetClass);
+            if (ActiveSkillBookWidget)
+            {
+                ActiveSkillBookWidget->AddToViewport(100);
+
+                // ✨ 마우스 깜빡임 해결의 핵심 세팅!
+                FInputModeGameAndUI InputMode;
+                // 1. 클릭해도 마우스를 숨기지 않도록 설정 (깜빡임 방지)
+                InputMode.SetHideCursorDuringCapture(false); 
+                // 2. 마우스가 화면 밖으로 나가는 걸 막지 않음 (자유로운 마우스)
+                InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                // 3. 새로 만든 위젯에 포커스를 줘서 입력을 가로채게 함
+                InputMode.SetWidgetToFocus(ActiveSkillBookWidget->TakeWidget());
+
+                PC->SetInputMode(InputMode);
+                PC->bShowMouseCursor = true;
+            }
         }
-        
     }
 }
 
