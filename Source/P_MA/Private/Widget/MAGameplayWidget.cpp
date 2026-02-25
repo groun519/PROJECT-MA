@@ -79,6 +79,9 @@ void UMAGameplayWidget::OnShopButtonClicked()
     ToggleShop();
 }
 
+// ==========================================================
+// 🚨 아래부터는 스킬북 및 기타 로직 (원본 100% 그대로 유지!)
+// ==========================================================
 
 void UMAGameplayWidget::ToggleSkillBook()
 {
