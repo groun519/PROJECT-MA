@@ -7,10 +7,13 @@
 #include "Engine/DataTable.h"
 #include "Level/Stage/StageManager.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 
 AEnvironmentManager::AEnvironmentManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
+	bAlwaysRelevant = true;
 }
 
 void AEnvironmentManager::BeginPlay()
@@ -53,6 +56,7 @@ bool AEnvironmentManager::SetCurrentEnvTag(FGameplayTag InEnvTag)
 	CurrentEnvTag = InEnvTag;
 	OnEnvironmentTagChanged.Broadcast(CurrentEnvTag);
 	OnEnvironmentPCGChanged.Broadcast(FindPCGGraphByTag(CurrentEnvTag));
+	ForceNetUpdate();
 	return true;
 }
 
@@ -158,4 +162,16 @@ bool AEnvironmentManager::PickRandomDifferentEnvTag(FGameplayTag& OutEnvTag) con
 	const int32 RandomIndex = FMath::RandRange(0, Candidates.Num() - 1);
 	OutEnvTag = Candidates[RandomIndex];
 	return true;
+}
+
+void AEnvironmentManager::OnRep_CurrentEnvTag()
+{
+	OnEnvironmentTagChanged.Broadcast(CurrentEnvTag);
+	OnEnvironmentPCGChanged.Broadcast(FindPCGGraphByTag(CurrentEnvTag));
+}
+
+void AEnvironmentManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AEnvironmentManager, CurrentEnvTag);
 }

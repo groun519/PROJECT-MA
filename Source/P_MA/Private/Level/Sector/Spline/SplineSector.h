@@ -29,6 +29,7 @@ public:
 	/** Seed and Sector **/
 	void SetSectorSeed(int32 InSeed = 0);
 	virtual void SetRandomSeed(int32 MaxValue = INT32_MAX);
+	void RegenerateWithCurrentSeed();
 	FVector GetSectorBound();
 	FORCEINLINE int32 GetSectorSeed() const { return SectorSeed; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

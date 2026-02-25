@@ -25,6 +25,7 @@ public:
 	AEnvironmentManager();
 
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	static AEnvironmentManager* FindEnvironmentManager(UWorld* InWorld);
 
@@ -57,7 +58,7 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Environment")
 	EMASectorState CachedMASectorState = EMASectorState::Wait;
 
-	UPROPERTY(EditAnywhere, Category = "Environment")
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_CurrentEnvTag, Category = "Environment")
 	FGameplayTag CurrentEnvTag;
 
 	UPROPERTY(VisibleAnywhere, Category = "Environment")
@@ -65,4 +66,7 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Environment")
 	UDataTable* EnvironmentDataTable = nullptr;
+
+	UFUNCTION()
+	void OnRep_CurrentEnvTag();
 };

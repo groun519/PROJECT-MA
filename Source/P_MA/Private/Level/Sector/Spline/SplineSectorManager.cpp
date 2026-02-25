@@ -64,8 +64,9 @@ void ASplineSectorManager::BeginPlay()
 		}
 
 		UpdatePlayerRangeClampVisual();
-		BindEnvironmentManager();
 	}
+
+	BindEnvironmentManager();
 }
 
 void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
@@ -270,7 +271,6 @@ void ASplineSectorManager::ApplyRegenTargetsOnEnter(const FSplineSectorData& InD
 
 void ASplineSectorManager::ApplyCachedEnvironmentToSector(ASplineSector* InSector) const
 {
-	if (!HasAuthority()) return;
 	if (!InSector || !InSector->PCGComponent) return;
 	UPCGGraph* TargetPCGGraph = CachedEnvPCGGraph.Get();
 	if (!TargetPCGGraph) return;
@@ -365,6 +365,38 @@ void ASplineSectorManager::OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph)
 {
 	if (CachedEnvPCGGraph == NewPCGGraph) return;
 	CachedEnvPCGGraph = NewPCGGraph;
+
+	for (const TPair<EMASectorState, FSplineSectorData>& Pair : SplineSectorsByState)
+	{
+		const FSplineSectorData& Data = Pair.Value;
+		for (ASplineSector* Sector : Data.Sectors)
+		{
+			ApplyCachedEnvironmentToSector(Sector);
+		}
+		for (ASplineSector* RegenTarget : Data.RegenTargetsOnEnter)
+		{
+			ApplyCachedEnvironmentToSector(RegenTarget);
+		}
+	}
+
+	// One-shot startup pass: run explicit targets once after initial env is resolved.
+	if (!bAppliedEnvironmentReadyRegen && CachedEnvPCGGraph)
+	{
+		for (ASplineSector* Sector : RegenTargetsOnEnvironmentReady)
+		{
+			if (!Sector) continue;
+			ApplyCachedEnvironmentToSector(Sector);
+			if (HasAuthority())
+			{
+				Sector->SetRandomSeed();
+			}
+			else
+			{
+				Sector->RegenerateWithCurrentSeed();
+			}
+		}
+		bAppliedEnvironmentReadyRegen = true;
+	}
 
 	// State-entry-only regen targets are not touched by path progression,
 	// so refresh them immediately when environment PCG changes.

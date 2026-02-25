@@ -106,6 +106,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
 	TMap<EMASectorState, FSplineSectorData> SplineSectorsByState;
 
+	// Regenerated once after initial environment graph is resolved.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Environment")
+	TArray<TObjectPtr<ASplineSector>> RegenTargetsOnEnvironmentReady;
+
 	int32 GetNextSectorIndex(int32 InSectorIndex);
 	static ASplineSectorManager* FindSplineSectorManager(UWorld* World);
 
@@ -132,6 +136,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Environment")
 	TObjectPtr<UPCGGraph> CachedEnvPCGGraph = nullptr;
+	bool bAppliedEnvironmentReadyRegen = false;
 
 	/** Sector **/
 	// 섹터 끝에 도달했을 때, 리퀘스트 받아 사용.

@@ -7,6 +7,7 @@
 ASplineSector::ASplineSector()
 {
     bReplicates = true;
+    bAlwaysRelevant = true;
 
     /** Ground **/
     PCGExtentBox = CreateDefaultSubobject<UStaticMeshComponent>("GroundBox");
@@ -48,22 +49,20 @@ ASplineSector::ASplineSector()
     PCGComponent->InputType = EPCGComponentInput::Actor;
     PCGComponent->bParseActorComponents = true;
     PCGComponent->SetIsPartitioned(false);
+    PCGComponent->GenerationTrigger = EPCGComponentGenerationTrigger::GenerateOnDemand;
 }
 
 void ASplineSector::BeginPlay()
 {
     Super::BeginPlay();
-    //PCGComponent->Cleanup();
-    if (HasAuthority())
-    {
-        SetRandomSeed();
-    }
 }
 
 void ASplineSector::UpdatePCGComponent()
 {
     if (PCGComponent && PCGComponent->GetGraph())
     {
+        // Always rebuild from a clean local state before generating from replicated seed.
+        PCGComponent->CleanupLocalImmediate(true, true);
         PCGComponent->Seed = SectorSeed;
         PCGComponent->Generate(true);
     }
@@ -114,8 +113,9 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
 
 void ASplineSector::SetSectorSeed(int32 InSeed)
 {
+    if (!HasAuthority()) return;
+
     SectorSeed = InSeed;
-    UE_LOG(LogTemp, Warning, TEXT("Copied New Seed at Last Sector!: %d"), InSeed);
     UpdateSeed();
     UpdatePCGComponent();
     OnSplineSectorUpdated.Broadcast(this);
@@ -126,6 +126,13 @@ void ASplineSector::SetRandomSeed(int32 MaxValue)
     if (!HasAuthority()) return;
 
     SectorSeed = FMath::RandRange(1, MaxValue);
+    UpdateSeed();
+    UpdatePCGComponent();
+    OnSplineSectorUpdated.Broadcast(this);
+}
+
+void ASplineSector::RegenerateWithCurrentSeed()
+{
     UpdateSeed();
     UpdatePCGComponent();
     OnSplineSectorUpdated.Broadcast(this);
