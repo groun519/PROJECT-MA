@@ -4,6 +4,7 @@
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Camera/CameraComponent.h"
 #include "Character/MACharacter.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -202,6 +203,8 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			EventPayload.Target = HitActor;
 
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+
+			ApplyHitStop(HitActor);
 		}
 		for (const auto& AddSpec : AdditionalSpecs)
 		{
@@ -246,14 +249,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
-
-			FGameplayEventData EventPayload;
-			EventPayload.EventTag = CachedSkillData.HitReactionTag;
-			EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
-			EventPayload.Instigator = GetAvatarActorFromActorInfo();
-			EventPayload.Target = HitActor;
-
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
 			
 			for (const auto& AddSpec : AdditionalSpecs)
 			{
@@ -494,6 +489,7 @@ AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class
 		{
 			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
 		}
+		Projectile->OnProjectileHit.AddDynamic(this, &UMAGameplayAbility_Skill::HandleProjectileHit);
 	}
 	return SpawnedActor;
 }
@@ -579,6 +575,23 @@ float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
 	return TotalSpeed;
 }
 
+void UMAGameplayAbility_Skill::HandleProjectileHit(AActor* HitActor)
+{
+	if (!HitActor || !HasAuthority(&CurrentActivationInfo))
+		return;
+
+	if (CachedSkillData.HitReactionTag.IsValid())
+	{
+		FGameplayEventData EventPayload;
+		EventPayload.EventTag = CachedSkillData.HitReactionTag;
+		EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+		EventPayload.Instigator = GetAvatarActorFromActorInfo();
+		EventPayload.Target = HitActor;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+	}
+}
+
 void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)
 {
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
@@ -660,4 +673,60 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 	{
 		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,FinalScale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
+}
+
+void UMAGameplayAbility_Skill::ApplyHitStop(AActor* TargetActor)
+{
+	if (!CachedSkillData.bUseHitStop || CachedSkillData.HitStopDuration <= 0.f)
+		return;
+
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Avatar || !TargetActor)
+		return;
+
+	Avatar->CustomTimeDilation = CachedSkillData.HitStopTimeDilation;
+	TargetActor->CustomTimeDilation = CachedSkillData.HitStopTimeDilation;
+
+	UCameraComponent* CameraComp = Avatar->FindComponentByClass<UCameraComponent>();
+	float OriginalFOV = 0.f;
+	bool bApplyCameraEffect = false;
+	
+	if (CameraComp && CachedSkillData.HitStopZoomOffset > 0.f && !CameraComp->PostProcessSettings.bOverride_VignetteIntensity)
+	{
+		OriginalFOV = CameraComp->FieldOfView;
+		CameraComp->SetFieldOfView(OriginalFOV - CachedSkillData.HitStopZoomOffset);
+		CameraComp->PostProcessSettings.bOverride_VignetteIntensity = true;
+		CameraComp->PostProcessSettings.VignetteIntensity = CachedSkillData.HitStopVignette;
+		CameraComp->PostProcessSettings.bOverride_SceneFringeIntensity = true;
+		CameraComp->PostProcessSettings.SceneFringeIntensity = 1.5f;
+
+		bApplyCameraEffect = true;
+	}
+	
+	TWeakObjectPtr<AActor> WeakAvatar = Avatar;
+	TWeakObjectPtr<AActor> WeakTarget = TargetActor;
+
+	FTimerHandle HitStopTimer;
+	GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [WeakAvatar, WeakTarget, OriginalFOV, bApplyCameraEffect]()
+	{
+		if (WeakAvatar.IsValid())
+		{
+			WeakAvatar->CustomTimeDilation = 1.f;
+
+			if (bApplyCameraEffect)
+			{
+				UCameraComponent* Cam = WeakAvatar->FindComponentByClass<UCameraComponent>();
+				if (Cam && OriginalFOV > 0.f)
+				{
+					Cam->SetFieldOfView(OriginalFOV);
+					Cam->PostProcessSettings.bOverride_VignetteIntensity = false;
+					Cam->PostProcessSettings.bOverride_SceneFringeIntensity = false;
+				}
+			}
+		}
+		if (WeakTarget.IsValid())
+		{
+			WeakTarget->CustomTimeDilation = 1.f;
+		}
+	}, CachedSkillData.HitStopDuration, false);
 }

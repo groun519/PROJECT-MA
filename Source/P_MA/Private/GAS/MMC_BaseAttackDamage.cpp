@@ -4,6 +4,7 @@
 #include "GAS/MMC_BaseAttackDamage.h"
 
 #include "MAAbilitySystemStatics.h"
+#include "MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
 
 UMMC_BaseAttackDamage::UMMC_BaseAttackDamage()
@@ -20,10 +21,18 @@ UMMC_BaseAttackDamage::UMMC_BaseAttackDamage()
 	DamageVarianceCaptureDef.AttributeToCapture = UMAAttributeSet::GetDamageVarianceAttribute();
 	DamageVarianceCaptureDef.AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
 
+	CriticalChanceCaptureDef.AttributeToCapture = UMAAttributeSet::GetCriticalChanceAttribute();
+	CriticalChanceCaptureDef.AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
+
+	CriticalDamageCaptureDef.AttributeToCapture = UMAAttributeSet::GetCriticalDamageAttribute();
+	CriticalDamageCaptureDef.AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
+
 	RelevantAttributesToCapture.Add(DamageCaptureDef);
 	RelevantAttributesToCapture.Add(ArmorCaptureDef);
 	RelevantAttributesToCapture.Add(ArmorPenetrationCaptureDef);
 	RelevantAttributesToCapture.Add(DamageVarianceCaptureDef);
+	RelevantAttributesToCapture.Add(CriticalChanceCaptureDef);
+	RelevantAttributesToCapture.Add(CriticalDamageCaptureDef);
 
 	BehaviorModifierTag = UMAAbilitySystemStatics::GetBehaviorMultiplierTag();
 	UtilityModifierTag = UMAAbilitySystemStatics::GetUtilityMultiplierTag();
@@ -48,6 +57,11 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 	float DamageVariance = 0.f;
 	GetCapturedAttributeMagnitude(DamageVarianceCaptureDef,Spec, EvalParams, DamageVariance);
 
+	float CriticalChance = 0.f;
+	GetCapturedAttributeMagnitude(CriticalChanceCaptureDef, Spec, EvalParams, CriticalChance);
+	float CriticalDamage = 0.f;
+	GetCapturedAttributeMagnitude(CriticalDamageCaptureDef, Spec, EvalParams, CriticalDamage);
+
 	float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag,false,1.f);
 	float UtilityBonus = Spec.GetSetByCallerMagnitude(UtilityModifierTag, false, 1.f);
 	float ElementBonus = Spec.GetSetByCallerMagnitude(ElementalModifierTag, false, 1.f);
@@ -57,13 +71,24 @@ float UMMC_BaseAttackDamage::CalculateBaseMagnitude_Implementation(const FGamepl
 
 	const float MinMultiplier = 1.f - DamageVariance;
 	const float MaxMultiplier = 1.f + DamageVariance;
-	const float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * AttackDamage;
+	float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * AttackDamage;
+
+	bool bIsCriticalHit = FMath::RandRange(0.f, 1.f) <= CriticalChance;
+	if (bIsCriticalHit)
+	{
+		RandomizedDamage *= CriticalDamage;
+	}
+	FGameplayEffectContextHandle ContextHandle = Spec.GetContext();
+	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+	{
+		MAContext->SetIsCriticalHit(bIsCriticalHit);
+	}
 	
 	const float Damage = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
 	const float FinalDamage = Damage * UtilityBonus * ElementBonus * BehaviorBonus;
 	//const float FinalDamage = Damage * ElementBonus * BehaviorBonus * (UtilityBonus+1.f);
-	UE_LOG(LogTemp, Warning, TEXT("Damage: %f"), FinalDamage);
-	return -FinalDamage;
+	UE_LOG(LogTemp, Warning, TEXT("Damage: %f"), FMath::RoundToFloat(FinalDamage));
+	return FMath::RoundToFloat(-FinalDamage);
 }
 
 

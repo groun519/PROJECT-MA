@@ -14,6 +14,7 @@
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
+#include "GAS/Passive/MADamageNumberActor.h"
 
 void AMAPlayerController::BeginPlay()
 {
@@ -120,6 +121,25 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMAPlayerController, TeamID);
+}
+
+void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit)
+{
+
+	if (DamageNumberActorClass && TargetActor)
+	{
+		FVector DamageSpawnLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
+		
+		DamageSpawnLocation.X += FMath::RandRange(-40.f, 40.f);
+		DamageSpawnLocation.Y += FMath::RandRange(-40.f, 40.f);
+		
+		AMADamageNumberActor* DamageActor = GetWorld()->SpawnActor<AMADamageNumberActor>(DamageNumberActorClass, DamageSpawnLocation, FRotator::ZeroRotator);
+		
+		if (DamageActor)
+		{
+			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit);
+		}
+	}
 }
 
 void AMAPlayerController::SpawnGameplayWidget()

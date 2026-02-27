@@ -68,6 +68,11 @@ public:
 	UFUNCTION(Client, Reliable, Category = "Chat")
 	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<class AMADamageNumberActor> DamageNumberActorClass;
+	UFUNCTION(Client, Unreliable)
+	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit);
+	
 private:
 	void SpawnGameplayWidget();
 	void HandleGameStateChanged(EMAGameState NewState);

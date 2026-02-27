@@ -186,6 +186,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
 			SetNumericAttributeBase(UMAPlayerAttributeSet::GetGoldAttribute(), BaseStats->BaseGold);
+			SetNumericAttributeBase(UMAAttributeSet::GetCriticalChanceAttribute(), BaseStats->BaseCriticalChance);
+			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
 		}
 	}
 	//몬스터인 경우 몬스터 데이터 테이블로 초기화

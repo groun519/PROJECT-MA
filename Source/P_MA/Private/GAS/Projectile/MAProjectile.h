@@ -12,6 +12,8 @@ class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
+
 UCLASS()
 class AMAProjectile : public AActor
 {
@@ -29,6 +31,10 @@ public:
 
 	void SetGameplayCueTag(FGameplayTag Tag);
 	void SetProjectileVFX(UNiagaraSystem* NewVFX);
+
+	UPROPERTY()
+	FOnProjectileHitSignature OnProjectileHit;
+	
 protected:
 	virtual void BeginPlay() override;
 	

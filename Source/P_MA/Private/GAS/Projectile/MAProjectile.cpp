@@ -65,13 +65,14 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 	if (HitActors.Contains(OtherActor)) return;
-
+	
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (TargetASC && DamageEffectSpecHandle.IsValid())
 	{
 		TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 	}
 	HitActors.Add(OtherActor);
+	OnProjectileHit.Broadcast(OtherActor);
 
 	if (ExplodeRadius > 0.f)
 	{
@@ -92,6 +93,7 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 				{
 					AoE_ASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 					HitActors.Add(AoE_Target);
+					OnProjectileHit.Broadcast(AoE_Target);
 				}
 			}
 		}
@@ -132,7 +134,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
-
+	
 	if (HitGameplayCueTag.IsValid())
 	{
 		SendLocalGameplayCue(Hit);
@@ -161,6 +163,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 				if (DamageEffectSpecHandle.IsValid())
 				{
 					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+					OnProjectileHit.Broadcast(TargetActor);
 				}
 			}
 		}

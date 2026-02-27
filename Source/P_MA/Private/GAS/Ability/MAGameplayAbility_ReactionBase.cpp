@@ -45,7 +45,7 @@ void UMAGameplayAbility_ReactionBase::ActivateAbility(const FGameplayAbilitySpec
 		return;
 	}
 
-	if (!CancelTagsOnHit.IsValid())
+	if (CancelTagsOnHit.IsValid())
 	{
 		ActorInfo->AbilitySystemComponent->CancelAbilities(&CancelTagsOnHit);
 	}

@@ -87,6 +87,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category="Hit Reaction")
 	float ReactionForce = 200.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop")
+	bool bUseHitStop = false;
+	/** 역경직 (묵직한 느낌 0.08 / 가벼운 느낌 0.02) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
+	float HitStopDuration = 0.05f;
+	/** 역경직 (묵직한 느낌 0.0 / 가벼운 느낌 0.1) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
+	float HitStopTimeDilation = 0.01f;
+	/** 역경직 카메라 줌 효과 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
+	float HitStopZoomOffset = 10.f;
+	/** 역경직 카메라 비네트 효과 세기 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
+	float HitStopVignette = 1.f;
+
 	/** UI용 Icon 항목 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
 	TSoftObjectPtr<UTexture2D> SkillIcon;

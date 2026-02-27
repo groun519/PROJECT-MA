@@ -46,8 +46,6 @@ void USkillBookWidget::OnCloseClicked()
 	
 	if (APlayerController* PC = GetOwningPlayer())
 	{
-		PC->bShowMouseCursor = false;
-		
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);
 		InputMode.SetWidgetToFocus(nullptr);

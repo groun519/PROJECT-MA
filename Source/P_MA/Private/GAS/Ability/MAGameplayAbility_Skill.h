@@ -64,6 +64,8 @@ protected:
 	bool LoadSkillData();
 
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);
+
+	void ApplyHitStop(AActor* TargetActor);
 	
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
@@ -77,6 +79,9 @@ protected:
 
 	FGameplayTag VFXRootTag;
 	FGameplayTag IgnoreClearTag;
+
+	UFUNCTION()
+	void HandleProjectileHit(AActor* HitActor);
 	
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
