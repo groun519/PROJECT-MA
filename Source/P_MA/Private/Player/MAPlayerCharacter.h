@@ -156,6 +156,9 @@ private:
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	float DeadColorSaturationScale = 0.25f;
+
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USpringArmComponent* MinimapCameraBoom;

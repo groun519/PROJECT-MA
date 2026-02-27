@@ -28,13 +28,15 @@ public:
 	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 
 	void ApplyMaterialParamsLocal(const FMaterialParamDataPair& Params);
+	void ApplyMaterialParam(const FMaterialParamDataPair& Params, float SaturationScale = 1.f);
 
 	const FMaterialParamDataPair& GetBaseMaterialParam() const { return BaseMaterialParam; }
+	const FMaterialParamDataPair& GetMaterialParamValue() const { return MaterialParamValue; }
 
 	// TODO: Save/Load hooks for loadout data.
 
 private:
-	void ApplyMaterialParam(const FMaterialParamDataPair& Params);
+	static FLinearColor ApplySaturationScale(const FLinearColor& InColor, float SaturationScale);
 
 	UFUNCTION()
 	void OnRep_MaterialParam();

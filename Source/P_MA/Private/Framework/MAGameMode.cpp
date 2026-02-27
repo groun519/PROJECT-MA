@@ -9,12 +9,14 @@
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameState.h"
 #include "Framework/ReadyManagerComponent.h"
+#include "Framework/GameOverManagerComponent.h"
 
 AMAGameMode::AMAGameMode()
 {
 	CurrentMASectorState = EMASectorState::Wait;
 	GameStateClass = AMAGameState::StaticClass();
 	ReadyManagerComponent = CreateDefaultSubobject<UReadyManagerComponent>(TEXT("ReadyManagerComponent"));
+	GameOverManagerComponent = CreateDefaultSubobject<UGameOverManagerComponent>(TEXT("GameOverManagerComponent"));
 }
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)

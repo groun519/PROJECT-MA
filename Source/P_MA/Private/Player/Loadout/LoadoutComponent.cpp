@@ -39,7 +39,8 @@ void ULoadoutComponent::InitializeMaterial(USkeletalMeshComponent* InMesh)
 
 	if (DynMats.Num() > 0)
 	{
-		ApplyMaterialParam(BaseMaterialParam);
+		MaterialParamValue = BaseMaterialParam;
+		ApplyMaterialParam(MaterialParamValue);
 	}
 }
 
@@ -73,7 +74,22 @@ void ULoadoutComponent::OnRep_MaterialParam()
 	ApplyMaterialParam(MaterialParamValue);
 }
 
-void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params)
+FLinearColor ULoadoutComponent::ApplySaturationScale(const FLinearColor& InColor, float SaturationScale)
+{
+	if (FMath::IsNearlyEqual(SaturationScale, 1.f))
+	{
+		return InColor;
+	}
+
+	FLinearColor HSVColor = InColor.LinearRGBToHSV();
+	HSVColor.G = FMath::Clamp(HSVColor.G * SaturationScale, 0.f, 1.f);
+
+	FLinearColor OutColor = HSVColor.HSVToLinearRGB();
+	OutColor.A = InColor.A;
+	return OutColor;
+}
+
+void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params, float SaturationScale)
 {
 	if (!TargetMesh)
 	{
@@ -105,9 +121,13 @@ void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params)
 		{
 			continue;
 		}
-		DynMat->SetVectorParameterValue("Body_Color", Params.BodyData.Color);
+
+		const FLinearColor BodyColor = ApplySaturationScale(Params.BodyData.Color, SaturationScale);
+		const FLinearColor EyeColor = ApplySaturationScale(Params.EyeData.Color, SaturationScale);
+
+		DynMat->SetVectorParameterValue("Body_Color", BodyColor);
 		DynMat->SetScalarParameterValue("Body_Emissive", Params.BodyData.Emissive);
-		DynMat->SetVectorParameterValue("Eye_Color", Params.EyeData.Color);
+		DynMat->SetVectorParameterValue("Eye_Color", EyeColor);
 		DynMat->SetScalarParameterValue("Eye_Emissive", Params.EyeData.Emissive);
 	}
 }

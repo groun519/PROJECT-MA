@@ -122,8 +122,6 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	{
 		MinimapCapture->TextureTarget = renderObj.Object;
 	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
 	
 	/** Capsule Collision **/
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
@@ -168,6 +166,7 @@ void AMAPlayerCharacter::BaseChange()
 void AMAPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (IsDead()) return;
 
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
@@ -190,6 +189,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
+	if (IsDead()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
 
@@ -401,6 +401,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
+	if (IsDead()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
 	{
@@ -584,11 +585,19 @@ void AMAPlayerCharacter::OnRecoverFromStun()
 void AMAPlayerCharacter::OnDead()
 {
 	SetInputEnabledFromPlayerController(false);
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue(), DeadColorSaturationScale);
+	}
 }
 
 void AMAPlayerCharacter::OnRespawn()
 {
 	SetInputEnabledFromPlayerController(true);
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
+	}
 }
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
