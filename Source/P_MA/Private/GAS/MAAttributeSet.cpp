@@ -65,22 +65,29 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 		{
 			bIsCriticalHit = MAContext->IsCriticalHit();
 		}
+		AActor* TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
 		
-		AMAPlayerController* PC = nullptr;
+		AMAPlayerController* AttackerPC = nullptr;
 		if (AActor* Instigator = Data.EffectSpec.GetContext().GetOriginalInstigator())
 		{
-			if (APawn* Pawn = Cast<APawn>(Instigator))
-			{
-				PC = Cast<AMAPlayerController>(Pawn->GetController());
-			}
-			else
-			{
-				PC = Cast<AMAPlayerController>(Instigator);
-			}
+			if (APawn* Pawn = Cast<APawn>(Instigator))	AttackerPC = Cast<AMAPlayerController>(Pawn->GetController());
+			else AttackerPC = Cast<AMAPlayerController>(Instigator);
 		}
-		if (PC)
+
+		AMAPlayerController* VictimPC = nullptr;
+		if (TargetActor)
 		{
-			PC->ClientShowDamageNumber(FinalDamage, Data.Target.AbilityActorInfo->AvatarActor.Get(), bIsCriticalHit);
+			if (APawn* Pawn = Cast<APawn>(TargetActor))	VictimPC = Cast<AMAPlayerController>(Pawn->GetController());
+			else VictimPC = Cast<AMAPlayerController>(TargetActor);
+		}
+
+		if (AttackerPC && AttackerPC!= VictimPC)
+		{
+			AttackerPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,false);
+		}
+		if (VictimPC)
+		{
+			VictimPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,true);
 		}
 	}
 }

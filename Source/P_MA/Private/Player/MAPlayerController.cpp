@@ -123,9 +123,8 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
-void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit)
+void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit)
 {
-
 	if (DamageNumberActorClass && TargetActor)
 	{
 		FVector DamageSpawnLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
@@ -137,7 +136,7 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 		
 		if (DamageActor)
 		{
-			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit);
+			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
 		}
 	}
 }

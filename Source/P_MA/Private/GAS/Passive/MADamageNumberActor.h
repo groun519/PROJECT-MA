@@ -20,7 +20,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	void PlayDamageText(float DamageAmount, bool bIsCritical);
+	void PlayDamageText(float DamageAmount, bool bIsCritical, bool bIsPlayerHit);
 
 protected:
 	UPROPERTY(VisibleAnywhere)

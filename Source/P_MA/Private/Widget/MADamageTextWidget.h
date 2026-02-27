@@ -16,7 +16,7 @@ class UMADamageTextWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetDamageText(float DamageAmount, bool bIsCritical);
+	void SetDamageText(float DamageAmount, bool bIsCritical, bool bIsPlayerHit);
 
 protected:
 	UPROPERTY(meta=(BindWidget))

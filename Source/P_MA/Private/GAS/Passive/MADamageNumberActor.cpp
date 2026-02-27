@@ -26,13 +26,13 @@ void AMADamageNumberActor::BeginPlay()
 	
 }
 
-void AMADamageNumberActor::PlayDamageText(float DamageAmount, bool bIsCritical)
+void AMADamageNumberActor::PlayDamageText(float DamageAmount, bool bIsCritical, bool bIsPlayerHit)
 {
 	if (DamageWidgetComp)
 	{
 		if (UMADamageTextWidget* DamageWidget = Cast<UMADamageTextWidget>(DamageWidgetComp->GetUserWidgetObject()))
 		{
-			DamageWidget->SetDamageText(DamageAmount, bIsCritical);
+			DamageWidget->SetDamageText(DamageAmount, bIsCritical, bIsPlayerHit);
 		}
 	}
 }

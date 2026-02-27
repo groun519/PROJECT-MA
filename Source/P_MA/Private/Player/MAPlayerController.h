@@ -71,7 +71,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<class AMADamageNumberActor> DamageNumberActorClass;
 	UFUNCTION(Client, Unreliable)
-	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit);
+	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit);
 	
 private:
 	void SpawnGameplayWidget();
