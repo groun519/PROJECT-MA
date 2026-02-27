@@ -584,6 +584,7 @@ void AMAPlayerCharacter::OnRecoverFromStun()
 
 void AMAPlayerCharacter::OnDead()
 {
+	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
 	if (LoadoutComponent)
 	{
@@ -593,11 +594,43 @@ void AMAPlayerCharacter::OnDead()
 
 void AMAPlayerCharacter::OnRespawn()
 {
-	SetInputEnabledFromPlayerController(true);
+	bool bDeferredInputEnable = false;
+
+	if (RespawnMontage)
+	{
+		const float MontageDuration = PlayAnimMontage(RespawnMontage);
+		if (MontageDuration > 0.f)
+		{
+			bDeferredInputEnable = true;
+			GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
+			GetWorldTimerManager().SetTimer(
+				RespawnInputEnableTimerHandle,
+				this,
+				&AMAPlayerCharacter::EnableInputAfterRespawnMontage,
+				MontageDuration,
+				false);
+		}
+	}
+
+	if (!bDeferredInputEnable)
+	{
+		EnableInputAfterRespawnMontage();
+	}
+
 	if (LoadoutComponent)
 	{
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
 	}
+
+	if (HasAuthority() && RespawnVFX)
+	{
+		Multicast_PlayNiagara(RespawnVFX, GetActorTransform());
+	}
+}
+
+void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
+{
+	SetInputEnabledFromPlayerController(true);
 }
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Framework/MAGameStateTypes.h"
 #include "GameOverManagerComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -15,4 +16,15 @@ public:
 	UGameOverManagerComponent();
 
 	void TryTriggerGameOver();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+private:
+	void HandleSectorStateChanged(EMASectorState NewState);
+	void ReviveAllDeadPlayers();
+
+	class AMAGameMode* GetOwnerGameMode() const;
+	class AMAGameState* GetMAGameState() const;
 };

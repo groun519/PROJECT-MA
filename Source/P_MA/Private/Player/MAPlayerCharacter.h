@@ -11,6 +11,7 @@
 
 class UInputAction;
 class UNiagaraComponent;
+class UAnimMontage;
 class UInteractComponent;
 class UReadyStateComponent;
 class UReadyCheckWidgetComponent;
@@ -155,9 +156,18 @@ private:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
+	void EnableInputAfterRespawnMontage();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeadColorSaturationScale = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	TObjectPtr<class UNiagaraSystem> RespawnVFX = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
+
+	FTimerHandle RespawnInputEnableTimerHandle;
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
