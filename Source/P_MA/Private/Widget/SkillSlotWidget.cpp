@@ -5,12 +5,12 @@
 #include "Engine/DataTable.h"
 #include "Widget/SkillDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/TextBlock.h"
 #include "Inventory/MAItemTypes.h" 
 
-void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass)
+void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass, EMAAbilityInputID NewInputID)
 {
-	SkillClass = NewSkillClass;
-	
+	this->SkillClass = NewSkillClass;
 	const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
 
 	if (WidgetData && SkillIcon)
@@ -21,6 +21,11 @@ void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass)
 			SkillIcon->SetBrushFromTexture(Texture);
 			SkillIcon->SetVisibility(ESlateVisibility::Visible);
 		}
+	}
+	
+	if (HotkeyText)
+	{
+		HotkeyText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	OnSkillSet(NewSkillClass);
@@ -69,4 +74,9 @@ void USkillSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const F
 
 		OutOperation = DragOp;
 	}
+}
+FString USkillSlotWidget::GetShortKeyName(FKey Key) const
+{
+	// 스킬북 목록 위젯에서는 사실 이 함수를 쓸 일이 없지만 링킹 에러 방지를 위해
+	return Key.GetDisplayName().ToString();
 }

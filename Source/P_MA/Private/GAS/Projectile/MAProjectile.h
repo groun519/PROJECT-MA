@@ -21,6 +21,7 @@ class AMAProjectile : public AActor
 	
 public:	
 	AMAProjectile();
+	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<USphereComponent> SphereComp;
@@ -35,6 +36,12 @@ public:
 	UPROPERTY()
 	FOnProjectileHitSignature OnProjectileHit;
 	
+
+	/** Targeting Logics **/
+	void SetDamageTarget(AActor* InTarget);
+	void SetHitOnlyDamageTargetEnabled(bool bInEnabled);
+	/**/
+
 protected:
 	virtual void BeginPlay() override;
 	
@@ -60,6 +67,8 @@ public:
 
 
 private:
+	void CheckAndHandleNearTargetDestroy();
+
 	UPROPERTY()
 	float ExplodeRadius;
 
@@ -70,4 +79,10 @@ private:
 
 	UPROPERTY()
 	TArray<AActor*> HitActors;
+
+	/** Targeting **/
+	UPROPERTY()
+	TWeakObjectPtr<AActor> DamageTarget;
+	UPROPERTY()
+	bool bHitOnlyDamageTarget = false;
 };

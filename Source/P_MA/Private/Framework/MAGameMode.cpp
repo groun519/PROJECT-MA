@@ -6,15 +6,15 @@
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerState.h"
 #include "EngineUtils.h"
-#include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerState.h"
-#include "Player/ReadyStateComponent.h"
 #include "Framework/MAGameState.h"
+#include "Framework/ReadyManagerComponent.h"
 
 AMAGameMode::AMAGameMode()
 {
-	MAGameState = EMAGameState::Wait;
+	CurrentMASectorState = EMASectorState::Wait;
 	GameStateClass = AMAGameState::StaticClass();
+	ReadyManagerComponent = CreateDefaultSubobject<UReadyManagerComponent>(TEXT("ReadyManagerComponent"));
 }
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
@@ -36,9 +36,14 @@ void AMAGameMode::BeginPlay()
 	Super::BeginPlay();
 	if (AMAGameState* GS = GetGameState<AMAGameState>())
 	{
-		GS->SetMAGameState(MAGameState);
-		GS->SyncLoopReadyEntries(GameState ? GameState->PlayerArray : TArray<APlayerState*>());
+		GS->SetMASectorState(CurrentMASectorState);
 	}
+
+	ReadyManagerComponent->OnReadyCountsChanged.RemoveAll(this);
+	ReadyManagerComponent->OnAllPlayersReadyChanged.RemoveAll(this);
+	ReadyManagerComponent->OnReadyCountsChanged.AddUObject(this, &AMAGameMode::HandleReadyCountsChanged);
+	ReadyManagerComponent->OnAllPlayersReadyChanged.AddUObject(this, &AMAGameMode::HandleAllPlayersReadyChanged);
+
 	RefreshPlayerCache();
 
 	const UWorld* World = GetWorld();
@@ -72,177 +77,79 @@ void AMAGameMode::PostLogin(APlayerController* NewPlayer)
 	RefreshPlayerCache();
 }
 
-void AMAGameMode::RequestStateChange(EMAGameState NewState)
+void AMAGameMode::RequestStateChange(EMASectorState NewState)
 {
-	if (MAGameState == NewState) return;
+	if (CurrentMASectorState == NewState) return;
 
-	MAGameState = NewState;
+	CurrentMASectorState = NewState;
 	if (AMAGameState* GS = GetGameState<AMAGameState>())
 	{
-		GS->SetMAGameState(MAGameState);
+		GS->SetMASectorState(CurrentMASectorState);
 	}
 
-	if (OnMAGameStateChanged.IsBound())
+	if (OnMASectorStateChanged.IsBound())
 	{
-		OnMAGameStateChanged.Broadcast(MAGameState);
+		OnMASectorStateChanged.Broadcast(CurrentMASectorState);
 	}
 }
 
-EMAGameState AMAGameMode::GetNextState(EMAGameState CurState) const
+EMASectorState AMAGameMode::GetNextState(EMASectorState CurState) const
 {
-	if (CurState == EMAGameState::Loop)
+	if (CurState == EMASectorState::Loop)
 	{
-		return EMAGameState::Start;
+		return EMASectorState::Start;
 	}
 
-	return static_cast<EMAGameState>(static_cast<int32>(CurState) + 1);
+	return static_cast<EMASectorState>(static_cast<int32>(CurState) + 1);
 }
 
-void AMAGameMode::RequestNextState(EMAGameState CurState)
+void AMAGameMode::RequestNextState(EMASectorState CurState)
 {
 	RequestStateChange(GetNextState(CurState));
 }
 
 void AMAGameMode::RefreshPlayerCache()
 {
-	CachedPlayers.Reset();
-
-	if (!GetWorld()) return;
-
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		APlayerController* PC = It->Get();
-		if (!PC) continue;
-
-		AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(PC->GetPawn());
-		if (!Player) continue;
-
-		CachedPlayers.Add(Player);
-	}
-
-	if (AMAGameState* GS = GetGameState<AMAGameState>())
-	{
-		GS->SyncLoopReadyEntries(GameState ? GameState->PlayerArray : TArray<APlayerState*>());
-	}
-
-	BroadcastReadyCounts();
+	ReadyManagerComponent->RefreshPlayerCache();
 }
 
 void AMAGameMode::ResetAllPlayersReady()
 {
-	bAllPlayersReady = false;
-
-	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
-	{
-		AMAPlayerCharacter* Player = PlayerPtr.Get();
-		if (!Player) continue;
-
-		UReadyStateComponent* ReadyComp = Player->GetReadyComponent();
-		if (!ReadyComp) continue;
-
-		ReadyComp->SetReady(false);
-	}
-
-	BroadcastReadyCounts();
+	ReadyManagerComponent->ResetAllPlayersReady();
 }
 
 void AMAGameMode::GetReadyCounts(int32& OutReady, int32& OutTotal) const
 {
 	OutReady = 0;
 	OutTotal = 0;
-
-	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
-	{
-		AMAPlayerCharacter* Player = PlayerPtr.Get();
-		if (!Player) continue;
-
-		UReadyStateComponent* ReadyComp = Player->GetReadyComponent();
-		if (!ReadyComp) continue;
-
-		OutTotal++;
-		if (ReadyComp->IsReady())
-		{
-			OutReady++;
-		}
-	}
+	ReadyManagerComponent->GetReadyCounts(OutReady, OutTotal);
 }
 
 void AMAGameMode::BroadcastReadyCounts()
 {
-	int32 ReadyCount = 0;
-	int32 TotalCount = 0;
-	GetReadyCounts(ReadyCount, TotalCount);
-
-	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
-	if (bAllPlayersReady != bIsAllReady)
-	{
-		bAllPlayersReady = bIsAllReady;
-		if (bAllPlayersReady)
-		{
-			RequestNextState(MAGameState);
-		}
-	}
-
-	if (OnReadyCountChanged.IsBound())
-	{
-		OnReadyCountChanged.Broadcast(ReadyCount, TotalCount);
-	}
+	ReadyManagerComponent->BroadcastReadyCounts();
 }
 
 void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)
 {
-	if (!PlayerState)
-	{
-		return;
-	}
-
-	if (AMAGameState* GS = GetGameState<AMAGameState>())
-	{
-		GS->SetLoopReadyForPlayer(PlayerState, bReady);
-	}
-
-	int32 ReadyCount = 0;
-	int32 TotalCount = 0;
-	if (AMAGameState* GS = GetGameState<AMAGameState>())
-	{
-		GS->GetLoopReadyCounts(ReadyCount, TotalCount);
-	}
-
-	const bool bIsAllReady = (TotalCount > 0 && ReadyCount == TotalCount);
-	if (bIsAllReady && MAGameState == EMAGameState::Loop)
-	{
-		RequestStateChange(EMAGameState::Start);
-		if (AMAGameState* GS = GetGameState<AMAGameState>())
-		{
-			GS->ResetLoopReadyEntries();
-		}
-	}
+	ReadyManagerComponent->SetPlayerLoopReady(PlayerState, bReady);
 }
 
 bool AMAGameMode::IsPlayerLoopReady(const APlayerState* PlayerState) const
 {
-	if (!PlayerState)
-	{
-		return false;
-	}
-
-	if (const AMAGameState* GS = GetGameState<AMAGameState>())
-	{
-		return GS->GetLoopReadyForPlayer(PlayerState);
-	}
-	return false;
+	return ReadyManagerComponent->IsPlayerLoopReady(PlayerState);
 }
 
 
 void AMAGameMode::SetMAState(int32 NewState)
 {
-	if (NewState < 0 || NewState > static_cast<int32>(EMAGameState::Loop))
+	if (NewState < 0 || NewState > static_cast<int32>(EMASectorState::Loop))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SetMAState: invalid state %d"), NewState);
 		return;
 	}
 
-	RequestStateChange(static_cast<EMAGameState>(NewState));
+	RequestStateChange(static_cast<EMASectorState>(NewState));
 }
 
 AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const
@@ -265,4 +172,15 @@ AActor* AMAGameMode::FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) cons
 	}
 
 	return nullptr;
+}
+
+void AMAGameMode::HandleReadyCountsChanged(int32 ReadyCount, int32 TotalCount)
+{
+	OnReadyCountChanged.Broadcast(ReadyCount, TotalCount);
+}
+
+void AMAGameMode::HandleAllPlayersReadyChanged(bool bIsAllReady)
+{
+	bAllPlayersReady = bIsAllReady;
+	if (bAllPlayersReady) OnAllPlayersReady.Broadcast();
 }

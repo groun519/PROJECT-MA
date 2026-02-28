@@ -15,12 +15,18 @@
 
 AMAProjectile::AMAProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickInterval = 0.05f; // 틱 오버헤드 낮춤
+	SetActorTickEnabled(false); // 기본적으로 false로 두어, 타게팅 투사체가 아니면 틱을 안 쓰게 함.
+	
 	bReplicates = true;
+	SetReplicateMovement(true);
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
 	SetRootComponent(SphereComp);
 	SphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SphereComp->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
 
 	Niagara = CreateDefaultSubobject<UNiagaraComponent>("Niagara");
 	Niagara->SetupAttachment(SphereComp);
@@ -29,8 +35,17 @@ AMAProjectile::AMAProjectile()
 	ProjectileMovement->UpdatedComponent = SphereComp;
 	ProjectileMovement->InitialSpeed = 1000.f;
 	ProjectileMovement->MaxSpeed = 1000.f;
+	ProjectileMovement->bRotationFollowsVelocity = true;
+	ProjectileMovement->bShouldBounce = false;
 }
 
+void AMAProjectile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	if (!HasAuthority()) return;
+
+	CheckAndHandleNearTargetDestroy();
+}
 
 void AMAProjectile::SetGameplayCueTag(FGameplayTag Tag)
 {
@@ -65,7 +80,11 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 	if (HitActors.Contains(OtherActor)) return;
-	
+	if (bHitOnlyDamageTarget)
+	{
+		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
+	}
+
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (TargetASC && DamageEffectSpecHandle.IsValid())
 	{
@@ -134,7 +153,11 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
-	
+	if (bHitOnlyDamageTarget)
+	{
+		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
+	}
+
 	if (HitGameplayCueTag.IsValid())
 	{
 		SendLocalGameplayCue(Hit);
@@ -157,6 +180,10 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		AActor* TargetActor = OverlapResult.GetActor();
 		if (TargetActor && TargetActor != GetInstigator())
 		{
+			if (bHitOnlyDamageTarget)
+			{
+				if (!DamageTarget.IsValid() || TargetActor != DamageTarget.Get()) continue;
+			}
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 			if (TargetASC)
 			{
@@ -215,3 +242,60 @@ void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpec
 	ExplodeRadius = InExplodeRadius;
 	bIsPenetrating = bInPenetrating;
 }
+
+/** Targeting Logics **/
+void AMAProjectile::CheckAndHandleNearTargetDestroy()
+{
+	const float NearTargetDestroyDistance = 25.f;
+
+	if (!bHitOnlyDamageTarget) return;
+	FHitResult CueHitResult;
+	bool bShouldDestroy = false;
+
+	if (!DamageTarget.IsValid())
+	{
+		CueHitResult.ImpactPoint = GetActorLocation();
+		CueHitResult.ImpactNormal = -GetActorForwardVector();
+		bShouldDestroy = true;
+	}
+	else
+	{
+		if (HitActors.Contains(DamageTarget.Get()))
+		{
+			SetActorTickEnabled(false);
+			return;
+		}
+
+		const float DistanceSq = FVector::DistSquared(GetActorLocation(), DamageTarget->GetActorLocation());
+		if (DistanceSq <= FMath::Square(NearTargetDestroyDistance))
+		{
+			CueHitResult.ImpactPoint = DamageTarget->GetActorLocation();
+			CueHitResult.ImpactNormal = (GetActorLocation() - DamageTarget->GetActorLocation()).GetSafeNormal();
+			if (CueHitResult.ImpactNormal.IsNearlyZero())
+			{
+				CueHitResult.ImpactNormal = -GetActorForwardVector();
+			}
+			bShouldDestroy = true;
+		}
+	}
+
+	if (bShouldDestroy)
+	{
+		if (HitGameplayCueTag.IsValid()) SendLocalGameplayCue(CueHitResult);
+		Destroy();
+	}
+}
+
+void AMAProjectile::SetDamageTarget(AActor* InTarget)
+{
+	DamageTarget = InTarget;
+	bHitOnlyDamageTarget = DamageTarget.IsValid();
+	SetActorTickEnabled(bHitOnlyDamageTarget && DamageTarget.IsValid());
+}
+
+void AMAProjectile::SetHitOnlyDamageTargetEnabled(bool bInEnabled)
+{
+	bHitOnlyDamageTarget = bInEnabled;
+	SetActorTickEnabled(bHitOnlyDamageTarget && DamageTarget.IsValid());
+}
+/**/

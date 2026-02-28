@@ -24,4 +24,3 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10000"))
 	TMap<TSubclassOf<AMonster>, int32> MonsterToGold;
 };
-

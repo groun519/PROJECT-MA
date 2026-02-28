@@ -11,6 +11,9 @@ class UPanelWidget;
 class ULoadingPlayerStatusWidget;
 class UProgressBar;
 class UTextBlock;
+class UImage;
+class ULoadingBackgroundData;
+class ULoadingTooltipData;
 
 USTRUCT(BlueprintType)
 struct FLoadingPlayerStatus
@@ -64,8 +67,20 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UPanelWidget> PlayerStatusBox;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> LoadingBackgroundImage;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> LoadingTooltipText;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Loading")
 	TSubclassOf<ULoadingPlayerStatusWidget> PlayerStatusWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Loading")
+	TObjectPtr<ULoadingBackgroundData> BackgroundData;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Loading")
+	TObjectPtr<ULoadingTooltipData> TooltipData;
 
 private:
 	void EnsureEntryWidgets(int32 Count);

@@ -27,6 +27,8 @@ class AMAPlayerController : public APlayerController, public IGenericTeamAgentIn
 	GENERATED_BODY()
 
 public:
+	AMAPlayerController();
+
 	// 서버에서만 호출됨
 	void OnPossess(APawn* NewPawn) override;
 	// 클라이언트에서만 호출됨, 리슨서버도.
@@ -75,7 +77,9 @@ public:
 	
 private:
 	void SpawnGameplayWidget();
-	void HandleGameStateChanged(EMAGameState NewState);
+	void HandleSectorStateChanged(EMASectorState NewState);
+	void ShowInBattleStageWidget();
+	void RemoveInBattleStageWidget();
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
@@ -85,6 +89,14 @@ private:
 
 	UPROPERTY()
 	class UMAGameplayWidget* GameplayWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<class UInBattleStageWidget> InBattleStageWidgetClass;
+
+	UPROPERTY()
+	class UInBattleStageWidget* InBattleStageWidget;
+
+	FTimerHandle InBattleStageWidgetTimer;
 
 	bool bHasPendingLoopReadyVisibility = false;
 	bool bPendingLoopReadyVisible = false;

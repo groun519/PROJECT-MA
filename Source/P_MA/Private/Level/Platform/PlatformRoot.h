@@ -9,6 +9,7 @@ class USplineComponent;
 class ACore;
 class UPlatformMatrixComponent;
 class UTextRenderComponent;
+class UNiagaraComponent;
 
 DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
@@ -44,7 +45,9 @@ public:
 	void SetHeight(bool bIsMoving);
 	void SetCurSpline(USplineComponent* Spline);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
+	void SetRangeClampVisual(bool bVisible, float InSize);
 	ACore* GetCore() const { return CoreInstance; }
+	void ResolveReadyWallOverlapsOnce();
 	
 private:
 	/** Input by Manager **/
@@ -55,6 +58,12 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	UTextRenderComponent* ReadyText = nullptr;
+
+	UPROPERTY(VisibleAnywhere)
+	UNiagaraComponent* RangeClampVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "RangeClampVFX")
+	FName RangeClampSizeParamName = TEXT("Size");
 	
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyCounts)
 	FIntPoint ReplicatedReadyCounts = FIntPoint::ZeroValue;
@@ -65,8 +74,19 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyTextVisible)
 	bool bReadyTextVisible = false;
 
+	bool bPrevWaitMoveIn = false;
+
 	UFUNCTION()
 	void OnRep_ReadyTextVisible();
+
+	UPROPERTY(ReplicatedUsing=OnRep_RangeClampVisual)
+	bool bReplicatedRangeClampVisible = false;
+
+	UPROPERTY(ReplicatedUsing=OnRep_RangeClampVisual)
+	float ReplicatedRangeClampSize = 0.f;
+
+	UFUNCTION()
+	void OnRep_RangeClampVisual();
 
 	UPROPERTY()
 	TObjectPtr<ACore> CoreInstance;
@@ -80,4 +100,6 @@ private:
 
 	/** Core **/
 	void SpawnCore();
+	void ApplyRangeClampVisual();
+	void UpdateRangeClampVFXWorldLocation();
 };

@@ -8,6 +8,8 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
+#include "Widget/Battle/InBattleStageWidget.h"
+#include "Widget/SkillBookWidget.h" 
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
@@ -15,6 +17,12 @@
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
 #include "GAS/Passive/MADamageNumberActor.h"
+#include "TimerManager.h"
+
+AMAPlayerController::AMAPlayerController()
+{
+	TeamID = FGenericTeamId(0);
+}
 
 void AMAPlayerController::BeginPlay()
 {
@@ -24,8 +32,8 @@ void AMAPlayerController::BeginPlay()
 	{
 		if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
 		{
-			GS->OnMAGameStateChanged.AddUObject(this, &AMAPlayerController::HandleGameStateChanged);
-			HandleGameStateChanged(GS->GetMAGameState());
+			GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
+			HandleSectorStateChanged(GS->GetMASectorState());
 		}
 	}
 
@@ -69,6 +77,10 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 	MAPlayerCharacter = Cast<AMAPlayerCharacter>(NewPawn);
 	if (MAPlayerCharacter)
 	{
+		if (TeamID == FGenericTeamId::NoTeam)
+		{
+			TeamID = FGenericTeamId(0);
+		}
 		MAPlayerCharacter->ServerSideInit();
 		MAPlayerCharacter->SetGenericTeamId(TeamID);
 	}
@@ -83,6 +95,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
+	
+	ServerNotifyLoaded();
 	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
@@ -94,8 +108,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 
 	// 마우스 삭제떄문에 일단 추가해봄 테스트
 	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); // 마우스 가두지 않기
-	InputMode.SetHideCursorDuringCapture(false); // ★핵심: 클릭해도 커서 숨기지 않기
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); 
+	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
 }
 
@@ -214,12 +228,13 @@ void AMAPlayerController::SetupInputComponent()
 	{
 		InputSubsystem->RemoveMappingContext(UIInputMapping);
 		InputSubsystem->AddMappingContext(UIInputMapping, 1);
+		InputSubsystem->AddMappingContext(UIInputMapping, 1);
 	}
 
 	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComp)
 	{
-		//EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Triggered, this, &AMAPlayerController::ToggleShop);
+		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
 		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 	}
 }
@@ -265,21 +280,21 @@ bool AMAPlayerController::Server_SendChatMessage_Validate(const FString& Message
 
 void AMAPlayerController::Server_SendChatMessage_Implementation(const FString& Message, EChatType ChatType)
 {
-	// 1. 보낸 사람 이름
+	// 보낸 사람 이름
 	FString SenderName = TEXT("Unknown");
 	if (PlayerState)
 	{
 		SenderName = PlayerState->GetPlayerName();
 	}
 
-	// 2. ★단순화됨★ : 조건 검사 없이 접속한 모든 사람에게 쏩니다.
+	// 조건 검사 없이 접속한 모든 사람에게
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		AMAPlayerController* TargetPC = Cast<AMAPlayerController>(It->Get());
 		
 		if (TargetPC)
 		{
-			// "팀 확인" 로직 삭제됨 -> 그냥 보냄
+			// 팀 확인 없이 그냥 보냄
 			TargetPC->Client_ReceiveChatMessage(SenderName, Message, ChatType);
 		}
 	}
@@ -322,9 +337,9 @@ void AMAPlayerController::ServerSetLoopReady_Implementation(bool bReady)
 	}
 }
 
-void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
+void AMAPlayerController::HandleSectorStateChanged(EMASectorState NewState)
 {
-	const bool bShowLoopReady = (NewState == EMAGameState::Loop);
+	const bool bShowLoopReady = (NewState == EMASectorState::Loop);
 	if (GameplayWidget)
 	{
 		GameplayWidget->SetLoopReadyVisible(bShowLoopReady);
@@ -333,5 +348,74 @@ void AMAPlayerController::HandleGameStateChanged(EMAGameState NewState)
 	{
 		bHasPendingLoopReadyVisibility = true;
 		bPendingLoopReadyVisible = bShowLoopReady;
+	}
+
+	if (NewState == EMASectorState::InBattle)
+	{
+		ShowInBattleStageWidget();
+	}
+}
+
+void AMAPlayerController::ShowInBattleStageWidget()
+{
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	if (!InBattleStageWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InBattleStageWidgetClass is not set."));
+		return;
+	}
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(InBattleStageWidgetTimer);
+	}
+
+	if (InBattleStageWidget)
+	{
+		InBattleStageWidget->RemoveFromParent();
+		InBattleStageWidget = nullptr;
+	}
+
+	InBattleStageWidget = CreateWidget<UInBattleStageWidget>(this, InBattleStageWidgetClass);
+	if (!InBattleStageWidget)
+	{
+		return;
+	}
+
+	InBattleStageWidget->AddToViewport();
+
+	if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
+	{
+		const FStageCycle& StageCycle = GS->GetStageCycle();
+		const FString StageText = FString::Printf(TEXT("%d-%d"), StageCycle.Round, StageCycle.Stage);
+		InBattleStageWidget->SetStageText(FText::FromString(StageText));
+	}
+
+	InBattleStageWidget->PlayShowAnimation();
+
+	const float Duration = InBattleStageWidget->GetShowAnimationDuration();
+	const float RemoveDelay = (Duration > 0.0f) ? Duration : 2.0f;
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			InBattleStageWidgetTimer,
+			this,
+			&AMAPlayerController::RemoveInBattleStageWidget,
+			RemoveDelay,
+			false
+		);
+	}
+}
+
+void AMAPlayerController::RemoveInBattleStageWidget()
+{
+	if (InBattleStageWidget)
+	{
+		InBattleStageWidget->RemoveFromParent();
+		InBattleStageWidget = nullptr;
 	}
 }

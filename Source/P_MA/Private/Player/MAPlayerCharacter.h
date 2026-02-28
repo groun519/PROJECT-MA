@@ -13,8 +13,10 @@ class UInputAction;
 class UNiagaraComponent;
 class UInteractComponent;
 class UReadyStateComponent;
+class UReadyCheckWidgetComponent;
 class AMAPlayerState;
 class UDataTable;
+class UPlayerCameraManagerComponent;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
@@ -36,6 +38,7 @@ public:
 	virtual void OnRep_PlayerState() override;
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void BaseChange() override;
 
 	UFUNCTION(Exec)
 	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
@@ -52,11 +55,16 @@ public:
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyComponent(){ return ReadyStateComponent; }
+	FORCEINLINE const UReadyStateComponent* GetReadyComponent() const { return ReadyStateComponent; }
 	
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;
+
+	/** Ready Check Widget **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
+	UReadyCheckWidgetComponent* ReadyCheckWidget;
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
@@ -64,6 +72,9 @@ private:
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
 	class UCameraComponent* Cam;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "View")
+	UPlayerCameraManagerComponent* PlayerCameraManagerComponent;
 	
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;
@@ -111,6 +122,10 @@ public:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:
+	void RefreshRideCollisionMode();
+	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer);
+	bool bIsRidingPlatform = false;
+
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
@@ -140,7 +155,6 @@ private:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
-	virtual void OnGhostMode();
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")

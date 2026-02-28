@@ -36,11 +36,9 @@ private:
 	UFUNCTION()
 	void OnCloseClicked();
 	
-	// [변경] TileView 삭제 -> 카테고리들을 담을 스크롤 박스 추가
 	UPROPERTY(meta=(BindWidget))
 	class UScrollBox* CategoryContainer; 
-
-	// [추가] 생성할 카테고리 위젯 클래스 (WBP_ShopCategory)
+	
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UShopCategoryWidget> CategoryWidgetClass;
 
@@ -50,8 +48,11 @@ private:
 	UPROPERTY()
 	UInventoryComponent* OwnerInventoryComponent;
 
-	void LoadShopCategories(); // 함수 이름 변경
+	void LoadShopCategories(); 
 
 	UFUNCTION()
 	void OnPurchaseRequested(const UShopItemDataObject* ItemDataObject);
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	class UWidgetAnimation* ShopAnim;
 };

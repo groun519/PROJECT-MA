@@ -4,8 +4,14 @@
 #include "SplineSectorManager.h"
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
+#include "Framework/MAGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Level/Platform/Core.h"
+#include "Level/Environment/EnvironmentManager.h"
+#include "PCGGraph.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Player/MAPlayerCharacter.h"
+#include "TimerManager.h"
 
 ASplineSectorManager::ASplineSectorManager()
 {
@@ -27,8 +33,8 @@ void ASplineSectorManager::BeginPlay()
 		if (MAGM)
 		{
 			CachedMAGameMode = MAGM;
-			CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleGameStateChanged);
-			OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+			CachedMAGameMode->OnMASectorStateChanged.AddUObject(this, &ASplineSectorManager::OnHandleSectorStateChanged);
+			OnHandleSectorStateChanged(CachedMAGameMode->GetMASectorState());
 			CachedMAGameMode->OnReadyCountChanged.AddUObject(this, &ASplineSectorManager::OnHandleReadyCountChanged);
 		}
 		
@@ -41,15 +47,29 @@ void ASplineSectorManager::BeginPlay()
 			if (CachedMAGameMode)
 			{
 				bool bWaitMoveIn =
-					CachedMAGameState == EMAGameState::Wait || CachedMAGameState == EMAGameState::EndBattle;
+					CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle;
 				CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 				CachedPlatformRoot->SetHeight(bIsMoving);
 			}
 		}
+
+		if (PlayerRangeClamp.bUse && PlayerRangeClamp.Interval > 0.f)
+		{
+			GetWorldTimerManager().SetTimer(
+				PlayerRangeClampTimerHandle,
+				this,
+				&ASplineSectorManager::UpdatePlayerRangeClamp,
+				PlayerRangeClamp.Interval,
+				true);
+		}
+
+		UpdatePlayerRangeClampVisual();
 	}
+
+	BindEnvironmentManager();
 }
 
-void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
+void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
@@ -58,6 +78,7 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 	FSplineSectorData SSData = SplineSectorsByState[NewState];
 	bIsMoving = SSData.bIsMoving;
 	bIsAutoPass = SSData.bIsAutoPass;
+	ApplyRegenTargetsOnEnter(SSData);
 
 	// 만약 이전 상태가 Start였다면,
 	// 스플라인의 끝에 도달하지 못하는 상태기에 한번 ApplyCurSplineAndSeed를 실행하여 게임 루프를 시작시킴.
@@ -74,18 +95,19 @@ void ASplineSectorManager::OnHandleGameStateChanged(EMAGameState NewState)
 	}
 
 	// 스테이트 캐시
-	CachedMAGameState = NewState;
+	CachedMASectorState = NewState;
+	UpdatePlayerRangeClampVisual();
 	
 	if (CachedPlatformRoot)
 	{
 		bool bWaitMoveIn =
-			NewState == EMAGameState::Wait || NewState == EMAGameState::EndBattle;
+			NewState == EMASectorState::Wait || NewState == EMASectorState::EndBattle;
 		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
 		CachedPlatformRoot->SetHeight(bIsMoving);
 
 		if (ACore* Core = CachedPlatformRoot->GetCore())
 		{
-			const bool bIsBattle = (NewState == EMAGameState::Battle);
+			const bool bIsBattle = (NewState == EMASectorState::Battle);
 			Core->ApplyBattleColor(bIsBattle);
 		}
 	}
@@ -103,14 +125,14 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 	if (bIsLastSector)
 	{
 		// 만약 자동으로 넘겨야 하는 스테이트라면 넘김.
-		IsAutoPassState(CachedMAGameState);
+		IsAutoPassState(CachedMASectorState);
 
 		// 섹터 세팅
-		SetSectorsByState(CachedMAGameState);
+		SetSectorsByState(CachedMASectorState);
 		CurSectorIndex = 0;
 		
 		// 스테이트 넘어갈 때 로그 찍기
-		LogStateChange(CachedMAGameState);
+		LogStateChange(CachedMASectorState);
 	}
 	else
 	{
@@ -143,13 +165,13 @@ int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 	}
 }
 
-EMAGameState ASplineSectorManager::GetMAGameState() const
+EMASectorState ASplineSectorManager::GetMASectorState() const
 {
 	if (CachedMAGameMode)
 	{
-		return CachedMAGameMode->GetMAGameState();
+		return CachedMAGameMode->GetMASectorState();
 	}
-	return EMAGameState::Wait;
+	return EMASectorState::Wait;
 }
 
 ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* World)
@@ -159,7 +181,7 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	return SSM;
 }
 
-void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
+void ASplineSectorManager::SetSectorsByState(EMASectorState InState)
 {
 	FSplineSectorData SSData = SplineSectorsByState[InState];
 	
@@ -178,7 +200,10 @@ void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
 		{
 			PlatformRoot->SetWaitMoveIn(false);
-			if (CachedMAGameMode) CachedMAGameMode->ResetAllPlayersReady();
+			if (CachedMAGameMode)
+			{
+				CachedMAGameMode->ResetAllPlayersReady();
+			}
 		}
 	}
 	
@@ -188,7 +213,7 @@ void ASplineSectorManager::SetSectorsByState(EMAGameState InState)
 		CurSectors.Empty();
 }
 
-bool ASplineSectorManager::IsAutoPassState(EMAGameState InState)
+bool ASplineSectorManager::IsAutoPassState(EMASectorState InState)
 {
 	int32 StateNum = static_cast<int32>(InState);
 	if (StateNum == 6) return false;
@@ -219,21 +244,165 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 	}
 
 	// Change Seed
-	int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
-	CurSectors[NextIndex]->SetRandomSeed();
+	const int32 NextIndex = GetNextSectorIndex(CurSectorIndex);
+	const int32 PrevIndex = (CurSectorIndex == 0) ? (CurSectors.Num() - 1) : (CurSectorIndex - 1);
+	const bool bNextIsJustPassedSector = (NextIndex == PrevIndex);
+	if (!bNextIsJustPassedSector && CurSectors.IsValidIndex(NextIndex) && CurSectors[NextIndex])
+	{
+		ApplyCachedEnvironmentToSector(CurSectors[NextIndex]);
+		CurSectors[NextIndex]->SetRandomSeed();
+	}
 
 	// Set Spline
 	CachedPlatformRoot->SetCurSpline(CurSpline);
 }
 
-void ASplineSectorManager::LogStateChange(EMAGameState InState) const
+void ASplineSectorManager::ApplyRegenTargetsOnEnter(const FSplineSectorData& InData)
+{
+	if (!HasAuthority()) return;
+
+	for (ASplineSector* RegenTarget : InData.RegenTargetsOnEnter)
+	{
+		if (!RegenTarget) continue;
+		ApplyCachedEnvironmentToSector(RegenTarget);
+		RegenTarget->SetRandomSeed();
+	}
+}
+
+void ASplineSectorManager::ApplyCachedEnvironmentToSector(ASplineSector* InSector) const
+{
+	if (!InSector || !InSector->PCGComponent) return;
+	UPCGGraph* TargetPCGGraph = CachedEnvPCGGraph.Get();
+	if (!TargetPCGGraph) return;
+	if (InSector->PCGComponent->GetGraph() == TargetPCGGraph) return;
+
+	InSector->PCGComponent->SetGraph(TargetPCGGraph);
+}
+
+void ASplineSectorManager::LogStateChange(EMASectorState InState) const
 {
 	if (!DebugSetting.bUseStateDebug) return;
 
-	const UEnum* EnumPtr = StaticEnum<EMAGameState>();
-	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMAGameState);
+	const UEnum* EnumPtr = StaticEnum<EMASectorState>();
+	const FString PrevName = EnumPtr->GetNameStringByValue((int64)CachedMASectorState);
 	const FString CurrName = EnumPtr->GetNameStringByValue((int64)InState);
 	UE_LOG(LogTemp, Display, TEXT("PrevState: %s"), *PrevName);
 	UE_LOG(LogTemp, Display, TEXT("CurrState: %s"), *CurrName);
 	UE_LOG(LogTemp, Display, TEXT("- - - - -"));
+}
+
+void ASplineSectorManager::UpdatePlayerRangeClampVisual()
+{
+	if (!CachedPlatformRoot) return;
+
+	const bool bVisible = CanApplyPlayerRangeClamp();
+	const float Size = FMath::Max(0.f, PlayerRangeClamp.Radius);
+	CachedPlatformRoot->SetRangeClampVisual(bVisible, Size);
+}
+
+void ASplineSectorManager::UpdatePlayerRangeClamp()
+{
+	if (!HasAuthority()) return;
+	if (!CanApplyPlayerRangeClamp()) return;
+	if (!CachedPlatformRoot) return;
+
+	AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr;
+	if (!GS) return;
+
+	TArray<AMAPlayerCharacter*> Players;
+	GS->GetPlayerCharacters(Players, true);
+	if (Players.IsEmpty()) return;
+
+	const FVector Center = CachedPlatformRoot->GetActorLocation();
+	const float ClampRadiusWithDeadZone = PlayerRangeClamp.Radius + PlayerRangeClamp.DeadZone;
+	const float ClampRadiusWithDeadZoneSq = FMath::Square(ClampRadiusWithDeadZone);
+
+	for (AMAPlayerCharacter* Player : Players)
+	{
+		if (!Player) continue;
+
+		const FVector PlayerLoc = Player->GetActorLocation();
+		FVector Delta = PlayerLoc - Center;
+		Delta.Z = 0.f;
+
+		if (Delta.SizeSquared() <= ClampRadiusWithDeadZoneSq) continue;
+
+		const FVector ClampedLoc2D = Center + Delta.GetSafeNormal() * PlayerRangeClamp.Radius;
+		const FVector ClampedLoc = FVector(ClampedLoc2D.X, ClampedLoc2D.Y, PlayerLoc.Z);
+
+		Player->SetActorLocation(ClampedLoc, false, nullptr, ETeleportType::TeleportPhysics);
+		if (UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+		}
+	}
+}
+
+bool ASplineSectorManager::CanApplyPlayerRangeClamp() const
+{
+	if (!PlayerRangeClamp.bUse) return false;
+	if (PlayerRangeClamp.Radius <= 0.f) return false;
+
+	if (PlayerRangeClamp.States.IsEmpty())
+	{
+		return true;
+	}
+
+	return PlayerRangeClamp.States.Contains(CachedMASectorState);
+}
+
+bool ASplineSectorManager::BindEnvironmentManager()
+{
+	AEnvironmentManager* EnvironmentManager = AEnvironmentManager::FindEnvironmentManager(GetWorld());
+	if (!EnvironmentManager) return false;
+
+	EnvironmentManager->OnEnvironmentPCGChanged.AddUObject(this, &ASplineSectorManager::OnHandleEnvironmentPCGChanged);
+	EnvironmentManager->BroadcastCurrentEnvironment();
+	return true;
+}
+
+void ASplineSectorManager::OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph)
+{
+	if (CachedEnvPCGGraph == NewPCGGraph) return;
+	CachedEnvPCGGraph = NewPCGGraph;
+
+	for (const TPair<EMASectorState, FSplineSectorData>& Pair : SplineSectorsByState)
+	{
+		const FSplineSectorData& Data = Pair.Value;
+		for (ASplineSector* Sector : Data.Sectors)
+		{
+			ApplyCachedEnvironmentToSector(Sector);
+		}
+		for (ASplineSector* RegenTarget : Data.RegenTargetsOnEnter)
+		{
+			ApplyCachedEnvironmentToSector(RegenTarget);
+		}
+	}
+
+	// One-shot startup pass: run explicit targets once after initial env is resolved.
+	if (!bAppliedEnvironmentReadyRegen && CachedEnvPCGGraph)
+	{
+		for (ASplineSector* Sector : RegenTargetsOnEnvironmentReady)
+		{
+			if (!Sector) continue;
+			ApplyCachedEnvironmentToSector(Sector);
+			if (HasAuthority())
+			{
+				Sector->SetRandomSeed();
+			}
+			else
+			{
+				Sector->RegenerateWithCurrentSeed();
+			}
+		}
+		bAppliedEnvironmentReadyRegen = true;
+	}
+
+	// State-entry-only regen targets are not touched by path progression,
+	// so refresh them immediately when environment PCG changes.
+	if (!HasAuthority()) return;
+
+	const FSplineSectorData* CurrentStateData = SplineSectorsByState.Find(CachedMASectorState);
+	if (!CurrentStateData) return;
+	ApplyRegenTargetsOnEnter(*CurrentStateData);
 }

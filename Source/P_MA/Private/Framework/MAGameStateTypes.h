@@ -6,7 +6,7 @@
 #include "MAGameStateTypes.generated.h"
 
 UENUM(BlueprintType)
-enum class EMAGameState : uint8
+enum class EMASectorState : uint8
 {
 	// 멈춤
 	Wait = 0,
@@ -25,4 +25,20 @@ enum class EMAGameState : uint8
 	OutBattle = 5,
 	// 스플라인 섹터 무한반복하며 정비
 	Loop = 6,
+};
+
+USTRUCT(BlueprintType)
+struct FStageCycle
+{
+	GENERATED_BODY()
+
+	// (Round) - (Stage) Stage.
+	// Ex. Round = 1, Stage = 1
+	// -> 1-1 Stage
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
+	int32 Round = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Stage")
+	int32 Stage = 1;
 };

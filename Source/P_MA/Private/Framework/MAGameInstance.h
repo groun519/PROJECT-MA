@@ -54,7 +54,6 @@ public:
 
 	float CalculateLoadingProgress(int32& OutPercent);
 	float GetLoadingFinishDurationSeconds() const { return LoadingFinishDurationSeconds; }
-	float GetLoadingPostLoadHoldSeconds() const { return LoadingScreenPostLoadHoldSeconds; }
 
 private:
 	void HandlePreLoadMap(const FString& MapName);
@@ -83,9 +82,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Loading")
 	TSubclassOf<ULoadingScreenWidget> LoadingScreenWidgetClass;
-
-	UPROPERTY(EditAnywhere, Category = "Loading")
-	float LoadingScreenPostLoadHoldSeconds = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "Loading")
 	bool bAutoCompleteLoadingScreen = true;

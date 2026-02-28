@@ -3,6 +3,10 @@
 #include "PlatformMatrixComponent.h"
 #include "PlatformComponent.h"
 #include "DrawDebugHelpers.h"
+#include "P_MA/P_MA.h"
+#include "Engine/World.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/OverlapResult.h"
 
 UPlatformMatrixComponent::UPlatformMatrixComponent()
 {
@@ -54,6 +58,8 @@ void UPlatformMatrixComponent::CreatePlatforms()
 			if (Platform)
 			{
 				Platform->CreationMethod = EComponentCreationMethod::Instance;
+				// Runtime-created components used as movement bases must have stable net identity.
+				Platform->SetNetAddressable();
 				Platform->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 				Platform->RegisterComponent();
 				Platform->SetRelativeLocation(FVector(-(X - OddCols / 2) * 200.f, (Y - OddCols / 2) * 200.f, 0.f));
@@ -102,6 +108,46 @@ void UPlatformMatrixComponent::CreatePlatforms()
 				}
 #endif
 			}
+		}
+	}
+}
+
+void UPlatformMatrixComponent::ResolveReadyWallOverlapsOnce()
+{
+	if (!GetWorld()) return;
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Hitbox);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ResolveReadyWallOverlapsOnce), false);
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	for (UPlatformComponent* Platform : Platforms)
+	{
+		if (!Platform || !Platform->IsEnablePlatform() || !Platform->ReadyWallBox)
+			continue;
+
+		const FVector QueryCenter = Platform->ReadyWallBox->GetComponentLocation();
+		const FQuat QueryRotation = Platform->ReadyWallBox->GetComponentQuat();
+		const FVector QueryBoxExtent = Platform->ReadyWallBox->GetScaledBoxExtent();
+		const FCollisionShape QueryShape = FCollisionShape::MakeBox(QueryBoxExtent);
+
+		TArray<FOverlapResult> Overlaps;
+		if (!GetWorld()->OverlapMultiByObjectType(Overlaps, QueryCenter, QueryRotation, ObjectQueryParams, QueryShape, QueryParams))
+			continue;
+
+		for (const FOverlapResult& Overlap : Overlaps)
+		{
+			AActor* OverlapActor = Overlap.GetActor();
+			if (!OverlapActor) continue;
+
+			Platform->OnWallOverlap(
+				Platform->ReadyWallBox,
+				OverlapActor,
+				nullptr,
+				INDEX_NONE,
+				false,
+				FHitResult());
 		}
 	}
 }

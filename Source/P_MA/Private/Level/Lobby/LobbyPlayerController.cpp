@@ -298,10 +298,7 @@ void ALobbyPlayerController::ClientStartLoadingScreen_Implementation()
 
 void ALobbyPlayerController::HandleLoadoutClicked()
 {
-	if (!IsLocalController())
-	{
-		return;
-	}
+	if (!IsLocalController()) return;
 
 	if (bInLoadoutView)
 	{
@@ -387,10 +384,7 @@ void ALobbyPlayerController::EnterLoadoutView()
 
 void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 {
-	if (!bInLoadoutView)
-	{
-		return;
-	}
+	if (!bInLoadoutView) return;
 
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CurrentLoadoutView = NewView;
@@ -466,10 +460,7 @@ void ALobbyPlayerController::ExitLoadoutView()
 
 void ALobbyPlayerController::UpdateCameraTarget()
 {
-	if (!LobbyCameraActor)
-	{
-		return;
-	}
+	if (!LobbyCameraActor) return;
 
 	if (!bInLoadoutView)
 	{
@@ -550,10 +541,7 @@ void ALobbyPlayerController::ApplyInterpTransition()
 
 void ALobbyPlayerController::ApplyInstantCameraTarget()
 {
-	if (!LobbyCameraActor)
-	{
-		return;
-	}
+	if (!LobbyCameraActor) return;
 
 	LobbyCameraActor->SetActorLocationAndRotation(
 		TargetCameraTransform.GetLocation(),
@@ -647,10 +635,7 @@ void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& Col
 
 void ALobbyPlayerController::CommitLoadoutColor()
 {
-	if (!bHasPendingLoadoutColor)
-	{
-		return;
-	}
+	if (!bHasPendingLoadoutColor) return;
 
 	if (HasAuthority())
 	{
@@ -667,10 +652,7 @@ void ALobbyPlayerController::CommitLoadoutColor()
 
 void ALobbyPlayerController::CommitLoadoutWeapon()
 {
-	if (!bHasPendingWeapon)
-	{
-		return;
-	}
+	if (!bHasPendingWeapon) return;
 
 	if (HasAuthority())
 	{

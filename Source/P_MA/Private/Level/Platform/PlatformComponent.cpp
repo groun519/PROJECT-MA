@@ -5,9 +5,7 @@
 #include "P_MA/P_MA.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Player/ReadyStateComponent.h"
-
-class AMAPlayerCharacter;
+#include "Player/Components/ReadyStateComponent.h"
 
 UPlatformComponent::UPlatformComponent()
 {
@@ -23,15 +21,6 @@ UPlatformComponent::UPlatformComponent()
 	}
 	SetRelativeScale3D(GetPlatformBoxExtent(0.5f));
 
-	/** Trigger Box **/
-	// ReadyWallBox = CreateDefaultSubobject<UBoxComponent>("ReadyWallBox");
-	// ReadyWallBox->SetupAttachment(this);
-	// ReadyWallBox->SetBoxExtent(GetPlatformBoxExtent(BoxWidth));
-	// ReadyWallBox->SetCollisionObjectType(ECC_ReadyWall);
-	// ReadyWallBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	// ReadyWallBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	// ReadyWallBox->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
-	//TriggerBox->SetRelativeLocation()
 }
 
 void UPlatformComponent::BeginPlay()
@@ -72,6 +61,7 @@ void UPlatformComponent::InitReadyWall()
 	if (ReadyWallBox)
 	{
 		ReadyWallBox->bEditableWhenInherited = true;
+		ReadyWallBox->SetNetAddressable();
 
 		ReadyWallBox->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
 		ReadyWallBox->RegisterComponent();
@@ -85,7 +75,7 @@ void UPlatformComponent::InitReadyWall()
 		ReadyWallBox->SetRelativeLocation(FVector(0, 0, BoxWidth * 25 * 10));
 
 		// debug
-		ReadyWallBox->SetHiddenInGame(false);
+		// ReadyWallBox->SetHiddenInGame(false);
 	}
 }
 

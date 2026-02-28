@@ -19,6 +19,7 @@ class P_MA_API UInteractComponent : public USphereComponent
 	GENERATED_BODY()
 
 protected:
+	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
 
 public:

@@ -3,25 +3,46 @@
 #include "Framework/MAGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h"
+#include "Player/MAPlayerCharacter.h"
 
 AMAGameState::AMAGameState()
 {
 }
 
-void AMAGameState::SetMAGameState(EMAGameState NewState)
+void AMAGameState::SetMASectorState(EMASectorState NewState)
 {
-	if (ReplicatedState == NewState)
-	{
-		return;
-	}
+	if (ReplicatedState == NewState) return;
 
 	ReplicatedState = NewState;
-	OnMAGameStateChanged.Broadcast(ReplicatedState);
+	OnMASectorStateChanged.Broadcast(ReplicatedState);
 }
 
-void AMAGameState::OnRep_MAGameState()
+void AMAGameState::OnRep_MASectorState()
 {
-	OnMAGameStateChanged.Broadcast(ReplicatedState);
+	OnMASectorStateChanged.Broadcast(ReplicatedState);
+}
+
+void AMAGameState::SetStageCycle(const FStageCycle& NewStageCycle)
+{
+	ReplicatedStageCycle = NewStageCycle;
+	OnStageCycleChanged.Broadcast(ReplicatedStageCycle);
+	UE_LOG(LogTemp, Warning, TEXT("GameState: StageCycle set %d-%d"), ReplicatedStageCycle.Round, ReplicatedStageCycle.Stage);
+}
+
+void AMAGameState::GetPlayerCharacters(TArray<AMAPlayerCharacter*>& OutPlayers, bool bAliveOnly) const
+{
+	OutPlayers.Reset();
+
+	for (APlayerState* PS : PlayerArray)
+	{
+		if (!PS) continue;
+
+		AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(PS->GetPawn());
+		if (!Player) continue;
+
+		if (bAliveOnly && Player->IsDead()) continue;
+		OutPlayers.Add(Player);
+	}
 }
 
 void AMAGameState::SyncLoopReadyEntries(const TArray<APlayerState*>& Players)
@@ -41,10 +62,7 @@ void AMAGameState::SyncLoopReadyEntries(const TArray<APlayerState*>& Players)
 	// Add entries for new players
 	for (APlayerState* PS : Players)
 	{
-		if (!PS)
-		{
-			continue;
-		}
+		if (!PS) continue;
 
 		bool bFound = false;
 		for (const FLoopReadyEntry& Entry : LoopReadyEntries)
@@ -74,19 +92,14 @@ void AMAGameState::SyncLoopReadyEntries(const TArray<APlayerState*>& Players)
 
 void AMAGameState::SetLoopReadyForPlayer(APlayerState* PlayerState, bool bReady)
 {
-	if (!PlayerState)
-	{
-		return;
-	}
+	if (!PlayerState) return;
 
 	for (FLoopReadyEntry& Entry : LoopReadyEntries)
 	{
 		if (Entry.PlayerState == PlayerState)
 		{
-			if (Entry.bReady == bReady)
-			{
-				return;
-			}
+			if (Entry.bReady == bReady) return;
+			
 			Entry.bReady = bReady;
 			OnLoopReadyEntriesChanged.Broadcast();
 			return;
@@ -102,10 +115,7 @@ void AMAGameState::SetLoopReadyForPlayer(APlayerState* PlayerState, bool bReady)
 
 bool AMAGameState::GetLoopReadyForPlayer(const APlayerState* PlayerState) const
 {
-	if (!PlayerState)
-	{
-		return false;
-	}
+	if (!PlayerState) return false;
 
 	for (const FLoopReadyEntry& Entry : LoopReadyEntries)
 	{
@@ -152,9 +162,16 @@ void AMAGameState::OnRep_LoopReadyEntries()
 	OnLoopReadyEntriesChanged.Broadcast();
 }
 
+void AMAGameState::OnRep_StageCycle()
+{
+	OnStageCycleChanged.Broadcast(ReplicatedStageCycle);
+	UE_LOG(LogTemp, Warning, TEXT("GameState: StageCycle rep %d-%d"), ReplicatedStageCycle.Round, ReplicatedStageCycle.Stage);
+}
+
 void AMAGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMAGameState, ReplicatedState);
 	DOREPLIFETIME(AMAGameState, LoopReadyEntries);
+	DOREPLIFETIME(AMAGameState, ReplicatedStageCycle);
 }

@@ -14,6 +14,11 @@ class P_MA_API AMAPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
+	// Seamless travel 시 PlayerState가 교체/재구성될 수 있어
+	// 커스텀 로드아웃 데이터가 유실되지 않도록 명시적으로 복사한다.
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+	virtual void OverrideWith(APlayerState* PlayerState) override;
+
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutColorChanged, const FMaterialParamDataPair&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponChanged, FName);
 

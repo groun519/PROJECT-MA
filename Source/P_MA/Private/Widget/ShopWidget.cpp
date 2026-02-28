@@ -13,6 +13,11 @@ void UShopWidget::NativeConstruct()
 	Super::NativeConstruct();
 	SetIsFocusable(true);
 
+	if (ShopAnim)
+	{
+		PlayAnimation(ShopAnim);
+	}
+
 	if (APawn* OwnerPawn = GetOwningPlayerPawn())
 	{
 		OwnerInventoryComponent = OwnerPawn->GetComponentByClass<UInventoryComponent>();

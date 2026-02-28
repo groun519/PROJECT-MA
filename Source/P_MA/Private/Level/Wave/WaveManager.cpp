@@ -4,6 +4,7 @@
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"
+#include "Level/Environment/EnvironmentManager.h"
 
 AWaveManager::AWaveManager()
 {
@@ -22,17 +23,21 @@ void AWaveManager::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WaveManager: SpawnSpline not Found"));
 	}
+	if (HasAuthority() && !BindEnvironmentManager())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: EnvironmentManager not Found"));
+	}
 }
 
-void AWaveManager::OnHandleGameStateChanged(EMAGameState NewState)
+void AWaveManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	if (!HasAuthority()) return;
 
-	if (NewState == EMAGameState::Battle)
+	if (NewState == EMASectorState::Battle)
 	{
 		StartWave();
 	}
-	else if (NewState == EMAGameState::EndBattle)
+	else if (NewState == EMASectorState::EndBattle)
 	{
 		EndWave();
 	}
@@ -263,7 +268,7 @@ void AWaveManager::TryEndWave()
 
 	if (CachedMAGameMode)
 	{
-		CachedMAGameMode->RequestStateChange(EMAGameState::EndBattle);
+		CachedMAGameMode->RequestStateChange(EMASectorState::EndBattle);
 	}
 }
 
@@ -274,8 +279,8 @@ bool AWaveManager::InitCachedMAGameMode()
 	CachedMAGameMode = Cast<AMAGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (CachedMAGameMode)
 	{
-		CachedMAGameMode->OnMAGameStateChanged.AddUObject(this, &AWaveManager::OnHandleGameStateChanged);
-		OnHandleGameStateChanged(CachedMAGameMode->GetMAGameState());
+		CachedMAGameMode->OnMASectorStateChanged.AddUObject(this, &AWaveManager::OnHandleSectorStateChanged);
+		OnHandleSectorStateChanged(CachedMAGameMode->GetMASectorState());
 		return true;
 	}
 	return false;
@@ -309,4 +314,19 @@ bool AWaveManager::InitSpawnSpline()
 		return true;
 	}
 	return false;
+}
+
+bool AWaveManager::BindEnvironmentManager()
+{
+	AEnvironmentManager* EnvironmentManager = AEnvironmentManager::FindEnvironmentManager(GetWorld());
+	if (!EnvironmentManager) return false;
+
+	EnvironmentManager->OnEnvironmentTagChanged.AddUObject(this, &AWaveManager::OnEnvironmentChanged);
+	EnvironmentManager->BroadcastCurrentEnvironment();
+	return true;
+}
+
+void AWaveManager::OnEnvironmentChanged(const FGameplayTag& NewEnvTag)
+{
+	CurEnvTag = NewEnvTag;
 }

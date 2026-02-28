@@ -19,7 +19,11 @@
 #include "Weapon/WeaponComponent.h"
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
-#include "ReadyStateComponent.h"
+#include "Player/Components/ReadyStateComponent.h"
+#include "Player/Components/ReadyCheckWidgetComponent.h"
+#include "Player/Components/PlayerCameraManagerComponent.h"
+#include "Level/Platform/PlatformComponent.h"
+#include "EngineUtils.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -42,9 +46,13 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritYaw = false;    
+	CameraBoom->bDoCollisionTest = false;
 	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+
+	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
+	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
 
 	/** Controller Set **//*
 	 * 1. Player cannot use "Controller Rot"
@@ -55,6 +63,13 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
+	// Block each other but prevent pawn-vs-pawn push/depenetration jitter.
+	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	GetCharacterMovement()->InitialPushForceFactor = 0.f;
+	GetCharacterMovement()->PushForceFactor = 0.f;
+	GetCharacterMovement()->RepulsionForce = 0.f;
+	GetCharacterMovement()->MaxDepenetrationWithPawn = 8.f;
+	GetCharacterMovement()->MaxDepenetrationWithPawnAsProxy = 4.f;
 
 	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
 
@@ -69,22 +84,38 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
-	/** Mini Map **/
-	MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
-	MinimapCameraBoom->SetupAttachment(RootComponent);
-	MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    /** Mini Map **/
+    // 스프라이트부터 먼저 생성 
+    MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+    if (MinimapSprite)
+    {
+        MinimapSprite->SetupAttachment(GetMesh());
+        // 네비게이션 경고해결 
+        MinimapSprite->SetCanEverAffectNavigation(false); 
+    }
 
-	MinimapCameraBoom->TargetArmLength = 2000.0f;
-	MinimapCameraBoom->bUsePawnControlRotation = false;
-	MinimapCameraBoom->bInheritPitch = false;
-	MinimapCameraBoom->bInheritRoll = false;
-	MinimapCameraBoom->bInheritYaw = false;
+    MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+    MinimapCameraBoom->SetupAttachment(RootComponent);
+    MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
+    MinimapCameraBoom->TargetArmLength = 2000.0f;
+    MinimapCameraBoom->bUsePawnControlRotation = false;
+    MinimapCameraBoom->bInheritPitch = false;
+    MinimapCameraBoom->bInheritRoll = false;
+    MinimapCameraBoom->bInheritYaw = false;
 
-	MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
-	MinimapCapture->SetupAttachment(MinimapCameraBoom);
-	MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
-	MinimapCapture->OrthoWidth = 7000.0f;
-	MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+    // 2. 캡처 컴포넌트 생성 및 설정
+    MinimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
+    if (MinimapCapture)
+    {
+        MinimapCapture->SetupAttachment(MinimapCameraBoom);
+        MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+        MinimapCapture->OrthoWidth = 7000.0f;
+    	
+        if (MinimapSprite)
+        {
+            MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
+        }
+    }
 
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
 	if (renderObj.Succeeded())
@@ -104,18 +135,34 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	
 	/** Ready State Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+
+	/** Ready Check Widget **/
+	ReadyCheckWidget = CreateDefaultSubobject<UReadyCheckWidgetComponent>(TEXT("ReadyCheckWidget"));
+	ReadyCheckWidget->SetupAttachment(GetMesh());
+	ReadyCheckWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	ReadyCheckWidget->SetDrawAtDesiredSize(true);
+	ReadyCheckWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ReadyCheckWidget->SetHiddenInGame(true);
+	ReadyCheckWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
 }
 
 void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	BindLoadoutDelegates();
+	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	BindLoadoutDelegates();
+}
+
+void AMAPlayerCharacter::BaseChange()
+{
+	Super::BaseChange();
+	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
@@ -410,10 +457,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 	}
 
 	CachedLoadoutPlayerState = NewPlayerState;
-	if (!NewPlayerState)
-	{
-		return;
-	}
+	if (!NewPlayerState) return;
 
 	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
 	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
@@ -423,10 +467,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 
 void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 {
-	if (!CachedLoadoutPlayerState)
-	{
-		return;
-	}
+	if (!CachedLoadoutPlayerState) return;
 
 	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
 	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
@@ -434,10 +475,7 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
 {
-	if (!LoadoutComponent)
-	{
-		return;
-	}
+	if (!LoadoutComponent) return;
 
 	if (HasAuthority())
 	{
@@ -451,21 +489,11 @@ void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair&
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (!WeaponComponent || WeaponId.IsNone())
-	{
-		return;
-	}
-
-	if (!WeaponDataTable)
-	{
-		return;
-	}
+	if (!WeaponComponent || WeaponId.IsNone()) return;
+	if (!WeaponDataTable) return;
 
 	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
-	if (!Row)
-	{
-		return;
-	}
+	if (!Row) return;
 
 	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
 	if (WeaponMesh)
@@ -501,6 +529,47 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
+void AMAPlayerCharacter::RefreshRideCollisionMode()
+{
+	if (!GetCapsuleComponent()) return;
+
+	const bool bNowRidingPlatform = Cast<UPlatformComponent>(GetMovementBase()) != nullptr;
+	if (bNowRidingPlatform == bIsRidingPlatform) return;
+
+	bIsRidingPlatform = bNowRidingPlatform;
+
+	if (!GetWorld()) return;
+
+	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
+	{
+		AMAPlayerCharacter* OtherPlayer = *It;
+		if (!OtherPlayer || OtherPlayer == this) continue;
+		UpdateRideCollisionWithOtherPlayer(OtherPlayer);
+	}
+}
+
+void AMAPlayerCharacter::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer)
+{
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	UCapsuleComponent* OtherCapsule = OtherPlayer ? OtherPlayer->GetCapsuleComponent() : nullptr;
+	if (!Capsule || !OtherCapsule) return;
+
+	const bool bShouldIgnorePair = bIsRidingPlatform || OtherPlayer->bIsRidingPlatform;
+	Capsule->IgnoreActorWhenMoving(OtherPlayer, bShouldIgnorePair);
+	OtherCapsule->IgnoreActorWhenMoving(this, bShouldIgnorePair);
+
+	if (bShouldIgnorePair)
+	{
+		MoveIgnoreActorAdd(OtherPlayer);
+		OtherPlayer->MoveIgnoreActorAdd(this);
+	}
+	else
+	{
+		MoveIgnoreActorRemove(OtherPlayer);
+		OtherPlayer->MoveIgnoreActorRemove(this);
+	}
+}
+
 void AMAPlayerCharacter::OnStun()
 {
 	SetInputEnabledFromPlayerController(false);
@@ -520,11 +589,6 @@ void AMAPlayerCharacter::OnDead()
 void AMAPlayerCharacter::OnRespawn()
 {
 	SetInputEnabledFromPlayerController(true);
-}
-
-void AMAPlayerCharacter::OnGhostMode()
-{
-	
 }
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
