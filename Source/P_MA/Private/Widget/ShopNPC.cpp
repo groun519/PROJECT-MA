@@ -34,11 +34,9 @@ void AShopNPC::NotifyActorOnClicked(FKey ButtonPressed)
     
     if (PC && PC->IsLocalController())
     {
-        // 거리 체크 
         float Distance = GetDistanceTo(PC->GetPawn());
         if (Distance > 500.f) 
         {
-           UE_LOG(LogTemp, Warning, TEXT("FarFarFarFarFar"));
            return;
         }
 

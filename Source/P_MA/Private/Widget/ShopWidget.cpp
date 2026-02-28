@@ -58,8 +58,7 @@ void UShopWidget::LoadShopCategories()
 	if (!CategoryContainer || !CategoryWidgetClass) return;
 
 	CategoryContainer->ClearChildren();
-
-	UE_LOG(LogTemp, Warning, TEXT("[ShopWidget] Creating Categories from %d Tables"), ShopDataTables.Num());
+	
 	
 	for (UDataTable* Table : ShopDataTables)
 	{

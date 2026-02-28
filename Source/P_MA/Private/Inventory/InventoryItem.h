@@ -57,6 +57,9 @@ class UInventoryItem : public UObject
 public:
 	UInventoryItem();
 
+	UPROPERTY()
+	FName ItemRowName;
+
 	FOnAbilityCanCastUpdatedDelegate OnAbilityCanCastUpdated;
 
 	bool IsSameItem(FName OtherRowName, UDataTable* OtherTable) const;
@@ -105,8 +108,7 @@ private:
 
 	UAbilitySystemComponent* OwnerAbilitySystemComponent;
 	
-	UPROPERTY()
-	FName ItemRowName;
+	
 
 	UPROPERTY()
 	TObjectPtr<UDataTable> SourceDataTable;

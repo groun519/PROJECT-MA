@@ -122,7 +122,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	{
 		MinimapCapture->TextureTarget = renderObj.Object;
 	}
-	MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+	// MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
 	MinimapSprite->SetupAttachment(GetMesh());
 	
 	/** Capsule Collision **/
