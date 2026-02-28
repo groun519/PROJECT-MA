@@ -14,7 +14,7 @@ AMADamageNumberActor::AMADamageNumberActor()
 	InitialLifeSpan = 1.5f;
 	
 	DamageWidgetComp=CreateDefaultSubobject<UWidgetComponent>("DamageWidget");
-	DamageWidgetComp->SetupAttachment(GetRootComponent());
+	RootComponent = DamageWidgetComp;
 	
 	DamageWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 }

@@ -5,6 +5,7 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 
 UMAGameplayCue_HitVFX::UMAGameplayCue_HitVFX()
 {

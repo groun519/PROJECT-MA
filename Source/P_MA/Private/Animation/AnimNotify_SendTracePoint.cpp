@@ -59,6 +59,7 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 				LocationInfo->SourceLocation.LiteralTransform.SetLocation(WLoc);
 				
 				Data.TargetData.Add(LocationInfo);
+				Data.Instigator = Owner;
 			}
 
 			{

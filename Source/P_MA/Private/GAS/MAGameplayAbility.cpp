@@ -184,6 +184,8 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 		FGameplayCueParameters CueParam;
 		CueParam.Location = Result.ImpactPoint;
 		CueParam.Normal = Result.ImpactNormal;
+		CueParam.Instigator = GetAvatarActorFromActorInfo();
+		CueParam.EffectCauser = GetAvatarActorFromActorInfo();
 		for (const FGameplayTag& GameplayCueTag : VS->TriggerGameplayCueTags)
 		{
 			UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCue(Result.GetActor(), GameplayCueTag, EGameplayCueEvent::Executed, CueParam);

@@ -152,6 +152,20 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 		{
 			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
 		}
+
+		if (!RegularCameraShake || !CriticalCameraShake)
+		{
+			UE_LOG(LogTemp, Error, TEXT("PlayerController 블루프린트에 RegularCameraShake와 CriticalShake를 설정하시오"));
+			return;
+		}
+		if (!bIsPlayerHit)
+		{
+			TSubclassOf<UCameraShakeBase> ShakeToPlay = bIsCriticalHit ? CriticalCameraShake : RegularCameraShake;
+			if (ShakeToPlay)
+			{
+				ClientStartCameraShake(ShakeToPlay);
+			}
+		}
 	}
 }
 

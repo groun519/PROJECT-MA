@@ -66,7 +66,7 @@ void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubcla
 }
 
 void UMAGameplayWidget::ToggleShop()
-{
+{    
     APlayerController* PC = GetOwningPlayer();
     if (!PC) return; // 💡 안전을 위한 널 체크 추가
     

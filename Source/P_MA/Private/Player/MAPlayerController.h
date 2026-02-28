@@ -122,4 +122,10 @@ private:
 	bool bOnMouseCursorRecord = false;
 	void CheckMouseCursorShape();
 	// 여기까지
+
+	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
+	TSubclassOf<class UCameraShakeBase> RegularCameraShake;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
+	TSubclassOf<class UCameraShakeBase> CriticalCameraShake;
 };
