@@ -158,7 +158,9 @@ void AMirrorSplineSector::CopySplineFromSource(const ASplineSector* InSourceSect
 	RoadSpline->ReparamStepsPerSegment = SourceSpline->ReparamStepsPerSegment;
 	RoadSpline->Duration = SourceSpline->Duration;
 	RoadSpline->bStationaryEndpoints = SourceSpline->bStationaryEndpoints;
+#if WITH_EDITORONLY_DATA
 	RoadSpline->bAllowDiscontinuousSpline = SourceSpline->bAllowDiscontinuousSpline;
+#endif
 	RoadSpline->UpdateSpline();
 
 	const FVector StartLocation = RoadSpline->GetLocationAtSplinePoint(0, ESplineCoordinateSpace::Local);

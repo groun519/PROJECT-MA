@@ -25,22 +25,22 @@ struct FWaveMonster
 	int32 Gold = 0;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWaveSetting
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	int32 BaseGold = 1000;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	int32 AddingGoldPerWave = 50;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	int32 MaxMonsterNum = 30;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	float MonsterStatCoefficient = 1.0;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	float AddingMonsterStatCoefficientPerWave = 0.01;
 };
 
@@ -97,7 +97,7 @@ private:
 
 	void OnEnvironmentChanged(const FGameplayTag& NewEnvTag);
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave", meta = (AllowPrivateAccess = "true"))
 	FWaveSetting WaveSetting;
 	
 	int32 TotalGold = 0;

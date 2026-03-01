@@ -2,6 +2,7 @@
 
 #include "MAPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Framework/MAGameInstance.h"
 
 // NOTE:
 // Seamless travel 과정에서 새 PlayerState 인스턴스로 교체될 때
@@ -78,6 +79,10 @@ void AMAPlayerState::OnRep_LoadoutWeaponId()
 
 void AMAPlayerState::OnRep_LoadingComplete()
 {
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		GI->UpdateLoadingStatus();
+	}
 }
 
 void AMAPlayerState::OnRep_LobbySlotIndex()

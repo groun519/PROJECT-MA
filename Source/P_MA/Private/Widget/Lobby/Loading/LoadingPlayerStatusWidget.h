@@ -9,7 +9,7 @@
 
 class UImage;
 
-UCLASS()
+UCLASS(meta = (DisableNativeTick))
 class P_MA_API ULoadingPlayerStatusWidget : public UUserWidget
 {
 	GENERATED_BODY()

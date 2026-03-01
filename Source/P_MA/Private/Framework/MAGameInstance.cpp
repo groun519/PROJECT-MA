@@ -8,6 +8,7 @@
 #include "MoviePlayer.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
+#include "Player/MAPlayerController.h"
 #include "Player/MAPlayerState.h"
 #include "Framework/LoadoutSaveGame.h"
 
@@ -122,6 +123,8 @@ void UMAGameInstance::StartLoadingScreen()
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	bLoadingScreenActive = true;
+	bLocalMainMapLoaded = false;
+	bLocalLoadedNotifySent = false;
 	LoadingStatusLastUpdateSeconds = FPlatformTime::Seconds();
 
 	FLoadingScreenAttributes LoadingScreen;
@@ -159,6 +162,8 @@ void UMAGameInstance::StopLoadingScreen()
 	if (!bLoadingScreenActive) return;
 
 	bLoadingScreenActive = false;
+	bLocalMainMapLoaded = false;
+	bLocalLoadedNotifySent = false;
 	GetMoviePlayer()->StopMovie();
 	LoadingScreenSlateWidget.Reset();
 	LoadingScreenWidgetInstance = nullptr;
@@ -181,6 +186,8 @@ void UMAGameInstance::StopLoadingScreen()
 
 void UMAGameInstance::HandlePreLoadMap(const FString& MapName)
 {
+	bLocalMainMapLoaded = false;
+	bLocalLoadedNotifySent = false;
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
@@ -224,7 +231,13 @@ float UMAGameInstance::CalculateLoadingProgress(int32& OutPercent)
 
 void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
 {
-	if (!bLoadingScreenActive || !LoadedWorld) return;
+	if (!LoadedWorld) return;
+
+	TryHostLobbySession(LoadedWorld);
+	const FString LoadedMapName = LoadedWorld->GetOutermost()->GetName();
+	if (!bLoadingScreenActive) return;
+
+	StartLocalMainMapFinishPhase(LoadedWorld, LoadedMapName);
 
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	LoadedWorld->GetTimerManager().ClearTimer(LoadingStatusTimerHandle);
@@ -236,6 +249,56 @@ void UMAGameInstance::HandlePostLoadMapWithWorld(UWorld* LoadedWorld)
 		true
 	);
 	UpdateLoadingStatus();
+}
+
+void UMAGameInstance::StartLocalMainMapFinishPhase(UWorld* LoadedWorld, const FString& LoadedMapName)
+{
+	if (!LoadedWorld) return;
+	if (!LoadedMapName.EndsWith(TEXT("/_Map/MainMap"))) return;
+
+	bLocalMainMapLoaded = true;
+	bLocalLoadedNotifySent = false;
+}
+
+bool UMAGameInstance::TrySendLocalLoadedNotify()
+{
+	if (bLocalLoadedNotifySent) return true;
+
+	AMAPlayerController* LocalController = Cast<AMAPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	if (!LocalController)
+	{
+		return false;
+	}
+
+	if (!LocalController->IsLocalController())
+	{
+		return false;
+	}
+
+	LocalController->ServerNotifyLoaded();
+	bLocalLoadedNotifySent = true;
+	return true;
+}
+
+void UMAGameInstance::NotifyLocalLoadingVisualComplete()
+{
+	if (bLocalLoadedNotifySent || !bLocalMainMapLoaded) return;
+	TrySendLocalLoadedNotify();
+}
+
+void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
+{
+	if (!LoadedWorld) return;
+	if (!SessionInterface.IsValid()) return;
+	if (LoadedWorld->GetNetMode() == NM_Client) return;
+	if (SessionInterface->GetNamedSession(NAME_GameSession)) return;
+	if (bLobbyHostRequested) return;
+
+	const FString MapName = LoadedWorld->GetOutermost()->GetName();
+	if (!MapName.EndsWith(TEXT("/_Map/LobbyMap"))) return;
+
+	bLobbyHostRequested = true;
+	HostSession(LobbyMaxPlayers, bLobbyIsLAN);
 }
 
 void UMAGameInstance::HandleBeginFrame()
@@ -318,12 +381,17 @@ void UMAGameInstance::UpdateLoadingStatus()
 	});
 
 	const bool bAllLoaded = AreAllPlayersLoaded(World);
+
 	if (LoadingScreenWidgetInstance)
 	{
-		const float Target = (ValidPlayers > 0)
+		float Target = (ValidPlayers > 0)
 			? FMath::Clamp(static_cast<float>(LoadedPlayers) / static_cast<float>(ValidPlayers), 0.0f, 1.0f)
 			: 0.0f;
-		const bool bLoadingComplete = (Target >= 1.0f) || bAllLoaded;
+		if (bLocalMainMapLoaded)
+		{
+			Target = 1.0f;
+		}
+		const bool bLoadingComplete = bLocalMainMapLoaded || bAllLoaded;
 		const float WarmupDurationSeconds = 5.0f;
 		const float WarmupMax = 0.50f;
 		const float MainMax = 0.95f;
@@ -409,7 +477,11 @@ void UMAGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSu
 	if (!SessionInterface.IsValid()) return;
 	SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteHandle);
 
-	if (!bWasSuccessful) return;
+	if (!bWasSuccessful)
+	{
+		bLobbyHostRequested = false;
+		return;
+	}
 
 	const FString LobbyMapPath = TEXT("/Game/_Map/LobbyMap");
 	UGameplayStatics::OpenLevel(this, FName(*LobbyMapPath), true, TEXT("listen"));
@@ -425,6 +497,19 @@ void UMAGameInstance::HandleDestroySessionComplete(FName SessionName, bool bWasS
 {
 	if (!SessionInterface.IsValid()) return;
 	SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteHandle);
+	bLobbyHostRequested = false;
+
+	if (!bWasSuccessful && SessionInterface->GetNamedSession(NAME_GameSession))
+	{
+		bInviteJoinInProgress = false;
+		bHasPendingInviteResult = false;
+		return;
+	}
+
+	if (bInviteJoinInProgress && bHasPendingInviteResult)
+	{
+		JoinPendingInviteSession();
+	}
 }
 
 void UMAGameInstance::HandleSessionInviteAccepted(
@@ -436,16 +521,41 @@ void UMAGameInstance::HandleSessionInviteAccepted(
 {
 	if (!bWasSuccessful || !SessionInterface.IsValid()) return;
 
+	bInviteJoinInProgress = true;
+	bHasPendingInviteResult = true;
+	PendingInviteControllerId = ControllerId;
+	PendingInviteResult = InviteResult;
+
+	if (SessionInterface->GetNamedSession(NAME_GameSession))
+	{
+		DestroySession();
+		return;
+	}
+
+	JoinPendingInviteSession();
+}
+
+void UMAGameInstance::JoinPendingInviteSession()
+{
+	if (!SessionInterface.IsValid()) return;
+	if (!bHasPendingInviteResult)
+	{
+		bInviteJoinInProgress = false;
+		return;
+	}
+
 	JoinSessionCompleteHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(
 		FOnJoinSessionCompleteDelegate::CreateUObject(this, &UMAGameInstance::HandleJoinSessionComplete)
 	);
-	SessionInterface->JoinSession(ControllerId, NAME_GameSession, InviteResult);
+	SessionInterface->JoinSession(PendingInviteControllerId, NAME_GameSession, PendingInviteResult);
 }
 
 void UMAGameInstance::HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
 	if (!SessionInterface.IsValid()) return;
 	SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteHandle);
+	bInviteJoinInProgress = false;
+	bHasPendingInviteResult = false;
 
 	if (Result != EOnJoinSessionCompleteResult::Success) return;
 

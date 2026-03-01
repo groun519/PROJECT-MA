@@ -94,8 +94,8 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
-	
-	ServerNotifyLoaded();
+
+
 	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
@@ -290,6 +290,11 @@ void AMAPlayerController::ServerNotifyLoaded_Implementation()
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadingComplete(true);
+	}
+
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		GI->UpdateLoadingStatus();
 	}
 }
 

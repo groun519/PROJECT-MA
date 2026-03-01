@@ -117,7 +117,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
         }
     }
 
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/_Widget/Gameplay/MiniMap/CRT_MiniMap.CRT_MiniMap"));
 	if (renderObj.Succeeded())
 	{
 		MinimapCapture->TextureTarget = renderObj.Object;

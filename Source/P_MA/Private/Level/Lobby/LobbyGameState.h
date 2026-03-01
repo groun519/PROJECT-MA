@@ -48,6 +48,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
+	UPROPERTY(EditDefaultsOnly, Category = "Lobby")
+	int32 DefaultLobbySlotCount = 4;
+
 	UPROPERTY()
 	TArray<TObjectPtr<ALobbyAvatarSlot>> AvatarSlots;
 
@@ -66,5 +69,7 @@ private:
 	UFUNCTION()
 	void OnRep_LobbyStates();
 
+	int32 GetDesiredSlotCount() const;
+	void EnsureSlotStorageSize(int32 DesiredCount);
 	void ApplyLobbySlotsToAvatars();
 };
