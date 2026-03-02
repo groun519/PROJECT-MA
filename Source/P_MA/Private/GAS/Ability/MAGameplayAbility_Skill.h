@@ -28,6 +28,7 @@ public:
 	const FModuleBehaviorData& GetBehaviorData() const {return CachedBehaviorData;}
 	const FModuleElementalData& GetElementalData() const {return CachedElementalData;}
 	const FModuleUtilityData& GetUtilityData() const {return CachedUtilityData;}
+	const FModuleBehaviorData& GetComboData() const {return CachedComboData;}
 	
 	UFUNCTION()
 	float GetTotalAnimSpeed() const;
@@ -53,6 +54,8 @@ protected:
 	FModuleElementalData CachedElementalData;
 	UPROPERTY(Transient)
 	FModuleUtilityData CachedUtilityData;
+	UPROPERTY(Transient)
+	FModuleBehaviorData CachedComboData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Config")
 	FName SkillID;
@@ -86,7 +89,10 @@ protected:
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
+	void SetHitReactionTag(FGameplayTag NewTag) {CachedSkillData.HitReactionTag = NewTag;}
 
+	bool TryActivateComboModule();
+	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
 

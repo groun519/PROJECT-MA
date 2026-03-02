@@ -77,7 +77,7 @@ void USkillModule_Hold::StartMontageTask()
 
 void USkillModule_Hold::OnMontageEnded()
 {
-	if (OwnerSkill)
+	if (!OwnerSkill->TryActivateComboModule())
 	{
 		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 	}

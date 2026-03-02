@@ -97,7 +97,10 @@ void USkillModule_Charge::OnMontageEnded()
 				AnimInst->Montage_Stop(0.2f, OwnerSkill->GetCurrentMontage());
 			}
 		}
-		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		if (!OwnerSkill->TryActivateComboModule())
+		{
+			OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		}
 	}
 }
 

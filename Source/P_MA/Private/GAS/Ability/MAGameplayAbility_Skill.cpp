@@ -10,6 +10,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
+#include "GAS/Modules/SkillModule_Combo.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
@@ -555,6 +556,23 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 			ActiveModules.Add(NewModule);
 		}
 	}
+
+	if (CachedSkillData.DefaultComboTag.IsValid())
+	{
+		const FModuleBehaviorData* ComboRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultComboTag);
+		if (ComboRow && ComboRow->ModuleClass)
+		{
+			CachedComboData = *ComboRow;
+			UMASkillModule* NewModule = NewObject<UMASkillModule>(this, ComboRow->ModuleClass);
+			if (NewModule)
+			{
+				NewModule->InitializeModule(this);
+				NewModule->ApplyModuleToSkillData(CachedSkillData, *ComboRow);
+				ActiveModules.Add(NewModule);
+			}
+		}
+	}
+	
 	return true;
 }
 
@@ -608,6 +626,18 @@ void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
 	{
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
+}
+
+bool UMAGameplayAbility_Skill::TryActivateComboModule()
+{
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (USkillModule_Combo* ComboModule = Cast<USkillModule_Combo>(Module))
+		{
+			return ComboModule->TryActivateCombo();
+		}
+	}
+	return false;
 }
 
 void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)

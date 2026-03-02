@@ -41,6 +41,7 @@ public:
 	/** 이 스킬이 가진 특성 (근접공격 or 투사체 공격 or 타게팅 공격) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Trait"), Category="Traits")
 	FGameplayTagContainer SkillTraits;
+	
 	/** 이 스킬의 초기 행동 모듈 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Behavior"), Category="Module")
 	FGameplayTag DefaultBehaviorTag;
@@ -50,6 +51,9 @@ public:
 	/** 이 스킬의 초기 유틸리티 모듈 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Utility"), Category="Module")
 	FGameplayTag DefaultUtilityTag;
+	/** 콤보 모듈 사용 시 설정할 태그 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Behavior.Combo"), Category="Module")
+	FGameplayTag DefaultComboTag;
 
 	/** 이 스킬이 어떤 액션을 취하는 지에 대한 태그 (특성과 비슷) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Action Resource")
@@ -163,11 +167,33 @@ struct FBehavior_Charge : public FSkillBehaviorConfig
 {
 	GENERATED_BODY()
 public:
+	/**최대 데미지까지의 충전 시간*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxChargeDuration = 3.f;
-
+	/***/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxInputDelay = 3.4f;
+};
+
+USTRUCT(BlueprintType)
+struct FBehavior_Combo : public FSkillBehaviorConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* ComboMontage= nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UGameplayEffect> ComboModuleEffect;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="State.Debuff"))
+	FGameplayTag ComboHitReactionTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float InputWindow = 3.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* ComboIcon = nullptr;
 };
 
 

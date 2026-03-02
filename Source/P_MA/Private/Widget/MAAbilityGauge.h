@@ -23,6 +23,7 @@ class UMAAbilityGauge : public UUserWidget, public IUserObjectListEntry
 
 public:
     virtual void NativeConstruct() override;
+    virtual void NativeDestruct() override;
     virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
     
@@ -38,6 +39,13 @@ public:
 protected:
     virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
+    void HandleComboStartEvent(const struct FGameplayEventData* Payload);
+    void HandleComboEndEvent(const struct FGameplayEventData* Payload);
+    void HandleComboIconReadyEvent(const struct FGameplayEventData* Payload);
+
+    void UpdateComboWait();
+    void ComboWaitFinished();
+    
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
     EMAAbilityInputID AssignedInputID;
@@ -58,9 +66,13 @@ private:
 
     UPROPERTY(EditDefaultsOnly, Category = "Visual")
     FName CooldownPercentParamname = "Percent";
+    UPROPERTY(EditDefaultsOnly, Category = "Visual")
+    FName ComboPercentParamName = "Percent";
 
     UPROPERTY(meta=(BindWidget))
     class UImage* Icon;
+    UPROPERTY(meta=(BindWidget))
+    class UImage* ComboGauge;
 
     // 💡 핫키 텍스트 위젯
     UPROPERTY(meta=(BindWidget))
@@ -68,6 +80,8 @@ private:
 
     UPROPERTY(meta=(BindWidget))
     class UTextBlock* CooldownCounterText;
+    UPROPERTY(meta=(BindWidget))
+    class UTextBlock* ComboCounterText;
 
     UPROPERTY(meta=(BindWidget))
     class UTextBlock* CooldownDurationText;
@@ -101,4 +115,13 @@ private:
 
     float CurrentDisplayMaxCooldown = -1.f;
     void UpdateMaxCooldownText();
+
+    FDelegateHandle ComboStartHandle;
+    FDelegateHandle ComboEndHandle;
+    FDelegateHandle ComboIconReadyHandle;
+    
+    FTimerHandle ComboWaitTimerHandle;
+    float CachedComboWaitDuration = 0.f;
+    float CachedComboWaitTimeRemaining = 0.f;
+    bool bIsComboWaiting = false;
 };
