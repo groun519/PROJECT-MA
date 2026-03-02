@@ -6,10 +6,13 @@
 #include "PlatformRoot.generated.h"
 
 class USplineComponent;
-class ACore;
-class UPlatformMatrixComponent;
 class UTextRenderComponent;
 class UNiagaraComponent;
+class USphereComponent;
+class UDecalComponent;
+class AMAPlayerCharacter;
+class UPrimitiveComponent;
+struct FHitResult;
 
 DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
@@ -27,14 +30,6 @@ public:
 	/** Delegate **/
 	FOnPlatformReachedEnd OnPlatformReachedEnd;
 	void MoveEnd();
-	
-	/** Matrix **/
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	UPlatformMatrixComponent* PlatformMatrixComponent;
-
-	/** Core **/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<ACore> CoreClass;
 
 	/** Atts Set **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -42,12 +37,10 @@ public:
 
 	/** Use by Manager **/
 	void SetWaitMoveIn(bool bWaitMoveIn);
-	void SetHeight(bool bIsMoving);
+	void ReleaseAttachedPlayers();
 	void SetCurSpline(USplineComponent* Spline);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
 	void SetRangeClampVisual(bool bVisible, float InSize);
-	ACore* GetCore() const { return CoreInstance; }
-	void ResolveReadyWallOverlapsOnce();
 	
 private:
 	/** Input by Manager **/
@@ -62,6 +55,15 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	UNiagaraComponent* RangeClampVFX = nullptr;
 
+	UPROPERTY(VisibleAnywhere, Category = "ReadyTrigger")
+	USphereComponent* MoveInTrigger = nullptr;
+
+	UPROPERTY(VisibleAnywhere, Category = "ReadyTrigger")
+	UDecalComponent* ReadyRangeDecal = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "ReadyTrigger", meta = (ClampMin = "0.0"))
+	float MoveInTriggerRadius = 300.f;
+
 	UPROPERTY(EditAnywhere, Category = "RangeClampVFX")
 	FName RangeClampSizeParamName = TEXT("Size");
 	
@@ -73,8 +75,6 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyTextVisible)
 	bool bReadyTextVisible = false;
-
-	bool bPrevWaitMoveIn = false;
 
 	UFUNCTION()
 	void OnRep_ReadyTextVisible();
@@ -88,18 +88,16 @@ private:
 	UFUNCTION()
 	void OnRep_RangeClampVisual();
 
-	UPROPERTY()
-	TObjectPtr<ACore> CoreInstance;
-	
 	float Distance = 0.f;
 
-	/** Height System **/
-	float CurHeight = -100.f;
-	float MovingHeight = 50.f;
-	float WaitingHeight = -100.f;
-
-	/** Core **/
-	void SpawnCore();
 	void ApplyRangeClampVisual();
 	void UpdateRangeClampVFXWorldLocation();
+	void SyncReadyByMoveInTrigger(bool bReady);
+
+	UFUNCTION()
+	void HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 };

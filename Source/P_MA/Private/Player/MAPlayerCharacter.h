@@ -14,6 +14,7 @@ class UNiagaraComponent;
 class UAnimMontage;
 class UInteractComponent;
 class UReadyStateComponent;
+class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
 class AMAPlayerState;
 class UDataTable;
@@ -55,13 +56,19 @@ public:
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
 
 	/** Ready State Component **/
-	FORCEINLINE UReadyStateComponent* GetReadyComponent(){ return ReadyStateComponent; }
-	FORCEINLINE const UReadyStateComponent* GetReadyComponent() const { return ReadyStateComponent; }
-	
+	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
+
+	/** Ready Ride Component **/
+	FORCEINLINE UReadyRideComponent* GetReadyRideComponent() const { return ReadyRideComponent; }
+
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;
+
+	/** Ready Ride Component **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
+	UReadyRideComponent* ReadyRideComponent;
 
 	/** Ready Check Widget **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
@@ -123,10 +130,14 @@ public:
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 private:
-	void RefreshRideCollisionMode();
-	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer);
-	bool bIsRidingPlatform = false;
 
+	/** Player Rotate **/
+	void UpdateRotationByReadyRide(float DeltaTime);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetRotation(FVector LookDirection);
+
+	/** Loadout **/
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
@@ -140,10 +151,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
-
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetRotation(FVector LookDirection);
 
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))

@@ -1,12 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "PlatformRoot.h"
-#include "PlatformMatrixComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
-#include "Level/Platform/Core.h"
+#include "Components/SphereComponent.h"
+#include "Components/DecalComponent.h"
 #include "NiagaraComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "P_MA/P_MA.h"
+#include "EngineUtils.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/Components/ReadyStateComponent.h"
+#include "Player/Components/ReadyRideComponent.h"
 
 APlatformRoot::APlatformRoot()
 {
@@ -21,10 +26,6 @@ APlatformRoot::APlatformRoot()
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
-	
-	/** Add Matrix **/
-	PlatformMatrixComponent = CreateDefaultSubobject<UPlatformMatrixComponent>("Matrix");
-	PlatformMatrixComponent->SetupAttachment(RootComponent);
 
 	/** Ready Text **/
 	ReadyText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("ReadyText"));
@@ -40,28 +41,38 @@ APlatformRoot::APlatformRoot()
 	RangeClampVFX->SetupAttachment(RootComponent);
 	RangeClampVFX->SetVisibility(false, true);
 	RangeClampVFX->SetAutoActivate(false);
+
+	MoveInTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MoveInTrigger"));
+	MoveInTrigger->SetupAttachment(RootComponent);
+	MoveInTrigger->InitSphereRadius(MoveInTriggerRadius);
+	MoveInTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MoveInTrigger->SetCollisionObjectType(ECC_WorldDynamic);
+	MoveInTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MoveInTrigger->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
+	MoveInTrigger->SetGenerateOverlapEvents(true);
+
+	ReadyRangeDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("ReadyRangeDecal"));
+	ReadyRangeDecal->SetupAttachment(RootComponent);
+	ReadyRangeDecal->SetRelativeLocation(FVector(0.f, 0.f, -100.f));
+	ReadyRangeDecal->SetVisibility(false, true);
 }
 
 void APlatformRoot::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority())
+
+	if (MoveInTrigger)
 	{
-		SpawnCore();
+		MoveInTrigger->SetSphereRadius(MoveInTriggerRadius);
+		MoveInTrigger->OnComponentBeginOverlap.AddDynamic(this, &APlatformRoot::HandleMoveInTriggerBeginOverlap);
+		MoveInTrigger->OnComponentEndOverlap.AddDynamic(this, &APlatformRoot::HandleMoveInTriggerEndOverlap);
 	}
-	PlatformMatrixComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	PlatformMatrixComponent->InitMatrix();
+
 	UpdateRangeClampVFXWorldLocation();
 }
 
 void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 {
-	const bool bOpenReadyEdge = (!bPrevWaitMoveIn && bWaitMoveIn);
-	bPrevWaitMoveIn = bWaitMoveIn;
-
-	// bool bWaitMoveIn =
-	// 	CurState == EMASectorState::Wait || CurState == EMASectorState::EndBattle;
-	PlatformMatrixComponent->SetMovedInPlatforms(bWaitMoveIn);
 	if (HasAuthority())
 	{
 		bReadyTextVisible = bWaitMoveIn;
@@ -70,17 +81,45 @@ void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 	{
 		ReadyText->SetVisibility(bWaitMoveIn, true);
 	}
-
-	if (HasAuthority() && bOpenReadyEdge)
+	if (ReadyRangeDecal)
 	{
-		ResolveReadyWallOverlapsOnce();
+		ReadyRangeDecal->SetVisibility(bWaitMoveIn, true);
+	}
+
+	if (!HasAuthority() || !MoveInTrigger) return;
+
+	if (bWaitMoveIn)
+	{
+		MoveInTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		MoveInTrigger->UpdateOverlaps();
+		SyncReadyByMoveInTrigger(true);
+	}
+	else
+	{
+		MoveInTrigger->UpdateOverlaps();
+		MoveInTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 
-void APlatformRoot::SetHeight(bool bIsMoving)
+void APlatformRoot::ReleaseAttachedPlayers()
 {
-	CurHeight = bIsMoving ? MovingHeight : WaitingHeight;
-	UE_LOG(LogTemp, Warning, TEXT("Root: SetHeight -> %f"), CurHeight);
+	if (!HasAuthority() || !GetWorld()) return;
+
+	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
+	{
+		AMAPlayerCharacter* PlayerCharacter = *It;
+		if (!PlayerCharacter) continue;
+
+		if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
+		{
+			if (PlayerRoot->GetAttachParent() == MoveInTrigger)
+			{
+				PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			}
+		}
+
+		PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
+	}
 }
 
 void APlatformRoot::SetCurSpline(USplineComponent* Spline)
@@ -99,6 +138,7 @@ void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 	{
 		ReplicatedReadyCounts = FIntPoint(ReadyCount, TotalCount);
 	}
+	
 	if (!ReadyText) return;
 
 	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
@@ -107,17 +147,19 @@ void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 
 void APlatformRoot::SetRangeClampVisual(bool bVisible, float InSize)
 {
+	if (bReplicatedRangeClampVisible == bVisible && FMath::IsNearlyEqual(ReplicatedRangeClampSize, InSize))
+		return;
+
+	const bool bPrevVisible = bReplicatedRangeClampVisible;
+	const float PrevSize = ReplicatedRangeClampSize;
 	bReplicatedRangeClampVisible = bVisible;
 	ReplicatedRangeClampSize = InSize;
 
 	ApplyRangeClampVisual();
-}
 
-void APlatformRoot::ResolveReadyWallOverlapsOnce()
-{
-	if (PlatformMatrixComponent)
+	if (RangeClampVFX && bReplicatedRangeClampVisible && (!bPrevVisible || !FMath::IsNearlyEqual(PrevSize, ReplicatedRangeClampSize)))
 	{
-		PlatformMatrixComponent->ResolveReadyWallOverlapsOnce();
+		RangeClampVFX->ReinitializeSystem();
 	}
 }
 
@@ -132,6 +174,10 @@ void APlatformRoot::OnRep_ReadyTextVisible()
 {
 	if (!ReadyText) return;
 	ReadyText->SetVisibility(bReadyTextVisible, true);
+	if (ReadyRangeDecal)
+	{
+		ReadyRangeDecal->SetVisibility(bReadyTextVisible, true);
+	}
 }
 
 void APlatformRoot::OnRep_RangeClampVisual()
@@ -153,18 +199,6 @@ void APlatformRoot::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	UpdateRangeClampVFXWorldLocation();
 	if (!HasAuthority()) return;
-
-	/** Set Height **/
-	const float LocationInterpSpeed = 1.0f; 
-	const float CurrentLocZ = GetActorLocation().Z;
-	float SmoothedLocZ =
-		FMath::FInterpTo(CurrentLocZ, CurHeight, DeltaTime, LocationInterpSpeed);
-	FVector TargetZVec = GetActorLocation();
-	TargetZVec.Z = SmoothedLocZ;
-	SetActorLocation(TargetZVec);
-	
-	/** if Loop **/
-	if (FMath::Abs(GetActorLocation().Z - CurHeight) > 10.f) return;
 
 	if (!IsValid(CurSpline))
 	{
@@ -209,27 +243,6 @@ void APlatformRoot::MoveEnd()
 	OnPlatformReachedEnd.Broadcast();
 }
 
-void APlatformRoot::SpawnCore()
-{
-	if (!GetWorld() || !CoreClass) return;
-	
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.Instigator = GetInstigator();
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	ACore* Core = GetWorld()->SpawnActor<ACore>(CoreClass, GetActorTransform(), Params);
-	if (Core)
-	{
-		CoreInstance = Core;
-		Core->AttachToComponent(
-			Root,
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale
-		);
-	}
-	Core->SetActorRelativeLocation(FVector(0, 0, 100.f));
-}
-
 void APlatformRoot::ApplyRangeClampVisual()
 {
 	if (!RangeClampVFX) return;
@@ -259,4 +272,93 @@ void APlatformRoot::UpdateRangeClampVFXWorldLocation()
 	if (!RangeClampVFX) return;
 	const FVector RootLoc = GetActorLocation();
 	RangeClampVFX->SetWorldLocation(FVector(RootLoc.X, RootLoc.Y, -100.f));
+}
+
+void APlatformRoot::SyncReadyByMoveInTrigger(bool bReady)
+{
+	if (!HasAuthority() || !MoveInTrigger) return;
+
+	TArray<AActor*> OverlappedActors;
+	MoveInTrigger->GetOverlappingActors(OverlappedActors, AMAPlayerCharacter::StaticClass());
+
+	for (AActor* Actor : OverlappedActors)
+	{
+		AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(Actor);
+		if (!PlayerCharacter) continue;
+
+		UReadyStateComponent* ReadyComp = PlayerCharacter->GetReadyStateComponent();
+		if (!ReadyComp) continue;
+
+		ReadyComp->SetReady(bReady);
+
+		if (bReady)
+		{
+			PlayerCharacter->AttachToComponent(
+				MoveInTrigger,
+				FAttachmentTransformRules(
+					EAttachmentRule::KeepWorld,
+					EAttachmentRule::SnapToTarget,
+					EAttachmentRule::KeepWorld,
+					false));
+			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(true);
+		}
+		else
+		{
+			if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
+			{
+				if (PlayerRoot->GetAttachParent() == MoveInTrigger)
+				{
+					PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				}
+			}
+			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
+		}
+	}
+}
+
+void APlatformRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!HasAuthority() || !bReadyTextVisible) return;
+
+	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OtherActor);
+	if (!PlayerCharacter) return;
+
+	UReadyStateComponent* ReadyComp = PlayerCharacter->GetReadyStateComponent();
+	if (!ReadyComp) return;
+
+	ReadyComp->SetReady(true);
+
+	PlayerCharacter->AttachToComponent(
+		MoveInTrigger,
+		FAttachmentTransformRules(
+			EAttachmentRule::KeepWorld,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::KeepWorld,
+			false));
+	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(true);
+}
+
+void APlatformRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (!HasAuthority() || !bReadyTextVisible) return;
+
+	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OtherActor);
+	if (!PlayerCharacter) return;
+	if (MoveInTrigger && MoveInTrigger->IsOverlappingActor(PlayerCharacter)) return;
+
+	UReadyStateComponent* ReadyComp = PlayerCharacter->GetReadyStateComponent();
+	if (!ReadyComp) return;
+
+	ReadyComp->SetReady(false);
+
+	if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
+	{
+		if (PlayerRoot->GetAttachParent() == MoveInTrigger)
+		{
+			PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		}
+	}
+	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
 }

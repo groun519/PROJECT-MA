@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "MAPlayerCharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -20,10 +19,9 @@
 #include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
+#include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
 #include "Player/Components/PlayerCameraManagerComponent.h"
-#include "Level/Platform/PlatformComponent.h"
-#include "EngineUtils.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -35,12 +33,7 @@
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
-	/** Camera Set **//*
-	 * 1. CameraBoom cannot use "Pawn Control Rot"
-	 *		-> Because, player looks mouse pointer.
-	 * 2. CameraBoom must lock Yaw
-	 *		-> Because, Camera must not rotate z axis.
-	 */
+	/** Camera Set **/
 	// 1) CameraBoom
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
 	CameraBoom->SetupAttachment(GetRootComponent());
@@ -54,12 +47,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
 	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
 
-	/** Controller Set **//*
-	 * 1. Player cannot use "Controller Rot"
-	 *		-> Because, player cam's rot must be fixed.
-	 * 2. Player cannot use "Origin Rot to Movement"
-	 *		-> Because, player must look mouse pointer.
-	 */
+	/** Controller Set **/
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
@@ -76,22 +64,20 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
-	
-	/** Create SKCs **//*
-	 * - Child Relationship: Mesh - Handle
-	 */
+
+	/** Create SKCs **/
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
     /** Mini Map **/
-    // 스프라이트부터 먼저 생성 
+    // 스프라이트부터 먼저 생성
     MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
     if (MinimapSprite)
     {
         MinimapSprite->SetupAttachment(GetMesh());
-        // 네비게이션 경고해결 
-        MinimapSprite->SetCanEverAffectNavigation(false); 
+        // 네비게이션 경고해결
+        MinimapSprite->SetCanEverAffectNavigation(false);
     }
 
     MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
@@ -131,8 +117,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
 	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
 	
-	/** Ready State Component **/
+	/** Ready State&Ride Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+	ReadyRideComponent = CreateDefaultSubobject<UReadyRideComponent>(TEXT("ReadyRideComponent"));
 
 	/** Ready Check Widget **/
 	ReadyCheckWidget = CreateDefaultSubobject<UReadyCheckWidgetComponent>(TEXT("ReadyCheckWidget"));
@@ -148,7 +135,6 @@ void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	BindLoadoutDelegates();
-	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
@@ -160,35 +146,58 @@ void AMAPlayerCharacter::PossessedBy(AController* NewController)
 void AMAPlayerCharacter::BaseChange()
 {
 	Super::BaseChange();
-	RefreshRideCollisionMode();
+	if (ReadyRideComponent)
+	{
+		ReadyRideComponent->HandleOwnerBaseChanged();
+	}
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
 	if (IsDead()) return;
 
-	FVector LookDir;
-	if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
-	{
-		const FRotator CurrentRotation = GetActorRotation();
-		const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
-		FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime,RotationInterpSpeed);
-		SetActorRotation(NewRotation);
-		
-		if (!HasAuthority())
-		{
-			Server_SetRotation(LookDir);
-		}
-	}
+	UpdateRotationByReadyRide(DeltaTime);
+
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
 		AddMovementInput(GetActorForwardVector(), 2.f);
 	}
 }
 
+/** Player Rotate **/
+void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
+{
+	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation();
+	if (!bBlockManualRotation)
+	{
+		FVector LookDir;
+		if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
+		{
+			const FRotator CurrentRotation = GetActorRotation();
+			const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
+			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, RotationInterpSpeed);
+			SetActorRotation(NewRotation);
+
+			if (!HasAuthority())
+			{
+				Server_SetRotation(LookDir);
+			}
+		}
+		return;
+	}
+
+	float AttachedYaw = 0.f;
+	if (ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
+	{
+		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
+	}
+}
+
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
+	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
 	if (IsDead()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
@@ -355,7 +364,6 @@ void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionVal
 	AddMovementInput(GetMoveForwardDir() * InputVal.Y + GetMoveRightDir() * InputVal.X);
 }
 
-
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
 	const bool bPressed = InputActionValue.Get<bool>();
@@ -401,6 +409,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
+	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
 	if (IsDead()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
@@ -530,47 +539,6 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
-void AMAPlayerCharacter::RefreshRideCollisionMode()
-{
-	if (!GetCapsuleComponent()) return;
-
-	const bool bNowRidingPlatform = Cast<UPlatformComponent>(GetMovementBase()) != nullptr;
-	if (bNowRidingPlatform == bIsRidingPlatform) return;
-
-	bIsRidingPlatform = bNowRidingPlatform;
-
-	if (!GetWorld()) return;
-
-	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
-	{
-		AMAPlayerCharacter* OtherPlayer = *It;
-		if (!OtherPlayer || OtherPlayer == this) continue;
-		UpdateRideCollisionWithOtherPlayer(OtherPlayer);
-	}
-}
-
-void AMAPlayerCharacter::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer)
-{
-	UCapsuleComponent* Capsule = GetCapsuleComponent();
-	UCapsuleComponent* OtherCapsule = OtherPlayer ? OtherPlayer->GetCapsuleComponent() : nullptr;
-	if (!Capsule || !OtherCapsule) return;
-
-	const bool bShouldIgnorePair = bIsRidingPlatform || OtherPlayer->bIsRidingPlatform;
-	Capsule->IgnoreActorWhenMoving(OtherPlayer, bShouldIgnorePair);
-	OtherCapsule->IgnoreActorWhenMoving(this, bShouldIgnorePair);
-
-	if (bShouldIgnorePair)
-	{
-		MoveIgnoreActorAdd(OtherPlayer);
-		OtherPlayer->MoveIgnoreActorAdd(this);
-	}
-	else
-	{
-		MoveIgnoreActorRemove(OtherPlayer);
-		OtherPlayer->MoveIgnoreActorRemove(this);
-	}
-}
-
 void AMAPlayerCharacter::OnStun()
 {
 	SetInputEnabledFromPlayerController(false);
@@ -638,4 +606,3 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
 	InventoryComponent->TryActivateItemInSlot(Value-1);
 }
-

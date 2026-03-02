@@ -14,12 +14,12 @@ namespace
 {
 	UReadyStateComponent* ResolveReadyComponent(AMAPlayerCharacter* Player)
 	{
-		return Player ? Player->GetReadyComponent() : nullptr;
+		return Player ? Player->GetReadyStateComponent() : nullptr;
 	}
 
 	const UReadyStateComponent* ResolveReadyComponent(const AMAPlayerCharacter* Player)
 	{
-		return Player ? Player->GetReadyComponent() : nullptr;
+		return Player ? Player->GetReadyStateComponent() : nullptr;
 	}
 }
 

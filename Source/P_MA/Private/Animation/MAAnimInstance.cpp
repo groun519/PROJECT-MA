@@ -4,6 +4,8 @@
 #include "Animation/MAAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/Components/ReadyRideComponent.h"
 
 void UMAAnimInstance::NativeInitializeAnimation()
 {
@@ -18,8 +20,25 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	if (OwnerCharacter)
 	{
-		Velocity = OwnerCharacter->GetVelocity();
-		Speed = Velocity.Length();
+		if (const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OwnerCharacter))
+		{
+			if (const UReadyRideComponent* ReadyRideComp = PlayerCharacter->GetReadyRideComponent();
+				ReadyRideComp && ReadyRideComp->ShouldBlockManualRotation())
+			{
+				Velocity = ReadyRideComp->GetAttachedMoveVelocity();
+				Speed = ReadyRideComp->GetAttachedMoveSpeed();
+			}
+			else
+			{
+				Velocity = OwnerCharacter->GetVelocity();
+				Speed = Velocity.Length();
+			}
+		}
+		else
+		{
+			Velocity = OwnerCharacter->GetVelocity();
+			Speed = Velocity.Length();
+		}
 		FRotator BodyRot = OwnerCharacter->GetActorRotation();
 		BodyPrevRot = BodyRot;
 

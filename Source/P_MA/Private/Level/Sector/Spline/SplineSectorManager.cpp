@@ -6,7 +6,6 @@
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
 #include "Kismet/GameplayStatics.h"
-#include "Level/Platform/Core.h"
 #include "Level/Environment/EnvironmentManager.h"
 #include "PCGGraph.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -16,15 +15,16 @@
 ASplineSectorManager::ASplineSectorManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	FPlayerRangeClampSettings DefaultClampSetting;
+	PlayerRangeClampByState.Add(EMASectorState::Wait, DefaultClampSetting);
+	PlayerRangeClampByState.Add(EMASectorState::EndBattle, DefaultClampSetting);
+	PlayerRangeClampByState.Add(EMASectorState::Loop, DefaultClampSetting);
 }
 
 void ASplineSectorManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	PlatformRoot = Cast<APlatformRoot>(
-	UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass())
-	);
 
 	if (HasAuthority())
 	{
@@ -49,17 +49,16 @@ void ASplineSectorManager::BeginPlay()
 				bool bWaitMoveIn =
 					CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle;
 				CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
-				CachedPlatformRoot->SetHeight(bIsMoving);
 			}
 		}
 
-		if (PlayerRangeClamp.bUse && PlayerRangeClamp.Interval > 0.f)
+		if (PlayerRangeClampInterval > 0.f)
 		{
 			GetWorldTimerManager().SetTimer(
 				PlayerRangeClampTimerHandle,
 				this,
 				&ASplineSectorManager::UpdatePlayerRangeClamp,
-				PlayerRangeClamp.Interval,
+				PlayerRangeClampInterval,
 				true);
 		}
 
@@ -97,19 +96,17 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 	// 스테이트 캐시
 	CachedMASectorState = NewState;
 	UpdatePlayerRangeClampVisual();
+	if (HasAuthority())
+	{
+		// Apply clamp immediately on state transition instead of waiting for next timer tick.
+		UpdatePlayerRangeClamp();
+	}
 	
 	if (CachedPlatformRoot)
 	{
 		bool bWaitMoveIn =
 			NewState == EMASectorState::Wait || NewState == EMASectorState::EndBattle;
 		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
-		CachedPlatformRoot->SetHeight(bIsMoving);
-
-		if (ACore* Core = CachedPlatformRoot->GetCore())
-		{
-			const bool bIsBattle = (NewState == EMASectorState::Battle);
-			Core->ApplyBattleColor(bIsBattle);
-		}
 	}
 
 	if (DebugSetting.bUseStateDebug)
@@ -187,19 +184,20 @@ void ASplineSectorManager::SetSectorsByState(EMASectorState InState)
 	
 	bIsMoving = SSData.bIsMoving;
 
-	if (PlatformRoot)
+	if (CachedPlatformRoot)
 	{
 		if (SSData.MoveInState == EMoveInState::Nothing)
 		{
-			PlatformRoot->SetWaitMoveIn(false);
+			CachedPlatformRoot->SetWaitMoveIn(false);
 		}
 		else if (SSData.MoveInState == EMoveInState::CanMoveIn)
 		{
-			PlatformRoot->SetWaitMoveIn(true);
+			CachedPlatformRoot->SetWaitMoveIn(true);
 		}
 		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
 		{
-			PlatformRoot->SetWaitMoveIn(false);
+			CachedPlatformRoot->SetWaitMoveIn(false);
+			CachedPlatformRoot->ReleaseAttachedPlayers();
 			if (CachedMAGameMode)
 			{
 				CachedMAGameMode->ResetAllPlayersReady();
@@ -296,7 +294,8 @@ void ASplineSectorManager::UpdatePlayerRangeClampVisual()
 	if (!CachedPlatformRoot) return;
 
 	const bool bVisible = CanApplyPlayerRangeClamp();
-	const float Size = FMath::Max(0.f, PlayerRangeClamp.Radius);
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	const float Size = ClampSettings ? FMath::Max(0.f, ClampSettings->Radius) : 0.f;
 	CachedPlatformRoot->SetRangeClampVisual(bVisible, Size);
 }
 
@@ -313,8 +312,11 @@ void ASplineSectorManager::UpdatePlayerRangeClamp()
 	GS->GetPlayerCharacters(Players, true);
 	if (Players.IsEmpty()) return;
 
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	if (!ClampSettings) return;
+
 	const FVector Center = CachedPlatformRoot->GetActorLocation();
-	const float ClampRadiusWithDeadZone = PlayerRangeClamp.Radius + PlayerRangeClamp.DeadZone;
+	const float ClampRadiusWithDeadZone = ClampSettings->Radius + ClampSettings->DeadZone;
 	const float ClampRadiusWithDeadZoneSq = FMath::Square(ClampRadiusWithDeadZone);
 
 	for (AMAPlayerCharacter* Player : Players)
@@ -327,28 +329,29 @@ void ASplineSectorManager::UpdatePlayerRangeClamp()
 
 		if (Delta.SizeSquared() <= ClampRadiusWithDeadZoneSq) continue;
 
-		const FVector ClampedLoc2D = Center + Delta.GetSafeNormal() * PlayerRangeClamp.Radius;
+		const FVector ClampedLoc2D = Center + Delta.GetSafeNormal() * ClampSettings->Radius;
 		const FVector ClampedLoc = FVector(ClampedLoc2D.X, ClampedLoc2D.Y, PlayerLoc.Z);
 
-		Player->SetActorLocation(ClampedLoc, false, nullptr, ETeleportType::TeleportPhysics);
+		Player->TeleportTo(ClampedLoc, Player->GetActorRotation(), false, true);
 		if (UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement())
 		{
 			MoveComp->StopMovementImmediately();
 		}
+		Player->ForceNetUpdate();
 	}
 }
 
 bool ASplineSectorManager::CanApplyPlayerRangeClamp() const
 {
-	if (!PlayerRangeClamp.bUse) return false;
-	if (PlayerRangeClamp.Radius <= 0.f) return false;
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	if (!ClampSettings) return false;
+	if (!ClampSettings->bUse) return false;
+	return ClampSettings->Radius > 0.f;
+}
 
-	if (PlayerRangeClamp.States.IsEmpty())
-	{
-		return true;
-	}
-
-	return PlayerRangeClamp.States.Contains(CachedMASectorState);
+const FPlayerRangeClampSettings* ASplineSectorManager::GetPlayerRangeClampSettingsForState(EMASectorState InState) const
+{
+	return PlayerRangeClampByState.Find(InState);
 }
 
 bool ASplineSectorManager::BindEnvironmentManager()

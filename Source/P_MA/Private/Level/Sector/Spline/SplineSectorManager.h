@@ -67,14 +67,8 @@ struct FPlayerRangeClampSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.0"))
 	float Radius = 1200.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.01"))
-	float Interval = 0.1f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.0"))
 	float DeadZone = 30.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp")
-	TArray<EMASectorState> States = { EMASectorState::Wait, EMASectorState::EndBattle, EMASectorState::Loop };
 };
 
 UCLASS()
@@ -94,10 +88,6 @@ public:
 	void OnHandlePlatformReachedEnd();
 	void OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount);
 	void OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph);
-	
-	/** Platform **/
-	UPROPERTY()
-	TObjectPtr<APlatformRoot> PlatformRoot;
 
 	/** Sector **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
@@ -123,7 +113,10 @@ public:
 
 	/** Player Range Clamp **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp")
-	FPlayerRangeClampSettings PlayerRangeClamp;
+	TMap<EMASectorState, FPlayerRangeClampSettings> PlayerRangeClampByState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.01"))
+	float PlayerRangeClampInterval = 0.1f;
 	
 private:
 	bool bIsMoving = false;
@@ -152,6 +145,7 @@ private:
 	void UpdatePlayerRangeClamp();
 	void UpdatePlayerRangeClampVisual();
 	bool CanApplyPlayerRangeClamp() const;
+	const FPlayerRangeClampSettings* GetPlayerRangeClampSettingsForState(EMASectorState InState) const;
 	FTimerHandle PlayerRangeClampTimerHandle;
 
 	/** Environment **/
