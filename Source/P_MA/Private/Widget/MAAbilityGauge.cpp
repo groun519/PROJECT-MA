@@ -130,8 +130,8 @@ void UMAAbilityGauge::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
+    // 1. 기존 로직: 스킬북(UI)에서 스킬을 드래그해서 슬롯에 놓는 경우
     USkillDragDropOperation* SkillOp = Cast<USkillDragDropOperation>(InOperation);
-    
     if (SkillOp && SkillOp->SkillClass)
     {
        if (APawn* OwnerPawn = GetOwningPlayerPawn())
@@ -146,6 +146,49 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
              }
           }
        }
+    }
+
+    // =========================================================================
+    // 2. [신규 로직]: 바닥에 있는 아이템(MAFieldItem)을 바로 스킬 슬롯에 놓는 경우
+    // =========================================================================
+    UInventoryItemDragDropOp* InventoryOp = Cast<UInventoryItemDragDropOp>(InOperation);
+    if (InventoryOp)
+    {
+        if (AMAFieldItem* FieldItem = Cast<AMAFieldItem>(InventoryOp->Payload))
+        {
+            if (FieldItem->ItemDataTable && !FieldItem->ItemRowName.IsNone())
+            {
+                // 데이터 테이블에서 이 아이템이 '스킬 데이터'를 가지고 있는지 확인합니다.
+                const FSkillItemData* SkillData = FieldItem->ItemDataTable->FindRow<FSkillItemData>(FieldItem->ItemRowName, TEXT("CheckSkillDrop"));
+                
+                // 타입이 스킬이 맞다면 진행!
+                if (SkillData && SkillData->ItemType == EMAItemType::Skill)
+                {
+                    if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(GetOwningPlayerPawn()))
+                    {
+                        // 1) 캐릭터에게 스킬 획득 처리 (기존에 쓰시던 TryPurchaseSkill)
+                        if (UInventoryComponent* InvComp = PlayerChar->GetComponentByClass<UInventoryComponent>())
+                        {
+                            InvComp->TryPurchaseSkill(FieldItem->ItemRowName, FieldItem->ItemDataTable);
+                        }
+                        
+                        // 2) 지금 마우스를 놓은 '이 슬롯'에 스킬을 바로 장착시킴
+                        if (USkillBookComponent* SkillBook = PlayerChar->GetSkillBookComponent())
+                        {
+                            if (SkillData->GrantedAbility) // 데이터 테이블에 등록된 어빌리티 클래스
+                            {
+                                SkillBook->EquipSkill(SkillData->GrantedAbility, AssignedInputID);
+                                UpdateSlot(SkillData->GrantedAbility); // UI 아이콘 업데이트
+                            }
+                        }
+
+                        // 3) 처리가 끝났으니 바닥의 액터는 파괴
+                        FieldItem->Destroy();
+                        return true;
+                    }
+                }
+            }
+        }
     }
     
     return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);

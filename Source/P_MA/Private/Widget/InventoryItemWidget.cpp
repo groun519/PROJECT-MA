@@ -7,7 +7,12 @@
 #include "Components/Image.h"
 #include "Widget/InventoryItemDragDropOp.h"
 #include "Widget/ItemToolTip.h"
-#include "Inventory/MAItemTypes.h"     
+#include "Inventory/MAItemTypes.h"
+#include "Player/MAPlayerCharacter.h"     // 캐릭터 인식
+#include "Player/MAPlayerController.h"
+#include "Inventory/InventoryItem.h"
+#include "Inventory/InventoryComponent.h"
+#include "Inventory/MAFieldItem.h"
 #include "Widget/MAInventoryListView.h" 
 
 void UInventoryItemWidget::NativeConstruct()
@@ -177,15 +182,50 @@ void UInventoryItemWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 
 bool UInventoryItemWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
-	if (UInventoryItemWidget* OtherWidget = Cast<UInventoryItemWidget>(InOperation->Payload))
+	// 1. 우리가 만든 인벤토리 드래그 오퍼레이션인지 확인
+	UInventoryItemDragDropOp* DragOp = Cast<UInventoryItemDragDropOp>(InOperation);
+	if (!DragOp) return false;
+
+	// 2. 필드 아이템을 잡아서 인벤토리에 놓은 경우
+	if (AMAFieldItem* FieldItem = Cast<AMAFieldItem>(DragOp->Payload))
 	{
-		if (OtherWidget && !OtherWidget->IsEmpty())
+		if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(GetOwningPlayerPawn()))
 		{
-			OnInventoryItemDropped.Broadcast(this, OtherWidget);
-			return true;
+			UInventoryComponent* InvComp = PlayerChar->GetComponentByClass<UInventoryComponent>();
+			if (InvComp)
+			{
+				// 3. 데이터 테이블에서 아이템 기본 정보 읽어오기
+				if (FieldItem->ItemDataTable && !FieldItem->ItemRowName.IsNone())
+				{
+					const FBaseItemData* ItemData = FieldItem->ItemDataTable->FindRow<FBaseItemData>(FieldItem->ItemRowName, TEXT("CheckItemTypeDrop"));
+					
+					if (ItemData)
+					{
+						// ==========================================================
+						// [수정된 부분] 스킬이면 아예 무시하고 튕겨냅니다!
+						// ==========================================================
+						if (ItemData->ItemType == EMAItemType::Skill) 
+						{
+							// return false를 하면 드롭이 취소되고, 
+							// FieldItem->Destroy()가 실행되지 않아서 바닥에 그대로 남습니다.
+							return false; 
+						}
+						else 
+						{
+							// 일반 아이템(소모품, 장비 등)인 경우에만 인벤토리로 획득!
+							InvComp->TryPurchaseItem(FieldItem->ItemRowName, FieldItem->ItemDataTable);
+							
+							// 무사히 가방에 넣었으니 바닥 액터 파괴
+							FieldItem->Destroy();
+							return true;
+						}
+					}
+				}
+			}
 		}
 	}
 
+	// 5. 필드 아이템이 아니면 기존의 인벤토리 간 이동 로직 수행
 	return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 }
 
