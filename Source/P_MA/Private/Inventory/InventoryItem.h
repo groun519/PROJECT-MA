@@ -6,6 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayAbilitySpecHandle.h"
+#include "GAS/Modules/MASkillModuleData.h"
 #include "Inventory/MAItemTypes.h" 
 #include "InventoryItem.generated.h"
 
@@ -69,10 +70,10 @@ public:
 	const FBaseItemData* GetBaseData() const;           
 	const FConsumableItemData* GetConsumableData() const; 
 	const FEquipmentItemData* GetEquipmentData() const;  
-	const FSkillItemData* GetSkillData() const;       
+	const FSkillData* GetSkillData() const;       
 	
 	UTexture2D* GetIcon() const;
-	TSubclassOf<class UGameplayAbility> GetGrantedAbility() const;
+	TSubclassOf<UMAGameplayAbility_Skill> GetGrantedAbility() const;
 	bool IsStackable() const;
 	int32 GetMaxStackCount() const;
 

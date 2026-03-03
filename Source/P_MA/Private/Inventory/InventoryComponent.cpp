@@ -7,6 +7,8 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Framework/MAAssetManager.h"
 #include "GAS/MAPlayerAttributeSet.h"
+#include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Modules/MASkillModuleData.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -270,7 +272,7 @@ bool UInventoryComponent::Server_PurchaseItem_Validate(FName ItemRowName, UDataT
 void UInventoryComponent::Server_PurchaseSkill_Implementation(FName SkillRowName, UDataTable* SourceTable)
 {
 	if (!SourceTable) return;
-	const FSkillItemData* SkillData = SourceTable->FindRow<FSkillItemData>(SkillRowName, TEXT("PurchaseSkill"));
+	const FSkillData* SkillData = SourceTable->FindRow<FSkillData>(SkillRowName, TEXT("PurchaseSkill"));
 	if (!SkillData || !SkillData->GrantedAbility) return;
 	
 	if (GetGold() < SkillData->Price) return;

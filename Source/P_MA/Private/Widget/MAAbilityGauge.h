@@ -28,7 +28,7 @@ public:
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
     
     void UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass);
-    const struct FSkillItemData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
+    const struct FSkillData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
 
     // 💡 핫키 관련 함수
     void UpdateHotKeyText();

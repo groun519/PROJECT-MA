@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Widget/MAAbilityGauge.h"
+#include <Inventory/MAFieldItem.h>
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
@@ -16,6 +17,8 @@
 #include "InputMappingContext.h"      
 #include "Inventory/MAItemTypes.h" 
 #include "InputAction.h" 
+#include "InventoryItemDragDropOp.h"
+#include "Inventory/InventoryComponent.h"
 
 void UMAAbilityGauge::NativeConstruct()
 {
@@ -159,7 +162,7 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
             if (FieldItem->ItemDataTable && !FieldItem->ItemRowName.IsNone())
             {
                 // 데이터 테이블에서 이 아이템이 '스킬 데이터'를 가지고 있는지 확인합니다.
-                const FSkillItemData* SkillData = FieldItem->ItemDataTable->FindRow<FSkillItemData>(FieldItem->ItemRowName, TEXT("CheckSkillDrop"));
+                const FSkillData* SkillData = FieldItem->ItemDataTable->FindRow<FSkillData>(FieldItem->ItemRowName, TEXT("CheckSkillDrop"));
                 
                 // 타입이 스킬이 맞다면 진행!
                 if (SkillData && SkillData->ItemType == EMAItemType::Skill)
@@ -281,7 +284,7 @@ void UMAAbilityGauge::ComboWaitFinished()
    ComboGauge->SetVisibility(ESlateVisibility::Hidden);
    ComboCounterText->SetVisibility(ESlateVisibility::Hidden);
 
-   const FSkillItemData* WidgetData = FindWidgetDataForAbility(AbilityCDO->GetClass());
+   const FSkillData* WidgetData = FindWidgetDataForAbility(AbilityCDO->GetClass());
    if (WidgetData && Icon)
    {
       UTexture2D* Texture = WidgetData->Icon.LoadSynchronous();
@@ -311,7 +314,7 @@ void UMAAbilityGauge::ComboWaitFinished()
 
 void UMAAbilityGauge::UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
-    const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
+   const FSkillData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
 
     if (WidgetData && Icon)
     {
@@ -331,13 +334,13 @@ void UMAAbilityGauge::UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass)
     InitializeAbility(NewSkillClass);
 }
 
-const FSkillItemData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
+const FSkillData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
 {
     if (!AbilityDataTable) return nullptr;
 
     for (auto& RowPair : AbilityDataTable->GetRowMap())
     {
-       const FSkillItemData* Data = reinterpret_cast<const FSkillItemData*>(RowPair.Value);
+       const FSkillData* Data = reinterpret_cast<const FSkillData*>(RowPair.Value);
        if (Data && Data->GrantedAbility == AbilityClass)
        {
           return Data;

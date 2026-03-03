@@ -158,7 +158,6 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 
 		if (!RegularCameraShake || !CriticalCameraShake)
 		{
-			UE_LOG(LogTemp, Error, TEXT("PlayerController 블루프린트에 RegularCameraShake와 CriticalShake를 설정하시오"));
 			return;
 		}
 		if (!bIsPlayerHit)
@@ -266,27 +265,27 @@ void AMAPlayerController::ToggleShop()
 
 void AMAPlayerController::ToggleSkillBook()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
+	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
 
 	if (!GameplayWidget)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
+		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
 		return;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
+	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
 	
 	GameplayWidget->ToggleSkillBook();
 	
 	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
 	{
 		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
-		FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
-		UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
+		//FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
+		//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
 	}
 }
 

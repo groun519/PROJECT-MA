@@ -36,7 +36,9 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UDataTable* SkillDataTable;
+	
 	UPROPERTY()
 	TArray<TSubclassOf<UGameplayAbility>> LearnedSkills;
 

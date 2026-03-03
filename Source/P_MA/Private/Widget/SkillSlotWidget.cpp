@@ -6,12 +6,14 @@
 #include "Widget/SkillDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/TextBlock.h"
+#include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Modules/MASkillModuleData.h"
 #include "Inventory/MAItemTypes.h" 
 
 void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass, EMAAbilityInputID NewInputID)
 {
 	this->SkillClass = NewSkillClass;
-	const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
+	const FSkillData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
 
 	if (WidgetData && SkillIcon)
 	{
@@ -31,13 +33,13 @@ void USkillSlotWidget::Init(TSubclassOf<UGameplayAbility> NewSkillClass, EMAAbil
 	OnSkillSet(NewSkillClass);
 }
 
-const FSkillItemData* USkillSlotWidget::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
+const FSkillData* USkillSlotWidget::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
 {
 	if (!AbilityDataTable) return nullptr;
 	
 	for (auto& RowPair : AbilityDataTable->GetRowMap())
 	{
-		const FSkillItemData* Data = reinterpret_cast<const FSkillItemData*>(RowPair.Value);
+		const FSkillData* Data = reinterpret_cast<const FSkillData*>(RowPair.Value);
 		
 		if (Data && Data->GrantedAbility == AbilityClass)
 		{

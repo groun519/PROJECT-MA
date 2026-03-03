@@ -4,6 +4,10 @@
 #include "Inventory/SkillBookComponent.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "MAItemTypes.h"
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Modules/MASkillModuleData.h"
 
 USkillBookComponent::USkillBookComponent()
 {
@@ -14,6 +18,30 @@ USkillBookComponent::USkillBookComponent()
 void USkillBookComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	UAbilitySystemComponent* ASC = GetOwner()->FindComponentByClass<UAbilitySystemComponent>();
+	if (!ASC || !SkillDataTable) return;
+	
+	TArray<FSkillData*> AllSkillRows;
+	SkillDataTable->GetAllRows<FSkillData>(TEXT("SkillPrewarming"), AllSkillRows);
+
+	for (const FSkillData* RowData : AllSkillRows)
+	{
+		// 아이템 타입이 스킬이고, 실제 어빌리티 클래스가 세팅되어 있다면
+		if (RowData && RowData->ItemType == EMAItemType::Skill && RowData->GrantedAbility)
+		{
+			TSubclassOf<UGameplayAbility> SkillClass = RowData->GrantedAbility;
+
+			// 1. CDO 미리 불러오기 및 UI 연산 캐싱
+			UGameplayAbility* CDO = SkillClass->GetDefaultObject<UGameplayAbility>();
+			UMAAbilitySystemStatics::GetExpectedCooldownDuration(CDO, ASC);
+			UMAAbilitySystemStatics::GetStaticCostForAbility(CDO);
+
+			// 2. 인스턴싱 및 셰이더 컴파일 강제 실행 후 즉시 뺏기
+			FGameplayAbilitySpec Spec(SkillClass, 1, INDEX_NONE, GetOwner());
+			FGameplayAbilitySpecHandle TempHandle = ASC->GiveAbility(Spec);
+			ASC->ClearAbility(TempHandle);
+		}
+	}
 }
 
 bool USkillBookComponent::HasSkill(TSubclassOf<UGameplayAbility> SkillClass) const
@@ -44,7 +72,7 @@ void USkillBookComponent::Client_UnlockSkill_Implementation(TSubclassOf<UGamepla
 	
 	OnSkillLearned.Broadcast(SkillClass);
     
-	UE_LOG(LogTemp, Warning, TEXT("Skill Learned: %s"), *SkillClass->GetName());
+	//UE_LOG(LogTemp, Warning, TEXT("Skill Learned: %s"), *SkillClass->GetName());
 }
 
 void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, EMAAbilityInputID SlotInputID)
@@ -78,7 +106,7 @@ void USkillBookComponent::EquipSkill(TSubclassOf<UGameplayAbility> SkillClass, E
 	{
 		EquippedSkills.Add(SlotInputID, NewHandle);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Equipped Skill [%s] to InputID [%d]"), *SkillClass->GetName(), (int32)SlotInputID);
+	//UE_LOG(LogTemp, Warning, TEXT("Equipped Skill [%s] to InputID [%d]"), *SkillClass->GetName(), (int32)SlotInputID);
 }
 
 void USkillBookComponent::Server_EquipSkill_Implementation(TSubclassOf<UGameplayAbility> SkillCalss,

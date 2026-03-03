@@ -8,6 +8,7 @@
 #include "Engine/DataTable.h"
 #include "GAS/Projectile/MAAbilityRangeActor.h"
 #include "GAS/Projectile/MAProjectile.h"
+#include "Inventory/MAItemTypes.h"
 #include "StructUtils/Public/InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
@@ -22,7 +23,7 @@ class UMASkillModule;
  *	모든 스킬 관리 데이터 테이블
  */
 USTRUCT(BlueprintType)
-struct FSkillData : public FTableRowBase
+struct FSkillData : public FBaseItemData
 {
 	GENERATED_BODY()
 
@@ -30,7 +31,7 @@ public:
 	FSkillData();
 	/** 해당 스킬의 GA 블루프린트 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
-	TSubclassOf<UMAGameplayAbility_Skill> AbilityClass;
+	TSubclassOf<UMAGameplayAbility_Skill> GrantedAbility;
 	/** 해당 스킬의 애니메이션 몽타주 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	UAnimMontage* SkillMontage;
@@ -106,15 +107,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
 	float HitStopVignette = 1.f;
 
+	
 	/** UI용 Icon 항목 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
 	TSoftObjectPtr<UTexture2D> SkillIcon;
 	/** UI용 스킬 이름 항목 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
 	FText DisplayName;
 	/** UI용 스킬 설명 항목 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
 	FText Description;
+	*/
 };
 
 // 행동 모듈 데이터 테이블

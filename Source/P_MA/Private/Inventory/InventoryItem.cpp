@@ -6,6 +6,8 @@
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Ability/MAGameplayAbility_Skill.h"
+#include "GAS/Modules/MASkillModuleData.h"
 
 FInventoryItemHandle::FInventoryItemHandle()
     : HandleId{GetInvalidId()}
@@ -91,11 +93,11 @@ const FEquipmentItemData* UInventoryItem::GetEquipmentData() const
     return nullptr;
 }
 
-const FSkillItemData* UInventoryItem::GetSkillData() const
+const FSkillData* UInventoryItem::GetSkillData() const
 {
     if (CachedType == EMAItemType::Skill && SourceDataTable)
     {
-        return SourceDataTable->FindRow<FSkillItemData>(ItemRowName, TEXT("InventoryItem_Skill"));
+        return SourceDataTable->FindRow<FSkillData>(ItemRowName, TEXT("InventoryItem_Skill"));
     }
     return nullptr;
 }
@@ -123,9 +125,9 @@ int32 UInventoryItem::GetMaxStackCount() const
     return 1;
 }
 
-TSubclassOf<UGameplayAbility> UInventoryItem::GetGrantedAbility() const
+TSubclassOf<UMAGameplayAbility_Skill> UInventoryItem::GetGrantedAbility() const
 {
-    if (const FSkillItemData* SkillData = GetSkillData())
+    if (const FSkillData* SkillData = GetSkillData())
     {
         return SkillData->GrantedAbility;
     }
