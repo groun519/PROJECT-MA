@@ -108,6 +108,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float RotationInterpSpeed = 15.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.0"))
+	float RotationNetSendInterval = 0.05f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.0"))
+	float RotationNetSendYawThreshold = 1.5f;
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
@@ -133,9 +139,14 @@ private:
 
 	/** Player Rotate **/
 	void UpdateRotationByReadyRide(float DeltaTime);
+	void TrySendRotationToServer(const FVector& LookDirection);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Unreliable)
 	void Server_SetRotation(FVector LookDirection);
+
+	float LastRotationNetSendTime = -1000.f;
+	float LastSentRotationYaw = 0.f;
+	bool bHasSentRotationYaw = false;
 
 	/** Loadout **/
 	void BindLoadoutDelegates();

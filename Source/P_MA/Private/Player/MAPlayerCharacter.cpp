@@ -180,10 +180,7 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, RotationInterpSpeed);
 			SetActorRotation(NewRotation);
 
-			if (!HasAuthority())
-			{
-				Server_SetRotation(LookDir);
-			}
+			TrySendRotationToServer(LookDir);
 		}
 		return;
 	}
@@ -193,6 +190,27 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
+}
+
+void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
+{
+	if (HasAuthority() || !IsLocallyControlled()) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	const float TargetYaw = LookDirection.Rotation().Yaw;
+	const float YawDelta = FMath::Abs(FMath::FindDeltaAngleDegrees(LastSentRotationYaw, TargetYaw));
+	const float Now = World->GetTimeSeconds();
+	const bool bIntervalPassed = (Now - LastRotationNetSendTime) >= RotationNetSendInterval;
+	const bool bYawChangedEnough = !bHasSentRotationYaw || (YawDelta >= RotationNetSendYawThreshold);
+
+	if (!bIntervalPassed || !bYawChangedEnough) return;
+
+	Server_SetRotation(LookDirection);
+	LastRotationNetSendTime = Now;
+	LastSentRotationYaw = TargetYaw;
+	bHasSentRotationYaw = true;
 }
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
@@ -415,10 +433,7 @@ void AMAPlayerCharacter::SnapRotationToMouse()
 	if (GetLookDirectionToMouse(LookDir))
 	{
 		SetActorRotation(FRotator(0, LookDir.Rotation().Yaw, 0));
-		if (!HasAuthority())
-		{
-			Server_SetRotation(LookDir);
-		}
+		TrySendRotationToServer(LookDir);
 	}
 }
 

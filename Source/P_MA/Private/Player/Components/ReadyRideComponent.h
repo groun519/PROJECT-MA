@@ -32,8 +32,10 @@ public:
 private:
 	bool IsAttachedToPlatformRoot() const;
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
+	void HandleReplicatedAttachStateChanged(bool bNowAttached) const;
 
 	bool bIsRidingPlatform = false;
+	bool bPrevAttachedReady = false;
 	float AttachedMoveSpeed = 0.f;
 	FVector AttachedMoveVelocity = FVector::ZeroVector;
 	FVector PrevTickLocation = FVector::ZeroVector;

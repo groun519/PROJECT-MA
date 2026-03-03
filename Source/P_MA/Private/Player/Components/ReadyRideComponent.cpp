@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SceneComponent.h"
 #include "EngineUtils.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Level/Platform/PlatformRoot.h"
 #include "Player/MAPlayerCharacter.h"
 
@@ -21,6 +22,7 @@ void UReadyRideComponent::BeginPlay()
 	{
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
+	bPrevAttachedReady = IsAttachedReady();
 
 	RefreshRideCollisionMode();
 }
@@ -33,6 +35,12 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	if (!OwnerActor) return;
 
 	const bool bAttachedByReady = IsAttachedReady();
+	if (bAttachedByReady != bPrevAttachedReady)
+	{
+		HandleReplicatedAttachStateChanged(bAttachedByReady);
+		bPrevAttachedReady = bAttachedByReady;
+	}
+
 	const FVector CurrentLocation = OwnerActor->GetActorLocation();
 	if (bAttachedByReady && DeltaTime > KINDA_SMALL_NUMBER)
 	{
@@ -130,6 +138,21 @@ bool UReadyRideComponent::IsAttachedToPlatformRoot() const
 
 	const AActor* AttachParentOwner = AttachParent->GetOwner();
 	return AttachParentOwner && AttachParentOwner->IsA(APlatformRoot::StaticClass());
+}
+
+void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached) const
+{
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	// Only reconcile simulated proxies. Server/local-owner flow remains untouched.
+	if (OwnerCharacter->HasAuthority() || OwnerCharacter->IsLocallyControlled()) return;
+
+	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
+	if (!MoveComp) return;
+
+	MoveComp->StopMovementImmediately();
+	MoveComp->ClearAccumulatedForces();
 }
 
 void UReadyRideComponent::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const
