@@ -144,6 +144,13 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
+	if (FuryEffect)
+	{
+		FGameplayEffectSpecHandle FuryEffectSpec = MakeOutgoingGameplayEffectSpec(FuryEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
+
+		ApplyGameplayEffectSpecToOwner(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), CurrentActivationInfo, FuryEffectSpec);
+	}
+	
 	TArray<FHitResult> HitResults =
 		GetHitResultFromVirtualSocketTargetData(Data.TargetData);
 
@@ -155,19 +162,10 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
 		IgnoreTargets.Add(HitResult.GetActor());
 	}
-
-	if (FuryEffect && !IgnoreTargets.IsEmpty())
-	{
-		FGameplayEffectSpecHandle FuryEffectSpec = MakeOutgoingGameplayEffectSpec(FuryEffect, GetAbilityLevel(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo()));
-		ApplyGameplayEffectSpecToOwner(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), CurrentActivationInfo, FuryEffectSpec);
-
-		IgnoreTargets.Empty();
-	}
 }
 
 void UGA_Combo::ClearIgnore(FGameplayEventData Data)
 {
-	
 	FGameplayTag ClearTag = Data.EventTag;
 
 	if (ClearTag == GetComboClearEventTag())
