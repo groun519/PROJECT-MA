@@ -35,7 +35,6 @@ public:
 	void AcknowledgePossession(APawn* NewPawn) override;
 
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
 	
 	// TeamID에 Team Agent 할당
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
@@ -113,8 +112,4 @@ private:
 	
 	UFUNCTION()
 	void ToggleSkillBook();
-	// 마우스 커서 관련 여기 코드는 강의에는 없는 별도 코드입니다.
-	bool bOnMouseCursorRecord = false;
-	void CheckMouseCursorShape();
-	// 여기까지
 };

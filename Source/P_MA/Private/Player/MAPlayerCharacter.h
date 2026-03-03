@@ -42,6 +42,9 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void BaseChange() override;
 
+	void SetInputEnabledFromPlayerController(bool bEnabled);
+	void SnapRotationToMouse();
+
 	UFUNCTION(Exec)
 	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	UFUNCTION(Server, Reliable)
@@ -55,12 +58,31 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
 
+	UPROPERTY(EditDefaultsOnly, Category = "State")
+	FGameplayTag RotationLockTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "State")
+	FGameplayTag RushingTag;
+
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
 
 	/** Ready Ride Component **/
 	FORCEINLINE UReadyRideComponent* GetReadyRideComponent() const { return ReadyRideComponent; }
 
+	/** Interact **/
+	UFUNCTION()
+	void SetCurrentInteractComp(UInteractComponent* NewComp);
+
+	UFUNCTION()
+	void ClearCurrentInteractComp(UInteractComponent* Comp);
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
+	
+	/** Cam **/
+	bool GetLookDirectionToMouse(FVector& OutDirection) const;
+	
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
@@ -119,23 +141,6 @@ private:
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
-public:
-	void SetInputEnabledFromPlayerController(bool bEnabled);
-	void SnapRotationToMouse();
-
-	/** Interact **/
-	UFUNCTION()
-	void SetCurrentInteractComp(UInteractComponent* NewComp);
-
-	UFUNCTION()
-	void ClearCurrentInteractComp(UInteractComponent* Comp);
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
-	
-	/** Cam **/
-	bool GetLookDirectionToMouse(FVector& OutDirection) const;
-private:
 
 	/** Player Rotate **/
 	void UpdateRotationByReadyRide(float DeltaTime);
@@ -194,31 +199,26 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USceneCaptureComponent2D* MinimapCapture;
 
+	UPROPERTY(EditDefaultsOnly, Category="MinimapCamera", meta=(ClampMin="0.01"))
+	float MinimapCaptureInterval = 0.05f;
+	float MinimapCaptureAccumulatedTime = 0.f;
+
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class UPaperSpriteComponent* MinimapSprite;
 
-	/*************************************************************/
-	/*                      Inventory                            */
-	/*************************************************************/
-	
-private:
+	void InitializeMinimapCapture();
+	void TickMinimapCapture(float DeltaTime);
+
+	/** Inventory **/
 	class UInventoryComponent* InventoryComponent;
 
+	/** SkillBook **/
 	UPROPERTY(VisibleAnywhere, Category = "Skill")
 	class USkillBookComponent* SkillBookComponent;
-
-	/*************************************************************/
-	/**								SKILL						**/
-	/*************************************************************/
 public:
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RotationLockTag;
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RushingTag;
-
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
-
+	
+	/** Skill **/
 	// Charge스킬을 위한 코드
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityStarted;

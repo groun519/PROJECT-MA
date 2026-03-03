@@ -33,6 +33,7 @@ private:
 	bool IsAttachedToPlatformRoot() const;
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
 	void HandleReplicatedAttachStateChanged(bool bNowAttached) const;
+	void UpdateTickPolicy(bool bAttachedByReady);
 
 	bool bIsRidingPlatform = false;
 	bool bPrevAttachedReady = false;

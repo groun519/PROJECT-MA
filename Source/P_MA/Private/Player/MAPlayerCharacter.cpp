@@ -16,7 +16,6 @@
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
-#include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
@@ -33,6 +32,8 @@
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	/** Camera Set **/
 	// 1) CameraBoom
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
@@ -82,6 +83,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 
     MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
     MinimapCameraBoom->SetupAttachment(RootComponent);
+    MinimapCameraBoom->SetAbsolute(false, true, false);
     MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
     MinimapCameraBoom->TargetArmLength = 2000.0f;
     MinimapCameraBoom->bUsePawnControlRotation = false;
@@ -134,12 +136,14 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
 
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
 
@@ -159,6 +163,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	if (IsDead()) return;
 
 	UpdateRotationByReadyRide(DeltaTime);
+	TickMinimapCapture(DeltaTime);
 
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
@@ -172,6 +177,9 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation();
 	if (!bBlockManualRotation)
 	{
+		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
+		if (!IsLocallyControlled()) return;
+
 		FVector LookDir;
 		if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
 		{
@@ -223,6 +231,7 @@ void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection
 void AMAPlayerCharacter::PawnClientRestart()
 {
 	Super::PawnClientRestart();
+	InitializeMinimapCapture();
 
 	APlayerController* OwningPlayerController = GetController<APlayerController>();
 	if (OwningPlayerController)
@@ -435,6 +444,33 @@ void AMAPlayerCharacter::SnapRotationToMouse()
 		SetActorRotation(FRotator(0, LookDir.Rotation().Yaw, 0));
 		TrySendRotationToServer(LookDir);
 	}
+}
+
+void AMAPlayerCharacter::InitializeMinimapCapture()
+{
+	if (!MinimapCapture) return;
+
+	const bool bEnableCapture = IsLocallyControlled();
+	MinimapCapture->SetComponentTickEnabled(false);
+	MinimapCapture->bCaptureEveryFrame = false;
+	MinimapCapture->bCaptureOnMovement = false;
+	MinimapCaptureAccumulatedTime = 0.f;
+
+	if (bEnableCapture)
+	{
+		MinimapCapture->CaptureScene();
+	}
+}
+
+void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
+{
+	if (!MinimapCapture || !IsLocallyControlled()) return;
+
+	MinimapCaptureAccumulatedTime += DeltaTime;
+	if (MinimapCaptureAccumulatedTime < MinimapCaptureInterval) return;
+
+	MinimapCaptureAccumulatedTime = 0.f;
+	MinimapCapture->CaptureScene();
 }
 
 void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)

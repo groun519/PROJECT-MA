@@ -6,12 +6,14 @@
 #include "Components/SceneComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Pawn.h"
 #include "Level/Platform/PlatformRoot.h"
 #include "Player/MAPlayerCharacter.h"
 
 UReadyRideComponent::UReadyRideComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UReadyRideComponent::BeginPlay()
@@ -23,6 +25,7 @@ void UReadyRideComponent::BeginPlay()
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
 	bPrevAttachedReady = IsAttachedReady();
+	UpdateTickPolicy(bPrevAttachedReady);
 
 	RefreshRideCollisionMode();
 }
@@ -39,6 +42,7 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	{
 		HandleReplicatedAttachStateChanged(bAttachedByReady);
 		bPrevAttachedReady = bAttachedByReady;
+		UpdateTickPolicy(bAttachedByReady);
 	}
 
 	const FVector CurrentLocation = OwnerActor->GetActorLocation();
@@ -70,6 +74,8 @@ void UReadyRideComponent::NotifyReadyRideAttachmentChanged(bool bInAttachedReady
 	{
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
+
+	UpdateTickPolicy(bInAttachedReady);
 
 	RefreshRideCollisionMode();
 }
@@ -153,6 +159,30 @@ void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached) 
 
 	MoveComp->StopMovementImmediately();
 	MoveComp->ClearAccumulatedForces();
+}
+
+void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
+{
+	APawn* PawnOwner = Cast<APawn>(GetOwner());
+	const bool bClientPawn = PawnOwner && !PawnOwner->HasAuthority();
+
+	if (bAttachedByReady)
+	{
+		PrimaryComponentTick.TickInterval = 0.f;
+		SetComponentTickEnabled(true);
+		return;
+	}
+
+	if (bClientPawn)
+	{
+		// Client pawns (owner + simulated) poll attachment at low frequency
+		// so replicated attach edges can be detected and tick can switch back to per-frame.
+		PrimaryComponentTick.TickInterval = 0.1f;
+		SetComponentTickEnabled(true);
+		return;
+	}
+
+	SetComponentTickEnabled(false);
 }
 
 void UReadyRideComponent::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const

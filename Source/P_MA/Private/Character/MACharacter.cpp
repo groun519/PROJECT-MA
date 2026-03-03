@@ -24,7 +24,7 @@
 
 AMACharacter::AMACharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	/** Mesh **/
 	GetMesh()->SetupAttachment(GetRootComponent());
