@@ -4,9 +4,12 @@
 #include "GAS/Ability/MAGameplayAbility_ReactionBase.h"
 
 #include "AbilitySystemComponent.h"
+#include "MAGameplayAbility_Skill.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Character/MACharacter.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Modules/SkillModule_Combo.h"
 
 UMAGameplayAbility_ReactionBase::UMAGameplayAbility_ReactionBase()
 {
@@ -56,6 +59,18 @@ void UMAGameplayAbility_ReactionBase::ActivateAbility(const FGameplayAbilitySpec
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+
+	float ReactDuration = 0.f;
+	if (const UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(TriggerEventData->OptionalObject))
+	{
+		ReactDuration = Skill->GetReactDuration();
+	}
+	if (ReactDuration > 0.f)
+	{
+		UAbilityTask_WaitDelay* WaitDelayTask = UAbilityTask_WaitDelay::WaitDelay(this, ReactDuration);
+		WaitDelayTask->OnFinish.AddDynamic(this, &UMAGameplayAbility_ReactionBase::OnReactDurationEnded);
+		WaitDelayTask->ReadyForActivation();
+	}
 	
 	float HitForce = TriggerEventData->EventMagnitude;
 	FVector PushDir = GetPushDirection(AvatarChar, Cast<AActor>(TriggerEventData->Instigator));
@@ -67,7 +82,7 @@ void UMAGameplayAbility_ReactionBase::ActivateAbility(const FGameplayAbilitySpec
 		CurrentDebuffTag = *FoundDebuff;
 		ActorInfo->AbilitySystemComponent->AddLooseGameplayTag(CurrentDebuffTag);
 	}
-
+	
 	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, AnimConfig.Montage);
 	MontageTask->OnCompleted.AddDynamic(this, &UMAGameplayAbility_ReactionBase::OnMontageCompleted);
 	MontageTask->OnInterrupted.AddDynamic(this, &UMAGameplayAbility_ReactionBase::OnMontageCompleted);
@@ -90,6 +105,11 @@ void UMAGameplayAbility_ReactionBase::EndAbility(const FGameplayAbilitySpecHandl
 }
 
 void UMAGameplayAbility_ReactionBase::OnMontageCompleted()
+{
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+}
+
+void UMAGameplayAbility_ReactionBase::OnReactDurationEnded()
 {
 	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }

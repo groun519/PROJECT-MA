@@ -91,6 +91,9 @@ public:
 	/** 경직의 힘 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category="Hit Reaction")
 	float ReactionForce = 200.f;
+	/** 타격 애니메이션이 지속될 시간 (0초면 애니메이션 1회만 실행) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category="Hit Reaction")
+	float ReactDuration = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop")
 	bool bUseHitStop = false;
@@ -106,18 +109,6 @@ public:
 	/** 역경직 카메라 비네트 효과 세기 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hit Stop", meta=(EditCondition="bUseHitStop"))
 	float HitStopVignette = 1.f;
-
-	
-	/** UI용 Icon 항목 */
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	TSoftObjectPtr<UTexture2D> SkillIcon;
-	/** UI용 스킬 이름 항목 */
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	FText DisplayName;
-	/** UI용 스킬 설명 항목 */
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	FText Description;
-	*/
 };
 
 // 행동 모듈 데이터 테이블
@@ -189,8 +180,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> ComboModuleEffect;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="State.Debuff"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Effect.Reaction"))
 	FGameplayTag ComboHitReactionTag;
+	
+	/** 타격 애니메이션이 지속될 시간 (0초면 애니메이션 1회만 실행) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ReactDuration = 0.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InputWindow = 3.f;

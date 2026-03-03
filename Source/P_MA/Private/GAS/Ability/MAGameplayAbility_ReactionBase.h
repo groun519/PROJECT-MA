@@ -24,6 +24,8 @@ protected:
 private:
 	UFUNCTION()
 	void OnMontageCompleted();
+	UFUNCTION()
+	void OnReactDurationEnded();
 	
 	FVector GetPushDirection(const AActor* Avatar,const AActor* Attacker) const;
 	

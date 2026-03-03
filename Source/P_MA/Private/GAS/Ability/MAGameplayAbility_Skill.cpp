@@ -39,9 +39,22 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
 		return;
 	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		if (!CachedSkillData.bCanMove)
+		{
+			ASC->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+		}
+		if (!CachedSkillData.bCanRotate)
+		{
+			ASC->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+		}
+	}
 	
 	IgnoreTargets.Empty();
 	ChargeRatio = 1.f;
+	CurrentReactDuration = CachedSkillData.ReactDuration;
 
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
 	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
@@ -76,6 +89,18 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 		if (Module)
 		{
 			Module->OnAbilityEnded(bWasCancelled);
+		}
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		if (!CachedSkillData.bCanMove)
+		{
+			ASC->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+		}
+		if (!CachedSkillData.bCanRotate)
+		{
+			ASC->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
 		}
 	}
 	
@@ -197,13 +222,17 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
 
-			FGameplayEventData EventPayload;
-			EventPayload.EventTag = CachedSkillData.HitReactionTag;
-			EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
-			EventPayload.Instigator = GetAvatarActorFromActorInfo();
-			EventPayload.Target = HitActor;
+			if (CachedSkillData.HitReactionTag.IsValid())
+			{
+				FGameplayEventData EventPayload;
+				EventPayload.EventTag = CachedSkillData.HitReactionTag;
+				EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+				EventPayload.OptionalObject = this;
+				EventPayload.Instigator = GetAvatarActorFromActorInfo();
+				EventPayload.Target = HitActor;
 
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+			}
 
 			ApplyHitStop(HitActor);
 		}
@@ -603,6 +632,7 @@ void UMAGameplayAbility_Skill::HandleProjectileHit(AActor* HitActor)
 		FGameplayEventData EventPayload;
 		EventPayload.EventTag = CachedSkillData.HitReactionTag;
 		EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+		EventPayload.OptionalObject = this;
 		EventPayload.Instigator = GetAvatarActorFromActorInfo();
 		EventPayload.Target = HitActor;
 
