@@ -18,6 +18,7 @@ enum class ECursorTargetRelation : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCursorTargetRelationChanged, ECursorTargetRelation, NewRelation);
 
 class UMACursorWidget;
+class UPrimitiveComponent;
 
 UCLASS()
 class P_MA_API UMACursorSubsystem : public ULocalPlayerSubsystem
@@ -36,18 +37,33 @@ public:
 	FOnCursorTargetRelationChanged OnCursorTargetRelationChanged;
 
 private:
+	struct FHighlightedPrimitiveState
+	{
+		TWeakObjectPtr<UPrimitiveComponent> Component;
+		bool bPreviousRenderCustomDepth = false;
+		int32 PreviousCustomDepthStencilValue = 0;
+	};
+
+	struct FHoveredCursorTarget
+	{
+		TWeakObjectPtr<AActor> Actor;
+	};
+
 	void RestartCursorTimer();
 	void StopCursorTimer();
 
 	void RefreshCursorTargetRelation();
-	ECursorTargetRelation ResolveCursorTargetRelation();
+	FHoveredCursorTarget ResolveHoveredTarget() const;
+	ECursorTargetRelation ResolveCursorTargetRelation(AActor* HitActor) const;
+	void UpdateHoveredActorHighlight(const FHoveredCursorTarget& HoveredTarget, ECursorTargetRelation InRelation);
+	void ClearHoveredActorHighlight();
 
 	void InitializeRuntimeCursorWidget();
 	TSubclassOf<UMACursorWidget> ResolveCursorWidgetClass();
 	void ApplyCursorRelationColor(ECursorTargetRelation InRelation);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Cursor", meta = (ClampMin = "0.01"))
-	float CursorRelationCheckInterval = 0.05f;
+	float CursorRelationCheckInterval = 0.1f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Cursor")
 	FLinearColor CursorFriendlyColor = FLinearColor(0.2f, 1.f, 0.2f, 1.f);
@@ -58,6 +74,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Cursor")
 	FLinearColor CursorNeutralColor = FLinearColor::White;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Cursor|Highlight")
+	int32 HostileHighlightStencil = 250;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Cursor|Highlight")
+	int32 NeutralHighlightStencil = 251;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Cursor|Highlight")
+	int32 FriendlyHighlightStencil = 252;
+
 	ECursorTargetRelation CursorTargetRelation = ECursorTargetRelation::None;
 
 	UPROPERTY(Transient)
@@ -65,6 +90,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMACursorWidget> CursorWidgetInstance;
+
+	TWeakObjectPtr<AActor> HighlightedActor;
+	ECursorTargetRelation HighlightedActorRelation = ECursorTargetRelation::None;
+	TArray<FHighlightedPrimitiveState> HighlightedPrimitiveStates;
 
 	FTimerHandle CursorRelationTimerHandle;
 };

@@ -217,6 +217,7 @@ private:
 	class USkillBookComponent* SkillBookComponent;
 public:
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
+	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 	
 	/** Skill **/
 	// Charge스킬을 위한 코드

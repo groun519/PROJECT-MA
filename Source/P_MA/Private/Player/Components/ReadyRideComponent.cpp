@@ -7,7 +7,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
-#include "Level/Platform/PlatformRoot.h"
+#include "Level/Platform/RideRoot.h"
 #include "Player/MAPlayerCharacter.h"
 
 UReadyRideComponent::UReadyRideComponent()
@@ -82,7 +82,7 @@ void UReadyRideComponent::NotifyReadyRideAttachmentChanged(bool bInAttachedReady
 
 bool UReadyRideComponent::IsAttachedReady() const
 {
-	return IsAttachedToPlatformRoot();
+	return IsAttachedToRideRoot();
 }
 
 bool UReadyRideComponent::TryGetAttachedYaw(float& OutYaw) const
@@ -97,7 +97,7 @@ bool UReadyRideComponent::TryGetAttachedYaw(float& OutYaw) const
 	if (!AttachParent) return false;
 
 	const AActor* AttachParentOwner = AttachParent->GetOwner();
-	if (!AttachParentOwner || !AttachParentOwner->IsA(APlatformRoot::StaticClass())) return false;
+	if (!AttachParentOwner || !AttachParentOwner->IsA(ARideRoot::StaticClass())) return false;
 
 	OutYaw = AttachParent->GetComponentRotation().Yaw;
 	return true;
@@ -131,7 +131,7 @@ void UReadyRideComponent::HandleOwnerBaseChanged()
 	RefreshRideCollisionMode();
 }
 
-bool UReadyRideComponent::IsAttachedToPlatformRoot() const
+bool UReadyRideComponent::IsAttachedToRideRoot() const
 {
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
@@ -143,7 +143,7 @@ bool UReadyRideComponent::IsAttachedToPlatformRoot() const
 	if (!AttachParent) return false;
 
 	const AActor* AttachParentOwner = AttachParent->GetOwner();
-	return AttachParentOwner && AttachParentOwner->IsA(APlatformRoot::StaticClass());
+	return AttachParentOwner && AttachParentOwner->IsA(ARideRoot::StaticClass());
 }
 
 void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached) const

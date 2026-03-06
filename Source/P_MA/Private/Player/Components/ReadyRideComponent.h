@@ -7,6 +7,7 @@
 #include "ReadyRideComponent.generated.h"
 
 class AMAPlayerCharacter;
+class ARideRoot;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class P_MA_API UReadyRideComponent : public UActorComponent
@@ -30,7 +31,7 @@ public:
 	void HandleOwnerBaseChanged();
 
 private:
-	bool IsAttachedToPlatformRoot() const;
+	bool IsAttachedToRideRoot() const;
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
 	void HandleReplicatedAttachStateChanged(bool bNowAttached) const;
 	void UpdateTickPolicy(bool bAttachedByReady);

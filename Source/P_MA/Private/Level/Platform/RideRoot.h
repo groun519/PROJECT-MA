@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PlatformRoot.generated.h"
+#include "RideRoot.generated.h"
 
 class USplineComponent;
 class UTextRenderComponent;
@@ -17,12 +17,12 @@ struct FHitResult;
 DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
 UCLASS()
-class P_MA_API APlatformRoot : public AActor
+class P_MA_API ARideRoot : public AActor
 {
 	GENERATED_BODY()
 	
 public:
-	APlatformRoot();
+	ARideRoot();
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

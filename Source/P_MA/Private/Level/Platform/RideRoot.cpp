@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "PlatformRoot.h"
+#include "RideRoot.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SphereComponent.h"
@@ -13,7 +13,7 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 
-APlatformRoot::APlatformRoot()
+ARideRoot::ARideRoot()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
@@ -57,21 +57,21 @@ APlatformRoot::APlatformRoot()
 	ReadyRangeDecal->SetVisibility(false, true);
 }
 
-void APlatformRoot::BeginPlay()
+void ARideRoot::BeginPlay()
 {
 	Super::BeginPlay();
 
 	if (MoveInTrigger)
 	{
 		MoveInTrigger->SetSphereRadius(MoveInTriggerRadius);
-		MoveInTrigger->OnComponentBeginOverlap.AddDynamic(this, &APlatformRoot::HandleMoveInTriggerBeginOverlap);
-		MoveInTrigger->OnComponentEndOverlap.AddDynamic(this, &APlatformRoot::HandleMoveInTriggerEndOverlap);
+		MoveInTrigger->OnComponentBeginOverlap.AddDynamic(this, &ARideRoot::HandleMoveInTriggerBeginOverlap);
+		MoveInTrigger->OnComponentEndOverlap.AddDynamic(this, &ARideRoot::HandleMoveInTriggerEndOverlap);
 	}
 
 	UpdateRangeClampVFXWorldLocation();
 }
 
-void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
+void ARideRoot::SetWaitMoveIn(bool bWaitMoveIn)
 {
 	if (HasAuthority())
 	{
@@ -101,7 +101,7 @@ void APlatformRoot::SetWaitMoveIn(bool bWaitMoveIn)
 	}
 }
 
-void APlatformRoot::ReleaseAttachedPlayers()
+void ARideRoot::ReleaseAttachedPlayers()
 {
 	if (!HasAuthority() || !GetWorld()) return;
 
@@ -122,7 +122,7 @@ void APlatformRoot::ReleaseAttachedPlayers()
 	}
 }
 
-void APlatformRoot::SetCurSpline(USplineComponent* Spline)
+void ARideRoot::SetCurSpline(USplineComponent* Spline)
 {
 	if (CurSpline != Spline)
 	{
@@ -132,7 +132,7 @@ void APlatformRoot::SetCurSpline(USplineComponent* Spline)
 	}
 }
 
-void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
+void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 {
 	if (HasAuthority())
 	{
@@ -145,7 +145,7 @@ void APlatformRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 	ReadyText->SetText(FText::FromString(NewText));
 }
 
-void APlatformRoot::SetRangeClampVisual(bool bVisible, float InSize)
+void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
 {
 	if (bReplicatedRangeClampVisible == bVisible && FMath::IsNearlyEqual(ReplicatedRangeClampSize, InSize))
 		return;
@@ -163,14 +163,14 @@ void APlatformRoot::SetRangeClampVisual(bool bVisible, float InSize)
 	}
 }
 
-void APlatformRoot::OnRep_ReadyCounts()
+void ARideRoot::OnRep_ReadyCounts()
 {
 	if (!ReadyText) return;
 	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
 	ReadyText->SetText(FText::FromString(NewText));
 }
 
-void APlatformRoot::OnRep_ReadyTextVisible()
+void ARideRoot::OnRep_ReadyTextVisible()
 {
 	if (!ReadyText) return;
 	ReadyText->SetVisibility(bReadyTextVisible, true);
@@ -180,21 +180,21 @@ void APlatformRoot::OnRep_ReadyTextVisible()
 	}
 }
 
-void APlatformRoot::OnRep_RangeClampVisual()
+void ARideRoot::OnRep_RangeClampVisual()
 {
 	ApplyRangeClampVisual();
 }
 
-void APlatformRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ARideRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(APlatformRoot, ReplicatedReadyCounts);
-	DOREPLIFETIME(APlatformRoot, bReadyTextVisible);
-	DOREPLIFETIME(APlatformRoot, bReplicatedRangeClampVisible);
-	DOREPLIFETIME(APlatformRoot, ReplicatedRangeClampSize);
+	DOREPLIFETIME(ARideRoot, ReplicatedReadyCounts);
+	DOREPLIFETIME(ARideRoot, bReadyTextVisible);
+	DOREPLIFETIME(ARideRoot, bReplicatedRangeClampVisible);
+	DOREPLIFETIME(ARideRoot, ReplicatedRangeClampSize);
 }
 
-void APlatformRoot::Tick(float DeltaTime)
+void ARideRoot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	UpdateRangeClampVFXWorldLocation();
@@ -237,13 +237,13 @@ void APlatformRoot::Tick(float DeltaTime)
 	UpdateRangeClampVFXWorldLocation();
 }
 
-void APlatformRoot::MoveEnd()
+void ARideRoot::MoveEnd()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
 	OnPlatformReachedEnd.Broadcast();
 }
 
-void APlatformRoot::ApplyRangeClampVisual()
+void ARideRoot::ApplyRangeClampVisual()
 {
 	if (!RangeClampVFX) return;
 
@@ -267,14 +267,14 @@ void APlatformRoot::ApplyRangeClampVisual()
 	}
 }
 
-void APlatformRoot::UpdateRangeClampVFXWorldLocation()
+void ARideRoot::UpdateRangeClampVFXWorldLocation()
 {
 	if (!RangeClampVFX) return;
 	const FVector RootLoc = GetActorLocation();
 	RangeClampVFX->SetWorldLocation(FVector(RootLoc.X, RootLoc.Y, -100.f));
 }
 
-void APlatformRoot::SyncReadyByMoveInTrigger(bool bReady)
+void ARideRoot::SyncReadyByMoveInTrigger(bool bReady)
 {
 	if (!HasAuthority() || !MoveInTrigger) return;
 
@@ -316,7 +316,7 @@ void APlatformRoot::SyncReadyByMoveInTrigger(bool bReady)
 	}
 }
 
-void APlatformRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+void ARideRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!HasAuthority() || !bReadyTextVisible) return;
@@ -339,7 +339,7 @@ void APlatformRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* Overlap
 	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(true);
 }
 
-void APlatformRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (!HasAuthority() || !bReadyTextVisible) return;

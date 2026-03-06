@@ -6,7 +6,7 @@
 #include "SplineSector.h"
 #include "Framework/MAGameStateTypes.h"
 #include "GameFramework/Actor.h"
-#include "Level/Platform//PlatformRoot.h"
+#include "Level/Platform/RideRoot.h"
 #include "SplineSectorManager.generated.h"
 
 class AMAGameMode;
@@ -125,7 +125,7 @@ private:
 	/** Cache **/
 	AMAGameMode* CachedMAGameMode;
 	EMASectorState CachedMASectorState = EMASectorState::Wait;
-	APlatformRoot* CachedPlatformRoot;
+	ARideRoot* CachedRideRoot;
 
 	UPROPERTY(VisibleAnywhere, Category = "Environment")
 	TObjectPtr<UPCGGraph> CachedEnvPCGGraph = nullptr;

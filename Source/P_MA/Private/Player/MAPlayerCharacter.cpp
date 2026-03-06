@@ -165,6 +165,8 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 	UpdateRotationByReadyRide(DeltaTime);
 	TickMinimapCapture(DeltaTime);
 
+	// Skill-only movement path. This is unrelated to ready-ride movement sync,
+	// so ride fixes must not change behavior here.
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
 		AddMovementInput(GetActorForwardVector(), 2.f);
@@ -194,7 +196,9 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	}
 
 	float AttachedYaw = 0.f;
-	if (ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
+	// Simulated proxies must follow replicated rotation only.
+	if ((HasAuthority() || IsLocallyControlled()) &&
+		ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
