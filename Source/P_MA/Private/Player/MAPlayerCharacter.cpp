@@ -32,6 +32,8 @@
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Engine/DataTable.h"
+#include "Framework/LoadoutSaveGame.h"
+#include "Kismet/GameplayStatics.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -156,6 +158,10 @@ void AMAPlayerCharacter::BeginPlay()
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	if (HasAuthority())
+	{
+		EquipWeaponFromSave();
+	}
 	BindLoadoutDelegates();
 }
 
@@ -380,8 +386,10 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	}
 	if (InputID == EMAAbilityInputID::Attack)
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
-		Server_SendGameplayEventToSelf(UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
+		FGameplayTag BasicAttackTag = bPressed ? UMAAbilitySystemStatics::GetBasicAttackInputPressedTag() : UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag();
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, BasicAttackTag, FGameplayEventData());
+		Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
 	}
 }
 
@@ -502,6 +510,41 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	}
 
 	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
+}
+
+void AMAPlayerCharacter::EquipWeaponFromSave()
+{
+	if (!WeaponDataTable)
+		return;
+
+	ULoadoutSaveGame* LoadoutSave = Cast<ULoadoutSaveGame>(UGameplayStatics::LoadGameFromSlot("LoadoutSlot",0));
+	FName SelectedWeaponID = FName("Sword");
+	if (LoadoutSave)
+	{
+		SelectedWeaponID = LoadoutSave->SavedWeaponId;
+	}
+	FLoadoutWeaponDataRow* WeaponData = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(SelectedWeaponID,"");
+	if (WeaponData)
+	{
+		EquipWeaponFromData(WeaponData);
+	}
+}
+
+void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC || !WeaponData || !WeaponData->AttackAbility)
+		return;
+
+	if (CurrentBasicAttackHandle.IsValid())
+	{
+		ASC->ClearAbility(CurrentBasicAttackHandle);
+		CurrentBasicAttackHandle = FGameplayAbilitySpecHandle();
+	}
+
+	int32 BasicAttackInputID = static_cast<int32>(EMAAbilityInputID::Attack);
+	FGameplayAbilitySpec Spec(WeaponData->AttackAbility, 1, BasicAttackInputID,this);
+	CurrentBasicAttackHandle = ASC->GiveAbility(Spec);
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const

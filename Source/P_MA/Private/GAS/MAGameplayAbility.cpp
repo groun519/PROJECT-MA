@@ -4,6 +4,7 @@
 #include "GAS/MAGameplayAbility.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
@@ -217,6 +218,25 @@ void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 	EventData.EventTag = UMAAbilitySystemStatics::GetLaunchActivateTag();
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventData.EventTag, EventData);
+}
+
+void UMAGameplayAbility::StopMontageAfterCurrentSection(UAnimMontage* Montage)
+{
+	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
+	if (OwnerAnimInst)
+	{
+		FName CurrentSectionName = OwnerAnimInst->Montage_GetCurrentSection(Montage);
+		OwnerAnimInst->Montage_SetNextSection(CurrentSectionName, NAME_None, Montage);
+	}
+}
+
+void UMAGameplayAbility::PlayMontageLocally(UAnimMontage* Montage)
+{
+	UAnimInstance* OwnerAnimIst = GetOwnerAnimInstance();
+	if (OwnerAnimIst && !OwnerAnimIst->Montage_IsPlaying(Montage))
+	{
+		OwnerAnimIst->Montage_Play(Montage);
+	}
 }
 
 ACharacter* UMAGameplayAbility::GetOwningAvatarCharacter()

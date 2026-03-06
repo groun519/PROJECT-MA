@@ -16,6 +16,16 @@ FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputPressedTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Pressed");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Released");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
 {
 	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");

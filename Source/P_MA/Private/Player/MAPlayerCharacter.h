@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Inventory/SkillBookComponent.h"
+#include "Loadout/Data/LoadoutWeaponData.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -134,6 +135,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
 	TObjectPtr<UDataTable> WeaponDataTable;
 
+	UPROPERTY(Transient)
+	FGameplayAbilitySpecHandle CurrentBasicAttackHandle;
+	void EquipWeaponFromSave();
+	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
+	
 	FDelegateHandle LoadoutColorChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
 
@@ -147,6 +153,9 @@ private:
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
+
+	UPROPERTY(Transient)
+	FGameplayAbilitySpecHandle CurrentAttackAbilityHandle;
 
 	/** Stun **/
 	virtual void OnStun() override;
@@ -185,7 +194,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "State")
 	FGameplayTag RushingTag;
-
+	
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 
 	// Charge스킬을 위한 코드
