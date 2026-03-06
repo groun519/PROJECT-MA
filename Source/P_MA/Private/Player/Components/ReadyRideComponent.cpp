@@ -142,6 +142,7 @@ void UReadyRideComponent::ApplyRideState(bool bNowAttached)
 		bPrevAttachedReady = bNowAttached;
 	}
 
+	UpdateRideMovementMode(bNowAttached);
 	UpdateTickPolicy(bNowAttached);
 	RefreshRideCollisionMode();
 }
@@ -159,6 +160,20 @@ void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached)
 
 	MoveComp->StopMovementImmediately();
 	MoveComp->ClearAccumulatedForces();
+}
+
+void UReadyRideComponent::UpdateRideMovementMode(bool bNowAttached) const
+{
+	const AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
+	if (!MoveComp) return;
+
+	const EMovementMode TargetMode = bNowAttached ? MOVE_Flying : MOVE_Walking;
+	if (MoveComp->MovementMode == TargetMode) return;
+
+	MoveComp->SetMovementMode(TargetMode);
 }
 
 void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)

@@ -35,6 +35,7 @@ private:
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
 	void HandleReplicatedAttachStateChanged(bool bNowAttached);
 	void ApplyRideState(bool bNowAttached);
+	void UpdateRideMovementMode(bool bNowAttached) const;
 	void UpdateTickPolicy(bool bAttachedByReady);
 
 	UFUNCTION()
