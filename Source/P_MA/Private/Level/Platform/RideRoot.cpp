@@ -44,7 +44,6 @@ ARideRoot::ARideRoot()
 
 	MoveInTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MoveInTrigger"));
 	MoveInTrigger->SetupAttachment(RootComponent);
-	MoveInTrigger->InitSphereRadius(MoveInTriggerRadius);
 	MoveInTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MoveInTrigger->SetCollisionObjectType(ECC_WorldDynamic);
 	MoveInTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -63,7 +62,6 @@ void ARideRoot::BeginPlay()
 
 	if (MoveInTrigger)
 	{
-		MoveInTrigger->SetSphereRadius(MoveInTriggerRadius);
 		MoveInTrigger->OnComponentBeginOverlap.AddDynamic(this, &ARideRoot::HandleMoveInTriggerBeginOverlap);
 		MoveInTrigger->OnComponentEndOverlap.AddDynamic(this, &ARideRoot::HandleMoveInTriggerEndOverlap);
 	}
@@ -110,15 +108,11 @@ void ARideRoot::ReleaseAttachedPlayers()
 		AMAPlayerCharacter* PlayerCharacter = *It;
 		if (!PlayerCharacter) continue;
 
-		if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
-		{
-			if (PlayerRoot->GetAttachParent() == MoveInTrigger)
-			{
-				PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-			}
-		}
+		USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent();
+		if (!PlayerRoot || PlayerRoot->GetAttachParent() != MoveInTrigger) continue;
 
-		PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
+		PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
 	}
 }
 
@@ -128,7 +122,6 @@ void ARideRoot::SetCurSpline(USplineComponent* Spline)
 	{
 		CurSpline = Spline;
 		Distance = 0.f;
-		UE_LOG(LogTemp, Warning, TEXT("Root: SetCurSpline -> %s"), CurSpline ? *CurSpline->GetName() : TEXT("nullptr"));
 	}
 }
 
@@ -147,20 +140,23 @@ void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 
 void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
 {
-	if (bReplicatedRangeClampVisible == bVisible && FMath::IsNearlyEqual(ReplicatedRangeClampSize, InSize))
-		return;
+	if (!HasAuthority()) return;
 
-	const bool bPrevVisible = bReplicatedRangeClampVisible;
-	const float PrevSize = ReplicatedRangeClampSize;
-	bReplicatedRangeClampVisible = bVisible;
-	ReplicatedRangeClampSize = InSize;
+	const FRangeClampVisualState PrevState = AppliedRangeClampVisualState;
+	if (PrevState.bVisible == bVisible && FMath::IsNearlyEqual(PrevState.Size, InSize)) return;
+
+	ReplicatedRangeClampVisualState.bVisible = bVisible;
+	ReplicatedRangeClampVisualState.Size = InSize;
 
 	ApplyRangeClampVisual();
 
-	if (RangeClampVFX && bReplicatedRangeClampVisible && (!bPrevVisible || !FMath::IsNearlyEqual(PrevSize, ReplicatedRangeClampSize)))
+	if (RangeClampVFX && ReplicatedRangeClampVisualState.bVisible &&
+		(!PrevState.bVisible || !FMath::IsNearlyEqual(PrevState.Size, ReplicatedRangeClampVisualState.Size)))
 	{
 		RangeClampVFX->ReinitializeSystem();
 	}
+
+	ForceNetUpdate();
 }
 
 void ARideRoot::OnRep_ReadyCounts()
@@ -182,7 +178,14 @@ void ARideRoot::OnRep_ReadyTextVisible()
 
 void ARideRoot::OnRep_RangeClampVisual()
 {
+	const FRangeClampVisualState PrevState = AppliedRangeClampVisualState;
 	ApplyRangeClampVisual();
+
+	if (RangeClampVFX && ReplicatedRangeClampVisualState.bVisible &&
+		(!PrevState.bVisible || !FMath::IsNearlyEqual(PrevState.Size, ReplicatedRangeClampVisualState.Size)))
+	{
+		RangeClampVFX->ReinitializeSystem();
+	}
 }
 
 void ARideRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -190,8 +193,7 @@ void ARideRoot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARideRoot, ReplicatedReadyCounts);
 	DOREPLIFETIME(ARideRoot, bReadyTextVisible);
-	DOREPLIFETIME(ARideRoot, bReplicatedRangeClampVisible);
-	DOREPLIFETIME(ARideRoot, ReplicatedRangeClampSize);
+	DOREPLIFETIME(ARideRoot, ReplicatedRangeClampVisualState);
 }
 
 void ARideRoot::Tick(float DeltaTime)
@@ -239,7 +241,6 @@ void ARideRoot::Tick(float DeltaTime)
 
 void ARideRoot::MoveEnd()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Root: ReachedEnd"));
 	OnPlatformReachedEnd.Broadcast();
 }
 
@@ -248,10 +249,11 @@ void ARideRoot::ApplyRangeClampVisual()
 	if (!RangeClampVFX) return;
 
 	UpdateRangeClampVFXWorldLocation();
-	RangeClampVFX->SetVariableFloat(RangeClampSizeParamName, ReplicatedRangeClampSize);
-	RangeClampVFX->SetVisibility(bReplicatedRangeClampVisible, true);
+	FName RangeClampSizeParamName = TEXT("Size");
+	RangeClampVFX->SetVariableFloat(RangeClampSizeParamName, ReplicatedRangeClampVisualState.Size);
+	RangeClampVFX->SetVisibility(ReplicatedRangeClampVisualState.bVisible, true);
 
-	if (bReplicatedRangeClampVisible)
+	if (ReplicatedRangeClampVisualState.bVisible)
 	{
 		if (!RangeClampVFX->IsActive())
 		{
@@ -265,6 +267,8 @@ void ARideRoot::ApplyRangeClampVisual()
 			RangeClampVFX->Deactivate();
 		}
 	}
+
+	AppliedRangeClampVisualState = ReplicatedRangeClampVisualState;
 }
 
 void ARideRoot::UpdateRangeClampVFXWorldLocation()
@@ -300,7 +304,7 @@ void ARideRoot::SyncReadyByMoveInTrigger(bool bReady)
 					EAttachmentRule::SnapToTarget,
 					EAttachmentRule::KeepWorld,
 					false));
-			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(true);
+			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(this);
 		}
 		else
 		{
@@ -311,7 +315,7 @@ void ARideRoot::SyncReadyByMoveInTrigger(bool bReady)
 					PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				}
 			}
-			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
+			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
 		}
 	}
 }
@@ -336,7 +340,7 @@ void ARideRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 			EAttachmentRule::SnapToTarget,
 			EAttachmentRule::KeepWorld,
 			false));
-	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(true);
+	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(this);
 }
 
 void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -360,5 +364,5 @@ void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedCom
 			PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		}
 	}
-	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(false);
+	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
 }

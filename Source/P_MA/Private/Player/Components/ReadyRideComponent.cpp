@@ -8,12 +8,20 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Level/Platform/RideRoot.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/MAPlayerCharacter.h"
 
 UReadyRideComponent::UReadyRideComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	SetIsReplicatedByDefault(true);
+}
+
+void UReadyRideComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UReadyRideComponent, RidingRoot);
 }
 
 void UReadyRideComponent::BeginPlay()
@@ -25,9 +33,7 @@ void UReadyRideComponent::BeginPlay()
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
 	bPrevAttachedReady = IsAttachedReady();
-	UpdateTickPolicy(bPrevAttachedReady);
-
-	RefreshRideCollisionMode();
+	ApplyRideState(bPrevAttachedReady);
 }
 
 void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -38,12 +44,6 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	if (!OwnerActor) return;
 
 	const bool bAttachedByReady = IsAttachedReady();
-	if (bAttachedByReady != bPrevAttachedReady)
-	{
-		HandleReplicatedAttachStateChanged(bAttachedByReady);
-		bPrevAttachedReady = bAttachedByReady;
-		UpdateTickPolicy(bAttachedByReady);
-	}
 
 	const FVector CurrentLocation = OwnerActor->GetActorLocation();
 	if (bAttachedByReady && DeltaTime > KINDA_SMALL_NUMBER)
@@ -62,9 +62,10 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 	PrevTickLocation = CurrentLocation;
 }
 
-void UReadyRideComponent::NotifyReadyRideAttachmentChanged(bool bInAttachedReady)
+void UReadyRideComponent::NotifyReadyRideAttachmentChanged(ARideRoot* InRideRoot)
 {
-	if (!bInAttachedReady)
+	RidingRoot = InRideRoot;
+	if (!RidingRoot)
 	{
 		AttachedMoveVelocity = FVector::ZeroVector;
 		AttachedMoveSpeed = 0.f;
@@ -75,31 +76,18 @@ void UReadyRideComponent::NotifyReadyRideAttachmentChanged(bool bInAttachedReady
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
 
-	UpdateTickPolicy(bInAttachedReady);
-
-	RefreshRideCollisionMode();
+	ApplyRideState(IsAttachedReady());
 }
 
 bool UReadyRideComponent::IsAttachedReady() const
 {
-	return IsAttachedToRideRoot();
+	return RidingRoot != nullptr;
 }
 
 bool UReadyRideComponent::TryGetAttachedYaw(float& OutYaw) const
 {
-	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return false;
-
-	const USceneComponent* RootComp = OwnerActor->GetRootComponent();
-	if (!RootComp) return false;
-
-	const USceneComponent* AttachParent = RootComp->GetAttachParent();
-	if (!AttachParent) return false;
-
-	const AActor* AttachParentOwner = AttachParent->GetOwner();
-	if (!AttachParentOwner || !AttachParentOwner->IsA(ARideRoot::StaticClass())) return false;
-
-	OutYaw = AttachParent->GetComponentRotation().Yaw;
+	if (!RidingRoot) return false;
+	OutYaw = RidingRoot->GetActorRotation().Yaw;
 	return true;
 }
 
@@ -131,22 +119,34 @@ void UReadyRideComponent::HandleOwnerBaseChanged()
 	RefreshRideCollisionMode();
 }
 
-bool UReadyRideComponent::IsAttachedToRideRoot() const
+void UReadyRideComponent::OnRep_RidingRoot()
 {
 	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return false;
-
-	const USceneComponent* RootComp = OwnerActor->GetRootComponent();
-	if (!RootComp) return false;
-
-	const USceneComponent* AttachParent = RootComp->GetAttachParent();
-	if (!AttachParent) return false;
-
-	const AActor* AttachParentOwner = AttachParent->GetOwner();
-	return AttachParentOwner && AttachParentOwner->IsA(ARideRoot::StaticClass());
+	if (OwnerActor)
+	{
+		PrevTickLocation = OwnerActor->GetActorLocation();
+	}
+	if (!RidingRoot)
+	{
+		AttachedMoveVelocity = FVector::ZeroVector;
+		AttachedMoveSpeed = 0.f;
+	}
+	ApplyRideState(IsAttachedReady());
 }
 
-void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached) const
+void UReadyRideComponent::ApplyRideState(bool bNowAttached)
+{
+	if (bNowAttached != bPrevAttachedReady)
+	{
+		HandleReplicatedAttachStateChanged(bNowAttached);
+		bPrevAttachedReady = bNowAttached;
+	}
+
+	UpdateTickPolicy(bNowAttached);
+	RefreshRideCollisionMode();
+}
+
+void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached)
 {
 	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
@@ -163,21 +163,9 @@ void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached) 
 
 void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
 {
-	APawn* PawnOwner = Cast<APawn>(GetOwner());
-	const bool bClientPawn = PawnOwner && !PawnOwner->HasAuthority();
-
 	if (bAttachedByReady)
 	{
 		PrimaryComponentTick.TickInterval = 0.f;
-		SetComponentTickEnabled(true);
-		return;
-	}
-
-	if (bClientPawn)
-	{
-		// Client pawns (owner + simulated) poll attachment at low frequency
-		// so replicated attach edges can be detected and tick can switch back to per-frame.
-		PrimaryComponentTick.TickInterval = 0.1f;
 		SetComponentTickEnabled(true);
 		return;
 	}

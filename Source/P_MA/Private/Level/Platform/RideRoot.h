@@ -16,6 +16,18 @@ struct FHitResult;
 
 DECLARE_MULTICAST_DELEGATE(FOnPlatformReachedEnd);
 
+USTRUCT()
+struct FRangeClampVisualState
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	bool bVisible = false;
+
+	UPROPERTY()
+	float Size = 0.f;
+};
+
 UCLASS()
 class P_MA_API ARideRoot : public AActor
 {
@@ -43,30 +55,29 @@ public:
 	void SetRangeClampVisual(bool bVisible, float InSize);
 	
 private:
-	/** Input by Manager **/
+	/** Input by SplineSectorManager **/
 	USplineComponent* CurSpline = nullptr;
-	
+
+	/** Root **/
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root = nullptr;
 
+	/** Ready Text **/
 	UPROPERTY(VisibleAnywhere)
 	UTextRenderComponent* ReadyText = nullptr;
 
+	/** VFX **/
 	UPROPERTY(VisibleAnywhere)
 	UNiagaraComponent* RangeClampVFX = nullptr;
 
+	/** Trigger **/
 	UPROPERTY(VisibleAnywhere, Category = "ReadyTrigger")
 	USphereComponent* MoveInTrigger = nullptr;
 
+	/** Decal **/
 	UPROPERTY(VisibleAnywhere, Category = "ReadyTrigger")
 	UDecalComponent* ReadyRangeDecal = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "ReadyTrigger", meta = (ClampMin = "0.0"))
-	float MoveInTriggerRadius = 300.f;
-
-	UPROPERTY(EditAnywhere, Category = "RangeClampVFX")
-	FName RangeClampSizeParamName = TEXT("Size");
-	
 	UPROPERTY(ReplicatedUsing=OnRep_ReadyCounts)
 	FIntPoint ReplicatedReadyCounts = FIntPoint::ZeroValue;
 
@@ -80,15 +91,13 @@ private:
 	void OnRep_ReadyTextVisible();
 
 	UPROPERTY(ReplicatedUsing=OnRep_RangeClampVisual)
-	bool bReplicatedRangeClampVisible = false;
-
-	UPROPERTY(ReplicatedUsing=OnRep_RangeClampVisual)
-	float ReplicatedRangeClampSize = 0.f;
+	FRangeClampVisualState ReplicatedRangeClampVisualState;
 
 	UFUNCTION()
 	void OnRep_RangeClampVisual();
 
 	float Distance = 0.f;
+	FRangeClampVisualState AppliedRangeClampVisualState;
 
 	void ApplyRangeClampVisual();
 	void UpdateRangeClampVFXWorldLocation();

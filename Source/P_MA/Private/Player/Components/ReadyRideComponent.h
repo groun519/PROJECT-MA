@@ -16,11 +16,12 @@ class P_MA_API UReadyRideComponent : public UActorComponent
 
 public:
 	UReadyRideComponent();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void NotifyReadyRideAttachmentChanged(bool bInAttachedReady);
+	void NotifyReadyRideAttachmentChanged(ARideRoot* InRideRoot);
 	bool IsAttachedReady() const;
 	bool ShouldBlockManualRotation() const { return IsAttachedReady(); }
 	bool TryGetAttachedYaw(float& OutYaw) const;
@@ -31,10 +32,16 @@ public:
 	void HandleOwnerBaseChanged();
 
 private:
-	bool IsAttachedToRideRoot() const;
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
-	void HandleReplicatedAttachStateChanged(bool bNowAttached) const;
+	void HandleReplicatedAttachStateChanged(bool bNowAttached);
+	void ApplyRideState(bool bNowAttached);
 	void UpdateTickPolicy(bool bAttachedByReady);
+
+	UFUNCTION()
+	void OnRep_RidingRoot();
+
+	UPROPERTY(ReplicatedUsing=OnRep_RidingRoot)
+	TObjectPtr<ARideRoot> RidingRoot = nullptr;
 
 	bool bIsRidingPlatform = false;
 	bool bPrevAttachedReady = false;
