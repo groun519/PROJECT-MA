@@ -170,10 +170,12 @@ void UReadyRideComponent::UpdateRideMovementMode(bool bNowAttached) const
 	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
 	if (!MoveComp) return;
 
-	const EMovementMode TargetMode = bNowAttached ? MOVE_Flying : MOVE_Walking;
-	if (MoveComp->MovementMode == TargetMode) return;
+	(void)bNowAttached;
 
-	MoveComp->SetMovementMode(TargetMode);
+	if (MoveComp->MovementMode != MOVE_Walking)
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
