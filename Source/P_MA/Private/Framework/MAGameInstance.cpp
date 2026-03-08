@@ -10,6 +10,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerState.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Framework/LoadoutSaveGame.h"
 
 void UMAGameInstance::Init()
@@ -59,6 +60,11 @@ void UMAGameInstance::Shutdown()
 		MoviePlayerTickHandle.Reset();
 	}
 	Super::Shutdown();
+}
+
+const ULoadoutDataSet* UMAGameInstance::TryGetLoadoutDataSet() const
+{
+	return LoadoutDataSet;
 }
 
 void UMAGameInstance::HostSession(int32 MaxPlayers, bool bIsLAN)
@@ -413,7 +419,11 @@ void UMAGameInstance::UpdateLoadingStatus()
 
 }
 
-void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId)
+void UMAGameInstance::SaveLoadout(
+	const FMaterialParamDataPair& Color,
+	FName WeaponId,
+	FName EyeShapeId
+)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return;
 
@@ -422,6 +432,9 @@ void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName Wea
 
 	SaveGame->SavedColor = Color;
 	SaveGame->SavedWeaponId = WeaponId;
+	SaveGame->SavedEyeShapeId = EyeShapeId;
+	// Reserved for future save migration. Current load logic does not branch on version.
+	SaveGame->Version = 1;
 
 	if (!UGameplayStatics::SaveGameToSlot(SaveGame, LoadoutSaveSlot, LoadoutSaveUserIndex))
 	{
@@ -429,7 +442,11 @@ void UMAGameInstance::SaveLoadout(const FMaterialParamDataPair& Color, FName Wea
 	}
 }
 
-bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId)
+bool UMAGameInstance::LoadLoadout(
+	FMaterialParamDataPair& OutColor,
+	FName& OutWeaponId,
+	FName& OutEyeShapeId
+)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return false;
 
@@ -445,6 +462,7 @@ bool UMAGameInstance::LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWe
 
 	OutColor = SaveGame->SavedColor;
 	OutWeaponId = SaveGame->SavedWeaponId;
+	OutEyeShapeId = SaveGame->SavedEyeShapeId;
 	return true;
 }
 

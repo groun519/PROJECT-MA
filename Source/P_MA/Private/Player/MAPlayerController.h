@@ -55,6 +55,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutWeaponId(FName WeaponId);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutEyeShape(FName EyeShapeId);
+
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoopReady(bool bReady);

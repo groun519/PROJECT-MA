@@ -12,10 +12,7 @@
 #include "MAGameInstance.generated.h"
 
 class ULoadingScreenWidget;
-
-
-
-
+class ULoadoutDataSet;
 
 /**
  * 
@@ -48,15 +45,20 @@ public:
 	void UpdateLoadingStatus();
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	void SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId);
+	void SaveLoadout(
+		const FMaterialParamDataPair& Color,
+		FName WeaponId,
+		FName EyeShapeId
+	);
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId);
+	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId, FName& OutEyeShapeId);
 
 	void NotifyLocalLoadingVisualComplete();
 
 	float CalculateLoadingProgress(int32& OutPercent);
 	float GetLoadingFinishDurationSeconds() const { return LoadingFinishDurationSeconds; }
+	const ULoadoutDataSet* TryGetLoadoutDataSet() const;
 
 private:
 	void HandlePreLoadMap(const FString& MapName);
@@ -132,4 +134,7 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Loadout")
 	int32 LoadoutSaveUserIndex = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
+	TObjectPtr<ULoadoutDataSet> LoadoutDataSet;
 };

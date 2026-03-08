@@ -26,10 +26,6 @@ void ULoadoutWidget::NativeConstruct()
 	}
 
 	SetActiveTab(1);
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Body);
-	}
 }
 
 void ULoadoutWidget::HandleHeadTabClicked()
@@ -56,6 +52,7 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
 	{
 		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Weapon);
+		PC->ApplyPendingWeaponPreviewDelayed(0.3f);
 	}
 }
 
@@ -79,4 +76,27 @@ void ULoadoutWidget::SetActiveTab(int32 TabIndex)
 		WeaponTabButton->SetIsEnabled(TabIndex != 2);
 	}
 
+}
+
+void ULoadoutWidget::ActivateBodyTabUI()
+{
+	SetActiveTab(1);
+}
+
+void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId)
+{
+	if (BodyTabWidget)
+	{
+		BodyTabWidget->SyncFromPendingBody(PendingColor.BodyData);
+	}
+
+	if (HeadTabWidget)
+	{
+		HeadTabWidget->SyncFromPendingHead(PendingColor.EyeData, PendingEyeShapeId);
+	}
+
+	if (WeaponTabWidget)
+	{
+		WeaponTabWidget->SyncFromPendingWeapon(PendingWeaponId);
+	}
 }

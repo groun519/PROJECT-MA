@@ -2,9 +2,13 @@
 
 #include "Widget/Lobby/Loadout/LoadoutHeadTabWidget.h"
 #include "Components/ScrollBox.h"
-#include "Components/ScrollBoxSlot.h"
+#include "Engine/DataTable.h"
+#include "Framework/MAGameInstance.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Player/Loadout/Data/LoadoutEyeColorPresetData.h"
+#include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
+#include "Widget/Lobby/Loadout/LoadoutEyeShapeIconButtonWidget.h"
 #include "Level/Lobby/LobbyPlayerController.h"
 
 void ULoadoutHeadTabWidget::NativeConstruct()
@@ -12,11 +16,16 @@ void ULoadoutHeadTabWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	BuildEyeColorButtons();
+	BuildEyeShapeButtons();
 }
 
 void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 {
-	if (!EyeColorScrollBox || !EyeColorButtonClass || !EyeColorPreset)
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const ULoadoutEyeColorPresetData* ResolvedEyeColorPreset = LoadoutDataSet ? LoadoutDataSet->EyeColorPreset : nullptr;
+
+	if (!EyeColorScrollBox || !EyeColorButtonClass || !ResolvedEyeColorPreset)
 	{
 		return;
 	}
@@ -24,7 +33,7 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 	EyeColorScrollBox->ClearChildren();
 	EyeColorButtons.Reset();
 
-	for (const FMaterialParamData& EyeData : EyeColorPreset->EyeColors)
+	for (const FMaterialParamData& EyeData : ResolvedEyeColorPreset->EyeColors)
 	{
 		ULoadoutColorButtonWidget* ButtonWidget = CreateWidget<ULoadoutColorButtonWidget>(this, EyeColorButtonClass);
 		if (!ButtonWidget)
@@ -34,12 +43,51 @@ void ULoadoutHeadTabWidget::BuildEyeColorButtons()
 
 		ButtonWidget->ColorData = EyeData;
 		ButtonWidget->OnColorSelected.AddDynamic(this, &ULoadoutHeadTabWidget::HandleEyeColorSelected);
-		if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(EyeColorScrollBox->AddChild(ButtonWidget)))
-		{
-			ScrollSlot->SetPadding(FMargin(6.f, 0.f, 6.f, 0.f));
-		}
+		AddButtonToScrollBox(EyeColorScrollBox, ButtonWidget);
 
 		EyeColorButtons.Add(ButtonWidget);
+	}
+}
+
+void ULoadoutHeadTabWidget::BuildEyeShapeButtons()
+{
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* ResolvedEyeShapeDataTable = nullptr;
+	if (LoadoutDataSet && LoadoutDataSet->EyeShapeDataTable)
+	{
+		ResolvedEyeShapeDataTable = LoadoutDataSet->EyeShapeDataTable;
+	}
+
+	if (!EyeShapeScrollBox || !EyeShapeButtonClass || !ResolvedEyeShapeDataTable)
+	{
+		return;
+	}
+
+	EyeShapeScrollBox->ClearChildren();
+	EyeShapeButtons.Reset();
+
+	TArray<FName> RowNames = ResolvedEyeShapeDataTable->GetRowNames();
+	for (const FName RowName : RowNames)
+	{
+		const FLoadoutEyeShapeData* EyeShape = ResolvedEyeShapeDataTable->FindRow<FLoadoutEyeShapeData>(RowName, TEXT("LoadoutEyeShapeTab"));
+		if (!EyeShape)
+		{
+			continue;
+		}
+
+		ULoadoutEyeShapeIconButtonWidget* ButtonWidget = CreateWidget<ULoadoutEyeShapeIconButtonWidget>(this, EyeShapeButtonClass);
+		if (!ButtonWidget)
+		{
+			continue;
+		}
+
+		ButtonWidget->EyeShapeId = RowName;
+		ButtonWidget->IconMaterial = EyeShape->IconMaterial;
+		ButtonWidget->OnEyeShapeSelected.AddDynamic(this, &ULoadoutHeadTabWidget::HandleEyeShapeSelected);
+		AddButtonToScrollBox(EyeShapeScrollBox, ButtonWidget);
+
+		EyeShapeButtons.Add(ButtonWidget);
 	}
 }
 
@@ -52,15 +100,27 @@ void ULoadoutHeadTabWidget::UpdateSelectedEyeColor(const FMaterialParamData& Sel
 			continue;
 		}
 
-		Button->SetSelected(IsSameColor(Button->ColorData, SelectedData));
+		Button->SetSelected(IsSameColorData(Button->ColorData, SelectedData));
 	}
 }
 
-bool ULoadoutHeadTabWidget::IsSameColor(const FMaterialParamData& A, const FMaterialParamData& B)
+void ULoadoutHeadTabWidget::SyncFromPendingHead(const FMaterialParamData& EyeData, FName EyeShapeId)
 {
-	const bool bColorMatch = A.Color.Equals(B.Color, KINDA_SMALL_NUMBER);
-	const bool bEmissiveMatch = FMath::IsNearlyEqual(A.Emissive, B.Emissive, KINDA_SMALL_NUMBER);
-	return bColorMatch && bEmissiveMatch;
+	UpdateSelectedEyeColor(EyeData);
+	UpdateSelectedEyeShape(EyeShapeId);
+}
+
+void ULoadoutHeadTabWidget::UpdateSelectedEyeShape(FName EyeShapeId)
+{
+	for (ULoadoutEyeShapeIconButtonWidget* Button : EyeShapeButtons)
+	{
+		if (!Button)
+		{
+			continue;
+		}
+
+		Button->SetSelected(Button->EyeShapeId == EyeShapeId);
+	}
 }
 
 void ULoadoutHeadTabWidget::HandleEyeColorSelected(FMaterialParamData SelectedData)
@@ -71,4 +131,13 @@ void ULoadoutHeadTabWidget::HandleEyeColorSelected(FMaterialParamData SelectedDa
 	}
 
 	UpdateSelectedEyeColor(SelectedData);
+}
+
+void ULoadoutHeadTabWidget::HandleEyeShapeSelected(FName EyeShapeId)
+{
+	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
+	{
+		PC->PreviewEyeShape(EyeShapeId);
+	}
+	UpdateSelectedEyeShape(EyeShapeId);
 }

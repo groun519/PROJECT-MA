@@ -2,9 +2,11 @@
 
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Framework/MAGameInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
+#include "Engine/Texture2D.h"
 
 ULoadoutComponent::ULoadoutComponent()
 {
@@ -19,9 +21,39 @@ void ULoadoutComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ULoadoutComponent, MaterialParamValue);
 }
 
+const ULoadoutDataSet* ULoadoutComponent::GetLoadoutDataSet() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	const UMAGameInstance* GI = World->GetGameInstance<UMAGameInstance>();
+	if (!GI)
+	{
+		return nullptr;
+	}
+
+	return GI->TryGetLoadoutDataSet();
+}
+
 void ULoadoutComponent::InitializeMaterial(USkeletalMeshComponent* InMesh)
 {
 	TargetMesh = InMesh;
+	if (!TargetMesh)
+	{
+		return;
+	}
+
+	RebuildDynamicMaterials();
+
+	MaterialParamValue = BaseMaterialParam;
+	ApplyMaterialParam(MaterialParamValue);
+}
+
+void ULoadoutComponent::RebuildDynamicMaterials()
+{
 	if (!TargetMesh)
 	{
 		return;
@@ -31,16 +63,11 @@ void ULoadoutComponent::InitializeMaterial(USkeletalMeshComponent* InMesh)
 	const int32 MaterialCount = TargetMesh->GetNumMaterials();
 	for (int32 Index = 0; Index < MaterialCount; ++Index)
 	{
-		if (UMaterialInstanceDynamic* DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(Index))
+		UMaterialInstanceDynamic* DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(Index);
+		if (DynMat)
 		{
 			DynMats.Add(DynMat);
 		}
-	}
-
-	if (DynMats.Num() > 0)
-	{
-		MaterialParamValue = BaseMaterialParam;
-		ApplyMaterialParam(MaterialParamValue);
 	}
 }
 
@@ -66,6 +93,12 @@ void ULoadoutComponent::Server_SetMaterialParams_Implementation(const FMaterialP
 void ULoadoutComponent::ApplyMaterialParamsLocal(const FMaterialParamDataPair& Params)
 {
 	MaterialParamValue = Params;
+	ApplyMaterialParam(MaterialParamValue);
+}
+
+void ULoadoutComponent::ApplyEyeShapeParamsLocal(const FEyeShapeParamData& EyeShapeData)
+{
+	CurrentEyeShapeData = EyeShapeData;
 	ApplyMaterialParam(MaterialParamValue);
 }
 
@@ -101,14 +134,7 @@ void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params,
 
 	if (DynMats.Num() == 0 && TargetMesh)
 	{
-		const int32 MaterialCount = TargetMesh->GetNumMaterials();
-		for (int32 Index = 0; Index < MaterialCount; ++Index)
-		{
-			if (UMaterialInstanceDynamic* DynMat = TargetMesh->CreateAndSetMaterialInstanceDynamic(Index))
-			{
-				DynMats.Add(DynMat);
-			}
-		}
+		RebuildDynamicMaterials();
 	}
 	if (DynMats.Num() == 0)
 	{
@@ -129,5 +155,12 @@ void ULoadoutComponent::ApplyMaterialParam(const FMaterialParamDataPair& Params,
 		DynMat->SetScalarParameterValue("Body_Emissive", Params.BodyData.Emissive);
 		DynMat->SetVectorParameterValue("Eye_Color", EyeColor);
 		DynMat->SetScalarParameterValue("Eye_Emissive", Params.EyeData.Emissive);
+		DynMat->SetScalarParameterValue("Radius_Inner", CurrentEyeShapeData.RadiusInner);
+		DynMat->SetScalarParameterValue("Radius_Outter", CurrentEyeShapeData.RadiusOutter);
+		DynMat->SetScalarParameterValue("Softness", CurrentEyeShapeData.Softness);
+		DynMat->SetScalarParameterValue("Eye_Width", CurrentEyeShapeData.EyeWidth);
+		DynMat->SetScalarParameterValue("Eye_Height", CurrentEyeShapeData.EyeHeight);
+		DynMat->SetScalarParameterValue("_UseTexture", CurrentEyeShapeData.UseTexture);
+		DynMat->SetTextureParameterValue("_EyeTexture", CurrentEyeShapeData.EyeTexture);
 	}
 }

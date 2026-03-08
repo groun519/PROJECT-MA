@@ -43,13 +43,15 @@ void AMAPlayerController::BeginPlay()
 	{
 		FMaterialParamDataPair LoadedColor;
 		FName LoadedWeaponId = NAME_None;
-		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+		FName LoadedEyeShapeId = NAME_None;
+		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId))
 		{
 			if (HasAuthority())
 			{
 				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 				{
 					PS->SetLoadoutColor(LoadedColor);
+					PS->SetLoadoutEyeShapeId(LoadedEyeShapeId);
 					if (!LoadedWeaponId.IsNone())
 					{
 						PS->SetLoadoutWeaponId(LoadedWeaponId);
@@ -59,6 +61,7 @@ void AMAPlayerController::BeginPlay()
 			else
 			{
 				ServerSetLoadoutColor(LoadedColor);
+				ServerSetLoadoutEyeShape(LoadedEyeShapeId);
 				if (!LoadedWeaponId.IsNone())
 				{
 					ServerSetLoadoutWeaponId(LoadedWeaponId);
@@ -252,6 +255,14 @@ void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutWeaponId(WeaponId);
+	}
+}
+
+void AMAPlayerController::ServerSetLoadoutEyeShape_Implementation(FName EyeShapeId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutEyeShapeId(EyeShapeId);
 	}
 }
 

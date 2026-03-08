@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -37,7 +37,7 @@ public:
 
 	/** Delegate **/
 	UPROPERTY(BlueprintAssignable, Category="Loadout|Color")
-	FOnColorSelected OnColorSelected; // 색 클릭 이벤트 전송
+	FOnColorSelected OnColorSelected;
 
 private:
 	UFUNCTION()

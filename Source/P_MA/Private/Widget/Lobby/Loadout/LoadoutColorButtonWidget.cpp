@@ -29,7 +29,7 @@ void ULoadoutColorButtonWidget::NativeConstruct()
 		Style.Pressed.TintColor = FSlateColor(PressedColor);
 		ColorButton->SetStyle(Style);
 
-		ColorButton->OnClicked.AddDynamic(this, &ULoadoutColorButtonWidget::HandleColorClicked);
+		ColorButton->OnClicked.AddUniqueDynamic(this, &ULoadoutColorButtonWidget::HandleColorClicked);
 	}
 }
 

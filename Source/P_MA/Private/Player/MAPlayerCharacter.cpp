@@ -27,6 +27,8 @@
 #include "P_MA/P_MA.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/LoadoutComponent.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
+#include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Engine/DataTable.h"
 
@@ -514,6 +516,11 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
 			LoadoutColorChangedHandle.Reset();
 		}
+		if (LoadoutEyeShapeChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
+			LoadoutEyeShapeChangedHandle.Reset();
+		}
 		if (LoadoutWeaponChangedHandle.IsValid())
 		{
 			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
@@ -525,6 +532,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 	if (!NewPlayerState) return;
 
 	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
+	LoadoutEyeShapeChangedHandle = NewPlayerState->OnLoadoutEyeShapeChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutEyeShapeChanged);
 	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
 
 	ApplyLoadoutFromPlayerState();
@@ -535,6 +543,7 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 	if (!CachedLoadoutPlayerState) return;
 
 	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
+	HandleLoadoutEyeShapeChanged(CachedLoadoutPlayerState->GetLoadoutEyeShapeId());
 	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
 }
 
@@ -552,12 +561,41 @@ void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair&
 	}
 }
 
+void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
+{
+	if (!LoadoutComponent) return;
+
+	const UDataTable* ResolvedEyeShapeDataTable = nullptr;
+	if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
+	{
+		ResolvedEyeShapeDataTable = LoadoutDataSet->EyeShapeDataTable;
+	}
+
+	FEyeShapeParamData EyeShapeData;
+	if (!LoadoutEyeShapeTableUtils::ResolveEyeShapeData(ResolvedEyeShapeDataTable, EyeShapeId, EyeShapeData))
+	{
+		EyeShapeData = FEyeShapeParamData();
+	}
+
+	LoadoutComponent->ApplyEyeShapeParamsLocal(EyeShapeData);
+}
+
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
 	if (!WeaponComponent || WeaponId.IsNone()) return;
-	if (!WeaponDataTable) return;
 
-	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	const UDataTable* ResolvedWeaponDataTable = nullptr;
+	if (LoadoutComponent)
+	{
+		if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
+		{
+			ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+		}
+	}
+
+	if (!ResolvedWeaponDataTable) return;
+
+	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
 	if (!Row) return;
 
 	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();

@@ -20,5 +20,9 @@ public:
 	FName SavedWeaponId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
+	FName SavedEyeShapeId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
+	// Reserved for future save migration. Not used in current load path.
 	int32 Version = 1;
 };

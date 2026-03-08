@@ -17,6 +17,7 @@ void AMAPlayerState::CopyProperties(APlayerState* PlayerState)
 	NewPS->DefaultSkill = DefaultSkill;
 	NewPS->LoadoutColor = LoadoutColor;
 	NewPS->LoadoutWeaponId = LoadoutWeaponId;
+	NewPS->LoadoutEyeShapeId = LoadoutEyeShapeId;
 	NewPS->bHasFinishedLoading = bHasFinishedLoading;
 	NewPS->LobbySlotIndex = LobbySlotIndex;
 }
@@ -31,6 +32,7 @@ void AMAPlayerState::OverrideWith(APlayerState* PlayerState)
 	DefaultSkill = OldPS->DefaultSkill;
 	LoadoutColor = OldPS->LoadoutColor;
 	LoadoutWeaponId = OldPS->LoadoutWeaponId;
+	LoadoutEyeShapeId = OldPS->LoadoutEyeShapeId;
 	bHasFinishedLoading = OldPS->bHasFinishedLoading;
 	LobbySlotIndex = OldPS->LobbySlotIndex;
 }
@@ -50,6 +52,12 @@ void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
 {
 	LoadoutWeaponId = NewWeaponId;
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
+}
+
+void AMAPlayerState::SetLoadoutEyeShapeId(FName NewEyeShapeId)
+{
+	LoadoutEyeShapeId = NewEyeShapeId;
+	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
 }
 
 void AMAPlayerState::SetLoadingComplete(bool bComplete)
@@ -77,6 +85,11 @@ void AMAPlayerState::OnRep_LoadoutWeaponId()
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 
+void AMAPlayerState::OnRep_LoadoutEyeShapeId()
+{
+	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
+}
+
 void AMAPlayerState::OnRep_LoadingComplete()
 {
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
@@ -97,6 +110,7 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
 	DOREPLIFETIME(AMAPlayerState, LoadoutColor);
 	DOREPLIFETIME(AMAPlayerState, LoadoutWeaponId);
+	DOREPLIFETIME(AMAPlayerState, LoadoutEyeShapeId);
 	DOREPLIFETIME(AMAPlayerState, bHasFinishedLoading);
 	DOREPLIFETIME(AMAPlayerState, LobbySlotIndex);
 }

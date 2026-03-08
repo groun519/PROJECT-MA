@@ -17,7 +17,6 @@ class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
 class AMAPlayerState;
-class UDataTable;
 class UPlayerCameraManagerComponent;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
@@ -157,12 +156,11 @@ private:
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
+	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 
-	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
-	TObjectPtr<UDataTable> WeaponDataTable;
-
 	FDelegateHandle LoadoutColorChangedHandle;
+	FDelegateHandle LoadoutEyeShapeChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
 
 	UPROPERTY()

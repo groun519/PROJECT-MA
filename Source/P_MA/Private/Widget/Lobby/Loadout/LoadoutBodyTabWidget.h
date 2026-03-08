@@ -3,28 +3,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutTabWidgetBase.h"
 #include "Player/Loadout/LoadoutColorTypes.h"
 #include "LoadoutBodyTabWidget.generated.h"
 
-class ULoadoutBodyColorPresetData;
 class UScrollBox;
 class ULoadoutColorButtonWidget;
 
 UCLASS()
-class P_MA_API ULoadoutBodyTabWidget : public UUserWidget
+class P_MA_API ULoadoutBodyTabWidget : public ULoadoutTabWidgetBase
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Loadout|Body")
-	TObjectPtr<ULoadoutBodyColorPresetData> BodyColorPreset;
-
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UScrollBox> BodyColorScrollBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Loadout|Body")
 	TSubclassOf<ULoadoutColorButtonWidget> BodyColorButtonClass;
+
+	void SyncFromPendingBody(const FMaterialParamData& BodyData);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -32,7 +30,6 @@ protected:
 private:
 	void BuildBodyColorButtons();
 	void UpdateSelectedBodyColor(const FMaterialParamData& SelectedData);
-	static bool IsSameColor(const FMaterialParamData& A, const FMaterialParamData& B);
 
 	UFUNCTION()
 	void HandleBodyColorSelected(FMaterialParamData SelectedData);

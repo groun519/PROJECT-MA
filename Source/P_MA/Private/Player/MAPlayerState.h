@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -14,13 +14,12 @@ class P_MA_API AMAPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
-	// Seamless travel 시 PlayerState가 교체/재구성될 수 있어
-	// 커스텀 로드아웃 데이터가 유실되지 않도록 명시적으로 복사한다.
 	virtual void CopyProperties(APlayerState* PlayerState) override;
 	virtual void OverrideWith(APlayerState* PlayerState) override;
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutColorChanged, const FMaterialParamDataPair&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponChanged, FName);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutEyeShapeChanged, FName);
 
 	void SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill);
 	TSubclassOf<UGameplayAbility> GetDefaultSkill() const { return DefaultSkill; }
@@ -31,6 +30,9 @@ public:
 	void SetLoadoutWeaponId(FName NewWeaponId);
 	FName GetLoadoutWeaponId() const { return LoadoutWeaponId; }
 
+	void SetLoadoutEyeShapeId(FName NewEyeShapeId);
+	FName GetLoadoutEyeShapeId() const { return LoadoutEyeShapeId; }
+
 	void SetLoadingComplete(bool bComplete);
 	bool IsLoadingComplete() const { return bHasFinishedLoading; }
 
@@ -40,6 +42,7 @@ public:
 
 	FOnLoadoutColorChanged OnLoadoutColorChanged;
 	FOnLoadoutWeaponChanged OnLoadoutWeaponChanged;
+	FOnLoadoutEyeShapeChanged OnLoadoutEyeShapeChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -61,6 +64,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_LoadoutWeaponId();
+
+	UPROPERTY(ReplicatedUsing = OnRep_LoadoutEyeShapeId)
+	FName LoadoutEyeShapeId = NAME_None;
+
+	UFUNCTION()
+	void OnRep_LoadoutEyeShapeId();
 
 	UPROPERTY(ReplicatedUsing = OnRep_LoadingComplete)
 	bool bHasFinishedLoading = false;

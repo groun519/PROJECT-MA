@@ -16,9 +16,6 @@ struct FLoadoutWeaponDataRow : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	FText WeaponName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
 	TSoftObjectPtr<UTexture2D> IconTexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
