@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
-#include "GA_RangedCombo.generated.h"
+#include "GA_BasicAttack_Missile.generated.h"
 
 class AMAProjectile;
 /**
  * 
  */
 UCLASS()
-class UGA_RangedCombo : public UMAGameplayAbility
+class UGA_BasicAttack_Missile : public UMAGameplayAbility
 {
 	GENERATED_BODY()
 

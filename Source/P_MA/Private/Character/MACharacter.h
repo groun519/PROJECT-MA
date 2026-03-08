@@ -57,7 +57,6 @@ public:
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
-	
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);

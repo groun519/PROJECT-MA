@@ -38,8 +38,11 @@ void USkillBookComponent::BeginPlay()
 
 			// 2. 인스턴싱 및 셰이더 컴파일 강제 실행 후 즉시 뺏기
 			FGameplayAbilitySpec Spec(SkillClass, 1, INDEX_NONE, GetOwner());
-			FGameplayAbilitySpecHandle TempHandle = ASC->GiveAbility(Spec);
-			ASC->ClearAbility(TempHandle);
+			if (GetOwner() && GetOwner()->HasAuthority())
+			{
+				FGameplayAbilitySpecHandle TempHandle = ASC->GiveAbility(Spec);
+				ASC->ClearAbility(TempHandle);
+			}
 		}
 	}
 }

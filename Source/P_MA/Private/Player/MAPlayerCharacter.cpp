@@ -34,6 +34,7 @@
 #include "Engine/DataTable.h"
 #include "Framework/LoadoutSaveGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -638,5 +639,14 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 {
 	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
 	InventoryComponent->TryActivateItemInSlot(Value-1);
+}
+
+void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXColor);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentElementTag);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXLength);
+	DOREPLIFETIME(AMAPlayerCharacter, bAllowVFX);
 }
 

@@ -56,17 +56,9 @@ private:
 
 	UFUNCTION()
 	void ClearIgnore(FGameplayEventData Data);
-
-	UFUNCTION()
-	void HandleVFXSpawnEvent(FGameplayEventData Payload);
 	
 	FName NextComboName;
 
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
-
-	UPROPERTY(EditAnywhere, Category="VFX")
-	TObjectPtr<UMASkillVFXSet> VFXDataSet;
-	
-	FGameplayTag VFXRootTag;
 };

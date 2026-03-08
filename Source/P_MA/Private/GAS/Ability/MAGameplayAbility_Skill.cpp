@@ -16,6 +16,7 @@
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Projectile/MAProjectileSkinData.h"
 #include "GAS/Setting/MASkillSubsystem.h"
+#include "Player/MAPlayerCharacter.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
@@ -51,14 +52,37 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 			ASC->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
 		}
 	}
+
+	if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		FLinearColor ElementColor = GetElementalData().EffectColor;
+		PlayerChar->SetCurrentVFXColor(ElementColor);
+		PlayerChar->SetCurrentElementTag(GetElementalData().ElementalTag);
+
+		float FinalTargetLength = 0.f;
+		if (CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+		{
+			if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
+			{
+				FinalTargetLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
+			}
+		}
+		PlayerChar->SetCurrentVFXLength(FinalTargetLength);
+
+		bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
+		bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
+		PlayerChar->SetAllowVFX(bHasMeleeTrait || bHasTargetingTrait);
+	}
 	
 	IgnoreTargets.Empty();
 	ChargeRatio = 1.f;
 	CurrentReactDuration = CachedSkillData.ReactDuration;
 
+	/*
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
 	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
 	WaitVFXEventTask->ReadyForActivation();
+	*/
 
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
@@ -76,10 +100,11 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 
 void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicateEndAbility, bool bWasCancelled)
 {
+	/*
 	if (WaitVFXEventTask)
 	{
 		WaitVFXEventTask->EndTask();
-	}
+	}*/
 	if (WaitClearEventTask)
 	{
 		WaitClearEventTask->EndTask();
@@ -132,6 +157,11 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 			Module->ModifyCooldownSpec(SpecHandle);
 		}
 	}
+
+	float FinalDuration = SpecHandle.Data->GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration"), false, 0.f);
+	if (FinalDuration <= 0.f)
+		return;
+	
 	FActiveGameplayEffectHandle EffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
 }
 
@@ -675,6 +705,7 @@ void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)
 	IgnoreTargets.Empty();
 }
 
+/*
 void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 {
 	if (!HasAuthority(&CurrentActivationInfo))
@@ -734,6 +765,7 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,FinalScale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
 }
+*/
 
 void UMAGameplayAbility_Skill::ApplyHitStop(AActor* TargetActor)
 {

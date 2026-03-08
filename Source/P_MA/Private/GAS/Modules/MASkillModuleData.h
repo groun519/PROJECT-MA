@@ -75,8 +75,8 @@ public:
 	FGameplayTag CooldownTag;
 	
 	/** 출력할 스킬 이펙트 - (공격 몽타주에서 공격 범위 지정하는 경우에 사용) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
-	TObjectPtr<UMASkillVFXSet> VFXDataSet;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
+	//TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	/** 스킬 사용 중 움직임이 가능한지 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")

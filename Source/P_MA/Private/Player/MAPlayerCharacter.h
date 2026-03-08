@@ -107,6 +107,7 @@ private:
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
 
@@ -207,4 +208,29 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
+
+	void SetCurrentVFXColor(FLinearColor NewColor) {CurrentVFXColor = NewColor;}
+	FLinearColor GetCurrentVFXColor() const {return CurrentVFXColor;}
+
+	void SetCurrentElementTag(FGameplayTag NewTag) {CurrentElementTag = NewTag;}
+	FGameplayTag GetCurrentElementTag() const {return CurrentElementTag;}
+
+	void SetCurrentVFXLength(float NewLength) {CurrentVFXLength = NewLength;}
+	float GetCurrentVFXLength() const {return CurrentVFXLength;}
+
+	void SetAllowVFX(bool bAllow) {bAllowVFX = bAllow;}
+	bool GetAllowVFX() const {return bAllowVFX;}
+	
+protected:
+	UPROPERTY(Transient, Replicated)
+	FLinearColor CurrentVFXColor = FLinearColor::White;
+	
+	UPROPERTY(Transient, Replicated)
+	FGameplayTag CurrentElementTag;
+	
+	UPROPERTY(Transient, Replicated)
+	float CurrentVFXLength = 0.f;
+	
+	UPROPERTY(Transient, Replicated)
+	bool bAllowVFX = true;
 };

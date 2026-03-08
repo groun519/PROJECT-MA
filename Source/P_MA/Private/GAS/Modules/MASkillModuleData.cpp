@@ -7,8 +7,8 @@
 
 FSkillData::FSkillData():
 	GrantedAbility{nullptr},
-	SkillMontage{nullptr},
-	VFXDataSet{nullptr}
+	SkillMontage{nullptr}
+	//VFXDataSet{nullptr}
 	//SkillIcon{nullptr}
 {
 	ItemType = EMAItemType::Skill;

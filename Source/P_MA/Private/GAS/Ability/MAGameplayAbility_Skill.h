@@ -74,12 +74,12 @@ protected:
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	UFUNCTION()
 	void TargetClear(FGameplayEventData Payload);
-	
+	/*
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
 	UFUNCTION()
 	void HandleVFXSpawnEvent(FGameplayEventData Payload);
-
+*/
 	FGameplayTag VFXRootTag;
 	FGameplayTag IgnoreClearTag;
 

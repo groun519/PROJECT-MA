@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "GAS/Ability/GA_RangedCombo.h"
+#include "GAS/Ability/GA_BasicAttack_Missile.h"
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
@@ -9,7 +9,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Projectile/MAProjectile.h"
 
-void UGA_RangedCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+void UGA_BasicAttack_Missile::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                       const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
                                       const FGameplayEventData* TriggerEventData)
 {
@@ -22,28 +22,28 @@ void UGA_RangedCombo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
 		UAbilityTask_WaitGameplayEvent* WaitStartShootingEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetBasicAttackInputPressedTag());
-		WaitStartShootingEvent->EventReceived.AddDynamic(this, &UGA_RangedCombo::StartShooting);
+		WaitStartShootingEvent->EventReceived.AddDynamic(this, &UGA_BasicAttack_Missile::StartShooting);
 		WaitStartShootingEvent->ReadyForActivation();
 
 		UAbilityTask_WaitGameplayEvent* WaitStopShootingEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag());
-		WaitStopShootingEvent->EventReceived.AddDynamic(this, &UGA_RangedCombo::StopShooting);
+		WaitStopShootingEvent->EventReceived.AddDynamic(this, &UGA_BasicAttack_Missile::StopShooting);
 		WaitStopShootingEvent->ReadyForActivation();
 
 		UAbilityTask_WaitGameplayEvent* WaitShootProjectileEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, UMAAbilitySystemStatics::GetMontageProjectileTag(), nullptr,false,false);
-		WaitShootProjectileEvent->EventReceived.AddDynamic(this, &UGA_RangedCombo::ShootProjectile);
+		WaitShootProjectileEvent->EventReceived.AddDynamic(this, &UGA_BasicAttack_Missile::ShootProjectile);
 		WaitShootProjectileEvent->ReadyForActivation();
 	}
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
-void UGA_RangedCombo::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+void UGA_BasicAttack_Missile::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	StopShooting(FGameplayEventData());
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-void UGA_RangedCombo::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+void UGA_BasicAttack_Missile::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo)
 {
 	if (AttackMontage)
@@ -53,7 +53,7 @@ void UGA_RangedCombo::InputReleased(const FGameplayAbilitySpecHandle Handle, con
 	K2_EndAbility();
 }
 
-void UGA_RangedCombo::StartShooting(FGameplayEventData Payload)
+void UGA_BasicAttack_Missile::StartShooting(FGameplayEventData Payload)
 {
 	if (HasAuthority(&CurrentActivationInfo))
 	{
@@ -66,7 +66,7 @@ void UGA_RangedCombo::StartShooting(FGameplayEventData Payload)
 	}
 }
 
-void UGA_RangedCombo::StopShooting(FGameplayEventData Payload)
+void UGA_BasicAttack_Missile::StopShooting(FGameplayEventData Payload)
 {
 	if (AttackMontage)
 	{
@@ -74,7 +74,7 @@ void UGA_RangedCombo::StopShooting(FGameplayEventData Payload)
 	}
 }
 
-void UGA_RangedCombo::ShootProjectile(FGameplayEventData Payload)
+void UGA_BasicAttack_Missile::ShootProjectile(FGameplayEventData Payload)
 {
 	if (K2_HasAuthority())
 	{
