@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Character/MACharacter.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MASkillVFXSet.h"
@@ -331,23 +332,25 @@ void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, f
 	const FSkillData& SkillData = GetSkillData();
 	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
 
-	bool bIsDamageEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageDamageTag();
-	bool bIsProjectileEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
+	bool bIsMeleeDamageEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageDamageTag();
+	bool bIsProjectileEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageProjectileTag();
 
+	//Melee 공격에 Montage.Damage 노티파이만 작동하도록
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		if (!Payload.EventTag.IsValid() || bIsDamageEvent)
+		if (!Payload.EventTag.IsValid() || bIsMeleeDamageEvent)
 		{
 			PerformMeleeAttack(Payload, FinalMultiplier);
 		}
 	}
+	//Projectile 공격에는 Montage.SpawnProjectile 노티파이만 작동하도록
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
 	{
 		if (bIsProjectileEvent)
 		{
 			SpawnProjectile(Payload, FinalMultiplier);
 		}
-		else if (bIsDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+		else if (bIsMeleeDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 		{
 			SpawnProjectile(Payload, FinalMultiplier);
 		}
@@ -384,10 +387,8 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	if (!AvatarActor)
 		return;
 
-	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
-	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CurrentElement);
-
-	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CachedElementalData.ElementalTag);
+	TSubclassOf<AMAProjectile> ClassToSpawn = ProjectileConfig->SkinData->ProjectileClass;
 	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
 	FGameplayTag CueTag = FinalSkin.HitCueTag;
 
@@ -417,7 +418,6 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 				CurrentAngle = -HalfAngle + (i*Step);
 			}
 		}
-		CurrentAngle += ProjectileConfig ->AngleOffset;
 
 		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
 		FVector SpawnDirection = SpawnRot.Vector();
@@ -450,7 +450,7 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
 	FProjectileSkinInfo FinalSkin = TargetConfig->SkinData->GetSkinForTag(CurrentElement);
 
-	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	TSubclassOf<AMAProjectile> ClassToSpawn = TargetConfig->SkinData->ProjectileClass;
 	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
 	FGameplayTag CueTag = FinalSkin.HitCueTag;
 

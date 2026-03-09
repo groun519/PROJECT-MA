@@ -117,22 +117,25 @@ struct FModuleBehaviorData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
+	/**이 모듈의 행동 로직 클래스*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UMASkillModule> ModuleClass;
-
+	/**행동 로직에서의 디테일 값 설정 (Instant는 설정할 필요 없음)*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "/Script/P_MA.SkillBehaviorConfig"))
 	FInstancedStruct ModuleConfig;
-
+	/**이 모듈이 장착되기 위해 필요한 스킬의 특성*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Trait"), Category="Requirement")
 	FGameplayTagContainer RequiredTraits;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
 	//bool bReplaceActionTags = true;
+	/** 스킬의 액션 태그를 해당 태그로 덮어씌움 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
 	FGameplayTagContainer ActionTagOverride;
+	/** 스킬의 액션 데이터를 해당 데이터로 덮어씌움 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "/Script/P_MA.SkillActionConfig"))
 	FInstancedStruct ActionDataOverride;
-
+	/** 모듈 설명 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Information")
 	FText Description;
 };
@@ -149,9 +152,10 @@ struct FBehavior_Hold : public FSkillBehaviorConfig
 {
 	GENERATED_BODY()
 public:
+	/** 틱당 데미지 곱셈 값 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float HoldingDamageMultiplier = 0.8f;
-
+	/** 최대 홀딩 가능 값 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxHoldDuration = 2.5f;
 };
@@ -164,7 +168,7 @@ public:
 	/**최대 데미지까지의 충전 시간*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxChargeDuration = 3.f;
-	/***/
+	/**키를 누를 수 있는 최대 시간 (설정 값 이후로는 스킬 취소됨) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxInputDelay = 3.4f;
 };
@@ -174,22 +178,23 @@ struct FBehavior_Combo : public FSkillBehaviorConfig
 {
 	GENERATED_BODY()
 public:
+	/**콤보 애니메이션 몽타주*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* ComboMontage= nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> ComboModuleEffect;
-
+	/**콤보 스킬 공격으로 발생시킬 Hit Reaction*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Effect.Reaction"))
 	FGameplayTag ComboHitReactionTag;
 	
-	/** 타격 애니메이션이 지속될 시간 (0초면 애니메이션 1회만 실행) */
+	/** Hit Reaction이 지속될 시간 (0초면 애니메이션 1회만 실행) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ReactDuration = 0.f;
-	
+	/** 추가 키 입력 가능 시간 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InputWindow = 3.f;
-	
+	/** 콤보 스킬 아이콘 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* ComboIcon = nullptr;
 };
@@ -201,15 +206,16 @@ struct FModuleElementalData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
+	/**속성 태그*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Module.Elemental"))
 	FGameplayTag ElementalTag;
-	
+	/**속성 별 추가 효과 (추가 데미지, 스턴, 도트 데미지, 디버프부여 등) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> AdditionalEffect;
-
+	/**속성 별 나이아가라 이펙트 색상 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FLinearColor EffectColor = FLinearColor::White;
-
+	/**데미지 수정*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplier=1.f;
 };
@@ -221,24 +227,25 @@ struct FModuleUtilityData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
+	/**데미지 수정*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplier=1.f;
-	
+	/**공격 속도 조정 (애니메이션 속도 조정)*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MontagePlayRate=1.f;
-	
+	/**쿨타임 조정*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CooldownMultiplier=1.f;
-	
+	/**쿨타임이 초기화 될 확률 (CooldownMultiplier가 0일때만 작동)*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="CooldownMultiplier ==0.0"))
 	float ChanceToReset=0.f;
-
+	/**스킬 사용 직후 발동될 버프*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> BuffGEOnActive;
-
+	/**스킬이 끝날 때 발동될 버프*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UGameplayEffect> BuffGEOnEnd;
-	
+	/**설명*/
 	UPROPERTY(EditAnywhere)
 	FText Description;
 };
@@ -255,27 +262,32 @@ struct FActionConfig_Projectile : public FSkillActionConfig
 {
 	GENERATED_BODY()
 public:
+	/**속성별로 적용시킬 나이아가라를 넣어놓은 데이터 에셋*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UMAProjectileSkinData> SkinData;
-
+	/**투사체 스폰 개수*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
+	/**투사체별 데미지 조정량*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplierPerProjectile = 1.f;
+	/**투사체 폭발 범위*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ExplodeRadius = 200.f;
 
+	/**투사체가 적을 통과 할 수 있는지*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsPenetrating = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	/**투사체를 캐릭터 360도 주변으로 날릴 것인지 (3개 이상 스폰시에 가능)*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="NumOfProjectiles>2"))
 	bool bIsRadial = false;
+	/**투사체를 설정값 이내로 캐릭터 정면으로 스폰*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="!bIsRadial"))
 	float SpreadAngle = 90.f;
 
+	/**투사체 스폰 시 캐릭터와 얼마나 떨어져있는지*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SpawnDistanceFromCharacter = 100.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AngleOffset = 0.f;
+	float SpawnDistanceFromCharacter = 1.f;
 };
 
 USTRUCT(BlueprintType)

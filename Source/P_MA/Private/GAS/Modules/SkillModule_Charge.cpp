@@ -158,7 +158,14 @@ void USkillModule_Charge::StartWaitInputReleaseTask()
 
 void USkillModule_Charge::OnInputReleased(float TimeHeld)
 {
-	if (!bIsCharging || !OwnerSkill)	return;
+	if (!bIsCharging || !OwnerSkill)
+		return;
+
+	if (ChargeStartEventTask)
+	{
+		ChargeStartEventTask->EndTask();
+		ChargeStartEventTask = nullptr;
+	}
 	
 	FinalChargedDuration = TimeHeld;
 
@@ -230,6 +237,9 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 {
 	if (!OwnerSkill)
 		return;
+	AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
+	if (!Avatar)
+		return;
 
 	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
@@ -238,10 +248,6 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 		return;
 	}
-
-	AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
-	if (!Avatar)
-		return;
 
 	DestroyActors();
 	
@@ -309,12 +315,14 @@ void USkillModule_Charge::FinishTargetingTask()
 	{
 		TargetData = TargetActor->GetTargetData();
 	}
-	
+
+	/*
 	if (TargetData.Num() > 0)
 	{
 		OwnerSkill->ApplyDamageToTargetData(TargetData, FinalChargedDuration);
 	}
-	
+	*/
+	OnTargetDataReady(TargetData);
 	DestroyActors();
 }
 
@@ -338,7 +346,13 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 		return;
 
 	CachedTargetData = Data;
-	StartWaitDamageEventTask(MontageSpawnProjectileTag);
+
+	FGameplayTag WaitTag = MontageDamageTag;
+	if (OwnerSkill->GetSkillData().ActionTags.HasTag(ProjectileActionTag))
+	{
+		WaitTag = MontageSpawnProjectileTag;
+	}
+	StartWaitDamageEventTask(WaitTag);
 
 	float CastSectionLength = 1.0f;
 
@@ -346,15 +360,8 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 	{
 		if (UAnimMontage* Montage = OwnerSkill->GetCurrentMontage())
 		{
-			OwnerSkill->Montage_SetPlayRate(Montage, 1.0f);
-
-			int32 SectionIndex = Montage->GetSectionIndex(FName("Cast"));
-			if (SectionIndex != INDEX_NONE)
-			{
-				CastSectionLength = Montage->GetSectionLength(SectionIndex);
-			}
+			OwnerSkill->Montage_SetPlayRate(Montage,1.f);
 		}
-		OwnerSkill->Montage_SetSection(FName("Cast"));
 	}
 	UAbilityTask_WaitDelay* FinishTimer = UAbilityTask_WaitDelay::WaitDelay(OwnerSkill, CastSectionLength);
 	FinishTimer->OnFinish.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);
