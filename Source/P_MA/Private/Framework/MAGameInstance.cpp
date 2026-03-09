@@ -422,7 +422,8 @@ void UMAGameInstance::UpdateLoadingStatus()
 void UMAGameInstance::SaveLoadout(
 	const FMaterialParamDataPair& Color,
 	FName WeaponId,
-	FName EyeShapeId
+	FName EyeShapeId,
+	FName MountId
 )
 {
 	if (LoadoutSaveSlot.IsEmpty()) return;
@@ -433,6 +434,7 @@ void UMAGameInstance::SaveLoadout(
 	SaveGame->SavedColor = Color;
 	SaveGame->SavedWeaponId = WeaponId;
 	SaveGame->SavedEyeShapeId = EyeShapeId;
+	SaveGame->SavedMountId = MountId;
 	// Reserved for future save migration. Current load logic does not branch on version.
 	SaveGame->Version = 1;
 
@@ -445,7 +447,8 @@ void UMAGameInstance::SaveLoadout(
 bool UMAGameInstance::LoadLoadout(
 	FMaterialParamDataPair& OutColor,
 	FName& OutWeaponId,
-	FName& OutEyeShapeId
+	FName& OutEyeShapeId,
+	FName& OutMountId
 )
 {
 	if (LoadoutSaveSlot.IsEmpty()) return false;
@@ -463,6 +466,7 @@ bool UMAGameInstance::LoadLoadout(
 	OutColor = SaveGame->SavedColor;
 	OutWeaponId = SaveGame->SavedWeaponId;
 	OutEyeShapeId = SaveGame->SavedEyeShapeId;
+	OutMountId = SaveGame->SavedMountId;
 	return true;
 }
 

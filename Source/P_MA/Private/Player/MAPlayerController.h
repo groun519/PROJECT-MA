@@ -58,6 +58,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutEyeShape(FName EyeShapeId);
 
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutMountId(FName MountId);
+
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoopReady(bool bReady);

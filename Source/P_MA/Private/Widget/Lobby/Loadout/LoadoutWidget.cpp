@@ -6,6 +6,7 @@
 #include "Level/Lobby/LobbyPlayerController.h"
 #include "Widget/Lobby/Loadout/LoadoutBodyTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutHeadTabWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutMountTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWeaponTabWidget.h"
 
 void ULoadoutWidget::NativeConstruct()
@@ -23,6 +24,10 @@ void ULoadoutWidget::NativeConstruct()
 	if (WeaponTabButton)
 	{
 		WeaponTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleWeaponTabClicked);
+	}
+	if (MountTabButton)
+	{
+		MountTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleMountTabClicked);
 	}
 
 	SetActiveTab(1);
@@ -56,6 +61,11 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 	}
 }
 
+void ULoadoutWidget::HandleMountTabClicked()
+{
+	SetActiveTab(3);
+}
+
 void ULoadoutWidget::SetActiveTab(int32 TabIndex)
 {
 	if (TabSwitcher)
@@ -75,6 +85,10 @@ void ULoadoutWidget::SetActiveTab(int32 TabIndex)
 	{
 		WeaponTabButton->SetIsEnabled(TabIndex != 2);
 	}
+	if (MountTabButton)
+	{
+		MountTabButton->SetIsEnabled(TabIndex != 3);
+	}
 
 }
 
@@ -83,7 +97,7 @@ void ULoadoutWidget::ActivateBodyTabUI()
 	SetActiveTab(1);
 }
 
-void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId)
+void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId, FName PendingMountId)
 {
 	if (BodyTabWidget)
 	{
@@ -98,5 +112,10 @@ void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& Pend
 	if (WeaponTabWidget)
 	{
 		WeaponTabWidget->SyncFromPendingWeapon(PendingWeaponId);
+	}
+
+	if (MountTabWidget)
+	{
+		MountTabWidget->SyncFromPendingMount(PendingMountId);
 	}
 }

@@ -6,6 +6,8 @@
 #include "Animation/AnimInstance.h"
 #include "MAAnimInstance.generated.h"
 
+class UAnimSequence;
+
 /**
  * 
  */
@@ -35,6 +37,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	FORCEINLINE bool GetIsOnGround() const { return !bIsJumping; }
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE bool IsMounted() const { return bIsMounted; }
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	FORCEINLINE UAnimSequence* GetCurrentRideSequence() const { return CurrentRideSequence; }
+
+	void SetCurrentRideSequence(UAnimSequence* InRideSequence) { CurrentRideSequence = InRideSequence; }
 	
 
 
@@ -70,4 +80,8 @@ private:
 	FRotator BodyPrevRot;
 	FRotator LookRotOffset;
 	bool bIsJumping;
+	bool bIsMounted = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequence> CurrentRideSequence = nullptr;
 };

@@ -23,19 +23,31 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if (const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OwnerCharacter))
 		{
 			if (const UReadyRideComponent* ReadyRideComp = PlayerCharacter->GetReadyRideComponent();
-				ReadyRideComp && ReadyRideComp->ShouldBlockManualRotation())
+				ReadyRideComp)
 			{
-				Velocity = ReadyRideComp->GetAttachedMoveVelocity();
-				Speed = ReadyRideComp->GetAttachedMoveSpeed();
+				bIsMounted = ReadyRideComp->GetMountState() == ERideMountState::Mounted;
+				const bool bUseRideMovementSource = ReadyRideComp->IsAttachedReady();
+				if (bUseRideMovementSource)
+				{
+					Velocity = ReadyRideComp->GetAttachedMoveVelocity();
+					Speed = ReadyRideComp->GetAttachedMoveSpeed();
+				}
+				else
+				{
+					Velocity = OwnerCharacter->GetVelocity();
+					Speed = Velocity.Length();
+				}
 			}
 			else
 			{
+				bIsMounted = false;
 				Velocity = OwnerCharacter->GetVelocity();
 				Speed = Velocity.Length();
 			}
 		}
 		else
 		{
+			bIsMounted = false;
 			Velocity = OwnerCharacter->GetVelocity();
 			Speed = Velocity.Length();
 		}
@@ -44,6 +56,10 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		FRotator ControlRot = OwnerCharacter->GetBaseAimRotation();
 		LookRotOffset = UKismetMathLibrary::NormalizedDeltaRotator(ControlRot, BodyRot);
+	}
+	else
+	{
+		bIsMounted = false;
 	}
 }
 

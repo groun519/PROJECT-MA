@@ -25,11 +25,13 @@
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
+#include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
@@ -72,6 +74,14 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+
+	/** Mount **/
+	MountMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MountMesh"));
+	MountMesh->SetupAttachment(RootComponent);
+	MountMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MountMesh->SetGenerateOverlapEvents(false);
+	MountMesh->SetCanEverAffectNavigation(false);
+	MountMesh->SetHiddenInGame(true);
 
     /** Mini Map **/
     // 스프라이트부터 먼저 생성
@@ -273,6 +283,8 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	if (EnhancedInputComp)
 	{
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleMoveInput);
+		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleMoveInput);
+		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleMoveInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
 		
 		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
@@ -390,6 +402,8 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
+	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
+	if (ReadyRideComponent && ReadyRideComponent->GetMountState() == ERideMountState::Mounted) return;
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
@@ -526,6 +540,11 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
 			LoadoutWeaponChangedHandle.Reset();
 		}
+		if (LoadoutMountChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutMountChanged.Remove(LoadoutMountChangedHandle);
+			LoadoutMountChangedHandle.Reset();
+		}
 	}
 
 	CachedLoadoutPlayerState = NewPlayerState;
@@ -534,6 +553,7 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
 	LoadoutEyeShapeChangedHandle = NewPlayerState->OnLoadoutEyeShapeChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutEyeShapeChanged);
 	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
+	LoadoutMountChangedHandle = NewPlayerState->OnLoadoutMountChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutMountChanged);
 
 	ApplyLoadoutFromPlayerState();
 }
@@ -545,6 +565,7 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
 	HandleLoadoutEyeShapeChanged(CachedLoadoutPlayerState->GetLoadoutEyeShapeId());
 	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
+	HandleLoadoutMountChanged(CachedLoadoutPlayerState->GetLoadoutMountId());
 }
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
@@ -605,6 +626,49 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	}
 
 	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
+}
+
+void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
+{
+	if (!MountMesh) return;
+
+	UAnimSequence* RiderSequence = nullptr;
+
+	if (!MountId.IsNone() && LoadoutComponent)
+	{
+		const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet();
+		const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
+		if (MountDataTable)
+		{
+			const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount"));
+			if (Row)
+			{
+				MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
+				MountMesh->SetAnimInstanceClass(Row->MountAnimClass);
+				RiderSequence = Row->RiderPose.LoadSynchronous();
+			}
+			else
+			{
+				MountMesh->SetSkeletalMesh(nullptr);
+				MountMesh->SetAnimInstanceClass(nullptr);
+			}
+		}
+		else
+		{
+			MountMesh->SetSkeletalMesh(nullptr);
+			MountMesh->SetAnimInstanceClass(nullptr);
+		}
+	}
+	else
+	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimInstanceClass(nullptr);
+	}
+
+	if (UMAAnimInstance* MAAnim = Cast<UMAAnimInstance>(GetMesh() ? GetMesh()->GetAnimInstance() : nullptr))
+	{
+		MAAnim->SetCurrentRideSequence(RiderSequence);
+	}
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const

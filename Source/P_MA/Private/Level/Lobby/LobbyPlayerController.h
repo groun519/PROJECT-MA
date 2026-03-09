@@ -81,6 +81,7 @@ public:
 	void PreviewEyeShape(FName EyeShapeId);
 	void PreviewBodyColor(const FMaterialParamData& BodyData);
 	void PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset);
+	void SetPendingMount(FName MountId);
 	void ApplyPendingWeaponPreview();
 	void ApplyPendingWeaponPreviewDelayed(float DelaySeconds);
 	void SetLoadoutView(ELoadoutView NewView);
@@ -117,6 +118,7 @@ private:
 	void CommitLoadoutColor();
 	void CommitLoadoutEyeShape();
 	void CommitLoadoutWeapon();
+	void CommitLoadoutMount();
 	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
@@ -127,6 +129,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutEyeShape(FName EyeShapeId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutMountId(FName MountId);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLobbyState(ELobbyAvatarState NewState);
@@ -174,4 +179,6 @@ private:
 	bool bHasPendingEyeShape = false;
 	FName PendingWeaponId;
 	bool bHasPendingWeapon = false;
+	FName PendingMountId = NAME_None;
+	bool bHasPendingMount = false;
 };

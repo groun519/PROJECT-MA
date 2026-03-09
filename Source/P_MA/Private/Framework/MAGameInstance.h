@@ -48,11 +48,12 @@ public:
 	void SaveLoadout(
 		const FMaterialParamDataPair& Color,
 		FName WeaponId,
-		FName EyeShapeId
+		FName EyeShapeId,
+		FName MountId
 	);
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId, FName& OutEyeShapeId);
+	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId, FName& OutEyeShapeId, FName& OutMountId);
 
 	void NotifyLocalLoadingVisualComplete();
 

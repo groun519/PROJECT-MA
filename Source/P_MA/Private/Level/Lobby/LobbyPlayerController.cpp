@@ -74,7 +74,8 @@ void ALobbyPlayerController::BeginPlay()
 			FMaterialParamDataPair LoadedColor;
 			FName LoadedWeaponId = NAME_None;
 			FName LoadedEyeShapeId = NAME_None;
-			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId))
+			FName LoadedMountId = NAME_None;
+			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId, LoadedMountId))
 			{
 				if (HasAuthority())
 				{
@@ -86,6 +87,10 @@ void ALobbyPlayerController::BeginPlay()
 						{
 							PS->SetLoadoutWeaponId(LoadedWeaponId);
 						}
+						if (!LoadedMountId.IsNone())
+						{
+							PS->SetLoadoutMountId(LoadedMountId);
+						}
 					}
 				}
 				else
@@ -96,6 +101,10 @@ void ALobbyPlayerController::BeginPlay()
 					{
 						ServerSetLoadoutWeaponId(LoadedWeaponId);
 					}
+					if (!LoadedMountId.IsNone())
+					{
+						ServerSetLoadoutMountId(LoadedMountId);
+					}
 				}
 
 				PendingLoadoutColor = LoadedColor;
@@ -104,6 +113,8 @@ void ALobbyPlayerController::BeginPlay()
 				bHasPendingEyeShape = !LoadedEyeShapeId.IsNone();
 				PendingWeaponId = LoadedWeaponId;
 				bHasPendingWeapon = !LoadedWeaponId.IsNone();
+				PendingMountId = LoadedMountId;
+				bHasPendingMount = !LoadedMountId.IsNone();
 			}
 		}
 
@@ -268,6 +279,12 @@ void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, 
 			Slot->ApplyLoadoutWeaponMesh(Mesh, Offset);
 		}
 	}
+}
+
+void ALobbyPlayerController::SetPendingMount(FName MountId)
+{
+	PendingMountId = MountId;
+	bHasPendingMount = !MountId.IsNone();
 }
 
 void ALobbyPlayerController::ApplyPendingWeaponPreview()
@@ -458,6 +475,14 @@ void ALobbyPlayerController::EnterLoadoutView()
 			bHasPendingWeapon = !PendingWeaponId.IsNone();
 		}
 	}
+	if (!bHasPendingMount)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingMountId = PS->GetLoadoutMountId();
+			bHasPendingMount = !PendingMountId.IsNone();
+		}
+	}
 
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutWidget)
 	{
@@ -465,7 +490,8 @@ void ALobbyPlayerController::EnterLoadoutView()
 		LobbyRootWidgetInstance->LoadoutWidget->SyncSelectionFromPending(
 			PendingLoadoutColor,
 			PendingEyeShapeId,
-			PendingWeaponId
+			PendingWeaponId,
+			PendingMountId
 		);
 		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
@@ -490,6 +516,7 @@ void ALobbyPlayerController::ExitLoadoutView()
 	CommitLoadoutColor();
 	CommitLoadoutEyeShape();
 	CommitLoadoutWeapon();
+	CommitLoadoutMount();
 
 	if (IsLocalController())
 	{
@@ -498,7 +525,8 @@ void ALobbyPlayerController::ExitLoadoutView()
 			FMaterialParamDataPair ColorToSave = PendingLoadoutColor;
 			FName EyeShapeIdToSave = PendingEyeShapeId;
 			FName WeaponToSave = PendingWeaponId;
-			if (!bHasPendingLoadoutColor || !bHasPendingEyeShape || !bHasPendingWeapon)
+			FName MountToSave = PendingMountId;
+			if (!bHasPendingLoadoutColor || !bHasPendingEyeShape || !bHasPendingWeapon || !bHasPendingMount)
 			{
 				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 				{
@@ -514,9 +542,13 @@ void ALobbyPlayerController::ExitLoadoutView()
 					{
 						WeaponToSave = PS->GetLoadoutWeaponId();
 					}
+					if (!bHasPendingMount)
+					{
+						MountToSave = PS->GetLoadoutMountId();
+					}
 				}
 			}
-			GI->SaveLoadout(ColorToSave, WeaponToSave, EyeShapeIdToSave);
+			GI->SaveLoadout(ColorToSave, WeaponToSave, EyeShapeIdToSave, MountToSave);
 		}
 	}
 	bInLoadoutView = false;
@@ -781,11 +813,36 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 	}
 }
 
+void ALobbyPlayerController::CommitLoadoutMount()
+{
+	if (!bHasPendingMount) return;
+
+	if (HasAuthority())
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PS->SetLoadoutMountId(PendingMountId);
+		}
+	}
+	else
+	{
+		ServerSetLoadoutMountId(PendingMountId);
+	}
+}
+
 void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutWeaponId(WeaponId);
+	}
+}
+
+void ALobbyPlayerController::ServerSetLoadoutMountId_Implementation(FName MountId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutMountId(MountId);
 	}
 }
 

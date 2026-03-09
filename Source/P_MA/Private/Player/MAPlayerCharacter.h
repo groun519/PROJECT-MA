@@ -16,6 +16,7 @@ class UInteractComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
+class USkeletalMeshComponent;
 class AMAPlayerState;
 class UPlayerCameraManagerComponent;
 
@@ -68,6 +69,8 @@ public:
 
 	/** Ready Ride Component **/
 	FORCEINLINE UReadyRideComponent* GetReadyRideComponent() const { return ReadyRideComponent; }
+	FORCEINLINE USkeletalMeshComponent* GetMountMesh() const { return MountMesh; }
+	FORCEINLINE float GetRideHorizontalInput() const { return RideHorizontalInput; }
 
 	/** Interact **/
 	UFUNCTION()
@@ -94,6 +97,10 @@ private:
 	/** Ready Check Widget **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	UReadyCheckWidgetComponent* ReadyCheckWidget;
+
+	/** Mount **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mount")
+	USkeletalMeshComponent* MountMesh;
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
@@ -151,6 +158,7 @@ private:
 	float LastRotationNetSendTime = -1000.f;
 	float LastSentRotationYaw = 0.f;
 	bool bHasSentRotationYaw = false;
+	float RideHorizontalInput = 0.f;
 
 	/** Loadout **/
 	void BindLoadoutDelegates();
@@ -158,10 +166,12 @@ private:
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
 	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
+	void HandleLoadoutMountChanged(FName MountId);
 
 	FDelegateHandle LoadoutColorChangedHandle;
 	FDelegateHandle LoadoutEyeShapeChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
+	FDelegateHandle LoadoutMountChangedHandle;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;

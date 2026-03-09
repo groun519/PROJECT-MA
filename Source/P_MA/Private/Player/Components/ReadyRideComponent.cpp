@@ -4,6 +4,7 @@
 
 #include "Components/CapsuleComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
@@ -27,6 +28,8 @@ void UReadyRideComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 void UReadyRideComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CacheOwnerMeshAttachment();
 
 	if (const AActor* OwnerActor = GetOwner())
 	{
@@ -143,6 +146,7 @@ void UReadyRideComponent::ApplyRideState(bool bNowAttached)
 	}
 
 	UpdateRideMovementMode(bNowAttached);
+	UpdateMountState(bNowAttached);
 	UpdateTickPolicy(bNowAttached);
 	RefreshRideCollisionMode();
 }
@@ -188,6 +192,77 @@ void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
 	}
 
 	SetComponentTickEnabled(false);
+}
+
+void UReadyRideComponent::UpdateMountState(bool bNowAttached)
+{
+	const ERideMountState NewMountState = bNowAttached ? ERideMountState::Mounted : ERideMountState::None;
+	if (MountState == NewMountState) return;
+
+	MountState = NewMountState;
+	if (MountState == ERideMountState::Mounted)
+	{
+		AttachOwnerMeshToMount();
+		return;
+	}
+
+	RestoreOwnerMeshAttachment();
+}
+
+void UReadyRideComponent::CacheOwnerMeshAttachment()
+{
+	if (bHasCachedOwnerMeshAttachment) return;
+
+	const AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	const USkeletalMeshComponent* OwnerMesh = OwnerCharacter->GetMesh();
+	if (!OwnerMesh) return;
+
+	CachedOwnerMeshParent = OwnerMesh->GetAttachParent();
+	CachedOwnerMeshRelativeTransform = OwnerMesh->GetRelativeTransform();
+	bHasCachedOwnerMeshAttachment = CachedOwnerMeshParent.IsValid();
+}
+
+void UReadyRideComponent::AttachOwnerMeshToMount()
+{
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	USkeletalMeshComponent* OwnerMesh = OwnerCharacter->GetMesh();
+	USkeletalMeshComponent* MountMesh = OwnerCharacter->GetMountMesh();
+	if (!OwnerMesh || !MountMesh) return;
+
+	CacheOwnerMeshAttachment();
+	MountMesh->SetHiddenInGame(false);
+	OwnerMesh->AttachToComponent(MountMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, MountSocketName);
+}
+
+void UReadyRideComponent::RestoreOwnerMeshAttachment()
+{
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	USkeletalMeshComponent* OwnerMesh = OwnerCharacter->GetMesh();
+	USkeletalMeshComponent* MountMesh = OwnerCharacter->GetMountMesh();
+	if (!OwnerMesh) return;
+
+	USceneComponent* RestoreParent = CachedOwnerMeshParent.Get();
+	if (!RestoreParent)
+	{
+		RestoreParent = OwnerCharacter->GetRootComponent();
+	}
+
+	if (RestoreParent)
+	{
+		OwnerMesh->AttachToComponent(RestoreParent, FAttachmentTransformRules::KeepRelativeTransform);
+		OwnerMesh->SetRelativeTransform(CachedOwnerMeshRelativeTransform);
+	}
+
+	if (MountMesh)
+	{
+		MountMesh->SetHiddenInGame(true);
+	}
 }
 
 void UReadyRideComponent::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const

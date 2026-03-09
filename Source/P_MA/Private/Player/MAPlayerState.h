@@ -20,6 +20,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutColorChanged, const FMaterialParamDataPair&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponChanged, FName);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutEyeShapeChanged, FName);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutMountChanged, FName);
 
 	void SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill);
 	TSubclassOf<UGameplayAbility> GetDefaultSkill() const { return DefaultSkill; }
@@ -33,6 +34,9 @@ public:
 	void SetLoadoutEyeShapeId(FName NewEyeShapeId);
 	FName GetLoadoutEyeShapeId() const { return LoadoutEyeShapeId; }
 
+	void SetLoadoutMountId(FName NewMountId);
+	FName GetLoadoutMountId() const { return LoadoutMountId; }
+
 	void SetLoadingComplete(bool bComplete);
 	bool IsLoadingComplete() const { return bHasFinishedLoading; }
 
@@ -43,6 +47,7 @@ public:
 	FOnLoadoutColorChanged OnLoadoutColorChanged;
 	FOnLoadoutWeaponChanged OnLoadoutWeaponChanged;
 	FOnLoadoutEyeShapeChanged OnLoadoutEyeShapeChanged;
+	FOnLoadoutMountChanged OnLoadoutMountChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -70,6 +75,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_LoadoutEyeShapeId();
+
+	UPROPERTY(ReplicatedUsing = OnRep_LoadoutMountId)
+	FName LoadoutMountId = TEXT("1");
+
+	UFUNCTION()
+	void OnRep_LoadoutMountId();
 
 	UPROPERTY(ReplicatedUsing = OnRep_LoadingComplete)
 	bool bHasFinishedLoading = false;

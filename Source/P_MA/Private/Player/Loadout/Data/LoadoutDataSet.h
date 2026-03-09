@@ -17,6 +17,9 @@ class P_MA_API ULoadoutDataSet : public UDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout")
+	TObjectPtr<UDataTable> MountDataTable;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout")
 	TObjectPtr<UDataTable> WeaponDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout")
