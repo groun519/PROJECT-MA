@@ -78,9 +78,11 @@ void UMAGameplayWidget::ToggleShop()
         ActiveShopWidget->RemoveFromParent();
         ActiveShopWidget = nullptr;
         
-        FInputModeGameOnly InputMode;
+        FInputModeGameAndUI InputMode;
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture(false);
         PC->SetInputMode(InputMode);
-        PC->bShowMouseCursor = true; 
+        PC->bShowMouseCursor = true;
     }
     else
     {
@@ -120,9 +122,15 @@ void UMAGameplayWidget::ToggleSkillBook()
         ActiveSkillBookWidget->RemoveFromParent();
         ActiveSkillBookWidget = nullptr;
 
+        FInputModeGameAndUI InputMode;
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture(false);
+        PC->SetInputMode(InputMode);
+        PC->bShowMouseCursor = true;
+        /*
         FInputModeGameOnly InputMode;
         PC->SetInputMode(InputMode);
-        PC->bShowMouseCursor = true; 
+        PC->bShowMouseCursor = true; */
     }
     else
     {
