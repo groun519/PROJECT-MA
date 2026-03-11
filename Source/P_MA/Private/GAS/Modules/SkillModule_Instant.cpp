@@ -143,7 +143,6 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwnerSkill, NAME_None, EGameplayTargetingConfirmation::UserConfirmed, TargetConfig->TargetActorClass);
 	WaitTargetDataTask->ValidData.AddDynamic(this, &USkillModule_Instant::OnTargetDataConfirmed);
 	WaitTargetDataTask->Cancelled.AddDynamic(this, &USkillModule_Instant::OnTargetDataCancelled);
-	WaitTargetDataTask->ReadyForActivation();
 
 	AGameplayAbilityTargetActor* SpawnedActor = nullptr;
 	WaitTargetDataTask->BeginSpawningActor(OwnerSkill, TargetConfig->TargetActorClass, SpawnedActor);
@@ -153,6 +152,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 		TargetActor->InitializeFixed(TargetConfig->MaxDistance, TargetConfig->ExplodeRadius);
 	}
 	WaitTargetDataTask->FinishSpawningActor(OwnerSkill, SpawnedActor);
+	WaitTargetDataTask->ReadyForActivation();
 }
 
 void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDataHandle& Data)
@@ -160,6 +160,12 @@ void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDat
 	DestroyRangeActor();
 	CachedTargetData = Data;
 
+	if (WaitTargetDataTask)
+	{
+		WaitTargetDataTask->EndTask();
+		WaitTargetDataTask = nullptr;
+	}
+	
 	float CastSectionLength = 1.f;
 	
 	if (OwnerSkill && OwnerSkill->GetOwnerAnimInstance())
@@ -187,6 +193,12 @@ void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDat
 
 void USkillModule_Instant::OnTargetDataCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
+	if (WaitTargetDataTask)
+	{
+		WaitTargetDataTask->EndTask();
+		WaitTargetDataTask = nullptr;
+	}
+	
 	DestroyRangeActor();
 	if (OwnerSkill)
 	{
