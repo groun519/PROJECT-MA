@@ -53,6 +53,9 @@ public:
 	void ApplyEnvMaterials();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	bool bUseFuryThreshold = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float FuryThreshold = 50.f;
 	
 protected:
