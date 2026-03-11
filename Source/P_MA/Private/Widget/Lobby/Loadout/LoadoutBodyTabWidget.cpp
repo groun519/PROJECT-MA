@@ -2,7 +2,8 @@
 
 #include "Widget/Lobby/Loadout/LoadoutBodyTabWidget.h"
 #include "Components/ScrollBox.h"
-#include "Components/ScrollBoxSlot.h"
+#include "Framework/MAGameInstance.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Player/Loadout/Data/LoadoutBodyColorPresetData.h"
 #include "Level/Lobby/LobbyPlayerController.h"
@@ -16,7 +17,11 @@ void ULoadoutBodyTabWidget::NativeConstruct()
 
 void ULoadoutBodyTabWidget::BuildBodyColorButtons()
 {
-	if (!BodyColorScrollBox || !BodyColorButtonClass || !BodyColorPreset)
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const ULoadoutBodyColorPresetData* ResolvedBodyColorPreset = LoadoutDataSet ? LoadoutDataSet->BodyColorPreset : nullptr;
+
+	if (!BodyColorScrollBox || !BodyColorButtonClass || !ResolvedBodyColorPreset)
 	{
 		return;
 	}
@@ -24,7 +29,7 @@ void ULoadoutBodyTabWidget::BuildBodyColorButtons()
 	BodyColorScrollBox->ClearChildren();
 	BodyColorButtons.Reset();
 
-	for (const FMaterialParamData& BodyData : BodyColorPreset->BodyColors)
+	for (const FMaterialParamData& BodyData : ResolvedBodyColorPreset->BodyColors)
 	{
 		ULoadoutColorButtonWidget* ButtonWidget = CreateWidget<ULoadoutColorButtonWidget>(this, BodyColorButtonClass);
 		if (!ButtonWidget)
@@ -34,13 +39,15 @@ void ULoadoutBodyTabWidget::BuildBodyColorButtons()
 
 		ButtonWidget->ColorData = BodyData;
 		ButtonWidget->OnColorSelected.AddDynamic(this, &ULoadoutBodyTabWidget::HandleBodyColorSelected);
-		if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(BodyColorScrollBox->AddChild(ButtonWidget)))
-		{
-			ScrollSlot->SetPadding(FMargin(6.f, 0.f, 6.f, 0.f));
-		}
+		AddButtonToScrollBox(BodyColorScrollBox, ButtonWidget);
 
 		BodyColorButtons.Add(ButtonWidget);
 	}
+}
+
+void ULoadoutBodyTabWidget::SyncFromPendingBody(const FMaterialParamData& BodyData)
+{
+	UpdateSelectedBodyColor(BodyData);
 }
 
 void ULoadoutBodyTabWidget::UpdateSelectedBodyColor(const FMaterialParamData& SelectedData)
@@ -52,15 +59,8 @@ void ULoadoutBodyTabWidget::UpdateSelectedBodyColor(const FMaterialParamData& Se
 			continue;
 		}
 
-		Button->SetSelected(IsSameColor(Button->ColorData, SelectedData));
+		Button->SetSelected(IsSameColorData(Button->ColorData, SelectedData));
 	}
-}
-
-bool ULoadoutBodyTabWidget::IsSameColor(const FMaterialParamData& A, const FMaterialParamData& B)
-{
-	const bool bColorMatch = A.Color.Equals(B.Color, KINDA_SMALL_NUMBER);
-	const bool bEmissiveMatch = FMath::IsNearlyEqual(A.Emissive, B.Emissive, KINDA_SMALL_NUMBER);
-	return bColorMatch && bEmissiveMatch;
 }
 
 void ULoadoutBodyTabWidget::HandleBodyColorSelected(FMaterialParamData SelectedData)

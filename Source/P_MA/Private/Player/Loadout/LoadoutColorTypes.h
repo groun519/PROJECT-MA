@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "LoadoutColorTypes.generated.h"
 
+class UTexture2D;
+
 USTRUCT(BlueprintType)
 struct FMaterialParamData
 {
@@ -33,4 +35,31 @@ struct FMaterialParamDataPair
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FMaterialParamData EyeData = FMaterialParamData(FLinearColor::White);
+};
+
+USTRUCT(BlueprintType)
+struct FEyeShapeParamData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float RadiusInner = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float RadiusOutter = 0.045f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float Softness = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float EyeWidth = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float EyeHeight = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float UseTexture = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	TObjectPtr<UTexture2D> EyeTexture = nullptr;
 };

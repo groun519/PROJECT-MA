@@ -2,6 +2,7 @@
 
 #include "MAPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Framework/MAGameInstance.h"
 
 // NOTE:
 // Seamless travel 과정에서 새 PlayerState 인스턴스로 교체될 때
@@ -16,6 +17,8 @@ void AMAPlayerState::CopyProperties(APlayerState* PlayerState)
 	NewPS->DefaultSkill = DefaultSkill;
 	NewPS->LoadoutColor = LoadoutColor;
 	NewPS->LoadoutWeaponId = LoadoutWeaponId;
+	NewPS->LoadoutEyeShapeId = LoadoutEyeShapeId;
+	NewPS->LoadoutMountId = LoadoutMountId;
 	NewPS->bHasFinishedLoading = bHasFinishedLoading;
 	NewPS->LobbySlotIndex = LobbySlotIndex;
 }
@@ -30,6 +33,8 @@ void AMAPlayerState::OverrideWith(APlayerState* PlayerState)
 	DefaultSkill = OldPS->DefaultSkill;
 	LoadoutColor = OldPS->LoadoutColor;
 	LoadoutWeaponId = OldPS->LoadoutWeaponId;
+	LoadoutEyeShapeId = OldPS->LoadoutEyeShapeId;
+	LoadoutMountId = OldPS->LoadoutMountId;
 	bHasFinishedLoading = OldPS->bHasFinishedLoading;
 	LobbySlotIndex = OldPS->LobbySlotIndex;
 }
@@ -49,6 +54,18 @@ void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
 {
 	LoadoutWeaponId = NewWeaponId;
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
+}
+
+void AMAPlayerState::SetLoadoutEyeShapeId(FName NewEyeShapeId)
+{
+	LoadoutEyeShapeId = NewEyeShapeId;
+	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
+}
+
+void AMAPlayerState::SetLoadoutMountId(FName NewMountId)
+{
+	LoadoutMountId = NewMountId;
+	OnLoadoutMountChanged.Broadcast(LoadoutMountId);
 }
 
 void AMAPlayerState::SetLoadingComplete(bool bComplete)
@@ -76,8 +93,22 @@ void AMAPlayerState::OnRep_LoadoutWeaponId()
 	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
 }
 
+void AMAPlayerState::OnRep_LoadoutEyeShapeId()
+{
+	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
+}
+
+void AMAPlayerState::OnRep_LoadoutMountId()
+{
+	OnLoadoutMountChanged.Broadcast(LoadoutMountId);
+}
+
 void AMAPlayerState::OnRep_LoadingComplete()
 {
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		GI->UpdateLoadingStatus();
+	}
 }
 
 void AMAPlayerState::OnRep_LobbySlotIndex()
@@ -92,6 +123,8 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
 	DOREPLIFETIME(AMAPlayerState, LoadoutColor);
 	DOREPLIFETIME(AMAPlayerState, LoadoutWeaponId);
+	DOREPLIFETIME(AMAPlayerState, LoadoutEyeShapeId);
+	DOREPLIFETIME(AMAPlayerState, LoadoutMountId);
 	DOREPLIFETIME(AMAPlayerState, bHasFinishedLoading);
 	DOREPLIFETIME(AMAPlayerState, LobbySlotIndex);
 }

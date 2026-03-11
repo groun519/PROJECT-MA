@@ -14,12 +14,12 @@ namespace
 {
 	UReadyStateComponent* ResolveReadyComponent(AMAPlayerCharacter* Player)
 	{
-		return Player ? Player->GetReadyComponent() : nullptr;
+		return Player ? Player->GetReadyStateComponent() : nullptr;
 	}
 
 	const UReadyStateComponent* ResolveReadyComponent(const AMAPlayerCharacter* Player)
 	{
-		return Player ? Player->GetReadyComponent() : nullptr;
+		return Player ? Player->GetReadyStateComponent() : nullptr;
 	}
 }
 
@@ -71,15 +71,20 @@ void UReadyManagerComponent::GetReadyCounts(int32& OutReady, int32& OutTotal) co
 	OutReady = 0;
 	OutTotal = 0;
 
-	for (TWeakObjectPtr<AMAPlayerCharacter> PlayerPtr : CachedPlayers)
+	const AMAGameState* GS = GetMAGameState();
+	if (!GS) return;
+
+	for (APlayerState* PS : GS->PlayerArray)
 	{
-		const UReadyStateComponent* ReadyComp = ResolveReadyComponent(PlayerPtr.Get());
-		if (!ReadyComp) continue;
+		if (!PS) continue;
 
 		OutTotal++;
-		if (ReadyComp->IsReady())
+		if (const UReadyStateComponent* ReadyComp = FindReadyComponentByPlayerState(PS))
 		{
-			OutReady++;
+			if (ReadyComp->IsReady())
+			{
+				OutReady++;
+			}
 		}
 	}
 }

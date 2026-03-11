@@ -5,16 +5,14 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSessionSettings.h"
 #include "Widgets/SWidget.h"
 #include "Misc/CoreDelegates.h"
 #include "Player/Loadout/LoadoutColorTypes.h"
 #include "MAGameInstance.generated.h"
 
 class ULoadingScreenWidget;
-
-
-
-
+class ULoadoutDataSet;
 
 /**
  * 
@@ -47,17 +45,28 @@ public:
 	void UpdateLoadingStatus();
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	void SaveLoadout(const FMaterialParamDataPair& Color, FName WeaponId);
+	void SaveLoadout(
+		const FMaterialParamDataPair& Color,
+		FName WeaponId,
+		FName EyeShapeId,
+		FName MountId
+	);
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId);
+	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId, FName& OutEyeShapeId, FName& OutMountId);
+
+	void NotifyLocalLoadingVisualComplete();
 
 	float CalculateLoadingProgress(int32& OutPercent);
 	float GetLoadingFinishDurationSeconds() const { return LoadingFinishDurationSeconds; }
+	const ULoadoutDataSet* TryGetLoadoutDataSet() const;
 
 private:
 	void HandlePreLoadMap(const FString& MapName);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
+	void StartLocalMainMapFinishPhase(UWorld* LoadedWorld, const FString& LoadedMapName);
+	bool TrySendLocalLoadedNotify();
+	void TryHostLobbySession(UWorld* LoadedWorld);
 	bool AreAllPlayersLoaded(UWorld* World) const;
 	void HandleBeginFrame();
 	void HandleMoviePlayerTick(float DeltaTime);
@@ -71,6 +80,7 @@ private:
 		TSharedPtr<const FUniqueNetId> UserId,
 		const FOnlineSessionSearchResult& InviteResult
 	);
+	void JoinPendingInviteSession();
 	void HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 	IOnlineSessionPtr SessionInterface;
@@ -105,10 +115,27 @@ private:
 	double LoadingStatusLastUpdateSeconds = 0.0;
 	double LoadingScreenStartTime = 0.0;
 	bool bLoadingScreenActive = false;
+	bool bLocalMainMapLoaded = false;
+	bool bLocalLoadedNotifySent = false;
+
+	UPROPERTY(EditAnywhere, Category = "Online")
+	int32 LobbyMaxPlayers = 4;
+
+	UPROPERTY(EditAnywhere, Category = "Online")
+	bool bLobbyIsLAN = false;
+
+	bool bLobbyHostRequested = false;
+	bool bInviteJoinInProgress = false;
+	bool bHasPendingInviteResult = false;
+	int32 PendingInviteControllerId = 0;
+	FOnlineSessionSearchResult PendingInviteResult;
 
 	UPROPERTY(EditAnywhere, Category = "Loadout")
 	FString LoadoutSaveSlot = TEXT("LoadoutSlot");
 
 	UPROPERTY(EditAnywhere, Category = "Loadout")
 	int32 LoadoutSaveUserIndex = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
+	TObjectPtr<ULoadoutDataSet> LoadoutDataSet;
 };

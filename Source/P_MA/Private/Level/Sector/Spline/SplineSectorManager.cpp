@@ -6,7 +6,6 @@
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
 #include "Kismet/GameplayStatics.h"
-#include "Level/Platform/Core.h"
 #include "Level/Environment/EnvironmentManager.h"
 #include "PCGGraph.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -16,15 +15,16 @@
 ASplineSectorManager::ASplineSectorManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	FPlayerRangeClampSettings DefaultClampSetting;
+	PlayerRangeClampByState.Add(EMASectorState::Wait, DefaultClampSetting);
+	PlayerRangeClampByState.Add(EMASectorState::EndBattle, DefaultClampSetting);
+	PlayerRangeClampByState.Add(EMASectorState::Loop, DefaultClampSetting);
 }
 
 void ASplineSectorManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	PlatformRoot = Cast<APlatformRoot>(
-	UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass())
-	);
 
 	if (HasAuthority())
 	{
@@ -38,28 +38,27 @@ void ASplineSectorManager::BeginPlay()
 			CachedMAGameMode->OnReadyCountChanged.AddUObject(this, &ASplineSectorManager::OnHandleReadyCountChanged);
 		}
 		
-		/** PlatformRoot **/
-		APlatformRoot* PR = Cast<APlatformRoot>(UGameplayStatics::GetActorOfClass(GetWorld(), APlatformRoot::StaticClass()));
-		if (PR)
+		/** RideRoot **/
+		ARideRoot* RR = Cast<ARideRoot>(UGameplayStatics::GetActorOfClass(GetWorld(), ARideRoot::StaticClass()));
+		if (RR)
 		{
-			CachedPlatformRoot = PR;
-			CachedPlatformRoot->OnPlatformReachedEnd.AddUObject(this, &ASplineSectorManager::OnHandlePlatformReachedEnd);
+			CachedRideRoot = RR;
+			CachedRideRoot->OnPlatformReachedEnd.AddUObject(this, &ASplineSectorManager::OnHandlePlatformReachedEnd);
 			if (CachedMAGameMode)
 			{
 				bool bWaitMoveIn =
 					CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle;
-				CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
-				CachedPlatformRoot->SetHeight(bIsMoving);
+				CachedRideRoot->SetWaitMoveIn(bWaitMoveIn);
 			}
 		}
 
-		if (PlayerRangeClamp.bUse && PlayerRangeClamp.Interval > 0.f)
+		if (PlayerRangeClampInterval > 0.f)
 		{
 			GetWorldTimerManager().SetTimer(
 				PlayerRangeClampTimerHandle,
 				this,
 				&ASplineSectorManager::UpdatePlayerRangeClamp,
-				PlayerRangeClamp.Interval,
+				PlayerRangeClampInterval,
 				true);
 		}
 
@@ -87,29 +86,27 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 		CurSectorIndex = 0;
 		SetSectorsByState(NewState);
 		
-		if (CachedPlatformRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
-		{
-			USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
-			if (IsValid(CurSpline)) CachedPlatformRoot->SetCurSpline(CurSpline);
-		}
+	if (CachedRideRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
+	{
+		USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
+		if (IsValid(CurSpline)) CachedRideRoot->SetCurSpline(CurSpline);
+	}
 	}
 
 	// 스테이트 캐시
 	CachedMASectorState = NewState;
 	UpdatePlayerRangeClampVisual();
+	if (HasAuthority())
+	{
+		// Apply clamp immediately on state transition instead of waiting for next timer tick.
+		UpdatePlayerRangeClamp();
+	}
 	
-	if (CachedPlatformRoot)
+	if (CachedRideRoot)
 	{
 		bool bWaitMoveIn =
 			NewState == EMASectorState::Wait || NewState == EMASectorState::EndBattle;
-		CachedPlatformRoot->SetWaitMoveIn(bWaitMoveIn);
-		CachedPlatformRoot->SetHeight(bIsMoving);
-
-		if (ACore* Core = CachedPlatformRoot->GetCore())
-		{
-			const bool bIsBattle = (NewState == EMASectorState::Battle);
-			Core->ApplyBattleColor(bIsBattle);
-		}
+		CachedRideRoot->SetWaitMoveIn(bWaitMoveIn);
 	}
 
 	if (DebugSetting.bUseStateDebug)
@@ -118,7 +115,7 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 
 void ASplineSectorManager::OnHandlePlatformReachedEnd()
 {
-	if (CurSectors.IsEmpty() || !CachedPlatformRoot) return;
+	if (CurSectors.IsEmpty() || !CachedRideRoot) return;
 
 	// 마지막 스테이트인가 ?
 	bool bIsLastSector = CurSectorIndex >= CurSectors.Num() - 1;
@@ -148,8 +145,8 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 
 void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount)
 {
-	if (!CachedPlatformRoot) return;
-	CachedPlatformRoot->SetReadyText(ReadyCount, TotalCount);
+	if (!CachedRideRoot) return;
+	CachedRideRoot->SetReadyText(ReadyCount, TotalCount);
 }
 
 int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
@@ -187,19 +184,20 @@ void ASplineSectorManager::SetSectorsByState(EMASectorState InState)
 	
 	bIsMoving = SSData.bIsMoving;
 
-	if (PlatformRoot)
+	if (CachedRideRoot)
 	{
 		if (SSData.MoveInState == EMoveInState::Nothing)
 		{
-			PlatformRoot->SetWaitMoveIn(false);
+			CachedRideRoot->SetWaitMoveIn(false);
 		}
 		else if (SSData.MoveInState == EMoveInState::CanMoveIn)
 		{
-			PlatformRoot->SetWaitMoveIn(true);
+			CachedRideRoot->SetWaitMoveIn(true);
 		}
 		else if (SSData.MoveInState == EMoveInState::CanMoveOut)
 		{
-			PlatformRoot->SetWaitMoveIn(false);
+			CachedRideRoot->SetWaitMoveIn(false);
+			CachedRideRoot->ReleaseAttachedPlayers();
 			if (CachedMAGameMode)
 			{
 				CachedMAGameMode->ResetAllPlayersReady();
@@ -228,18 +226,18 @@ bool ASplineSectorManager::IsAutoPassState(EMASectorState InState)
 
 void ASplineSectorManager::ApplyCurSplineAndSeed()
 {
-	if (!CachedPlatformRoot) return;
+	if (!CachedRideRoot) return;
 
 	// If Stop Sector, assign nullptr to CurSpline
 	if (!bIsMoving || CurSectors.IsEmpty() || !CurSectors[CurSectorIndex])
 	{
-		CachedPlatformRoot->SetCurSpline(nullptr);
+		CachedRideRoot->SetCurSpline(nullptr);
 		return;
 	}
 	USplineComponent* CurSpline = CurSectors[CurSectorIndex]->RoadSpline;
 	if (!IsValid(CurSpline))
 	{
-		CachedPlatformRoot->SetCurSpline(nullptr);
+		CachedRideRoot->SetCurSpline(nullptr);
 		return;
 	}
 
@@ -254,7 +252,7 @@ void ASplineSectorManager::ApplyCurSplineAndSeed()
 	}
 
 	// Set Spline
-	CachedPlatformRoot->SetCurSpline(CurSpline);
+	CachedRideRoot->SetCurSpline(CurSpline);
 }
 
 void ASplineSectorManager::ApplyRegenTargetsOnEnter(const FSplineSectorData& InData)
@@ -293,18 +291,19 @@ void ASplineSectorManager::LogStateChange(EMASectorState InState) const
 
 void ASplineSectorManager::UpdatePlayerRangeClampVisual()
 {
-	if (!CachedPlatformRoot) return;
+	if (!CachedRideRoot) return;
 
 	const bool bVisible = CanApplyPlayerRangeClamp();
-	const float Size = FMath::Max(0.f, PlayerRangeClamp.Radius);
-	CachedPlatformRoot->SetRangeClampVisual(bVisible, Size);
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	const float Size = ClampSettings ? FMath::Max(0.f, ClampSettings->Radius) : 0.f;
+	CachedRideRoot->SetRangeClampVisual(bVisible, Size);
 }
 
 void ASplineSectorManager::UpdatePlayerRangeClamp()
 {
 	if (!HasAuthority()) return;
 	if (!CanApplyPlayerRangeClamp()) return;
-	if (!CachedPlatformRoot) return;
+	if (!CachedRideRoot) return;
 
 	AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr;
 	if (!GS) return;
@@ -313,8 +312,11 @@ void ASplineSectorManager::UpdatePlayerRangeClamp()
 	GS->GetPlayerCharacters(Players, true);
 	if (Players.IsEmpty()) return;
 
-	const FVector Center = CachedPlatformRoot->GetActorLocation();
-	const float ClampRadiusWithDeadZone = PlayerRangeClamp.Radius + PlayerRangeClamp.DeadZone;
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	if (!ClampSettings) return;
+
+	const FVector Center = CachedRideRoot->GetActorLocation();
+	const float ClampRadiusWithDeadZone = ClampSettings->Radius + ClampSettings->DeadZone;
 	const float ClampRadiusWithDeadZoneSq = FMath::Square(ClampRadiusWithDeadZone);
 
 	for (AMAPlayerCharacter* Player : Players)
@@ -327,28 +329,29 @@ void ASplineSectorManager::UpdatePlayerRangeClamp()
 
 		if (Delta.SizeSquared() <= ClampRadiusWithDeadZoneSq) continue;
 
-		const FVector ClampedLoc2D = Center + Delta.GetSafeNormal() * PlayerRangeClamp.Radius;
+		const FVector ClampedLoc2D = Center + Delta.GetSafeNormal() * ClampSettings->Radius;
 		const FVector ClampedLoc = FVector(ClampedLoc2D.X, ClampedLoc2D.Y, PlayerLoc.Z);
 
-		Player->SetActorLocation(ClampedLoc, false, nullptr, ETeleportType::TeleportPhysics);
+		Player->TeleportTo(ClampedLoc, Player->GetActorRotation(), false, true);
 		if (UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement())
 		{
 			MoveComp->StopMovementImmediately();
 		}
+		Player->ForceNetUpdate();
 	}
 }
 
 bool ASplineSectorManager::CanApplyPlayerRangeClamp() const
 {
-	if (!PlayerRangeClamp.bUse) return false;
-	if (PlayerRangeClamp.Radius <= 0.f) return false;
+	const FPlayerRangeClampSettings* ClampSettings = GetPlayerRangeClampSettingsForState(CachedMASectorState);
+	if (!ClampSettings) return false;
+	if (!ClampSettings->bUse) return false;
+	return ClampSettings->Radius > 0.f;
+}
 
-	if (PlayerRangeClamp.States.IsEmpty())
-	{
-		return true;
-	}
-
-	return PlayerRangeClamp.States.Contains(CachedMASectorState);
+const FPlayerRangeClampSettings* ASplineSectorManager::GetPlayerRangeClampSettingsForState(EMASectorState InState) const
+{
+	return PlayerRangeClampByState.Find(InState);
 }
 
 bool ASplineSectorManager::BindEnvironmentManager()

@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "MAPlayerCharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -17,30 +16,29 @@
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
-#include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
+#include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
 #include "Player/Components/PlayerCameraManagerComponent.h"
-#include "Level/Platform/PlatformComponent.h"
-#include "EngineUtils.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
+#include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/LoadoutComponent.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
+#include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
-	/** Camera Set **//*
-	 * 1. CameraBoom cannot use "Pawn Control Rot"
-	 *		-> Because, player looks mouse pointer.
-	 * 2. CameraBoom must lock Yaw
-	 *		-> Because, Camera must not rotate z axis.
-	 */
+	PrimaryActorTick.bCanEverTick = true;
+
+	/** Camera Set **/
 	// 1) CameraBoom
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>("Camera Boom");
 	CameraBoom->SetupAttachment(GetRootComponent());
@@ -54,12 +52,7 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
 	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
 
-	/** Controller Set **//*
-	 * 1. Player cannot use "Controller Rot"
-	 *		-> Because, player cam's rot must be fixed.
-	 * 2. Player cannot use "Origin Rot to Movement"
-	 *		-> Because, player must look mouse pointer.
-	 */
+	/** Controller Set **/
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 720.f, 0.f);
@@ -76,26 +69,33 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
-	
-	/** Create SKCs **//*
-	 * - Child Relationship: Mesh - Handle
-	 */
+
+	/** Create SKCs **/
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
 
+	/** Mount **/
+	MountMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MountMesh"));
+	MountMesh->SetupAttachment(RootComponent);
+	MountMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MountMesh->SetGenerateOverlapEvents(false);
+	MountMesh->SetCanEverAffectNavigation(false);
+	MountMesh->SetHiddenInGame(true);
+
     /** Mini Map **/
-    // 스프라이트부터 먼저 생성 
+    // 스프라이트부터 먼저 생성
     MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
     if (MinimapSprite)
     {
         MinimapSprite->SetupAttachment(GetMesh());
-        // 네비게이션 경고해결 
-        MinimapSprite->SetCanEverAffectNavigation(false); 
+        // 네비게이션 경고해결
+        MinimapSprite->SetCanEverAffectNavigation(false);
     }
 
     MinimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
     MinimapCameraBoom->SetupAttachment(RootComponent);
+    MinimapCameraBoom->SetAbsolute(false, true, false);
     MinimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
     MinimapCameraBoom->TargetArmLength = 2000.0f;
     MinimapCameraBoom->bUsePawnControlRotation = false;
@@ -117,13 +117,11 @@ AMAPlayerCharacter::AMAPlayerCharacter()
         }
     }
 
-	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/Luco/Minimap/CRT_Minimap.CRT_Minimap"));
+	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/_Widget/Gameplay/MiniMap/CRT_MiniMap.CRT_MiniMap"));
 	if (renderObj.Succeeded())
 	{
 		MinimapCapture->TextureTarget = renderObj.Object;
 	}
-	// MinimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
-	MinimapSprite->SetupAttachment(GetMesh());
 	
 	/** Capsule Collision **/
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Hitbox,	ECR_Block);
@@ -133,8 +131,9 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
 	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
 	
-	/** Ready State Component **/
+	/** Ready State&Ride Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
+	ReadyRideComponent = CreateDefaultSubobject<UReadyRideComponent>(TEXT("ReadyRideComponent"));
 
 	/** Ready Check Widget **/
 	ReadyCheckWidget = CreateDefaultSubobject<UReadyCheckWidgetComponent>(TEXT("ReadyCheckWidget"));
@@ -149,53 +148,106 @@ AMAPlayerCharacter::AMAPlayerCharacter()
 void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeMinimapCapture();
 	BindLoadoutDelegates();
-	RefreshRideCollisionMode();
 }
 
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
 
 void AMAPlayerCharacter::BaseChange()
 {
 	Super::BaseChange();
-	RefreshRideCollisionMode();
+	if (ReadyRideComponent)
+	{
+		ReadyRideComponent->HandleOwnerBaseChanged();
+	}
 }
 
 void AMAPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector LookDir;
-	if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
-	{
-		const FRotator CurrentRotation = GetActorRotation();
-		const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
-		FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime,RotationInterpSpeed);
-		SetActorRotation(NewRotation);
-		
-		if (!HasAuthority())
-		{
-			Server_SetRotation(LookDir);
-		}
-	}
+	if (IsDead()) return;
+
+	UpdateRotationByReadyRide(DeltaTime);
+	TickMinimapCapture(DeltaTime);
+
+	// Skill-only movement path. This is unrelated to ready-ride movement sync,
+	// so ride fixes must not change behavior here.
 	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
 		AddMovementInput(GetActorForwardVector(), 2.f);
 	}
 }
 
+/** Player Rotate **/
+void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
+{
+	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation();
+	if (!bBlockManualRotation)
+	{
+		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
+		if (!IsLocallyControlled()) return;
+
+		FVector LookDir;
+		if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
+		{
+			const FRotator CurrentRotation = GetActorRotation();
+			const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
+			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, RotationInterpSpeed);
+			SetActorRotation(NewRotation);
+
+			TrySendRotationToServer(LookDir);
+		}
+		return;
+	}
+
+	float AttachedYaw = 0.f;
+	// Simulated proxies must follow replicated rotation only.
+	if ((HasAuthority() || IsLocallyControlled()) &&
+		ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
+	{
+		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
+	}
+}
+
+void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
+{
+	if (HasAuthority() || !IsLocallyControlled()) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	const float TargetYaw = LookDirection.Rotation().Yaw;
+	const float YawDelta = FMath::Abs(FMath::FindDeltaAngleDegrees(LastSentRotationYaw, TargetYaw));
+	const float Now = World->GetTimeSeconds();
+	const bool bIntervalPassed = (Now - LastRotationNetSendTime) >= RotationNetSendInterval;
+	const bool bYawChangedEnough = !bHasSentRotationYaw || (YawDelta >= RotationNetSendYawThreshold);
+
+	if (!bIntervalPassed || !bYawChangedEnough) return;
+
+	Server_SetRotation(LookDirection);
+	LastRotationNetSendTime = Now;
+	LastSentRotationYaw = TargetYaw;
+	bHasSentRotationYaw = true;
+}
+
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
+	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (IsDead()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
 
 void AMAPlayerCharacter::PawnClientRestart()
 {
 	Super::PawnClientRestart();
+	InitializeMinimapCapture();
 
 	APlayerController* OwningPlayerController = GetController<APlayerController>();
 	if (OwningPlayerController)
@@ -231,6 +283,8 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	if (EnhancedInputComp)
 	{
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Triggered, this, &AMAPlayerCharacter::HandleMoveInput);
+		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleMoveInput);
+		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleMoveInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
 		
 		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
@@ -348,13 +402,13 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
+	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
 
 	AddMovementInput(GetMoveForwardDir() * InputVal.Y + GetMoveRightDir() * InputVal.X);
 }
-
 
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
@@ -401,15 +455,41 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
+	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (IsDead()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
 	{
 		SetActorRotation(FRotator(0, LookDir.Rotation().Yaw, 0));
-		if (!HasAuthority())
-		{
-			Server_SetRotation(LookDir);
-		}
+		TrySendRotationToServer(LookDir);
 	}
+}
+
+void AMAPlayerCharacter::InitializeMinimapCapture()
+{
+	if (!MinimapCapture) return;
+
+	const bool bEnableCapture = IsLocallyControlled();
+	MinimapCapture->SetComponentTickEnabled(false);
+	MinimapCapture->bCaptureEveryFrame = false;
+	MinimapCapture->bCaptureOnMovement = false;
+	MinimapCaptureAccumulatedTime = 0.f;
+
+	if (bEnableCapture)
+	{
+		MinimapCapture->CaptureScene();
+	}
+}
+
+void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
+{
+	if (!MinimapCapture || !IsLocallyControlled()) return;
+
+	MinimapCaptureAccumulatedTime += DeltaTime;
+	if (MinimapCaptureAccumulatedTime < MinimapCaptureInterval) return;
+
+	MinimapCaptureAccumulatedTime = 0.f;
+	MinimapCapture->CaptureScene();
 }
 
 void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
@@ -449,10 +529,20 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
 			LoadoutColorChangedHandle.Reset();
 		}
+		if (LoadoutEyeShapeChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
+			LoadoutEyeShapeChangedHandle.Reset();
+		}
 		if (LoadoutWeaponChangedHandle.IsValid())
 		{
 			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
 			LoadoutWeaponChangedHandle.Reset();
+		}
+		if (LoadoutMountChangedHandle.IsValid())
+		{
+			CachedLoadoutPlayerState->OnLoadoutMountChanged.Remove(LoadoutMountChangedHandle);
+			LoadoutMountChangedHandle.Reset();
 		}
 	}
 
@@ -460,7 +550,9 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 	if (!NewPlayerState) return;
 
 	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
+	LoadoutEyeShapeChangedHandle = NewPlayerState->OnLoadoutEyeShapeChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutEyeShapeChanged);
 	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
+	LoadoutMountChangedHandle = NewPlayerState->OnLoadoutMountChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutMountChanged);
 
 	ApplyLoadoutFromPlayerState();
 }
@@ -470,7 +562,9 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 	if (!CachedLoadoutPlayerState) return;
 
 	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
+	HandleLoadoutEyeShapeChanged(CachedLoadoutPlayerState->GetLoadoutEyeShapeId());
 	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
+	HandleLoadoutMountChanged(CachedLoadoutPlayerState->GetLoadoutMountId());
 }
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
@@ -487,12 +581,41 @@ void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair&
 	}
 }
 
+void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
+{
+	if (!LoadoutComponent) return;
+
+	const UDataTable* ResolvedEyeShapeDataTable = nullptr;
+	if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
+	{
+		ResolvedEyeShapeDataTable = LoadoutDataSet->EyeShapeDataTable;
+	}
+
+	FEyeShapeParamData EyeShapeData;
+	if (!LoadoutEyeShapeTableUtils::ResolveEyeShapeData(ResolvedEyeShapeDataTable, EyeShapeId, EyeShapeData))
+	{
+		EyeShapeData = FEyeShapeParamData();
+	}
+
+	LoadoutComponent->ApplyEyeShapeParamsLocal(EyeShapeData);
+}
+
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
 	if (!WeaponComponent || WeaponId.IsNone()) return;
-	if (!WeaponDataTable) return;
 
-	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	const UDataTable* ResolvedWeaponDataTable = nullptr;
+	if (LoadoutComponent)
+	{
+		if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
+		{
+			ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+		}
+	}
+
+	if (!ResolvedWeaponDataTable) return;
+
+	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
 	if (!Row) return;
 
 	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
@@ -502,6 +625,50 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	}
 
 	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
+}
+
+void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
+{
+	if (!MountMesh) return;
+
+	UAnimSequence* RiderSequence = nullptr;
+
+	if (!MountId.IsNone() && LoadoutComponent)
+	{
+		const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet();
+		const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
+		if (MountDataTable)
+		{
+			const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount"));
+			if (Row)
+			{
+				MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
+				MountMesh->SetAnimInstanceClass(Row->MountAnimClass);
+				RiderSequence = Row->RiderPose.LoadSynchronous();
+			}
+			else
+			{
+				MountMesh->SetSkeletalMesh(nullptr);
+				MountMesh->SetAnimInstanceClass(nullptr);
+			}
+		}
+		else
+		{
+			MountMesh->SetSkeletalMesh(nullptr);
+			MountMesh->SetAnimInstanceClass(nullptr);
+		}
+	}
+	else
+	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimInstanceClass(nullptr);
+	}
+
+	if (UMAAnimInstance* MAAnim = Cast<UMAAnimInstance>(GetMesh() ? GetMesh()->GetAnimInstance() : nullptr))
+	{
+		MAAnim->SetCurrentRideSequence(RiderSequence);
+	}
+
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
@@ -529,47 +696,6 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
-void AMAPlayerCharacter::RefreshRideCollisionMode()
-{
-	if (!GetCapsuleComponent()) return;
-
-	const bool bNowRidingPlatform = Cast<UPlatformComponent>(GetMovementBase()) != nullptr;
-	if (bNowRidingPlatform == bIsRidingPlatform) return;
-
-	bIsRidingPlatform = bNowRidingPlatform;
-
-	if (!GetWorld()) return;
-
-	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
-	{
-		AMAPlayerCharacter* OtherPlayer = *It;
-		if (!OtherPlayer || OtherPlayer == this) continue;
-		UpdateRideCollisionWithOtherPlayer(OtherPlayer);
-	}
-}
-
-void AMAPlayerCharacter::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer)
-{
-	UCapsuleComponent* Capsule = GetCapsuleComponent();
-	UCapsuleComponent* OtherCapsule = OtherPlayer ? OtherPlayer->GetCapsuleComponent() : nullptr;
-	if (!Capsule || !OtherCapsule) return;
-
-	const bool bShouldIgnorePair = bIsRidingPlatform || OtherPlayer->bIsRidingPlatform;
-	Capsule->IgnoreActorWhenMoving(OtherPlayer, bShouldIgnorePair);
-	OtherCapsule->IgnoreActorWhenMoving(this, bShouldIgnorePair);
-
-	if (bShouldIgnorePair)
-	{
-		MoveIgnoreActorAdd(OtherPlayer);
-		OtherPlayer->MoveIgnoreActorAdd(this);
-	}
-	else
-	{
-		MoveIgnoreActorRemove(OtherPlayer);
-		OtherPlayer->MoveIgnoreActorRemove(this);
-	}
-}
-
 void AMAPlayerCharacter::OnStun()
 {
 	SetInputEnabledFromPlayerController(false);
@@ -583,10 +709,51 @@ void AMAPlayerCharacter::OnRecoverFromStun()
 
 void AMAPlayerCharacter::OnDead()
 {
+	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue(), DeadColorSaturationScale);
+	}
 }
 
 void AMAPlayerCharacter::OnRespawn()
+{
+	bool bDeferredInputEnable = false;
+
+	if (RespawnMontage)
+	{
+		const float MontageDuration = PlayAnimMontage(RespawnMontage);
+		if (MontageDuration > 0.f)
+		{
+			bDeferredInputEnable = true;
+			GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
+			GetWorldTimerManager().SetTimer(
+				RespawnInputEnableTimerHandle,
+				this,
+				&AMAPlayerCharacter::EnableInputAfterRespawnMontage,
+				MontageDuration,
+				false);
+		}
+	}
+
+	if (!bDeferredInputEnable)
+	{
+		EnableInputAfterRespawnMontage();
+	}
+
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
+	}
+
+	if (HasAuthority() && RespawnVFX)
+	{
+		Multicast_PlayNiagara(RespawnVFX, GetActorTransform());
+	}
+}
+
+void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
 {
 	SetInputEnabledFromPlayerController(true);
 }
@@ -596,4 +763,3 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
 	InventoryComponent->TryActivateItemInSlot(Value-1);
 }
-

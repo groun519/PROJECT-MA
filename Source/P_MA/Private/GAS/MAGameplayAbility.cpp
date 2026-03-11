@@ -4,12 +4,11 @@
 #include "GAS/MAGameplayAbility.h"
 #include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemGlobals.h"
+#include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
 
 #include "DebugShapeHelper.h"
-#include "GameplayCueManager.h"
 #include "MAAbilitySystemStatics.h"
 #include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
@@ -181,12 +180,18 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	// 3) GameplayCue 실행
 	for (FHitResult& Result : OutHits)
 	{
+		AActor* HitActor = Result.GetActor();
+		if (!HitActor) continue;
+
+		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
+		if (!TargetASC) continue;
+
 		FGameplayCueParameters CueParam;
 		CueParam.Location = Result.ImpactPoint;
 		CueParam.Normal = Result.ImpactNormal;
 		for (const FGameplayTag& GameplayCueTag : VS->TriggerGameplayCueTags)
 		{
-			UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCue(Result.GetActor(), GameplayCueTag, EGameplayCueEvent::Executed, CueParam);
+			TargetASC->ExecuteGameplayCue(GameplayCueTag, CueParam);
 		}
 	}
 

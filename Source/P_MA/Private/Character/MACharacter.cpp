@@ -24,7 +24,7 @@
 
 AMACharacter::AMACharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	/** Mesh **/
 	GetMesh()->SetupAttachment(GetRootComponent());
@@ -241,7 +241,9 @@ bool AMACharacter::IsDead() const
 void AMACharacter::RespawnImmediately()
 {
 	if (HasAuthority())
-		GetAbilitySystemComponent() -> RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
+	{
+		GetAbilitySystemComponent()->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
+	}
 }
 
 // void AMACharacter::DeathMontageFinished()
@@ -294,7 +296,6 @@ void AMACharacter::StartDeathSequence()
 
 void AMACharacter::Respawn()
 {
-	OnRespawn();
 	SetAIPerceptionStimuliSourceEnabled(true);
 	//SetRagdollEnabled(false);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -312,19 +313,12 @@ void AMACharacter::Respawn()
 	}
 	SetStatusGaugeEnabled(true);
 
-	if (HasAuthority() && GetController())
-	{
-		TWeakObjectPtr<AActor> StartSpot = GetController()->StartSpot;
-		if (StartSpot.IsValid())
-		{ 
-			SetActorTransform(StartSpot->GetActorTransform());
-		}
-	}
-
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->ApplyFullStatEffect();
 	}
+
+	OnRespawn();
 }
 
 void AMACharacter::OnDead()

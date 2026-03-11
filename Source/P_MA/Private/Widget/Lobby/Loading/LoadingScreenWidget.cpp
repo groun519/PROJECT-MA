@@ -4,6 +4,8 @@
 #include "Widget/Lobby/Loading/LoadingBackgroundData.h"
 #include "Widget/Lobby/Loading/LoadingPlayerStatusWidget.h"
 #include "Widget/Lobby/Loading/LoadingTooltipData.h"
+#include "Framework/MAGameInstance.h"
+#include "Async/Async.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
@@ -21,6 +23,7 @@ void ULoadingScreenWidget::NativeConstruct()
 	PendingTargetProgress = 0.0f;
 	bPendingLoadingComplete = false;
 	bHasPendingProgress = false;
+	bSentVisualCompleteNotify = false;
 
 	if (LoadingBackgroundImage && BackgroundData && BackgroundData->BackgroundImages.Num() > 0)
 	{
@@ -51,6 +54,31 @@ void ULoadingScreenWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	}
 
 	ApplyProgressFromTarget(PendingTargetProgress, bPendingLoadingComplete);
+
+	if (bPendingLoadingComplete && !bSentVisualCompleteNotify && DisplayProgress >= 1.0f - KINDA_SMALL_NUMBER)
+	{
+		bSentVisualCompleteNotify = true;
+
+		if (IsInGameThread())
+		{
+			if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+			{
+				GI->NotifyLocalLoadingVisualComplete();
+			}
+		}
+		else
+		{
+			TWeakObjectPtr<ULoadingScreenWidget> WeakThis(this);
+			AsyncTask(ENamedThreads::GameThread, [WeakThis]()
+			{
+				if (!WeakThis.IsValid()) return;
+				if (UMAGameInstance* GI = WeakThis->GetGameInstance<UMAGameInstance>())
+				{
+					GI->NotifyLocalLoadingVisualComplete();
+				}
+			});
+		}
+	}
 }
 
 void ULoadingScreenWidget::UpdateLoadingStatus(const TArray<FLoadingPlayerStatus>& Statuses)

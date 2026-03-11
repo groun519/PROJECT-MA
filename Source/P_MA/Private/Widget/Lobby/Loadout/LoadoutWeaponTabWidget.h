@@ -3,27 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutTabWidgetBase.h"
 #include "LoadoutWeaponTabWidget.generated.h"
 
-class UDataTable;
 class UScrollBox;
-class ULoadoutWeaponButtonWidget;
+class ULoadoutWeaponIconButtonWidget;
 
 UCLASS()
-class P_MA_API ULoadoutWeaponTabWidget : public UUserWidget
+class P_MA_API ULoadoutWeaponTabWidget : public ULoadoutTabWidgetBase
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	TObjectPtr<UDataTable> WeaponDataTable;
-
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> WeaponScrollBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	TSubclassOf<ULoadoutWeaponButtonWidget> WeaponButtonClass;
+	TSubclassOf<ULoadoutWeaponIconButtonWidget> WeaponButtonClass;
+
+	void SyncFromPendingWeapon(FName WeaponId);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -36,5 +34,5 @@ private:
 	void HandleWeaponSelected(FName WeaponId);
 
 	UPROPERTY()
-	TArray<TObjectPtr<ULoadoutWeaponButtonWidget>> WeaponButtons;
+	TArray<TObjectPtr<ULoadoutWeaponIconButtonWidget>> WeaponButtons;
 };

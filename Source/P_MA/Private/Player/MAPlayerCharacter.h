@@ -11,11 +11,13 @@
 
 class UInputAction;
 class UNiagaraComponent;
+class UAnimMontage;
 class UInteractComponent;
 class UReadyStateComponent;
+class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
+class USkeletalMeshComponent;
 class AMAPlayerState;
-class UDataTable;
 class UPlayerCameraManagerComponent;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
@@ -40,6 +42,9 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void BaseChange() override;
 
+	void SetInputEnabledFromPlayerController(bool bEnabled);
+	void SnapRotationToMouse();
+
 	UFUNCTION(Exec)
 	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
 	UFUNCTION(Server, Reliable)
@@ -53,18 +58,49 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
 
+	UPROPERTY(EditDefaultsOnly, Category = "State")
+	FGameplayTag RotationLockTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "State")
+	FGameplayTag RushingTag;
+
 	/** Ready State Component **/
-	FORCEINLINE UReadyStateComponent* GetReadyComponent(){ return ReadyStateComponent; }
-	FORCEINLINE const UReadyStateComponent* GetReadyComponent() const { return ReadyStateComponent; }
+	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
+
+	/** Ready Ride Component **/
+	FORCEINLINE UReadyRideComponent* GetReadyRideComponent() const { return ReadyRideComponent; }
+	FORCEINLINE USkeletalMeshComponent* GetMountMesh() const { return MountMesh; }
+	FORCEINLINE float GetRideHorizontalInput() const { return RideHorizontalInput; }
+
+	/** Interact **/
+	UFUNCTION()
+	void SetCurrentInteractComp(UInteractComponent* NewComp);
+
+	UFUNCTION()
+	void ClearCurrentInteractComp(UInteractComponent* Comp);
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
+	
+	/** Cam **/
+	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 	
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;
 
+	/** Ready Ride Component **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
+	UReadyRideComponent* ReadyRideComponent;
+
 	/** Ready Check Widget **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	UReadyCheckWidgetComponent* ReadyCheckWidget;
+
+	/** Mount **/
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mount")
+	USkeletalMeshComponent* MountMesh;
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
@@ -100,49 +136,45 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float RotationInterpSpeed = 15.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.0"))
+	float RotationNetSendInterval = 0.05f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "0.0"))
+	float RotationNetSendYawThreshold = 1.5f;
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
-public:
-	void SetInputEnabledFromPlayerController(bool bEnabled);
-	void SnapRotationToMouse();
 
-	/** Interact **/
-	UFUNCTION()
-	void SetCurrentInteractComp(UInteractComponent* NewComp);
+	/** Player Rotate **/
+	void UpdateRotationByReadyRide(float DeltaTime);
+	void TrySendRotationToServer(const FVector& LookDirection);
 
-	UFUNCTION()
-	void ClearCurrentInteractComp(UInteractComponent* Comp);
+	UFUNCTION(Server, Unreliable)
+	void Server_SetRotation(FVector LookDirection);
 
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
-	
-	/** Cam **/
-	bool GetLookDirectionToMouse(FVector& OutDirection) const;
-private:
-	void RefreshRideCollisionMode();
-	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OtherPlayer);
-	bool bIsRidingPlatform = false;
+	float LastRotationNetSendTime = -1000.f;
+	float LastSentRotationYaw = 0.f;
+	bool bHasSentRotationYaw = false;
+	float RideHorizontalInput = 0.f;
 
+	/** Loadout **/
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
+	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
-
-	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
-	TObjectPtr<UDataTable> WeaponDataTable;
+	void HandleLoadoutMountChanged(FName MountId);
 
 	FDelegateHandle LoadoutColorChangedHandle;
+	FDelegateHandle LoadoutEyeShapeChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
+	FDelegateHandle LoadoutMountChangedHandle;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
-
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetRotation(FVector LookDirection);
 
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
@@ -155,6 +187,18 @@ private:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
+	void EnableInputAfterRespawnMontage();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	float DeadColorSaturationScale = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	TObjectPtr<class UNiagaraSystem> RespawnVFX = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death")
+	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
+
+	FTimerHandle RespawnInputEnableTimerHandle;
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
@@ -163,31 +207,27 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class USceneCaptureComponent2D* MinimapCapture;
 
+	UPROPERTY(EditDefaultsOnly, Category="MinimapCamera", meta=(ClampMin="0.01"))
+	float MinimapCaptureInterval = 0.05f;
+	float MinimapCaptureAccumulatedTime = 0.f;
+
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	class UPaperSpriteComponent* MinimapSprite;
 
-	/*************************************************************/
-	/*                      Inventory                            */
-	/*************************************************************/
-	
-private:
+	void InitializeMinimapCapture();
+	void TickMinimapCapture(float DeltaTime);
+
+	/** Inventory **/
 	class UInventoryComponent* InventoryComponent;
 
+	/** SkillBook **/
 	UPROPERTY(VisibleAnywhere, Category = "Skill")
 	class USkillBookComponent* SkillBookComponent;
-
-	/*************************************************************/
-	/**								SKILL						**/
-	/*************************************************************/
 public:
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RotationLockTag;
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RushingTag;
-
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
-
+	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+	
+	/** Skill **/
 	// Charge스킬을 위한 코드
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityStarted;
