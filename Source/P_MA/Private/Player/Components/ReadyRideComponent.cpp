@@ -43,8 +43,10 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return;
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	const AActor* OwnerActor = OwnerCharacter;
 
 	const bool bAttachedByReady = IsAttachedReady();
 
@@ -147,6 +149,7 @@ void UReadyRideComponent::ApplyRideState(bool bNowAttached)
 
 	UpdateRideMovementMode(bNowAttached);
 	UpdateMountState(bNowAttached);
+	UpdateProxyMeshSmoothing(bNowAttached);
 	UpdateTickPolicy(bNowAttached);
 	RefreshRideCollisionMode();
 }
@@ -207,6 +210,38 @@ void UReadyRideComponent::UpdateMountState(bool bNowAttached)
 	}
 
 	RestoreOwnerMeshAttachment();
+}
+
+void UReadyRideComponent::UpdateProxyMeshSmoothing(bool bNowAttached)
+{
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+	if (OwnerCharacter->HasAuthority() || OwnerCharacter->IsLocallyControlled()) return;
+
+	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
+	if (!MoveComp) return;
+
+	if (bNowAttached && MountState == ERideMountState::Mounted)
+	{
+		if (!bHasSavedProxyNetworkSmoothingMode)
+		{
+			SavedProxyNetworkSmoothingMode = MoveComp->NetworkSmoothingMode;
+			bHasSavedProxyNetworkSmoothingMode = true;
+		}
+
+		if (MoveComp->NetworkSmoothingMode != ENetworkSmoothingMode::Disabled)
+		{
+			MoveComp->NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
+			AttachOwnerMeshToMount();
+		}
+		return;
+	}
+
+	if (bHasSavedProxyNetworkSmoothingMode)
+	{
+		MoveComp->NetworkSmoothingMode = SavedProxyNetworkSmoothingMode;
+		bHasSavedProxyNetworkSmoothingMode = false;
+	}
 }
 
 void UReadyRideComponent::CacheOwnerMeshAttachment()

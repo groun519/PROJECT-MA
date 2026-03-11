@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "ReadyRideComponent.generated.h"
 
 class AMAPlayerCharacter;
@@ -47,6 +48,7 @@ private:
 	void UpdateRideMovementMode(bool bNowAttached) const;
 	void UpdateTickPolicy(bool bAttachedByReady);
 	void UpdateMountState(bool bNowAttached);
+	void UpdateProxyMeshSmoothing(bool bNowAttached);
 	void CacheOwnerMeshAttachment();
 	void AttachOwnerMeshToMount();
 	void RestoreOwnerMeshAttachment();
@@ -66,6 +68,8 @@ private:
 	TWeakObjectPtr<USceneComponent> CachedOwnerMeshParent;
 	FTransform CachedOwnerMeshRelativeTransform = FTransform::Identity;
 	bool bHasCachedOwnerMeshAttachment = false;
+	bool bHasSavedProxyNetworkSmoothingMode = false;
+	ENetworkSmoothingMode SavedProxyNetworkSmoothingMode = ENetworkSmoothingMode::Exponential;
 	static inline const FName MountSocketName = TEXT("MountSocket");
 
 	// TODO(Mount): Extend ride-base detection/collision policy for mount actors.

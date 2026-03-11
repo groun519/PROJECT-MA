@@ -403,7 +403,6 @@ void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionVal
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
 	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
-	if (ReadyRideComponent && ReadyRideComponent->GetMountState() == ERideMountState::Mounted) return;
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
@@ -669,6 +668,7 @@ void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 	{
 		MAAnim->SetCurrentRideSequence(RiderSequence);
 	}
+
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
