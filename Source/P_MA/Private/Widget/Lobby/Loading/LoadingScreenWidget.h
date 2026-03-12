@@ -94,6 +94,7 @@ private:
 	float PendingTargetProgress = 0.0f;
 	bool bPendingLoadingComplete = false;
 	bool bHasPendingProgress = false;
+	bool bSentVisualCompleteNotify = false;
 
 	float WarmupDurationSeconds = 3.0f;
 	float WarmupMax = 0.50f;

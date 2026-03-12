@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/Loadout/LoadoutColorTypes.h"
 #include "LoadoutWidget.generated.h"
 
 class UButton;
@@ -11,7 +12,7 @@ class UWidgetSwitcher;
 class ULoadoutHeadTabWidget;
 class ULoadoutBodyTabWidget;
 class ULoadoutWeaponTabWidget;
-class UWidgetSwitcher;
+class ULoadoutMountTabWidget;
 
 UCLASS()
 class P_MA_API ULoadoutWidget : public UUserWidget
@@ -20,6 +21,8 @@ class P_MA_API ULoadoutWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	void SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId, FName PendingMountId);
+	void ActivateBodyTabUI();
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> HeadTabButton;
@@ -29,6 +32,9 @@ public:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> WeaponTabButton;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UButton> MountTabButton;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UWidgetSwitcher> TabSwitcher;
@@ -42,6 +48,9 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<ULoadoutWeaponTabWidget> WeaponTabWidget;
 
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<ULoadoutMountTabWidget> MountTabWidget;
+
 private:
 	UFUNCTION()
 	void HandleHeadTabClicked();
@@ -51,6 +60,9 @@ private:
 
 	UFUNCTION()
 	void HandleWeaponTabClicked();
+
+	UFUNCTION()
+	void HandleMountTabClicked();
 
 	void SetActiveTab(int32 TabIndex);
 };

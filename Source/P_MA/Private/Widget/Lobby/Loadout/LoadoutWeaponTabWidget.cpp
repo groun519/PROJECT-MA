@@ -2,15 +2,12 @@
 
 #include "Widget/Lobby/Loadout/LoadoutWeaponTabWidget.h"
 #include "Components/ScrollBox.h"
-#include "Components/ScrollBoxSlot.h"
 #include "Engine/DataTable.h"
+#include "Framework/MAGameInstance.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
-#include "Widget/Lobby/Loadout/LoadoutWeaponButtonWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutWeaponIconButtonWidget.h"
 #include "Level/Lobby/LobbyPlayerController.h"
-#include "Level/Lobby/LobbyGameState.h"
-#include "Level/Lobby/LobbyAvatarSlot.h"
-#include "GameFramework/PlayerState.h"
-#include "Player/MAPlayerState.h"
 
 void ULoadoutWeaponTabWidget::NativeConstruct()
 {
@@ -21,7 +18,15 @@ void ULoadoutWeaponTabWidget::NativeConstruct()
 
 void ULoadoutWeaponTabWidget::BuildWeaponButtons()
 {
-	if (!WeaponScrollBox || !WeaponButtonClass || !WeaponDataTable)
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* ResolvedWeaponDataTable = nullptr;
+	if (LoadoutDataSet && LoadoutDataSet->WeaponDataTable)
+	{
+		ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+	}
+
+	if (!WeaponScrollBox || !WeaponButtonClass || !ResolvedWeaponDataTable)
 	{
 		return;
 	}
@@ -29,42 +34,28 @@ void ULoadoutWeaponTabWidget::BuildWeaponButtons()
 	WeaponScrollBox->ClearChildren();
 	WeaponButtons.Reset();
 
-	TArray<FName> RowNames = WeaponDataTable->GetRowNames();
-	RowNames.Sort(FNameLexicalLess());
+	TArray<FName> RowNames = ResolvedWeaponDataTable->GetRowNames();
 
 	for (const FName RowName : RowNames)
 	{
-		const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(RowName, TEXT("LoadoutWeaponTab"));
+		const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(RowName, TEXT("LoadoutWeaponTab"));
 		if (!Row)
 		{
 			continue;
 		}
 
-		ULoadoutWeaponButtonWidget* ButtonWidget = CreateWidget<ULoadoutWeaponButtonWidget>(this, WeaponButtonClass);
+		ULoadoutWeaponIconButtonWidget* ButtonWidget = CreateWidget<ULoadoutWeaponIconButtonWidget>(this, WeaponButtonClass);
 		if (!ButtonWidget)
 		{
 			continue;
 		}
 
 		ButtonWidget->WeaponId = RowName;
-		ButtonWidget->WeaponName = Row->WeaponName;
 		ButtonWidget->IconTexture = Row->IconTexture;
 		ButtonWidget->OnWeaponSelected.AddDynamic(this, &ULoadoutWeaponTabWidget::HandleWeaponSelected);
-
-		if (UScrollBoxSlot* ScrollSlot = Cast<UScrollBoxSlot>(WeaponScrollBox->AddChild(ButtonWidget)))
-		{
-			ScrollSlot->SetPadding(FMargin(6.f, 0.f, 6.f, 0.f));
-		}
+		AddButtonToScrollBox(WeaponScrollBox, ButtonWidget);
 
 		WeaponButtons.Add(ButtonWidget);
-	}
-
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		if (AMAPlayerState* PS = PC->GetPlayerState<AMAPlayerState>())
-		{
-			UpdateSelectedWeapon(PS->GetLoadoutWeaponId());
-		}
 	}
 }
 
@@ -72,12 +63,20 @@ void ULoadoutWeaponTabWidget::HandleWeaponSelected(FName WeaponId)
 {
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
 	{
-		if (!WeaponDataTable)
+		const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+		const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+		const UDataTable* ResolvedWeaponDataTable = nullptr;
+		if (LoadoutDataSet && LoadoutDataSet->WeaponDataTable)
+		{
+			ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+		}
+
+		if (!ResolvedWeaponDataTable)
 		{
 			return;
 		}
 
-		const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeaponTab"));
+		const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeaponTab"));
 		if (!Row)
 		{
 			return;
@@ -89,9 +88,14 @@ void ULoadoutWeaponTabWidget::HandleWeaponSelected(FName WeaponId)
 	}
 }
 
+void ULoadoutWeaponTabWidget::SyncFromPendingWeapon(FName WeaponId)
+{
+	UpdateSelectedWeapon(WeaponId);
+}
+
 void ULoadoutWeaponTabWidget::UpdateSelectedWeapon(FName WeaponId)
 {
-	for (ULoadoutWeaponButtonWidget* Button : WeaponButtons)
+	for (ULoadoutWeaponIconButtonWidget* Button : WeaponButtons)
 	{
 		if (!Button)
 		{

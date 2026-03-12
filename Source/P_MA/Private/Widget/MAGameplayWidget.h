@@ -12,8 +12,6 @@ class UHorizontalBox;
 class UMAValueGauge;
 class UMAMobilityChargeWidget;
 class ULoopReadyWidget;
-class ACore;
-class AActor;
 class UShopWidget; 
 class USkillBookWidget; 
 
@@ -40,9 +38,6 @@ public:
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
-
-	UPROPERTY(meta = (BindWidget))
-	class UMAValueGauge* CoreHealthBar;
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
@@ -75,14 +70,6 @@ protected:
 	ULoopReadyWidget* LoopReadyWidget;
 	
 	bool bLoopReadyInitialized = false;
-private:
-	bool TryBindCoreHealthFromWorld();
-	void TryBindCoreHealthFromActor(ACore* CoreActor);
-	void HandleActorSpawned(AActor* SpawnedActor);
-
-	FDelegateHandle CoreSpawnedHandle;
-	bool bCoreHealthBound = false;
-
 
 	UFUNCTION()
 	void OnShopButtonClicked();

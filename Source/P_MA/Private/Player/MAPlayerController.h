@@ -35,7 +35,6 @@ public:
 	void AcknowledgePossession(APawn* NewPawn) override;
 
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
 	
 	// TeamID에 Team Agent 할당
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
@@ -55,6 +54,12 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutWeaponId(FName WeaponId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutEyeShape(FName EyeShapeId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutMountId(FName MountId);
 
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)

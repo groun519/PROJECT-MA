@@ -9,6 +9,7 @@
 
 class USkeletalMeshComponent;
 class UMaterialInstanceDynamic;
+class ULoadoutDataSet;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class P_MA_API ULoadoutComponent : public UActorComponent
@@ -28,13 +29,19 @@ public:
 	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 
 	void ApplyMaterialParamsLocal(const FMaterialParamDataPair& Params);
+	void ApplyMaterialParam(const FMaterialParamDataPair& Params, float SaturationScale = 1.f);
+	void ApplyEyeShapeParamsLocal(const FEyeShapeParamData& EyeShapeData);
 
 	const FMaterialParamDataPair& GetBaseMaterialParam() const { return BaseMaterialParam; }
+	const FMaterialParamDataPair& GetMaterialParamValue() const { return MaterialParamValue; }
+	const FEyeShapeParamData& GetCurrentEyeShapeData() const { return CurrentEyeShapeData; }
+	const ULoadoutDataSet* GetLoadoutDataSet() const;
 
 	// TODO: Save/Load hooks for loadout data.
 
 private:
-	void ApplyMaterialParam(const FMaterialParamDataPair& Params);
+	void RebuildDynamicMaterials();
+	static FLinearColor ApplySaturationScale(const FLinearColor& InColor, float SaturationScale);
 
 	UFUNCTION()
 	void OnRep_MaterialParam();
@@ -44,6 +51,8 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_MaterialParam)
 	FMaterialParamDataPair MaterialParamValue;
+
+	FEyeShapeParamData CurrentEyeShapeData;
 
 	UPROPERTY()
 	TObjectPtr<USkeletalMeshComponent> TargetMesh;

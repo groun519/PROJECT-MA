@@ -77,8 +77,13 @@ public:
 	void ShowInviteUI();
 
 	void PreviewEyeColor(const FMaterialParamData& EyeData);
+	UFUNCTION(BlueprintCallable, Category = "Lobby|Loadout")
+	void PreviewEyeShape(FName EyeShapeId);
 	void PreviewBodyColor(const FMaterialParamData& BodyData);
 	void PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset);
+	void SetPendingMount(FName MountId);
+	void ApplyPendingWeaponPreview();
+	void ApplyPendingWeaponPreviewDelayed(float DelaySeconds);
 	void SetLoadoutView(ELoadoutView NewView);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lobby")
@@ -111,7 +116,9 @@ private:
 	void ApplyInstantCameraTarget();
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
 	void CommitLoadoutColor();
+	void CommitLoadoutEyeShape();
 	void CommitLoadoutWeapon();
+	void CommitLoadoutMount();
 	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
@@ -119,6 +126,12 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutWeaponId(FName WeaponId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutEyeShape(FName EyeShapeId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSetLoadoutMountId(FName MountId);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLobbyState(ELobbyAvatarState NewState);
@@ -129,6 +142,7 @@ private:
 	FTimerHandle LobbyUiTimerHandle;
 	FTimerHandle CameraFadeTimerHandle;
 	FTimerHandle CameraFadeEndTimerHandle;
+	FTimerHandle WeaponPreviewTimerHandle;
 
 	/** Lobby Loadout Cam Views **/
 	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")
@@ -161,6 +175,10 @@ private:
 
 	FMaterialParamDataPair PendingLoadoutColor;
 	bool bHasPendingLoadoutColor = false;
+	FName PendingEyeShapeId = NAME_None;
+	bool bHasPendingEyeShape = false;
 	FName PendingWeaponId;
 	bool bHasPendingWeapon = false;
+	FName PendingMountId = NAME_None;
+	bool bHasPendingMount = false;
 };

@@ -12,9 +12,12 @@
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWidget.h"
 #include "Framework/MAGameInstance.h"
+#include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
 #include "OnlineSubsystem.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
+#include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/MAPlayerState.h"
 #include "Level/Lobby/LobbyAvatarSlot.h"
 
@@ -70,32 +73,48 @@ void ALobbyPlayerController::BeginPlay()
 		{
 			FMaterialParamDataPair LoadedColor;
 			FName LoadedWeaponId = NAME_None;
-			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId))
+			FName LoadedEyeShapeId = NAME_None;
+			FName LoadedMountId = NAME_None;
+			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId, LoadedMountId))
 			{
 				if (HasAuthority())
 				{
 					if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 					{
 						PS->SetLoadoutColor(LoadedColor);
+						PS->SetLoadoutEyeShapeId(LoadedEyeShapeId);
 						if (!LoadedWeaponId.IsNone())
 						{
 							PS->SetLoadoutWeaponId(LoadedWeaponId);
+						}
+						if (!LoadedMountId.IsNone())
+						{
+							PS->SetLoadoutMountId(LoadedMountId);
 						}
 					}
 				}
 				else
 				{
 					ServerSetLoadoutColor(LoadedColor);
+					ServerSetLoadoutEyeShape(LoadedEyeShapeId);
 					if (!LoadedWeaponId.IsNone())
 					{
 						ServerSetLoadoutWeaponId(LoadedWeaponId);
+					}
+					if (!LoadedMountId.IsNone())
+					{
+						ServerSetLoadoutMountId(LoadedMountId);
 					}
 				}
 
 				PendingLoadoutColor = LoadedColor;
 				bHasPendingLoadoutColor = true;
+				PendingEyeShapeId = LoadedEyeShapeId;
+				bHasPendingEyeShape = !LoadedEyeShapeId.IsNone();
 				PendingWeaponId = LoadedWeaponId;
 				bHasPendingWeapon = !LoadedWeaponId.IsNone();
+				PendingMountId = LoadedMountId;
+				bHasPendingMount = !LoadedMountId.IsNone();
 			}
 		}
 
@@ -135,6 +154,7 @@ void ALobbyPlayerController::BeginPlay()
 void ALobbyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(LobbyUiTimerHandle);
+	GetWorldTimerManager().ClearTimer(WeaponPreviewTimerHandle);
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -216,6 +236,21 @@ void ALobbyPlayerController::PreviewEyeColor(const FMaterialParamData& EyeData)
 	ApplyPreviewColor(PendingLoadoutColor);
 }
 
+void ALobbyPlayerController::PreviewEyeShape(FName EyeShapeId)
+{
+	PendingEyeShapeId = EyeShapeId;
+	bHasPendingEyeShape = true;
+
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->ApplyLoadoutEyeShape(PendingEyeShapeId);
+		}
+	}
+}
+
 void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData)
 {
 	if (!bHasPendingLoadoutColor)
@@ -244,6 +279,57 @@ void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, 
 			Slot->ApplyLoadoutWeaponMesh(Mesh, Offset);
 		}
 	}
+}
+
+void ALobbyPlayerController::SetPendingMount(FName MountId)
+{
+	PendingMountId = MountId;
+	bHasPendingMount = !MountId.IsNone();
+}
+
+void ALobbyPlayerController::ApplyPendingWeaponPreview()
+{
+	if (!bHasPendingWeapon || PendingWeaponId.IsNone())
+	{
+		return;
+	}
+
+	const FName WeaponId = PendingWeaponId;
+
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* WeaponDataTable = LoadoutDataSet ? LoadoutDataSet->WeaponDataTable : nullptr;
+	if (!WeaponDataTable)
+	{
+		return;
+	}
+
+	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("ApplyPendingWeaponPreview"));
+	if (!Row)
+	{
+		return;
+	}
+
+	USkeletalMesh* Mesh = Row->WeaponMesh.LoadSynchronous();
+	PreviewWeapon(WeaponId, Mesh, Row->WeaponOffset);
+}
+
+void ALobbyPlayerController::ApplyPendingWeaponPreviewDelayed(float DelaySeconds)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->GetTimerManager().ClearTimer(WeaponPreviewTimerHandle);
+	World->GetTimerManager().SetTimer(
+		WeaponPreviewTimerHandle,
+		this,
+		&ALobbyPlayerController::ApplyPendingWeaponPreview,
+		FMath::Max(0.f, DelaySeconds),
+		false
+	);
 }
 
 void ALobbyPlayerController::HandleReadyStartClicked()
@@ -373,9 +459,40 @@ void ALobbyPlayerController::EnterLoadoutView()
 			bHasPendingLoadoutColor = true;
 		}
 	}
+	if (!bHasPendingEyeShape)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingEyeShapeId = PS->GetLoadoutEyeShapeId();
+			bHasPendingEyeShape = true;
+		}
+	}
+	if (!bHasPendingWeapon)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingWeaponId = PS->GetLoadoutWeaponId();
+			bHasPendingWeapon = !PendingWeaponId.IsNone();
+		}
+	}
+	if (!bHasPendingMount)
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PendingMountId = PS->GetLoadoutMountId();
+			bHasPendingMount = !PendingMountId.IsNone();
+		}
+	}
 
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutWidget)
 	{
+		LobbyRootWidgetInstance->LoadoutWidget->ActivateBodyTabUI();
+		LobbyRootWidgetInstance->LoadoutWidget->SyncSelectionFromPending(
+			PendingLoadoutColor,
+			PendingEyeShapeId,
+			PendingWeaponId,
+			PendingMountId
+		);
 		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 
@@ -397,15 +514,19 @@ void ALobbyPlayerController::ExitLoadoutView()
 {
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CommitLoadoutColor();
+	CommitLoadoutEyeShape();
 	CommitLoadoutWeapon();
+	CommitLoadoutMount();
 
 	if (IsLocalController())
 	{
 		if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 		{
 			FMaterialParamDataPair ColorToSave = PendingLoadoutColor;
+			FName EyeShapeIdToSave = PendingEyeShapeId;
 			FName WeaponToSave = PendingWeaponId;
-			if (!bHasPendingLoadoutColor || !bHasPendingWeapon)
+			FName MountToSave = PendingMountId;
+			if (!bHasPendingLoadoutColor || !bHasPendingEyeShape || !bHasPendingWeapon || !bHasPendingMount)
 			{
 				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 				{
@@ -413,13 +534,21 @@ void ALobbyPlayerController::ExitLoadoutView()
 					{
 						ColorToSave = PS->GetLoadoutColor();
 					}
+					if (!bHasPendingEyeShape)
+					{
+						EyeShapeIdToSave = PS->GetLoadoutEyeShapeId();
+					}
 					if (!bHasPendingWeapon)
 					{
 						WeaponToSave = PS->GetLoadoutWeaponId();
 					}
+					if (!bHasPendingMount)
+					{
+						MountToSave = PS->GetLoadoutMountId();
+					}
 				}
 			}
-			GI->SaveLoadout(ColorToSave, WeaponToSave);
+			GI->SaveLoadout(ColorToSave, WeaponToSave, EyeShapeIdToSave, MountToSave);
 		}
 	}
 	bInLoadoutView = false;
@@ -650,6 +779,23 @@ void ALobbyPlayerController::CommitLoadoutColor()
 	}
 }
 
+void ALobbyPlayerController::CommitLoadoutEyeShape()
+{
+	if (!bHasPendingEyeShape) return;
+
+	if (HasAuthority())
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PS->SetLoadoutEyeShapeId(PendingEyeShapeId);
+		}
+	}
+	else
+	{
+		ServerSetLoadoutEyeShape(PendingEyeShapeId);
+	}
+}
+
 void ALobbyPlayerController::CommitLoadoutWeapon()
 {
 	if (!bHasPendingWeapon) return;
@@ -667,6 +813,23 @@ void ALobbyPlayerController::CommitLoadoutWeapon()
 	}
 }
 
+void ALobbyPlayerController::CommitLoadoutMount()
+{
+	if (!bHasPendingMount) return;
+
+	if (HasAuthority())
+	{
+		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+		{
+			PS->SetLoadoutMountId(PendingMountId);
+		}
+	}
+	else
+	{
+		ServerSetLoadoutMountId(PendingMountId);
+	}
+}
+
 void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
@@ -675,11 +838,27 @@ void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName Weapo
 	}
 }
 
+void ALobbyPlayerController::ServerSetLoadoutMountId_Implementation(FName MountId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutMountId(MountId);
+	}
+}
+
 void ALobbyPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
 		PS->SetLoadoutColor(ColorData);
+	}
+}
+
+void ALobbyPlayerController::ServerSetLoadoutEyeShape_Implementation(FName EyeShapeId)
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadoutEyeShapeId(EyeShapeId);
 	}
 }
 

@@ -7,12 +7,16 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Player/MAPlayerState.h"
 #include "LobbyGameState.h"
+#include "Framework/MAGameInstance.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarNameWidget.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarReadyWidget.h"
 #include "Widget/Lobby/LobbyInviteWidget.h"
 #include "LobbyAvatarAnimInstance.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
+#include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Engine/DataTable.h"
+#include "Engine/Texture2D.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -88,6 +92,11 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 		Occupant->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
 		LoadoutColorChangedHandle.Reset();
 	}
+	if (Occupant && LoadoutEyeShapeChangedHandle.IsValid())
+	{
+		Occupant->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
+		LoadoutEyeShapeChangedHandle.Reset();
+	}
 	if (Occupant && LoadoutWeaponChangedHandle.IsValid())
 	{
 		Occupant->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
@@ -151,10 +160,15 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 			this,
 			&ALobbyAvatarSlot::ApplyLoadoutColor
 		);
+		LoadoutEyeShapeChangedHandle = Occupant->OnLoadoutEyeShapeChanged.AddUObject(
+			this,
+			&ALobbyAvatarSlot::ApplyLoadoutEyeShape
+		);
 		LoadoutWeaponChangedHandle = Occupant->OnLoadoutWeaponChanged.AddUObject(
 			this,
 			&ALobbyAvatarSlot::ApplyLoadoutWeaponId
 		);
+		ApplyLoadoutEyeShape(Occupant->GetLoadoutEyeShapeId());
 		ApplyLoadoutColor(Occupant->GetLoadoutColor());
 		ApplyLoadoutWeaponId(Occupant->GetLoadoutWeaponId());
 	}
@@ -182,6 +196,42 @@ void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData
 	AvatarDynMat->SetScalarParameterValue("Body_Emissive", ColorData.BodyData.Emissive);
 	AvatarDynMat->SetVectorParameterValue("Eye_Color", ColorData.EyeData.Color);
 	AvatarDynMat->SetScalarParameterValue("Eye_Emissive", ColorData.EyeData.Emissive);
+	AvatarDynMat->SetScalarParameterValue("Radius_Inner", CurrentEyeShapeData.RadiusInner);
+	AvatarDynMat->SetScalarParameterValue("Radius_Outter", CurrentEyeShapeData.RadiusOutter);
+	AvatarDynMat->SetScalarParameterValue("Softness", CurrentEyeShapeData.Softness);
+	AvatarDynMat->SetScalarParameterValue("Eye_Width", CurrentEyeShapeData.EyeWidth);
+	AvatarDynMat->SetScalarParameterValue("Eye_Height", CurrentEyeShapeData.EyeHeight);
+	AvatarDynMat->SetScalarParameterValue("_UseTexture", CurrentEyeShapeData.UseTexture);
+	AvatarDynMat->SetTextureParameterValue("_EyeTexture", CurrentEyeShapeData.EyeTexture);
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutEyeShape(FName EyeShapeId)
+{
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* ResolvedEyeShapeDataTable = nullptr;
+	if (LoadoutDataSet && LoadoutDataSet->EyeShapeDataTable)
+	{
+		ResolvedEyeShapeDataTable = LoadoutDataSet->EyeShapeDataTable;
+	}
+
+	CurrentEyeShapeData = FEyeShapeParamData();
+	LoadoutEyeShapeTableUtils::ResolveEyeShapeData(ResolvedEyeShapeDataTable, EyeShapeId, CurrentEyeShapeData);
+
+	if (!AvatarMesh)
+	{
+		return;
+	}
+
+	if (!AvatarDynMat)
+	{
+		AvatarDynMat = AvatarMesh->CreateAndSetMaterialInstanceDynamic(0);
+	}
+
+	if (AvatarDynMat && Occupant)
+	{
+		ApplyLoadoutColor(Occupant->GetLoadoutColor());
+	}
 }
 
 void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)
@@ -205,13 +255,21 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 		return;
 	}
 
-	if (!WeaponDataTable)
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* ResolvedWeaponDataTable = nullptr;
+	if (LoadoutDataSet && LoadoutDataSet->WeaponDataTable)
+	{
+		ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+	}
+
+	if (!ResolvedWeaponDataTable)
 	{
 		// Keep current preview mesh if no table is assigned.
 		return;
 	}
 
-	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LobbyAvatarSlot"));
+	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LobbyAvatarSlot"));
 	if (!Row)
 	{
 		WeaponMesh->SetSkeletalMesh(nullptr);
@@ -237,7 +295,6 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransf
 	WeaponMesh->SetOnlyOwnerSee(false);
 	WeaponMesh->SetOwnerNoSee(false);
 }
-
 void ALobbyAvatarSlot::SetLobbyState(ELobbyAvatarState State)
 {
 	if (!ReadyWidget || !Occupant)

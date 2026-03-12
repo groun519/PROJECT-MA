@@ -6,6 +6,7 @@
 #include "Level/Lobby/LobbyPlayerController.h"
 #include "Widget/Lobby/Loadout/LoadoutBodyTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutHeadTabWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutMountTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWeaponTabWidget.h"
 
 void ULoadoutWidget::NativeConstruct()
@@ -24,12 +25,12 @@ void ULoadoutWidget::NativeConstruct()
 	{
 		WeaponTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleWeaponTabClicked);
 	}
+	if (MountTabButton)
+	{
+		MountTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleMountTabClicked);
+	}
 
 	SetActiveTab(1);
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Body);
-	}
 }
 
 void ULoadoutWidget::HandleHeadTabClicked()
@@ -56,7 +57,13 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
 	{
 		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Weapon);
+		PC->ApplyPendingWeaponPreviewDelayed(0.3f);
 	}
+}
+
+void ULoadoutWidget::HandleMountTabClicked()
+{
+	SetActiveTab(3);
 }
 
 void ULoadoutWidget::SetActiveTab(int32 TabIndex)
@@ -78,5 +85,37 @@ void ULoadoutWidget::SetActiveTab(int32 TabIndex)
 	{
 		WeaponTabButton->SetIsEnabled(TabIndex != 2);
 	}
+	if (MountTabButton)
+	{
+		MountTabButton->SetIsEnabled(TabIndex != 3);
+	}
 
+}
+
+void ULoadoutWidget::ActivateBodyTabUI()
+{
+	SetActiveTab(1);
+}
+
+void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId, FName PendingMountId)
+{
+	if (BodyTabWidget)
+	{
+		BodyTabWidget->SyncFromPendingBody(PendingColor.BodyData);
+	}
+
+	if (HeadTabWidget)
+	{
+		HeadTabWidget->SyncFromPendingHead(PendingColor.EyeData, PendingEyeShapeId);
+	}
+
+	if (WeaponTabWidget)
+	{
+		WeaponTabWidget->SyncFromPendingWeapon(PendingWeaponId);
+	}
+
+	if (MountTabWidget)
+	{
+		MountTabWidget->SyncFromPendingMount(PendingMountId);
+	}
 }

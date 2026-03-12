@@ -31,9 +31,13 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 
 	const float Fury = Attr->GetFury();
 	const float Threshold = Monster->FuryThreshold;
-	const EMAAbilityInputID InputToUse = (Fury >= Threshold)
-	? EMAAbilityInputID::Skill1
-	: EMAAbilityInputID::Attack;
+
+	EMAAbilityInputID InputToUse = EMAAbilityInputID::Attack;
+
+	if (Monster->bUseFuryThreshold && Fury >= Threshold)
+	{
+		InputToUse = EMAAbilityInputID::Skill1;
+	}
 
 	const TCHAR* InputName = (InputToUse == EMAAbilityInputID::Skill1) ? TEXT("Skill1") : TEXT("Attack");
 

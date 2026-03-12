@@ -6,7 +6,7 @@
 
 ABattleSector::ABattleSector()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void ABattleSector::BeginPlay()

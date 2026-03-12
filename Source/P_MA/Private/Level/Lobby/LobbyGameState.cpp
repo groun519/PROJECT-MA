@@ -12,27 +12,32 @@ void ALobbyGameState::RegisterAvatarSlot(ALobbyAvatarSlot* Slot)
 	const int32 Index = Slot->SlotIndex;
 	if (Index < 0) return;
 
-	if (AvatarSlots.Num() <= Index)
-	{
-		AvatarSlots.SetNum(Index + 1);
-	}
+	EnsureSlotStorageSize(FMath::Max(Index + 1, DefaultLobbySlotCount));
 
 	AvatarSlots[Index] = Slot;
 	OnSlotsRegistered.Broadcast();
+	ApplyLobbySlotsToAvatars();
 }
 
 void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 {
 	if (!PlayerState) return;
 
-	const int32 SlotCount = AvatarSlots.Num();
-	if (LobbySlots.Num() != SlotCount)
+	EnsureSlotStorageSize(GetDesiredSlotCount());
+	const int32 SlotCount = LobbySlots.Num();
+
+	for (int32 Index = 0; Index < SlotCount; ++Index)
 	{
-		LobbySlots.SetNum(SlotCount);
-	}
-	if (LobbyStates.Num() != SlotCount)
-	{
-		LobbyStates.SetNum(SlotCount);
+		if (LobbySlots[Index].PlayerState == PlayerState)
+		{
+			PlayerState->SetLobbySlotIndex(Index);
+			if (AvatarSlots.IsValidIndex(Index) && AvatarSlots[Index])
+			{
+				AvatarSlots[Index]->SetOccupant(PlayerState);
+				AvatarSlots[Index]->SetLobbyState(LobbyStates.IsValidIndex(Index) ? LobbyStates[Index] : ELobbyAvatarState::Wait);
+			}
+			return;
+		}
 	}
 
 	for (int32 Index = 0; Index < SlotCount; ++Index)
@@ -59,6 +64,7 @@ void ALobbyGameState::AssignSlotToPlayer(AMAPlayerState* PlayerState)
 			return;
 		}
 	}
+
 }
 
 void ALobbyGameState::RemovePlayerFromSlot(AMAPlayerState* PlayerState)
@@ -214,6 +220,32 @@ void ALobbyGameState::OnRep_LobbyStates()
 		{
 			AvatarSlots[Index]->SetLobbyState(LobbyStates[Index]);
 		}
+	}
+}
+
+int32 ALobbyGameState::GetDesiredSlotCount() const
+{
+	return FMath::Max3(DefaultLobbySlotCount, LobbySlots.Num(), AvatarSlots.Num());
+}
+
+void ALobbyGameState::EnsureSlotStorageSize(int32 DesiredCount)
+{
+	if (DesiredCount <= 0)
+	{
+		return;
+	}
+
+	if (AvatarSlots.Num() < DesiredCount)
+	{
+		AvatarSlots.SetNum(DesiredCount);
+	}
+	if (LobbySlots.Num() < DesiredCount)
+	{
+		LobbySlots.SetNum(DesiredCount);
+	}
+	if (LobbyStates.Num() < DesiredCount)
+	{
+		LobbyStates.SetNum(DesiredCount);
 	}
 }
 

@@ -4,6 +4,8 @@
 #include "Animation/MAAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/Components/ReadyRideComponent.h"
 
 void UMAAnimInstance::NativeInitializeAnimation()
 {
@@ -18,13 +20,46 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	if (OwnerCharacter)
 	{
-		Velocity = OwnerCharacter->GetVelocity();
-		Speed = Velocity.Length();
+		if (const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OwnerCharacter))
+		{
+			if (const UReadyRideComponent* ReadyRideComp = PlayerCharacter->GetReadyRideComponent();
+				ReadyRideComp)
+			{
+				bIsMounted = ReadyRideComp->GetMountState() == ERideMountState::Mounted;
+				const bool bUseRideMovementSource = ReadyRideComp->IsAttachedReady();
+				if (bUseRideMovementSource)
+				{
+					Velocity = ReadyRideComp->GetAttachedMoveVelocity();
+					Speed = ReadyRideComp->GetAttachedMoveSpeed();
+				}
+				else
+				{
+					Velocity = OwnerCharacter->GetVelocity();
+					Speed = Velocity.Length();
+				}
+			}
+			else
+			{
+				bIsMounted = false;
+				Velocity = OwnerCharacter->GetVelocity();
+				Speed = Velocity.Length();
+			}
+		}
+		else
+		{
+			bIsMounted = false;
+			Velocity = OwnerCharacter->GetVelocity();
+			Speed = Velocity.Length();
+		}
 		FRotator BodyRot = OwnerCharacter->GetActorRotation();
 		BodyPrevRot = BodyRot;
 
 		FRotator ControlRot = OwnerCharacter->GetBaseAimRotation();
 		LookRotOffset = UKismetMathLibrary::NormalizedDeltaRotator(ControlRot, BodyRot);
+	}
+	else
+	{
+		bIsMounted = false;
 	}
 }
 
