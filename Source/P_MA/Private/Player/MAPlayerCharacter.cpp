@@ -27,6 +27,7 @@
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
+#include "Player/Components/MAPlayerCharacterMovementComponent.h"
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
@@ -34,7 +35,8 @@
 #include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
 
-AMAPlayerCharacter::AMAPlayerCharacter()
+AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -188,7 +190,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
-	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation();
+	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked();
 	if (!bBlockManualRotation)
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
@@ -210,7 +212,7 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	float AttachedYaw = 0.f;
 	// Simulated proxies must follow replicated rotation only.
 	if ((HasAuthority() || IsLocallyControlled()) &&
-		ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
+		ReadyRideComponent && ReadyRideComponent->TryGetRideYaw(AttachedYaw))
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
@@ -239,7 +241,7 @@ void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
-	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
 	if (IsDead()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
@@ -455,7 +457,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
-	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
 	if (IsDead()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))

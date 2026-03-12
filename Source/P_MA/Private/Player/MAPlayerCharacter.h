@@ -33,7 +33,7 @@ class AMAPlayerCharacter : public AMACharacter
 	GENERATED_BODY()
 	
 public:
-	AMAPlayerCharacter();
+	AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	virtual void Tick(float DeltaTime) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

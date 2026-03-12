@@ -53,6 +53,7 @@ public:
 	void SetCurSpline(USplineComponent* Spline);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
 	void SetRangeClampVisual(bool bVisible, float InSize);
+	UPrimitiveComponent* GetRideBaseComponent() const;
 	
 private:
 	/** Input by SplineSectorManager **/

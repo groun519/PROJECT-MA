@@ -26,6 +26,6 @@ void UMountAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 
 	const UReadyRideComponent* ReadyRideComponent = OwnerPlayerCharacter->GetReadyRideComponent();
-	Speed = ReadyRideComponent ? ReadyRideComponent->GetAttachedMoveSpeed() : 0.f;
+	Speed = ReadyRideComponent ? ReadyRideComponent->GetRideMoveSpeed() : 0.f;
 	RideHorizontalInput = OwnerPlayerCharacter->GetRideHorizontalInput();
 }

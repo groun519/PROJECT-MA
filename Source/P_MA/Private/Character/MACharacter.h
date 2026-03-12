@@ -21,7 +21,7 @@ class AMACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	GENERATED_BODY()
 
 public:
-	AMACharacter();
+	AMACharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	void ServerSideInit();
 	void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const;

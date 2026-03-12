@@ -11,6 +11,7 @@
 #include "Level/Platform/RideRoot.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/Components/MAPlayerCharacterMovementComponent.h"
 
 UReadyRideComponent::UReadyRideComponent()
 {
@@ -35,8 +36,7 @@ void UReadyRideComponent::BeginPlay()
 	{
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
-	bPrevAttachedReady = IsAttachedReady();
-	ApplyRideState(bPrevAttachedReady);
+	ApplyRideState(IsRiding());
 }
 
 void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -48,32 +48,32 @@ void UReadyRideComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 	const AActor* OwnerActor = OwnerCharacter;
 
-	const bool bAttachedByReady = IsAttachedReady();
+	const bool bIsRiding = IsRiding();
 
 	const FVector CurrentLocation = OwnerActor->GetActorLocation();
-	if (bAttachedByReady && DeltaTime > KINDA_SMALL_NUMBER)
+	if (bIsRiding && DeltaTime > KINDA_SMALL_NUMBER)
 	{
 		FVector Delta = CurrentLocation - PrevTickLocation;
 		Delta.Z = 0.f;
-		AttachedMoveVelocity = Delta / DeltaTime;
-		AttachedMoveSpeed = AttachedMoveVelocity.Size();
+		RideMoveVelocity = Delta / DeltaTime;
+		RideMoveSpeed = RideMoveVelocity.Size();
 	}
 	else
 	{
-		AttachedMoveVelocity = FVector::ZeroVector;
-		AttachedMoveSpeed = 0.f;
+		RideMoveVelocity = FVector::ZeroVector;
+		RideMoveSpeed = 0.f;
 	}
 
 	PrevTickLocation = CurrentLocation;
 }
 
-void UReadyRideComponent::NotifyReadyRideAttachmentChanged(ARideRoot* InRideRoot)
+void UReadyRideComponent::SetRidingRoot(ARideRoot* InRideRoot)
 {
 	RidingRoot = InRideRoot;
 	if (!RidingRoot)
 	{
-		AttachedMoveVelocity = FVector::ZeroVector;
-		AttachedMoveSpeed = 0.f;
+		RideMoveVelocity = FVector::ZeroVector;
+		RideMoveSpeed = 0.f;
 	}
 
 	if (const AActor* OwnerActor = GetOwner())
@@ -81,15 +81,15 @@ void UReadyRideComponent::NotifyReadyRideAttachmentChanged(ARideRoot* InRideRoot
 		PrevTickLocation = OwnerActor->GetActorLocation();
 	}
 
-	ApplyRideState(IsAttachedReady());
+	ApplyRideState(IsRiding());
 }
 
-bool UReadyRideComponent::IsAttachedReady() const
+bool UReadyRideComponent::IsRiding() const
 {
 	return RidingRoot != nullptr;
 }
 
-bool UReadyRideComponent::TryGetAttachedYaw(float& OutYaw) const
+bool UReadyRideComponent::TryGetRideYaw(float& OutYaw) const
 {
 	if (!RidingRoot) return false;
 	OutYaw = RidingRoot->GetActorRotation().Yaw;
@@ -104,9 +104,9 @@ void UReadyRideComponent::RefreshRideCollisionMode()
 	UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent();
 	if (!Capsule) return;
 
-	const bool bNowRidingPlatform = IsAttachedReady();
-	if (bNowRidingPlatform == bIsRidingPlatform) return;
-	bIsRidingPlatform = bNowRidingPlatform;
+	const bool bNowRiding = IsRiding();
+	if (bNowRiding == bIsRidingState) return;
+	bIsRidingState = bNowRiding;
 
 	UWorld* World = GetWorld();
 	if (!World) return;
@@ -133,61 +133,55 @@ void UReadyRideComponent::OnRep_RidingRoot()
 	}
 	if (!RidingRoot)
 	{
-		AttachedMoveVelocity = FVector::ZeroVector;
-		AttachedMoveSpeed = 0.f;
+		RideMoveVelocity = FVector::ZeroVector;
+		RideMoveSpeed = 0.f;
 	}
-	ApplyRideState(IsAttachedReady());
+	ApplyRideState(IsRiding());
 }
 
-void UReadyRideComponent::ApplyRideState(bool bNowAttached)
-{
-	if (bNowAttached != bPrevAttachedReady)
-	{
-		HandleReplicatedAttachStateChanged(bNowAttached);
-		bPrevAttachedReady = bNowAttached;
-	}
-
-	UpdateRideMovementMode(bNowAttached);
-	UpdateMountState(bNowAttached);
-	UpdateProxyMeshSmoothing(bNowAttached);
-	UpdateTickPolicy(bNowAttached);
-	RefreshRideCollisionMode();
-}
-
-void UReadyRideComponent::HandleReplicatedAttachStateChanged(bool bNowAttached)
+void UReadyRideComponent::SyncRideMovementBase() const
 {
 	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
 
-	// Only reconcile simulated proxies. Server/local-owner flow remains untouched.
-	if (OwnerCharacter->HasAuthority() || OwnerCharacter->IsLocallyControlled()) return;
+	UPrimitiveComponent* CurrentBase = OwnerCharacter->GetMovementBase();
+	UPrimitiveComponent* NewBase = RidingRoot ? RidingRoot->GetRideBaseComponent() : nullptr;
+	if (CurrentBase == NewBase) return;
 
-	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
-	if (!MoveComp) return;
-
-	MoveComp->StopMovementImmediately();
-	MoveComp->ClearAccumulatedForces();
-}
-
-void UReadyRideComponent::UpdateRideMovementMode(bool bNowAttached) const
-{
-	const AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
-	if (!OwnerCharacter) return;
-
-	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
-	if (!MoveComp) return;
-
-	(void)bNowAttached;
-
-	if (MoveComp->MovementMode != MOVE_Walking)
+	if (NewBase)
 	{
-		MoveComp->SetMovementMode(MOVE_Walking);
+		OwnerCharacter->SetBase(NewBase);
+		return;
+	}
+
+	if (CurrentBase && CurrentBase->GetOwner() && CurrentBase->GetOwner()->IsA<ARideRoot>())
+	{
+		OwnerCharacter->SetBase(nullptr);
 	}
 }
 
-void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
+void UReadyRideComponent::ApplyRideState(bool bIsRiding)
 {
-	if (bAttachedByReady)
+	UpdateRideMovementMode(bIsRiding);
+	SyncRideMovementBase();
+	UpdateMountState(bIsRiding);
+	UpdateRemoteViewMeshSmoothing(bIsRiding);
+	UpdateTickPolicy(bIsRiding);
+	RefreshRideCollisionMode();
+}
+
+void UReadyRideComponent::UpdateRideMovementMode(bool bIsRiding) const
+{
+	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!OwnerCharacter) return;
+
+	UMAPlayerCharacterMovementComponent* MoveComp = CastChecked<UMAPlayerCharacterMovementComponent>(OwnerCharacter->GetCharacterMovement());
+	MoveComp->SetRideMovementEnabled(bIsRiding);
+}
+
+void UReadyRideComponent::UpdateTickPolicy(bool bIsRiding)
+{
+	if (bIsRiding)
 	{
 		PrimaryComponentTick.TickInterval = 0.f;
 		SetComponentTickEnabled(true);
@@ -197,9 +191,9 @@ void UReadyRideComponent::UpdateTickPolicy(bool bAttachedByReady)
 	SetComponentTickEnabled(false);
 }
 
-void UReadyRideComponent::UpdateMountState(bool bNowAttached)
+void UReadyRideComponent::UpdateMountState(bool bIsRiding)
 {
-	const ERideMountState NewMountState = bNowAttached ? ERideMountState::Mounted : ERideMountState::None;
+	const ERideMountState NewMountState = bIsRiding ? ERideMountState::Mounted : ERideMountState::None;
 	if (MountState == NewMountState) return;
 
 	MountState = NewMountState;
@@ -212,16 +206,17 @@ void UReadyRideComponent::UpdateMountState(bool bNowAttached)
 	RestoreOwnerMeshAttachment();
 }
 
-void UReadyRideComponent::UpdateProxyMeshSmoothing(bool bNowAttached)
+void UReadyRideComponent::UpdateRemoteViewMeshSmoothing(bool bIsRiding)
 {
 	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
-	if (OwnerCharacter->HasAuthority() || OwnerCharacter->IsLocallyControlled()) return;
+	if (OwnerCharacter->IsLocallyControlled()) return;
+
+	const ENetMode NetMode = OwnerCharacter->GetNetMode();
+	if (NetMode != NM_Client && NetMode != NM_ListenServer) return;
 
 	UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement();
-	if (!MoveComp) return;
-
-	if (bNowAttached && MountState == ERideMountState::Mounted)
+	if (bIsRiding && MountState == ERideMountState::Mounted)
 	{
 		if (!bHasSavedProxyNetworkSmoothingMode)
 		{
@@ -232,7 +227,6 @@ void UReadyRideComponent::UpdateProxyMeshSmoothing(bool bNowAttached)
 		if (MoveComp->NetworkSmoothingMode != ENetworkSmoothingMode::Disabled)
 		{
 			MoveComp->NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
-			AttachOwnerMeshToMount();
 		}
 		return;
 	}
@@ -309,8 +303,8 @@ void UReadyRideComponent::UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter*
 	if (!Capsule || !OtherCapsule) return;
 
 	const UReadyRideComponent* OtherReadyRideComp = OtherPlayer->FindComponentByClass<UReadyRideComponent>();
-	const bool bOtherRidingPlatform = OtherReadyRideComp ? OtherReadyRideComp->bIsRidingPlatform : false;
-	const bool bShouldIgnorePair = bIsRidingPlatform || bOtherRidingPlatform;
+	const bool bOtherRiding = OtherReadyRideComp ? OtherReadyRideComp->bIsRidingState : false;
+	const bool bShouldIgnorePair = bIsRidingState || bOtherRiding;
 
 	Capsule->IgnoreActorWhenMoving(OtherPlayer, bShouldIgnorePair);
 	OtherCapsule->IgnoreActorWhenMoving(OwnerCharacter, bShouldIgnorePair);
