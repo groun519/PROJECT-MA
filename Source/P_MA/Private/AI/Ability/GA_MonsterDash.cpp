@@ -8,9 +8,10 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
+#include "GAS/MAAbilitySystemStatics.h"
 
 void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+                                      const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	IgnoreTargets.Empty();
 
@@ -49,7 +50,7 @@ void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnDamageEvent);
 	WaitDamageEvent->ReadyForActivation();
 	
-	UAbilityTask_WaitGameplayEvent* WaitClearEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,FGameplayTag::RequestGameplayTag(TEXT("Ability.Combo.Clear")));
+	UAbilityTask_WaitGameplayEvent* WaitClearEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,UMAAbilitySystemStatics::GetIgnoreClearTag());
 	WaitClearEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnClearEvent);
 	WaitClearEvent->ReadyForActivation();
 

@@ -34,7 +34,7 @@ void UShopCategoryWidget::InitCategory(UDataTable* InDataTable)
 	{
 		KoreanTitle = TEXT("장비 아이템");
 	}
-	else if (TableName.Contains("Skills"))
+	else if (TableName.Contains("Skill"))
 	{
 		KoreanTitle = TEXT("스킬");
 	}

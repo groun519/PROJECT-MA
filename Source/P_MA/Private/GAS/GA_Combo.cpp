@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MASkillVFXSet.h"
 #include "Character/MACharacter.h"
@@ -16,8 +17,7 @@ UGA_Combo::UGA_Combo()
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAimingTag());
-
-	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
+	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Debuff"));
 }
 
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -53,10 +53,6 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		UAbilityTask_WaitGameplayEvent* WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboClearEventTag());
 		WaitClearEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ClearIgnore);
 		WaitClearEventTask->ReadyForActivation();
-
-		UAbilityTask_WaitGameplayEvent* WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr,false,false);
-		WaitVFXEventTask->EventReceived.AddDynamic(this, &UGA_Combo::HandleVFXSpawnEvent);
-		WaitVFXEventTask->ReadyForActivation();
 	}
 	SetupWaitComboInputPress();
 }
@@ -171,40 +167,5 @@ void UGA_Combo::ClearIgnore(FGameplayEventData Data)
 	if (ClearTag == GetComboClearEventTag())
 	{
 		IgnoreTargets.Empty();
-	}
-}
-
-void UGA_Combo::HandleVFXSpawnEvent(FGameplayEventData Payload)
-{
-	if (!HasAuthority(&CurrentActivationInfo))
-		return;
-	if (!VFXDataSet)
-		return;
-
-	const F_SkillVFX_Info* VFXInfo = VFXDataSet->VFXDataMap.Find(Payload.EventTag);
-	if (!VFXInfo || !VFXInfo->DefaultVFX)
-		return;
-	
-	FLinearColor SpawnColor = FLinearColor::White;
-	bool bApplyColor = false;
-
-	AMACharacter* Character = Cast<AMACharacter>(GetAvatarActorFromActorInfo());
-	if (!Character)
-		return;
-	USkeletalMeshComponent* MeshComp = Character->GetMesh();
-	if (!MeshComp)
-		return;
-
-	if (VFXInfo->bSpawnInWorld)
-	{
-		FTransform SocketTransform = (VFXInfo->SocketName != NAME_None)? MeshComp->GetSocketTransform(VFXInfo->SocketName) : MeshComp->GetComponentTransform();
-		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset, VFXInfo->Scale);
-		FTransform WorldSPawnTransform = OffsetTransform * SocketTransform;
-
-		Character->Multicast_PlayNiagara(VFXInfo->DefaultVFX, WorldSPawnTransform, bApplyColor, SpawnColor);
-	}
-	else
-	{
-		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,VFXInfo->Scale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
 }

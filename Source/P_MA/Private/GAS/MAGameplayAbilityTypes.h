@@ -6,6 +6,43 @@
 #include "GameplayEffect.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
+struct FMAGameplayEffectContext;
+
+USTRUCT()
+struct FMAGameplayEffectContext : public FGameplayEffectContext
+{
+	GENERATED_BODY()
+
+public:
+	bool IsCriticalHit() const {return bIsCriticalHit;}
+	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
+	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
+	virtual FMAGameplayEffectContext* Duplicate() const override
+	{
+		FMAGameplayEffectContext* NewContext = new FMAGameplayEffectContext();
+		*NewContext = *this;
+		if (GetHitResult())
+		{
+			NewContext->AddHitResult(*GetHitResult(), true);
+		}
+		return NewContext;
+	}
+	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess) override;
+protected:
+	UPROPERTY()
+	bool bIsCriticalHit = false;
+};
+
+template<>
+struct TStructOpsTypeTraits<FMAGameplayEffectContext> : public TStructOpsTypeTraitsBase2<FMAGameplayEffectContext>
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithCopy = true
+	};
+};
+
 UENUM(BlueprintType)
 enum class EMAAbilityInputID : uint8
 {
@@ -60,6 +97,12 @@ FPlayerBaseStats();
 	float BaseAttackSpeed;
 	
 	UPROPERTY(EditAnywhere)
+	float BaseCriticalChance;
+
+	UPROPERTY(EditAnywhere)
+	float BaseCriticalDamage;
+	
+	UPROPERTY(EditAnywhere)
 	float BaseAttackRange;
 
 	UPROPERTY(EditAnywhere)
@@ -107,4 +150,7 @@ struct FMonsterBaseStats : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	float BaseFuryMax;
+	
+	UPROPERTY(EditAnywhere, meta=(Categories="Stats.Immunity"))
+	FGameplayTagContainer BaseImmunityTags;
 };

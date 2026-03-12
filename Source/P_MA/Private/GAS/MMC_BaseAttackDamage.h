@@ -22,6 +22,8 @@ private:
 	FGameplayEffectAttributeCaptureDefinition ArmorCaptureDef;
 	FGameplayEffectAttributeCaptureDefinition ArmorPenetrationCaptureDef;
 	FGameplayEffectAttributeCaptureDefinition DamageVarianceCaptureDef;
+	FGameplayEffectAttributeCaptureDefinition CriticalChanceCaptureDef;
+	FGameplayEffectAttributeCaptureDefinition CriticalDamageCaptureDef;
 
 	FGameplayTag BehaviorModifierTag;
 	FGameplayTag UtilityModifierTag;

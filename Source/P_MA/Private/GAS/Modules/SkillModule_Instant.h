@@ -27,7 +27,7 @@ protected:
 	UFUNCTION()
 	void OnMontageEnded();
 
-	void StartWaitDamageEventTask(FName TagName);
+	void StartWaitDamageEventTask(FGameplayTag Tag);
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
 	

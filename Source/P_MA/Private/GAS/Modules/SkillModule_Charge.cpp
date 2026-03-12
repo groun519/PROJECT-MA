@@ -43,17 +43,17 @@ void USkillModule_Charge::OnAbilityActivated()
 	StartMaxChargeDelayTask();
 
 	//차징 근접 공격 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+	if (SkillData.ActionTags.HasTag(MeleeActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(MontageDamageTag);
 	}
 	//차징 투사체 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	if (SkillData.ActionTags.HasTag(ProjectileActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 	}
 	//차징 타게팅 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+	if (SkillData.ActionTags.HasTag(TargetingActionTag))
 	{
 		StartWaitTargetDataTask();
 	}
@@ -97,7 +97,10 @@ void USkillModule_Charge::OnMontageEnded()
 				AnimInst->Montage_Stop(0.2f, OwnerSkill->GetCurrentMontage());
 			}
 		}
-		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		if (!OwnerSkill->TryActivateComboModule())
+		{
+			OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		}
 	}
 }
 
@@ -123,10 +126,9 @@ void USkillModule_Charge::OnChargeEventReceived(FGameplayEventData Payload)
 	FinalChargedDuration = 0.f;
 }
 
-void USkillModule_Charge::StartWaitDamageEventTask(FName TagName)
+void USkillModule_Charge::StartWaitDamageEventTask(FGameplayTag EventTag)
 {
 	if (!OwnerSkill)	return;
-	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
 	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Charge::OnDamageEventReceived);
@@ -156,10 +158,21 @@ void USkillModule_Charge::StartWaitInputReleaseTask()
 
 void USkillModule_Charge::OnInputReleased(float TimeHeld)
 {
-	if (!bIsCharging || !OwnerSkill)	return;
+	if (!bIsCharging || !OwnerSkill)
+		return;
+
+	if (ChargeStartEventTask)
+	{
+		ChargeStartEventTask->EndTask();
+		ChargeStartEventTask = nullptr;
+	}
 	
 	FinalChargedDuration = TimeHeld;
-	
+
+	if (CachedMaxChargeDuration > 0.f)
+	{
+		OwnerSkill->ChargeRatio = FMath::Clamp(FinalChargedDuration / CachedMaxChargeDuration, 0.f, 1.f);
+	}
 	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
 		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);
@@ -196,6 +209,8 @@ void USkillModule_Charge::OnMaxCharged()
 	if (!bIsCharging || !OwnerSkill)	return;
 
 	FinalChargedDuration = CachedMaxChargeDuration;
+	OwnerSkill->ChargeRatio = 1.f;
+	
 	if (OwnerSkill && OwnerSkill->GetCurrentMontage())
 	{
 		OwnerSkill->Montage_SetPlayRate(OwnerSkill->GetCurrentMontage(), 1.0f);
@@ -222,6 +237,9 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 {
 	if (!OwnerSkill)
 		return;
+	AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
+	if (!Avatar)
+		return;
 
 	const FSkillData& SkillData = OwnerSkill->GetSkillData();
 	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
@@ -230,10 +248,6 @@ void USkillModule_Charge::StartWaitTargetDataTask()
 		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
 		return;
 	}
-
-	AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
-	if (!Avatar)
-		return;
 
 	DestroyActors();
 	
@@ -301,12 +315,14 @@ void USkillModule_Charge::FinishTargetingTask()
 	{
 		TargetData = TargetActor->GetTargetData();
 	}
-	
+
+	/*
 	if (TargetData.Num() > 0)
 	{
 		OwnerSkill->ApplyDamageToTargetData(TargetData, FinalChargedDuration);
 	}
-	
+	*/
+	OnTargetDataReady(TargetData);
 	DestroyActors();
 }
 
@@ -330,7 +346,13 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 		return;
 
 	CachedTargetData = Data;
-	StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+
+	FGameplayTag WaitTag = MontageDamageTag;
+	if (OwnerSkill->GetSkillData().ActionTags.HasTag(ProjectileActionTag))
+	{
+		WaitTag = MontageSpawnProjectileTag;
+	}
+	StartWaitDamageEventTask(WaitTag);
 
 	float CastSectionLength = 1.0f;
 
@@ -338,15 +360,8 @@ void USkillModule_Charge::OnTargetDataReady(const FGameplayAbilityTargetDataHand
 	{
 		if (UAnimMontage* Montage = OwnerSkill->GetCurrentMontage())
 		{
-			OwnerSkill->Montage_SetPlayRate(Montage, 1.0f);
-
-			int32 SectionIndex = Montage->GetSectionIndex(FName("Cast"));
-			if (SectionIndex != INDEX_NONE)
-			{
-				CastSectionLength = Montage->GetSectionLength(SectionIndex);
-			}
+			OwnerSkill->Montage_SetPlayRate(Montage,1.f);
 		}
-		OwnerSkill->Montage_SetSection(FName("Cast"));
 	}
 	UAbilityTask_WaitDelay* FinishTimer = UAbilityTask_WaitDelay::WaitDelay(OwnerSkill, CastSectionLength);
 	FinishTimer->OnFinish.AddDynamic(this, &USkillModule_Charge::OnMontageEnded);

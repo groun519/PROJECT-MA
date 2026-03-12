@@ -3,10 +3,13 @@
 
 #include "GAS/Modules/MASkillModuleData.h"
 
-FSkillData::FSkillData()
-	:AbilityClass{nullptr},
-	SkillMontage{nullptr},
-	SkillIcon{nullptr},
-	VFXDataSet{nullptr}
+#include "Inventory/MAItemTypes.h"
+
+FSkillData::FSkillData():
+	GrantedAbility{nullptr},
+	SkillMontage{nullptr}
+	//VFXDataSet{nullptr}
+	//SkillIcon{nullptr}
 {
+	ItemType = EMAItemType::Skill;
 }

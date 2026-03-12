@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "P_MA/P_MA.h"
 
+
 AMAProjectile::AMAProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -90,6 +91,7 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 		TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 	}
 	HitActors.Add(OtherActor);
+	OnProjectileHit.Broadcast(OtherActor);
 
 	if (ExplodeRadius > 0.f)
 	{
@@ -110,6 +112,7 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 				{
 					AoE_ASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
 					HitActors.Add(AoE_Target);
+					OnProjectileHit.Broadcast(AoE_Target);
 				}
 			}
 		}
@@ -187,6 +190,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 				if (DamageEffectSpecHandle.IsValid())
 				{
 					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+					OnProjectileHit.Broadcast(TargetActor);
 				}
 			}
 		}
@@ -208,6 +212,16 @@ void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
 		FGameplayCueParameters CueParams;
 		CueParams.Location=HitResult.ImpactPoint;
 		CueParams.Normal = HitResult.ImpactNormal;
+
+		float BaseVFXRadius = 300.f;
+		float ScaleMultiplier = 1.0f;
+		
+		if (BaseVFXRadius > 0.f && ExplodeRadius > 0.f)
+		{
+			ScaleMultiplier = ExplodeRadius / BaseVFXRadius;
+		}
+	
+		CueParams.RawMagnitude = ScaleMultiplier;
 
 		SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
 	}

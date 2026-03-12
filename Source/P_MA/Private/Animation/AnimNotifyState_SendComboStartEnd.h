@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "AnimNotifyState_SendComboStartEnd.generated.h"
 
 class UWeaponComponent;
@@ -34,5 +35,5 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability", meta=(EditCondition="bUseEndEvent"))
 	FGameplayTag EndEventTag;
 	UPROPERTY()
-	FGameplayTag ClearEventTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+	FGameplayTag ClearEventTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 };

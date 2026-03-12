@@ -12,7 +12,7 @@ UGAP_Launch::UGAP_Launch()
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
 	TriggerData.TriggerTag = UMAAbilitySystemStatics::GetLaunchActivateTag();
 
-	ActivationBlockedTags.RemoveTag(FGameplayTag::RequestGameplayTag("Stats.Stun"));
+	ActivationBlockedTags.RemoveTag(FGameplayTag::RequestGameplayTag("State.Debuff.Stun"));
 	AbilityTriggers.Add(TriggerData);
 }
 

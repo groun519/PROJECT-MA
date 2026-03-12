@@ -13,7 +13,22 @@
 
 FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
-	return FGameplayTag::RequestGameplayTag("Ability.BasicAttack");
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputPressedTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Pressed");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Released");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
@@ -23,32 +38,27 @@ FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
 
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("Stats.Dead");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
-{
-	return FGameplayTag::RequestGameplayTag("Stats.Stun");
+	return FGameplayTag::RequestGameplayTag("State.Dead");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetRotationLockTag()
 {
-	return FGameplayTag::RequestGameplayTag("Player.State.RotationLock");
+	return FGameplayTag::RequestGameplayTag("State.RotationLock");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 {
-	return FGameplayTag::RequestGameplayTag("Player.State.Rushing");
+	return FGameplayTag::RequestGameplayTag("State.Rushing");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
 {
-	return FGameplayTag::RequestGameplayTag("Player.State.Aiming");
+	return FGameplayTag::RequestGameplayTag("State.Aiming");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()
 {
-	return FGameplayTag::RequestGameplayTag("Player.State.MoveBlocked");
+	return FGameplayTag::RequestGameplayTag("State.MoveBlocked");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
@@ -71,9 +81,29 @@ FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
 	return FGameplayTag::RequestGameplayTag("attr.gold");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetMeleeActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Melee");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetProjectileActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Projectile");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetTargetingActionTag()
+{
+	return FGameplayTag::RequestGameplayTag("Ability.Action.Targeting");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()
@@ -96,14 +126,29 @@ FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHitReactTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.HitReact");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetAnyReactionStateTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetAirborneTag()
 {
-	return FGameplayTag::RequestGameplayTag("Stats.Airborne");
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Airborne");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetKnockdownTag()
 {
-	return FGameplayTag::RequestGameplayTag("Stats.Knockdown");
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockdown");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetRecoveryTag()

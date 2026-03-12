@@ -18,6 +18,7 @@
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
+#include "GAS/Passive/MADamageNumberActor.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
@@ -142,6 +143,37 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
+void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit)
+{
+	if (DamageNumberActorClass && TargetActor)
+	{
+		FVector DamageSpawnLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
+		
+		DamageSpawnLocation.X += FMath::RandRange(-40.f, 40.f);
+		DamageSpawnLocation.Y += FMath::RandRange(-40.f, 40.f);
+		
+		AMADamageNumberActor* DamageActor = GetWorld()->SpawnActor<AMADamageNumberActor>(DamageNumberActorClass, DamageSpawnLocation, FRotator::ZeroRotator);
+		
+		if (DamageActor)
+		{
+			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
+		}
+
+		if (!RegularCameraShake || !CriticalCameraShake)
+		{
+			return;
+		}
+		if (!bIsPlayerHit)
+		{
+			TSubclassOf<UCameraShakeBase> ShakeToPlay = bIsCriticalHit ? CriticalCameraShake : RegularCameraShake;
+			if (ShakeToPlay)
+			{
+				ClientStartCameraShake(ShakeToPlay);
+			}
+		}
+	}
+}
+
 void AMAPlayerController::SpawnGameplayWidget()
 {
 	if (!IsLocalPlayerController()) return;
@@ -187,27 +219,27 @@ void AMAPlayerController::ToggleShop()
 
 void AMAPlayerController::ToggleSkillBook()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
+	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
 
 	if (!GameplayWidget)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
+		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
 		return;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
+	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
 	
 	GameplayWidget->ToggleSkillBook();
 	
 	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
 	{
 		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
-		FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
-		UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
+		//FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
+		//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
 	}
 }
 
@@ -239,6 +271,7 @@ void AMAPlayerController::Server_SendChatMessage_Implementation(const FString& M
 }
 void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString& SenderName, const FString& Message, EChatType ChatType)
 {
+	// UI에게 알림 방송 (이전에 작성한 코드)
 	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
 }
 

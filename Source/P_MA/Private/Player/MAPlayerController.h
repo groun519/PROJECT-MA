@@ -75,6 +75,11 @@ public:
 	UFUNCTION(Client, Reliable, Category = "Chat")
 	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<class AMADamageNumberActor> DamageNumberActorClass;
+	UFUNCTION(Client, Unreliable)
+	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit);
+	
 private:
 	void SpawnGameplayWidget();
 	void HandleSectorStateChanged(EMASectorState NewState);
@@ -118,4 +123,14 @@ private:
 	
 	UFUNCTION()
 	void ToggleSkillBook();
+	// 마우스 커서 관련 여기 코드는 강의에는 없는 별도 코드입니다.
+	bool bOnMouseCursorRecord = false;
+	void CheckMouseCursorShape();
+	// 여기까지
+
+	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
+	TSubclassOf<class UCameraShakeBase> RegularCameraShake;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
+	TSubclassOf<class UCameraShakeBase> CriticalCameraShake;
 };

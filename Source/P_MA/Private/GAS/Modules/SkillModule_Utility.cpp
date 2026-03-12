@@ -19,11 +19,14 @@ void USkillModule_Utility::ModifyDamageSpec(FGameplayEffectSpecHandle& SpecHandl
 
 void USkillModule_Utility::ModifyCooldownSpec(FGameplayEffectSpecHandle& SpecHandle) const
 {
-	if (SpecHandle.IsValid())
-	{
-		float Current = SpecHandle.Data->GetSetByCallerMagnitude(CooldownModTag, false, 1.0f);
-		SpecHandle.Data->SetSetByCallerMagnitude(CooldownModTag, Current * CooldownMultiplier);
-	}
+	UMAGameplayAbility_Skill* Skill = Cast<UMAGameplayAbility_Skill>(OwnerSkill);
+	if (!Skill || !SpecHandle.IsValid())
+		return;
+
+	const FModuleUtilityData& UtilityData = Skill->GetUtilityData();
+	
+	float Current = SpecHandle.Data->GetSetByCallerMagnitude(CooldownModTag, false, 1.0f);
+	SpecHandle.Data->SetSetByCallerMagnitude(CooldownModTag, Current * UtilityData.CooldownMultiplier);
 }
 
 float USkillModule_Utility::GetAnimSpeedMultiplier() const

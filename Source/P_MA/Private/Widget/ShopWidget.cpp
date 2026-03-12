@@ -33,12 +33,18 @@ void UShopWidget::NativeConstruct()
 
 void UShopWidget::OnCloseClicked()
 {
-    RemoveFromParent();
+    //RemoveFromParent();
+	if (OnShopClosed.IsBound())
+	{
+		OnShopClosed.Broadcast();
+	}
+	else
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+	}
 	
     if (APlayerController* PC = GetOwningPlayer())
     {
-        PC->bShowMouseCursor = true; 
-    	
         FInputModeGameAndUI InputMode;
         InputMode.SetHideCursorDuringCapture(false); 
         InputMode.SetWidgetToFocus(nullptr);         

@@ -32,7 +32,7 @@ protected:
 	UFUNCTION()
 	void OnChargeEventReceived(FGameplayEventData Payload);
 
-	void StartWaitDamageEventTask(FName TagName);
+	void StartWaitDamageEventTask(FGameplayTag EventTag);
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
 	

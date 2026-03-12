@@ -24,23 +24,23 @@ void USkillModule_Instant::OnAbilityActivated()
 	StartMontageTask();
 	
 	//즉발 근접 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+	if (SkillData.ActionTags.HasTag(MeleeActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.Damage"));
+		StartWaitDamageEventTask(MontageDamageTag);
 	}
 	//즉발 투사체 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
+	if (SkillData.ActionTags.HasTag(ProjectileActionTag))
 	{
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 	}
 	//즉발 타게팅 로직
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+	if (SkillData.ActionTags.HasTag(TargetingActionTag))
 	{
 		if (UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance())
 		{
 			AnimInst->Montage_SetNextSection(FName("Aiming"), FName("Aiming"),SkillData.SkillMontage);
 		}
-		StartWaitDamageEventTask(FName("Event.Montage.SpawnProjectile"));
+		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 		StartWaitTargetDataTask();
 	}
 }
@@ -80,14 +80,16 @@ void USkillModule_Instant::OnMontageEnded()
 				AnimInst->Montage_Stop(0.2f, OwnerSkill->GetCurrentMontage());
 			}
 		}
-		OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		if (!OwnerSkill->TryActivateComboModule())
+		{
+			OwnerSkill->EndAbility(OwnerSkill->GetCurrentAbilitySpecHandle(), OwnerSkill->GetCurrentActorInfo(), OwnerSkill->GetCurrentActivationInfo(), true, false);
+		}
 	}
 }
 
-void USkillModule_Instant::StartWaitDamageEventTask(FName TagName)
+void USkillModule_Instant::StartWaitDamageEventTask(FGameplayTag EventTag)
 {
 	if (!OwnerSkill)	return;
-	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(TagName);
 
 	DamageEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(OwnerSkill,EventTag,nullptr,false,true);
 	DamageEventTask->EventReceived.AddDynamic(this, &USkillModule_Instant::OnDamageEventReceived);
@@ -123,7 +125,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 	{
 		DestroyRangeActor();
 		AActor* Avatar = OwnerSkill->GetAvatarActorFromActorInfo();
-		if (Avatar)
+		if (Avatar && OwnerSkill->GetCurrentActorInfo()->IsLocallyControlled())
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = Avatar;
@@ -141,7 +143,6 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 	WaitTargetDataTask = UAbilityTask_WaitTargetData::WaitTargetData(OwnerSkill, NAME_None, EGameplayTargetingConfirmation::UserConfirmed, TargetConfig->TargetActorClass);
 	WaitTargetDataTask->ValidData.AddDynamic(this, &USkillModule_Instant::OnTargetDataConfirmed);
 	WaitTargetDataTask->Cancelled.AddDynamic(this, &USkillModule_Instant::OnTargetDataCancelled);
-	WaitTargetDataTask->ReadyForActivation();
 
 	AGameplayAbilityTargetActor* SpawnedActor = nullptr;
 	WaitTargetDataTask->BeginSpawningActor(OwnerSkill, TargetConfig->TargetActorClass, SpawnedActor);
@@ -151,6 +152,7 @@ void USkillModule_Instant::StartWaitTargetDataTask()
 		TargetActor->InitializeFixed(TargetConfig->MaxDistance, TargetConfig->ExplodeRadius);
 	}
 	WaitTargetDataTask->FinishSpawningActor(OwnerSkill, SpawnedActor);
+	WaitTargetDataTask->ReadyForActivation();
 }
 
 void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDataHandle& Data)
@@ -158,6 +160,12 @@ void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDat
 	DestroyRangeActor();
 	CachedTargetData = Data;
 
+	if (WaitTargetDataTask)
+	{
+		WaitTargetDataTask->EndTask();
+		WaitTargetDataTask = nullptr;
+	}
+	
 	float CastSectionLength = 1.f;
 	
 	if (OwnerSkill && OwnerSkill->GetOwnerAnimInstance())
@@ -185,6 +193,12 @@ void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDat
 
 void USkillModule_Instant::OnTargetDataCancelled(const FGameplayAbilityTargetDataHandle& Data)
 {
+	if (WaitTargetDataTask)
+	{
+		WaitTargetDataTask->EndTask();
+		WaitTargetDataTask = nullptr;
+	}
+	
 	DestroyRangeActor();
 	if (OwnerSkill)
 	{

@@ -4,6 +4,16 @@
 #include "GAS/Modules/MASkillModule.h"
 
 #include "MASkillModuleData.h"
+#include "GAS/MAAbilitySystemStatics.h"
+
+UMASkillModule::UMASkillModule()
+{
+	MeleeActionTag = UMAAbilitySystemStatics::GetMeleeActionTag();
+	ProjectileActionTag = UMAAbilitySystemStatics::GetProjectileActionTag();
+	TargetingActionTag = UMAAbilitySystemStatics::GetTargetingActionTag();
+	MontageDamageTag = UMAAbilitySystemStatics::GetMontageDamageTag();
+	MontageSpawnProjectileTag = UMAAbilitySystemStatics::GetMontageProjectileTag();
+}
 
 void UMASkillModule::ApplyModuleToSkillData(FSkillData& OutSkillData, const FModuleBehaviorData& ModuleData) const
 {

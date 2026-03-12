@@ -33,6 +33,9 @@
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
+#include "Framework/LoadoutSaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter()
 {
@@ -155,6 +158,10 @@ void AMAPlayerCharacter::BeginPlay()
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	if (HasAuthority())
+	{
+		EquipWeaponFromSave();
+	}
 	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
@@ -370,7 +377,7 @@ void AMAPlayerCharacter::Server_SetUtility_Implementation(const FString& SkillCl
 	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
 	if (!AbilitySpec) return;
 	
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Utility"));
+	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Module.Utility"));
 	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
 	
 	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*UtilityName));
@@ -434,8 +441,10 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	}
 	if (InputID == EMAAbilityInputID::Attack)
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
-		Server_SendGameplayEventToSelf(UMAAbilitySystemStatics::GetBasicAttackAbilityTag(),FGameplayEventData());
+		FGameplayTag BasicAttackTag = bPressed ? UMAAbilitySystemStatics::GetBasicAttackInputPressedTag() : UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag();
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, BasicAttackTag, FGameplayEventData());
+		Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
 	}
 }
 
@@ -627,6 +636,52 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
 }
 
+void AMAPlayerCharacter::EquipWeaponFromSave()
+{
+	if (!LoadoutComponent) return;
+
+	const UDataTable* ResolvedWeaponDataTable = nullptr;
+	if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
+	{
+		ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
+	}
+
+	if (!ResolvedWeaponDataTable) return;
+
+	// 2. 세이브 게임 로드 (현재는 동기식 유지, 추후 개선 필요)
+	ULoadoutSaveGame* LoadoutSave = Cast<ULoadoutSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("LoadoutSlot"), 0));
+	
+	FName SelectedWeaponID = TEXT("Sword");
+	if (LoadoutSave)
+	{
+		SelectedWeaponID = LoadoutSave->SavedWeaponId;
+	}
+
+	// 3. 무기 데이터 조회 및 장착
+	const FLoadoutWeaponDataRow* WeaponData = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(SelectedWeaponID, TEXT("EquipWeaponFromSave"));
+	if (WeaponData)
+	{
+		EquipWeaponFromData(WeaponData);
+	}
+}
+
+void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC || !WeaponData || !WeaponData->AttackAbility)
+		return;
+
+	if (CurrentBasicAttackHandle.IsValid())
+	{
+		ASC->ClearAbility(CurrentBasicAttackHandle);
+		CurrentBasicAttackHandle = FGameplayAbilitySpecHandle();
+	}
+
+	int32 BasicAttackInputID = static_cast<int32>(EMAAbilityInputID::Attack);
+	FGameplayAbilitySpec Spec(WeaponData->AttackAbility, 1, BasicAttackInputID,this);
+	CurrentBasicAttackHandle = ASC->GiveAbility(Spec);
+}
+
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 {
 	if (!MountMesh) return;
@@ -763,3 +818,13 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
 	InventoryComponent->TryActivateItemInSlot(Value-1);
 }
+
+void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXColor);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentElementTag);
+	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXLength);
+	DOREPLIFETIME(AMAPlayerCharacter, bAllowVFX);
+}
+

@@ -18,11 +18,14 @@ class UAnimNotify_PlayNiagara : public UAnimNotify
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-	TObjectPtr<UNiagaraSystem> VFXToSpawn;
+	TObjectPtr<UNiagaraSystem> NiagaraTemplate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta=(Categories="Module.Elemental"))
+	TMap<FGameplayTag, TObjectPtr<UNiagaraSystem>> OverrideVFXMap;
 
 	/** 위치/회전의 기준이 될 소켓 이름 (비어있으면 컴포넌트 루트) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
-	FName SocketName;
+	FName SocketName = NAME_None;
 
 	/** 소켓 위치에서의 추가 오프셋 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
@@ -40,14 +43,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara")
 	bool bSpawnInWorld = true; // 기본값은 월드 스폰
 
-	/** bSpawnInWorld가 false일 때만 적용됨: 컴포넌트가 파괴될 때 자동으로 파티클도 제거할지 여부 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (EditCondition = "!bSpawnInWorld"))
-	bool bAutoDestroy = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	FName ColorParamName = TEXT("EffectColor");
 
-	/** bSpawnInWorld가 false일 때만 적용됨: 이미 부착된 같은 종류의 파티클이 있다면 제거할지 여부 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (EditCondition = "!bSpawnInWorld"))
-	bool bAbsoluteScale = false; // 기본값 false (Scale은 상대 크기)
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara")
+	float BaseVFXLength = 0.f;
+	
 protected:
 	// UAnimNotify 인터페이스 오버라이드
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;

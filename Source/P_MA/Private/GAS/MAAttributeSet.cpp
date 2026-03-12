@@ -4,6 +4,8 @@
 #include "GAS/MAAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
+#include "MAGameplayAbilityTypes.h"
+#include "Player/MAPlayerController.h"
 
 /*
 * void UNVAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
@@ -36,6 +38,8 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ArmorPenetration, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Fury, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxFury, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalChance, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalDamage, COND_None, REPNOTIFY_Always)
 }
 
 void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -48,6 +52,44 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 {
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+
+	float DeltaHealth = Data.EvaluatedData.Magnitude;
+
+	if (DeltaHealth < 0.f)
+	{
+		float FinalDamage = -DeltaHealth;
+
+		bool bIsCriticalHit = false;
+		FGameplayEffectContextHandle ContextHandle = Data.EffectSpec.GetContext();
+		if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+		{
+			bIsCriticalHit = MAContext->IsCriticalHit();
+		}
+		AActor* TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
+		
+		AMAPlayerController* AttackerPC = nullptr;
+		if (AActor* Instigator = Data.EffectSpec.GetContext().GetOriginalInstigator())
+		{
+			if (APawn* Pawn = Cast<APawn>(Instigator))	AttackerPC = Cast<AMAPlayerController>(Pawn->GetController());
+			else AttackerPC = Cast<AMAPlayerController>(Instigator);
+		}
+
+		AMAPlayerController* VictimPC = nullptr;
+		if (TargetActor)
+		{
+			if (APawn* Pawn = Cast<APawn>(TargetActor))	VictimPC = Cast<AMAPlayerController>(Pawn->GetController());
+			else VictimPC = Cast<AMAPlayerController>(TargetActor);
+		}
+
+		if (AttackerPC && AttackerPC!= VictimPC)
+		{
+			AttackerPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,false);
+		}
+		if (VictimPC)
+		{
+			VictimPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,true);
+		}
+	}
 }
 
 
@@ -61,4 +103,6 @@ DEFINE_REPNOTIFY(Armor)
 DEFINE_REPNOTIFY(ArmorPenetration)
 DEFINE_REPNOTIFY(Fury)
 DEFINE_REPNOTIFY(MaxFury)
+DEFINE_REPNOTIFY(CriticalChance)
+DEFINE_REPNOTIFY(CriticalDamage)
 

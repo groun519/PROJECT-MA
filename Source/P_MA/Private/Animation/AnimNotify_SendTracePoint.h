@@ -56,7 +56,7 @@ private:
 	// Others
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	FGameplayTagContainer TriggerGameplayCueTags;
-
+	
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	TEnumAsByte<ETeamAttitude::Type> TargetTeam = ETeamAttitude::Hostile;
 	

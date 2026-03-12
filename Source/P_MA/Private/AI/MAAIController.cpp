@@ -48,7 +48,7 @@ void AMAAIController::OnPossess(APawn* NewPawn)
 	if (PawnASC)
 	{
 		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMAAIController::PawnDeadTagUpdated);
-		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMAAIController::PawnStunTagUpdated);
+		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAnyReactionStateTag()).AddUObject(this, &AMAAIController::PawnReactionTagUpdated);
 	}
 }
 
@@ -174,7 +174,8 @@ void AMAAIController::EnableAllSenses()
 
 void AMAAIController::PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count)
 {
-	if (Count != 0)
+	bIsPawnDead = Count!=0;
+	if (bIsPawnDead)
 	{
 		GetBrainComponent()->StopLogic("Dead");
 		ClearAndDisableAllSenses();
@@ -188,14 +189,26 @@ void AMAAIController::PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count)
 	}
 }
 
-void AMAAIController::PawnStunTagUpdated(const FGameplayTag Tag, int32 Count)
+void AMAAIController::PawnReactionTagUpdated(const FGameplayTag Tag, int32 Count)
 {
-	if (bIsPawnDead)	return;
+	if (bIsPawnDead)
+		return;
+	
 	if (Count != 0)
 	{
-		GetBrainComponent() -> StopLogic("Stun");
+		if (!bIsPawnReacting)
+		{
+			GetBrainComponent()->StopLogic("Reaction");
+			bIsPawnReacting = true;
+		}
 	}else
 	{
-		GetBrainComponent() -> StartLogic();
+		if (bIsPawnReacting)
+		{
+			GetBrainComponent()->StartLogic();
+			bIsPawnReacting = false;
+		}
 	}
+	
+	
 }

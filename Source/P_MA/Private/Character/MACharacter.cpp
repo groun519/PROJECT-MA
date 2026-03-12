@@ -3,9 +3,11 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AIController.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -137,11 +139,11 @@ void AMACharacter::BindGASChangeDelegates()
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
+		//MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-		MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("Stats.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
+		//MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
 	}
 }
 
@@ -522,4 +524,14 @@ void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage,
 			AnimInst->Montage_JumpToSection(SectionName, Montage);
 		}
 	}
+}
+
+bool AMACharacter::GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const
+{
+	if (const FReactionAnimConfig* FoundConfig = ReactionAnimMap.Find(ReactionTag))
+	{
+		OutConfig = *FoundConfig;
+		return true;
+	}
+	return false;
 }

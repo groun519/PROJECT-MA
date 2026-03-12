@@ -1,11 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "AI/Golem/Monster.h"
+
+#include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GAS/MAAbilitySystemComponent.h"
 
 AMonster::AMonster()
 {
@@ -77,6 +80,14 @@ void AMonster::Activate()
 
 void AMonster::Deactivate()
 {
+	if (HasAuthority())
+	{
+		if (UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent()))
+		{
+			ASC->RemoveLooseGameplayTags(ASC->AppliedBaseTags);
+			ASC->AppliedBaseTags.Reset();
+		}
+	}
 	bActiveInPool = false;
 
 	SetActorHiddenInGame(true);

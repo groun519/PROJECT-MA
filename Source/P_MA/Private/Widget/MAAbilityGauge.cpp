@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Widget/MAAbilityGauge.h"
+#include <Inventory/MAFieldItem.h>
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
@@ -12,13 +13,12 @@
 #include "Widget/SkillDragDropOperation.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Inventory/SkillBookComponent.h"
-#include "Widget/InventoryItemDragDropOp.h"
-#include "Inventory/MAFieldItem.h"
-#include "Inventory/InventoryComponent.h"
 #include "EnhancedInputSubsystems.h" 
 #include "InputMappingContext.h"      
 #include "Inventory/MAItemTypes.h" 
 #include "InputAction.h" 
+#include "InventoryItemDragDropOp.h"
+#include "Inventory/InventoryComponent.h"
 
 void UMAAbilityGauge::NativeConstruct()
 {
@@ -38,10 +38,43 @@ void UMAAbilityGauge::NativeConstruct()
     {
        Icon->GetDynamicMaterial(); 
     }
+
+   if (OwnerASC.IsValid())
+   {
+      ComboStartHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitStart")).AddUObject(this, &UMAAbilityGauge::HandleComboStartEvent);
+      ComboEndHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitEnd")).AddUObject(this, &UMAAbilityGauge::HandleComboEndEvent);
+      ComboIconReadyHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboIconReady")).AddUObject(this, &UMAAbilityGauge::HandleComboIconReadyEvent);
+   }
+}
+
+void UMAAbilityGauge::NativeDestruct()
+{
+   if (OwnerASC.IsValid())
+   {
+      OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitStart")).Remove(ComboStartHandle);
+      OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitEnd")).Remove(ComboEndHandle);
+      OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboIconReady")).Remove(ComboIconReadyHandle);
+   }
+   Super::NativeDestruct();
 }
 
 void UMAAbilityGauge::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
+   if (!OwnerASC.IsValid())
+   {
+      OwnerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
+        
+      if (OwnerASC.IsValid())
+      {
+         if (!ComboStartHandle.IsValid())
+         {
+            ComboStartHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitStart")).AddUObject(this, &UMAAbilityGauge::HandleComboStartEvent);
+            ComboEndHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboWaitEnd")).AddUObject(this, &UMAAbilityGauge::HandleComboEndEvent);
+            ComboIconReadyHandle = OwnerASC->GenericGameplayEventCallbacks.FindOrAdd(FGameplayTag::RequestGameplayTag("UI.Skill.ComboIconReady")).AddUObject(this, &UMAAbilityGauge::HandleComboIconReadyEvent);
+         }
+      }
+   }
+   
     UMAAbilitySlotDataObject* DataItem = Cast<UMAAbilitySlotDataObject>(ListItemObject);
     if (DataItem)
     {
@@ -129,7 +162,7 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
             if (FieldItem->ItemDataTable && !FieldItem->ItemRowName.IsNone())
             {
                 // 데이터 테이블에서 이 아이템이 '스킬 데이터'를 가지고 있는지 확인합니다.
-                const FSkillItemData* SkillData = FieldItem->ItemDataTable->FindRow<FSkillItemData>(FieldItem->ItemRowName, TEXT("CheckSkillDrop"));
+                const FSkillData* SkillData = FieldItem->ItemDataTable->FindRow<FSkillData>(FieldItem->ItemRowName, TEXT("CheckSkillDrop"));
                 
                 // 타입이 스킬이 맞다면 진행!
                 if (SkillData && SkillData->ItemType == EMAItemType::Skill)
@@ -163,9 +196,125 @@ bool UMAAbilityGauge::NativeOnDrop(const FGeometry& InGeometry, const FDragDropE
     
     return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
 }
+
+void UMAAbilityGauge::HandleComboStartEvent(const struct FGameplayEventData* Payload)
+{
+   if (!Payload || !Payload->OptionalObject || !AbilityCDO) return;
+
+   const UMAGameplayAbility_Skill* TriggeredSkill = Cast<UMAGameplayAbility_Skill>(Payload->OptionalObject);
+   if (TriggeredSkill && TriggeredSkill->GetClass() == AbilityCDO->GetClass())
+   {
+      if (GetWorld()->GetTimerManager().IsTimerActive(ComboWaitTimerHandle))
+         return;
+
+      CachedComboWaitDuration = Payload->EventMagnitude;
+      CachedComboWaitTimeRemaining = CachedComboWaitDuration;
+      bIsComboWaiting = true;
+      
+      ComboCounterText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+      GetWorld()->GetTimerManager().SetTimer(ComboWaitTimerHandle, this, &UMAAbilityGauge::UpdateComboWait, CooldownUpdateInterval, true, 0.f);
+   }
+}
+
+void UMAAbilityGauge::HandleComboEndEvent(const struct FGameplayEventData* Payload)
+{
+   if (!Payload || !Payload->OptionalObject || !AbilityCDO) return;
+
+   const UMAGameplayAbility_Skill* TriggeredSkill = Cast<UMAGameplayAbility_Skill>(Payload->OptionalObject);
+   if (TriggeredSkill && TriggeredSkill->GetClass() == AbilityCDO->GetClass())
+   {
+      ComboWaitFinished();
+   }
+}
+
+void UMAAbilityGauge::HandleComboIconReadyEvent(const struct FGameplayEventData* Payload)
+{
+   if (!Payload || !Payload->OptionalObject || !AbilityCDO) return;
+
+   const UMAGameplayAbility_Skill* TriggeredSkill = Cast<UMAGameplayAbility_Skill>(Payload->OptionalObject);
+   if (TriggeredSkill && TriggeredSkill->GetClass() == AbilityCDO->GetClass())
+   {
+      const FBehavior_Combo* ComboConfig = TriggeredSkill->GetComboData().ModuleConfig.GetPtr<FBehavior_Combo>();
+      if (ComboConfig && ComboConfig->ComboIcon && Icon)
+      {
+         Icon->GetDynamicMaterial()->SetTextureParameterValue(IconMaterialParamName, ComboConfig->ComboIcon);
+         Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.f);
+            
+         bIsComboWaiting = true; 
+         
+         CostText->SetVisibility(ESlateVisibility::Hidden);
+         CooldownDurationText->SetVisibility(ESlateVisibility::Hidden);
+         CooldownCounterText->SetVisibility(ESlateVisibility::Hidden); 
+         
+         ComboGauge->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+         ComboGauge->GetDynamicMaterial()->SetScalarParameterValue(ComboPercentParamName, 1.f);
+      }
+   }
+}
+
+void UMAAbilityGauge::UpdateComboWait()
+{
+   if (!bIsComboWaiting) return;
+
+   CachedComboWaitTimeRemaining -= CooldownUpdateInterval;
+
+   if (CachedComboWaitTimeRemaining <= 0.f)
+   {
+      ComboWaitFinished();
+      return;
+   }
+
+   if (ComboGauge && CachedComboWaitDuration > 0.f)
+   {
+      ComboGauge->GetDynamicMaterial()->SetScalarParameterValue(ComboPercentParamName, CachedComboWaitTimeRemaining / CachedComboWaitDuration);
+   }
+
+   FNumberFormattingOptions* FormattingOptions = CachedComboWaitTimeRemaining > 1.f ? &WholeNumberFormattionOptions : &TwoDigitNumberFormattingOptions;
+   ComboCounterText->SetText(FText::AsNumber(CachedComboWaitTimeRemaining, FormattingOptions));
+}
+
+void UMAAbilityGauge::ComboWaitFinished()
+{
+   if (!bIsComboWaiting) return;
+   bIsComboWaiting = false;
+
+   GetWorld()->GetTimerManager().ClearTimer(ComboWaitTimerHandle);
+
+   ComboGauge->SetVisibility(ESlateVisibility::Hidden);
+   ComboCounterText->SetVisibility(ESlateVisibility::Hidden);
+
+   const FSkillData* WidgetData = FindWidgetDataForAbility(AbilityCDO->GetClass());
+   if (WidgetData && Icon)
+   {
+      UTexture2D* Texture = WidgetData->Icon.LoadSynchronous();
+      if (Texture)
+      {
+         Icon->GetDynamicMaterial()->SetTextureParameterValue(IconMaterialParamName, Texture);
+      }
+   }
+
+   CostText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+   if (CooldownDurationText && CurrentDisplayMaxCooldown > 0.f) 
+   {
+      CooldownDurationText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+   }
+
+   if (CachedCooldownTimeRemaining > 0.f && CachedCooldownDuration > 0.f)
+   {
+      CooldownCounterText->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+      Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.0f - CachedCooldownTimeRemaining / CachedCooldownDuration);
+   }
+   else 
+   {
+      CooldownCounterText->SetVisibility(ESlateVisibility::Hidden);
+      Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.f);
+   }
+}
+
 void UMAAbilityGauge::UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass)
 {
-    const FSkillItemData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
+   const FSkillData* WidgetData = FindWidgetDataForAbility(NewSkillClass);
 
     if (WidgetData && Icon)
     {
@@ -185,13 +334,13 @@ void UMAAbilityGauge::UpdateSlot(TSubclassOf<UGameplayAbility> NewSkillClass)
     InitializeAbility(NewSkillClass);
 }
 
-const FSkillItemData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
+const FSkillData* UMAAbilityGauge::FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const
 {
     if (!AbilityDataTable) return nullptr;
 
     for (auto& RowPair : AbilityDataTable->GetRowMap())
     {
-       const FSkillItemData* Data = reinterpret_cast<const FSkillItemData*>(RowPair.Value);
+       const FSkillData* Data = reinterpret_cast<const FSkillData*>(RowPair.Value);
        if (Data && Data->GrantedAbility == AbilityClass)
        {
           return Data;
@@ -320,7 +469,7 @@ void UMAAbilityGauge::UpdateCooldown()
     FNumberFormattingOptions* FormattingOptions = CachedCooldownTimeRemaining > 1 ? &WholeNumberFormattionOptions : &TwoDigitNumberFormattingOptions;
     if(CooldownCounterText) CooldownCounterText->SetText(FText::AsNumber(CachedCooldownTimeRemaining, FormattingOptions));
 
-    if (Icon && CachedCooldownDuration > 0.f)
+    if (!bIsComboWaiting && Icon && CachedCooldownDuration > 0.f)
     {
        Icon->GetDynamicMaterial()->SetScalarParameterValue(CooldownPercentParamname, 1.0f - CachedCooldownTimeRemaining / CachedCooldownDuration);
     }

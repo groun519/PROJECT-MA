@@ -26,7 +26,7 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnSkillSet(TSubclassOf<UGameplayAbility> NewSkillClass);
 	
-	const struct FSkillItemData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
+	const struct FSkillData* FindWidgetDataForAbility(const TSubclassOf<UGameplayAbility>& AbilityClass) const;
 
 private:
 	UPROPERTY()

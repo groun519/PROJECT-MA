@@ -28,6 +28,7 @@ public:
 	const FModuleBehaviorData& GetBehaviorData() const {return CachedBehaviorData;}
 	const FModuleElementalData& GetElementalData() const {return CachedElementalData;}
 	const FModuleUtilityData& GetUtilityData() const {return CachedUtilityData;}
+	const FModuleBehaviorData& GetComboData() const {return CachedComboData;}
 	
 	UFUNCTION()
 	float GetTotalAnimSpeed() const;
@@ -53,6 +54,8 @@ protected:
 	FModuleElementalData CachedElementalData;
 	UPROPERTY(Transient)
 	FModuleUtilityData CachedUtilityData;
+	UPROPERTY(Transient)
+	FModuleBehaviorData CachedComboData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Config")
 	FName SkillID;
@@ -64,24 +67,41 @@ protected:
 	bool LoadSkillData();
 
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);
+
+	void ApplyHitStop(AActor* TargetActor);
 	
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
 	UFUNCTION()
 	void TargetClear(FGameplayEventData Payload);
-	
+	/*
 	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitVFXEventTask;
 	UFUNCTION()
 	void HandleVFXSpawnEvent(FGameplayEventData Payload);
-
+*/
 	FGameplayTag VFXRootTag;
 	FGameplayTag IgnoreClearTag;
+
+	UFUNCTION()
+	void HandleProjectileHit(AActor* HitActor);
+
+	UPROPERTY(Transient)
+	float CurrentReactDuration = 0.f;
 	
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
+	void SetHitReactionTag(FGameplayTag NewTag) {CachedSkillData.HitReactionTag = NewTag;}
 
+	void SetReactDuration(float NewDuration) {CurrentReactDuration = NewDuration;}
+	float GetReactDuration() const {return CurrentReactDuration;}
+	
+	bool TryActivateComboModule();
+	
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
+
+	UPROPERTY()
+	float ChargeRatio = 1.f;
 };

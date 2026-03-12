@@ -20,6 +20,9 @@ class UMAAbilitySystemStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static FGameplayTag GetBasicAttackAbilityTag();
+	static FGameplayTag GetBasicAttackInputPressedTag();
+	static FGameplayTag GetBasicAttackInputReleasedTag();
+	static FGameplayTag GetSkillAttackTag();
 	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
@@ -35,13 +38,21 @@ public:
 	static FGameplayTag GetPlayerRoleTag();
 	static FGameplayTag GetGoldAttributeTag();
 
+	static FGameplayTag GetMeleeActionTag();
+	static FGameplayTag GetProjectileActionTag();
+	static FGameplayTag GetTargetingActionTag();
+	
 	static FGameplayTag GetMontageDamageTag();
+	static FGameplayTag GetMontageProjectileTag();
+	
 	static FGameplayTag GetLaunchActivateTag();
 
 	static FGameplayTag GetBehaviorMultiplierTag();
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
 
+	static FGameplayTag GetHitReactTag();
+	static FGameplayTag GetAnyReactionStateTag();
 	static FGameplayTag GetAirborneTag();
 	static FGameplayTag GetKnockdownTag();
 	static FGameplayTag GetRecoveryTag();

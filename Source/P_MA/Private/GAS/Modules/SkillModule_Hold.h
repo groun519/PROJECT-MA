@@ -31,7 +31,7 @@ protected:
 	UFUNCTION()
 	void OnJumpSectionEventReceived(FGameplayEventData Payload);
 	
-	void StartWaitDamageEventTask(FName TagName);
+	void StartWaitDamageEventTask(FGameplayTag EventTag);
 	UFUNCTION()
 	void OnDamageEventReceived(FGameplayEventData Payload);
 

@@ -7,6 +7,7 @@
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Inventory/SkillBookComponent.h"
+#include "Loadout/Data/LoadoutWeaponData.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -147,6 +148,8 @@ private:
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Player Rotate **/
 	void UpdateRotationByReadyRide(float DeltaTime);
@@ -168,6 +171,11 @@ private:
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 	void HandleLoadoutMountChanged(FName MountId);
 
+	UPROPERTY(Transient)
+	FGameplayAbilitySpecHandle CurrentBasicAttackHandle;
+	void EquipWeaponFromSave();
+	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
+	
 	FDelegateHandle LoadoutColorChangedHandle;
 	FDelegateHandle LoadoutEyeShapeChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
@@ -179,6 +187,9 @@ private:
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
+
+	UPROPERTY(Transient)
+	FGameplayAbilitySpecHandle CurrentAttackAbilityHandle;
 
 	/** Stun **/
 	virtual void OnStun() override;
@@ -238,4 +249,29 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
+
+	void SetCurrentVFXColor(FLinearColor NewColor) {CurrentVFXColor = NewColor;}
+	FLinearColor GetCurrentVFXColor() const {return CurrentVFXColor;}
+
+	void SetCurrentElementTag(FGameplayTag NewTag) {CurrentElementTag = NewTag;}
+	FGameplayTag GetCurrentElementTag() const {return CurrentElementTag;}
+
+	void SetCurrentVFXLength(float NewLength) {CurrentVFXLength = NewLength;}
+	float GetCurrentVFXLength() const {return CurrentVFXLength;}
+
+	void SetAllowVFX(bool bAllow) {bAllowVFX = bAllow;}
+	bool GetAllowVFX() const {return bAllowVFX;}
+	
+protected:
+	UPROPERTY(Transient, Replicated)
+	FLinearColor CurrentVFXColor = FLinearColor::White;
+	
+	UPROPERTY(Transient, Replicated)
+	FGameplayTag CurrentElementTag;
+	
+	UPROPERTY(Transient, Replicated)
+	float CurrentVFXLength = 0.f;
+	
+	UPROPERTY(Transient, Replicated)
+	bool bAllowVFX = true;
 };

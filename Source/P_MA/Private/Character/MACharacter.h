@@ -15,6 +15,17 @@
 
 class UNiagaraSystem;
 
+USTRUCT()
+struct FReactionAnimConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	UAnimMontage* Montage = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	float VerticalLaunchScale = 0.f;
+};
+
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
@@ -43,10 +54,9 @@ public:
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
-
+	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
-	
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
@@ -157,6 +167,7 @@ public:
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
+	
 	/** Knockdown **/
 public:
 	virtual void Landed(const FHitResult& Hit) override;
@@ -165,9 +176,15 @@ public:
 	void ResetKnockdownState();
 	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	
+	UFUNCTION()
+	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;
+	
 private:
 	UPROPERTY(EditDefaultsOnly)
 	UAnimMontage* KnockdownMontage;
-
+	
 	bool bPendingKnockdown = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reaction", meta=(Categories="Effect.Reaction"))
+	TMap<FGameplayTag, FReactionAnimConfig> ReactionAnimMap;
 };

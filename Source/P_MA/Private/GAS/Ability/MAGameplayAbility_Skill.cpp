@@ -4,20 +4,29 @@
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Camera/CameraComponent.h"
 #include "Character/MACharacter.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
+#include "GAS/Modules/SkillModule_Combo.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Projectile/MAProjectileSkinData.h"
 #include "GAS/Setting/MASkillSubsystem.h"
+#include "Player/MAPlayerCharacter.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
+	AbilityTags.AddTag(UMAAbilitySystemStatics::GetSkillAttackTag());
 	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
-	IgnoreClearTag = FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
+	IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
+
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
 void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle Handle,	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -32,12 +41,49 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true,true);
 		return;
 	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		if (!CachedSkillData.bCanMove)
+		{
+			ASC->AddLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+		}
+		if (!CachedSkillData.bCanRotate)
+		{
+			ASC->AddLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+		}
+	}
+
+	if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		FLinearColor ElementColor = GetElementalData().EffectColor;
+		PlayerChar->SetCurrentVFXColor(ElementColor);
+		PlayerChar->SetCurrentElementTag(GetElementalData().ElementalTag);
+
+		float FinalTargetLength = 0.f;
+		if (CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
+		{
+			if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
+			{
+				FinalTargetLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
+			}
+		}
+		PlayerChar->SetCurrentVFXLength(FinalTargetLength);
+
+		bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
+		bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
+		PlayerChar->SetAllowVFX(bHasMeleeTrait || bHasTargetingTrait);
+	}
 	
 	IgnoreTargets.Empty();
+	ChargeRatio = 1.f;
+	CurrentReactDuration = CachedSkillData.ReactDuration;
 
+	/*
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
 	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
 	WaitVFXEventTask->ReadyForActivation();
+	*/
 
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
@@ -55,10 +101,11 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 
 void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicateEndAbility, bool bWasCancelled)
 {
+	/*
 	if (WaitVFXEventTask)
 	{
 		WaitVFXEventTask->EndTask();
-	}
+	}*/
 	if (WaitClearEventTask)
 	{
 		WaitClearEventTask->EndTask();
@@ -68,6 +115,18 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 		if (Module)
 		{
 			Module->OnAbilityEnded(bWasCancelled);
+		}
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		if (!CachedSkillData.bCanMove)
+		{
+			ASC->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+		}
+		if (!CachedSkillData.bCanRotate)
+		{
+			ASC->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
 		}
 	}
 	
@@ -99,6 +158,11 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 			Module->ModifyCooldownSpec(SpecHandle);
 		}
 	}
+
+	float FinalDuration = SpecHandle.Data->GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration"), false, 0.f);
+	if (FinalDuration <= 0.f)
+		return;
+	
 	FActiveGameplayEffectHandle EffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
 }
 
@@ -188,6 +252,20 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
+
+			if (CachedSkillData.HitReactionTag.IsValid())
+			{
+				FGameplayEventData EventPayload;
+				EventPayload.EventTag = CachedSkillData.HitReactionTag;
+				EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+				EventPayload.OptionalObject = this;
+				EventPayload.Instigator = GetAvatarActorFromActorInfo();
+				EventPayload.Target = HitActor;
+
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+			}
+
+			ApplyHitStop(HitActor);
 		}
 		for (const auto& AddSpec : AdditionalSpecs)
 		{
@@ -232,7 +310,7 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
-
+			
 			for (const auto& AddSpec : AdditionalSpecs)
 			{
 				if (AddSpec.IsValid())
@@ -254,23 +332,25 @@ void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, f
 	const FSkillData& SkillData = GetSkillData();
 	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
 
-	bool bIsDamageEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
-	bool bIsProjectileEvent = Payload.EventTag == FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
+	bool bIsMeleeDamageEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageDamageTag();
+	bool bIsProjectileEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageProjectileTag();
 
+	//Melee 공격에 Montage.Damage 노티파이만 작동하도록
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 	{
-		if (!Payload.EventTag.IsValid() || bIsDamageEvent)
+		if (!Payload.EventTag.IsValid() || bIsMeleeDamageEvent)
 		{
 			PerformMeleeAttack(Payload, FinalMultiplier);
 		}
 	}
+	//Projectile 공격에는 Montage.SpawnProjectile 노티파이만 작동하도록
 	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
 	{
 		if (bIsProjectileEvent)
 		{
 			SpawnProjectile(Payload, FinalMultiplier);
 		}
-		else if (bIsDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
+		else if (bIsMeleeDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
 		{
 			SpawnProjectile(Payload, FinalMultiplier);
 		}
@@ -307,10 +387,8 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 	if (!AvatarActor)
 		return;
 
-	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
-	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CurrentElement);
-
-	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CachedElementalData.ElementalTag);
+	TSubclassOf<AMAProjectile> ClassToSpawn = ProjectileConfig->SkinData->ProjectileClass;
 	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
 	FGameplayTag CueTag = FinalSkin.HitCueTag;
 
@@ -340,7 +418,6 @@ void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, floa
 				CurrentAngle = -HalfAngle + (i*Step);
 			}
 		}
-		CurrentAngle += ProjectileConfig ->AngleOffset;
 
 		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
 		FVector SpawnDirection = SpawnRot.Vector();
@@ -373,7 +450,7 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
 	FProjectileSkinInfo FinalSkin = TargetConfig->SkinData->GetSkinForTag(CurrentElement);
 
-	TSubclassOf<AMAProjectile> ClassToSpawn = FinalSkin.ProjectileClass;
+	TSubclassOf<AMAProjectile> ClassToSpawn = TargetConfig->SkinData->ProjectileClass;
 	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
 	FGameplayTag CueTag = FinalSkin.HitCueTag;
 
@@ -472,6 +549,7 @@ AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class
 		{
 			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
 		}
+		Projectile->OnProjectileHit.AddDynamic(this, &UMAGameplayAbility_Skill::HandleProjectileHit);
 	}
 	return SpawnedActor;
 }
@@ -497,7 +575,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 	const FModuleBehaviorData* BehaviorRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultBehaviorTag);
 	if (BehaviorRow && BehaviorRow->ModuleClass)
 	{
-
+		//스킬 특성에 맞는 모듈을 장착했는지 || 만족하는 태그를 모두 소유했는지 확인
 		bool bIsCompatible = BehaviorRow->RequiredTraits.IsEmpty() || CachedSkillData.SkillTraits.HasAll(BehaviorRow->RequiredTraits);
 
 		if (bIsCompatible)
@@ -511,6 +589,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 				ActiveModules.Add(NewModule);
 			}
 		}
+		//TODO -> 아예 모듈 장착을 못하도록 했으면 좋겠음
 	}
 
 	const FModuleElementalData* ElementalRow = SkillSys->GetElementalData(CachedSkillData.DefaultElementalTag);
@@ -536,6 +615,23 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 			ActiveModules.Add(NewModule);
 		}
 	}
+
+	if (CachedSkillData.DefaultComboTag.IsValid())
+	{
+		const FModuleBehaviorData* ComboRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultComboTag);
+		if (ComboRow && ComboRow->ModuleClass)
+		{
+			CachedComboData = *ComboRow;
+			UMASkillModule* NewModule = NewObject<UMASkillModule>(this, ComboRow->ModuleClass);
+			if (NewModule)
+			{
+				NewModule->InitializeModule(this);
+				NewModule->ApplyModuleToSkillData(CachedSkillData, *ComboRow);
+				ActiveModules.Add(NewModule);
+			}
+		}
+	}
+	
 	return true;
 }
 
@@ -556,6 +652,24 @@ float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
 	return TotalSpeed;
 }
 
+void UMAGameplayAbility_Skill::HandleProjectileHit(AActor* HitActor)
+{
+	if (!HitActor || !HasAuthority(&CurrentActivationInfo))
+		return;
+
+	if (CachedSkillData.HitReactionTag.IsValid())
+	{
+		FGameplayEventData EventPayload;
+		EventPayload.EventTag = CachedSkillData.HitReactionTag;
+		EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
+		EventPayload.OptionalObject = this;
+		EventPayload.Instigator = GetAvatarActorFromActorInfo();
+		EventPayload.Target = HitActor;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
+	}
+}
+
 void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)
 {
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
@@ -574,11 +688,24 @@ void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
 	}
 }
 
+bool UMAGameplayAbility_Skill::TryActivateComboModule()
+{
+	for (UMASkillModule* Module : ActiveModules)
+	{
+		if (USkillModule_Combo* ComboModule = Cast<USkillModule_Combo>(Module))
+		{
+			return ComboModule->TryActivateCombo();
+		}
+	}
+	return false;
+}
+
 void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)
 {
 	IgnoreTargets.Empty();
 }
 
+/*
 void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 {
 	if (!HasAuthority(&CurrentActivationInfo))
@@ -587,13 +714,30 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 		return;
 
 	bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
-	if (!bHasMeleeTrait)
+	bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
+	if (!bHasMeleeTrait && !bHasTargetingTrait)
 		return;
 	
 	const F_SkillVFX_Info* VFXInfo = CachedSkillData.VFXDataSet->VFXDataMap.Find(Payload.EventTag);
 	if (!VFXInfo || !VFXInfo->DefaultVFX)
 		return;
 
+	FVector FinalScale = VFXInfo->Scale;
+	if (bHasTargetingTrait)
+	{
+		if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
+		{
+			float CurrentLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
+			float VFXLength = VFXInfo->BaseVFXLength;
+			
+			if (VFXLength > 0.f)
+			{
+				float ScaleMultiplier = CurrentLength/ VFXLength;
+				FinalScale.X = VFXInfo->Scale.X * ScaleMultiplier;
+			}
+		}
+	}
+	
 	FLinearColor SpawnColor = FLinearColor::White;
 	bool bApplyColor = false;
 	if (VFXInfo->bUseElementColor)
@@ -611,13 +755,70 @@ void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
 	if (VFXInfo->bSpawnInWorld)
 	{
 		FTransform SocketTransform = (VFXInfo->SocketName != NAME_None)? MeshComp->GetSocketTransform(VFXInfo->SocketName) : MeshComp->GetComponentTransform();
-		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset, VFXInfo->Scale);
+		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset,FinalScale);
 		FTransform WorldSPawnTransform = OffsetTransform * SocketTransform;
 
 		Character->Multicast_PlayNiagara(VFXInfo->DefaultVFX, WorldSPawnTransform, bApplyColor, SpawnColor);
 	}
 	else
 	{
-		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,VFXInfo->Scale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
+		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,FinalScale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
 	}
+}
+*/
+
+void UMAGameplayAbility_Skill::ApplyHitStop(AActor* TargetActor)
+{
+	if (!CachedSkillData.bUseHitStop || CachedSkillData.HitStopDuration <= 0.f)
+		return;
+
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Avatar || !TargetActor)
+		return;
+
+	Avatar->CustomTimeDilation = CachedSkillData.HitStopTimeDilation;
+	TargetActor->CustomTimeDilation = CachedSkillData.HitStopTimeDilation;
+
+	UCameraComponent* CameraComp = Avatar->FindComponentByClass<UCameraComponent>();
+	float OriginalFOV = 0.f;
+	bool bApplyCameraEffect = false;
+	
+	if (CameraComp && CachedSkillData.HitStopZoomOffset > 0.f && !CameraComp->PostProcessSettings.bOverride_VignetteIntensity)
+	{
+		OriginalFOV = CameraComp->FieldOfView;
+		CameraComp->SetFieldOfView(OriginalFOV - CachedSkillData.HitStopZoomOffset);
+		CameraComp->PostProcessSettings.bOverride_VignetteIntensity = true;
+		CameraComp->PostProcessSettings.VignetteIntensity = CachedSkillData.HitStopVignette;
+		CameraComp->PostProcessSettings.bOverride_SceneFringeIntensity = true;
+		CameraComp->PostProcessSettings.SceneFringeIntensity = 1.5f;
+
+		bApplyCameraEffect = true;
+	}
+	
+	TWeakObjectPtr<AActor> WeakAvatar = Avatar;
+	TWeakObjectPtr<AActor> WeakTarget = TargetActor;
+
+	FTimerHandle HitStopTimer;
+	GetWorld()->GetTimerManager().SetTimer(HitStopTimer, [WeakAvatar, WeakTarget, OriginalFOV, bApplyCameraEffect]()
+	{
+		if (WeakAvatar.IsValid())
+		{
+			WeakAvatar->CustomTimeDilation = 1.f;
+
+			if (bApplyCameraEffect)
+			{
+				UCameraComponent* Cam = WeakAvatar->FindComponentByClass<UCameraComponent>();
+				if (Cam && OriginalFOV > 0.f)
+				{
+					Cam->SetFieldOfView(OriginalFOV);
+					Cam->PostProcessSettings.bOverride_VignetteIntensity = false;
+					Cam->PostProcessSettings.bOverride_SceneFringeIntensity = false;
+				}
+			}
+		}
+		if (WeakTarget.IsValid())
+		{
+			WeakTarget->CustomTimeDilation = 1.f;
+		}
+	}, CachedSkillData.HitStopDuration, false);
 }

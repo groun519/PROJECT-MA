@@ -15,11 +15,10 @@ USTRUCT(BlueprintType)
 struct FProjectileSkinInfo
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AMAProjectile> ProjectileClass;
+	/**속성 별로 투사체에 적용시킬 VFX 이펙트*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UNiagaraSystem> ProjectileVFX;
+	/**속성 별 타격 시 발생시킬 CueTag*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="GameplayCue.Hit"))
 	FGameplayTag HitCueTag;
 };
@@ -32,10 +31,14 @@ class UMAProjectileSkinData : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	/**투사체 블루프린트*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AMAProjectile> ProjectileClass;
+	/**ProjectileClass에 적용시킬 값들*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FProjectileSkinInfo DefaultSkin;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	/**속성 태그 별 적용시킬 값들*/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(Categories="Module.Elemental"))
 	TMap<FGameplayTag, FProjectileSkinInfo> SkinOverrides;
 
 	FProjectileSkinInfo GetSkinForTag(FGameplayTag ElementTag) const

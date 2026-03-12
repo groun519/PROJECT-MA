@@ -5,85 +5,91 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "NiagaraComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Character/MACharacter.h"
+#include "Player/MAPlayerCharacter.h"
 
 void UAnimNotify_PlayNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	const FAnimNotifyEventReference& EventReference)
+                                     const FAnimNotifyEventReference& EventReference)
 {
-	AActor* OwnerActor = MeshComp->GetOwner();
-	if (!OwnerActor || !MeshComp)
-	{
-		Super::Notify(MeshComp, Animation, EventReference);
+	Super::Notify(MeshComp, Animation, EventReference);
+	if (!MeshComp || !NiagaraTemplate)
 		return;
-	}
-	
-	if (bSpawnInWorld) // --- 월드 스폰 로직 ---
+
+#if WITH_EDITOR
+	UWorld* World = MeshComp->GetWorld();
+	if (World && World->WorldType == EWorldType::EditorPreview)
 	{
-#if WITH_EDITOR 
-		UWorld* World = MeshComp->GetWorld();
-		if (World && World->WorldType == EWorldType::EditorPreview)
+		if (bSpawnInWorld)
 		{
 			FTransform SocketTransform = (SocketName != NAME_None) ? MeshComp->GetSocketTransform(SocketName) : MeshComp->GetComponentTransform();
 			FTransform OffsetTransform(RotationOffset, LocationOffset, Scale);
 			FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
 
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				World,VFXToSpawn,	WorldSpawnTransform.GetLocation(),WorldSpawnTransform.Rotator(),
-				WorldSpawnTransform.GetScale3D(),true);
-
-			Super::Notify(MeshComp, Animation, EventReference);
-			return;
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, NiagaraTemplate,
+				WorldSpawnTransform.GetLocation(), WorldSpawnTransform.Rotator(), WorldSpawnTransform.GetScale3D());
 		}
-#endif
-
-		if (OwnerActor->HasAuthority())
+		else
 		{
-			AMACharacter* Character = Cast<AMACharacter>(OwnerActor);
-			if (Character)
-			{
-				FTransform SocketTransform = (SocketName != NAME_None) ?
-					MeshComp->GetSocketTransform(SocketName) :
-					MeshComp->GetComponentTransform();
-
-				FTransform OffsetTransform(RotationOffset, LocationOffset, Scale);
-				FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
-
-				Character->Multicast_PlayNiagara(VFXToSpawn, WorldSpawnTransform);
-			}
+			UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraTemplate, MeshComp, SocketName, 
+				LocationOffset, RotationOffset, Scale, EAttachLocation::KeepRelativeOffset, true, ENCPoolMethod::None, true);
 		}
+		return;
 	}
-	else // --- 소켓 부착 로직 ---
+#endif
+	AMACharacter* Character = Cast<AMACharacter>(MeshComp->GetOwner());
+	
+	UNiagaraSystem* FinalVFXToSpawn = NiagaraTemplate;
+	FLinearColor ModuleColor = FLinearColor::White;
+	FVector FinalScale = Scale;
+
+	if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(Character))
 	{
-#if WITH_EDITOR
-		UWorld* World = MeshComp->GetWorld();
-		if (World && World->WorldType == EWorldType::EditorPreview)
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAttached(
-				VFXToSpawn, MeshComp, SocketName, LocationOffset, RotationOffset, Scale,
-				EAttachLocation::KeepRelativeOffset, bAutoDestroy, ENCPoolMethod::None, true
-			);
-			
-			Super::Notify(MeshComp, Animation, EventReference);
+		if (!PlayerChar->GetAllowVFX())
 			return;
-		}
-#endif
-		if (OwnerActor->HasAuthority())
+		
+		ModuleColor = PlayerChar->GetCurrentVFXColor();
+		FGameplayTag CurrentTag = PlayerChar->GetCurrentElementTag();
+		
+		if (CurrentTag.IsValid() && OverrideVFXMap.Contains(CurrentTag))
 		{
-			AMACharacter* Character = Cast<AMACharacter>(OwnerActor);
-			if (Character)
+			FinalVFXToSpawn = OverrideVFXMap[CurrentTag];
+		}
+
+		if (BaseVFXLength > 0.f)
+		{
+			float TargetVFXLength = PlayerChar->GetCurrentVFXLength();
+			if (TargetVFXLength > 0.f)
 			{
-				Character->Multicast_PlayNiagaraAttached(
-					VFXToSpawn,
-					SocketName,
-					LocationOffset,
-					RotationOffset,
-					Scale,
-					bAutoDestroy
-				);
+				float ScaleMultiplier = TargetVFXLength / BaseVFXLength;
+				FinalScale.X *= ScaleMultiplier;
 			}
 		}
+		if (!FinalVFXToSpawn)
+			return;
 	}
-	Super::Notify(MeshComp, Animation, EventReference);
+		
+	UNiagaraComponent* SpawnedVFX = nullptr;
+	if (bSpawnInWorld)
+	{
+		FTransform SocketTransform = (SocketName != NAME_None) ? MeshComp->GetSocketTransform(SocketName) : MeshComp->GetComponentTransform();
+		FTransform OffsetTransform(RotationOffset, LocationOffset, FinalScale);
+		FTransform WorldSpawnTransform = OffsetTransform * SocketTransform;
+
+		SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(MeshComp->GetWorld(), FinalVFXToSpawn,
+			WorldSpawnTransform.GetLocation(), WorldSpawnTransform.Rotator(), WorldSpawnTransform.GetScale3D());
+	}
+	else
+	{
+		SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(FinalVFXToSpawn, MeshComp, SocketName, 
+			LocationOffset, RotationOffset, FinalScale,
+			EAttachLocation::KeepRelativeOffset, true, ENCPoolMethod::None, true);
+	}
+
+	if (SpawnedVFX && ColorParamName!=NAME_None)
+	{
+		SpawnedVFX->SetColorParameter(ColorParamName, ModuleColor);
+	}
 }

@@ -45,6 +45,9 @@ protected:
 	FORCEINLINE bool ShouldDrawDebug() const { return bShouldDrawDebug; }
 	
 	ACharacter* GetOwningAvatarCharacter();
+	
+	void StopMontageAfterCurrentSection(UAnimMontage* Montage);
+	void PlayMontageLocally(UAnimMontage* Montage);
 public:
 	FGenericTeamId GetOwnerTeamId() const;
 	//== Movement ==//
