@@ -64,6 +64,11 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 void ULoadoutWidget::HandleMountTabClicked()
 {
 	SetActiveTab(3);
+
+	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
+	{
+		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Mount);
+	}
 }
 
 void ULoadoutWidget::SetActiveTab(int32 TabIndex)

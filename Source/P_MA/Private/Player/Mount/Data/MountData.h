@@ -25,6 +25,10 @@ struct FMountDataRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount")
 	TSubclassOf<UAnimInstance> MountAnimClass;
 
+	// Lobby preview sequence played on the mount mesh while the loadout mount tab is open.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Preview")
+	TSoftObjectPtr<UAnimSequence> PreviewIdleAnimation;
+
 	// Player character sequence used while riding this mount.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount")
 	TSoftObjectPtr<UAnimSequence> RiderPose;

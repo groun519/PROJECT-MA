@@ -453,7 +453,14 @@ bool UMAGameInstance::LoadLoadout(
 {
 	if (LoadoutSaveSlot.IsEmpty()) return false;
 
-	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex)) return false;
+	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex))
+	{
+		OutColor = FMaterialParamDataPair();
+		OutWeaponId = TEXT("Weapon_Sword");
+		OutEyeShapeId = TEXT("EyeShape_Default");
+		OutMountId = TEXT("Mount_Horse");
+		return true;
+	}
 
 	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(Loaded);

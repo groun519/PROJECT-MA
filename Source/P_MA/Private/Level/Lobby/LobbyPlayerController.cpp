@@ -285,6 +285,11 @@ void ALobbyPlayerController::SetPendingMount(FName MountId)
 {
 	PendingMountId = MountId;
 	bHasPendingMount = !MountId.IsNone();
+
+	if (bInLoadoutView && CurrentLoadoutView == ELoadoutView::Mount)
+	{
+		ApplyPendingMountPreview();
+	}
 }
 
 void ALobbyPlayerController::ApplyPendingWeaponPreview()
@@ -312,6 +317,19 @@ void ALobbyPlayerController::ApplyPendingWeaponPreview()
 
 	USkeletalMesh* Mesh = Row->WeaponMesh.LoadSynchronous();
 	PreviewWeapon(WeaponId, Mesh, Row->WeaponOffset);
+}
+
+void ALobbyPlayerController::ApplyPendingMountPreview()
+{
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->ApplyLoadoutMountId(PendingMountId);
+			Slot->SetMountPreviewVisible(true);
+		}
+	}
 }
 
 void ALobbyPlayerController::ApplyPendingWeaponPreviewDelayed(float DelaySeconds)
@@ -505,6 +523,16 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CurrentLoadoutView = NewView;
+
+	if (CurrentLoadoutView == ELoadoutView::Mount)
+	{
+		ApplyPendingMountPreview();
+	}
+	else
+	{
+		SetLocalSlotMountPreviewVisible(false);
+	}
+
 	UpdateCameraTarget();
 
 	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
@@ -517,6 +545,7 @@ void ALobbyPlayerController::ExitLoadoutView()
 	CommitLoadoutEyeShape();
 	CommitLoadoutWeapon();
 	CommitLoadoutMount();
+	SetLocalSlotMountPreviewVisible(false);
 
 	if (IsLocalController())
 	{
@@ -628,6 +657,10 @@ void ALobbyPlayerController::UpdateCameraTarget()
 	else if (CurrentLoadoutView == ELoadoutView::Weapon)
 	{
 		ViewSettings = LoadoutWeaponView;
+	}
+	else if (CurrentLoadoutView == ELoadoutView::Mount)
+	{
+		ViewSettings = LoadoutMountView;
 	}
 
 	const FVector WorldLocation = SlotTransform.TransformPosition(ViewSettings.Offset.GetLocation());
@@ -758,6 +791,18 @@ void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& Col
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
 		{
 			Slot->ApplyLoadoutColor(ColorData);
+		}
+	}
+}
+
+void ALobbyPlayerController::SetLocalSlotMountPreviewVisible(bool bVisible)
+{
+	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->SetMountPreviewVisible(bVisible);
 		}
 	}
 }

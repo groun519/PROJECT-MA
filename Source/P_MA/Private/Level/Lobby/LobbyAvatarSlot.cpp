@@ -15,8 +15,9 @@
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
+#include "Player/Mount/Data/MountData.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/DataTable.h"
-#include "Engine/Texture2D.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -33,6 +34,13 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 	/** Weapon SKM **/
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(AvatarMesh, WeaponSocketName);
+
+	/** Mount SKM **/
+	MountMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MountMesh"));
+	MountMesh->SetupAttachment(Root);
+	MountMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MountMesh->SetGenerateOverlapEvents(false);
+	MountMesh->SetCanEverAffectNavigation(false);
 
 	/** Spot Light **/
 	AvatarSpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("AvatarSpotLight"));
@@ -67,6 +75,7 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 
 	AvatarMesh->SetVisibility(false, true);
 	WeaponMesh->SetVisibility(false, true);
+	MountMesh->SetVisibility(false, true);
 	NameWidget->SetVisibility(false, true);
 	ReadyWidget->SetVisibility(false, true);
 	InviteWidget->SetVisibility(false, true);
@@ -141,14 +150,10 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 		}
 		InviteWidget->SetVisibility(Occupant == nullptr, true);
 	}
-	if (AvatarMesh)
-	{
-		AvatarMesh->SetVisibility(Occupant != nullptr, true);
-	}
-	if (WeaponMesh)
-	{
-		WeaponMesh->SetVisibility(Occupant != nullptr, true);
-	}
+	AvatarMesh->SetVisibility(Occupant != nullptr && !bMountPreviewVisible, true);
+	WeaponMesh->SetVisibility(Occupant != nullptr && !bMountPreviewVisible, true);
+	const bool bShowMountPreview = Occupant != nullptr && bMountPreviewVisible && MountMesh->GetSkeletalMeshAsset() != nullptr;
+	MountMesh->SetVisibility(bShowMountPreview, true);
 	if (AvatarSpotLight)
 	{
 		AvatarSpotLight->SetVisibility(Occupant != nullptr, true);
@@ -171,6 +176,10 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 		ApplyLoadoutEyeShape(Occupant->GetLoadoutEyeShapeId());
 		ApplyLoadoutColor(Occupant->GetLoadoutColor());
 		ApplyLoadoutWeaponId(Occupant->GetLoadoutWeaponId());
+	}
+	else
+	{
+		ApplyLoadoutMountId(NAME_None);
 	}
 }
 
@@ -232,6 +241,65 @@ void ALobbyAvatarSlot::ApplyLoadoutEyeShape(FName EyeShapeId)
 	{
 		ApplyLoadoutColor(Occupant->GetLoadoutColor());
 	}
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutMountId(FName MountId)
+{
+	if (MountId.IsNone())
+	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
+		return;
+	}
+
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
+	if (!MountDataTable)
+	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
+		return;
+	}
+
+	const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LobbyAvatarSlotMountPreview"));
+	if (!Row)
+	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
+		return;
+	}
+
+	MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
+	MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+
+	if (UAnimSequence* PreviewIdleAnimation = Row->PreviewIdleAnimation.LoadSynchronous())
+	{
+		MountMesh->PlayAnimation(PreviewIdleAnimation, true);
+	}
+	else
+	{
+		MountMesh->SetAnimation(nullptr);
+	}
+
+	SetMountPreviewVisible(bMountPreviewVisible);
+}
+
+void ALobbyAvatarSlot::SetMountPreviewVisible(bool bVisible)
+{
+	bMountPreviewVisible = bVisible;
+
+	const bool bShowAvatarMeshes = Occupant != nullptr && !bMountPreviewVisible;
+	AvatarMesh->SetVisibility(bShowAvatarMeshes, true);
+	WeaponMesh->SetVisibility(bShowAvatarMeshes, true);
+	const bool bShowMountPreview = Occupant != nullptr && bMountPreviewVisible && MountMesh->GetSkeletalMeshAsset() != nullptr;
+	MountMesh->SetVisibility(bShowMountPreview, true);
 }
 
 void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)

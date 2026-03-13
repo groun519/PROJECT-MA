@@ -60,7 +60,8 @@ public:
 	{
 		Head,
 		Body,
-		Weapon
+		Weapon,
+		Mount
 	};
 
 	virtual void BeginPlay() override;
@@ -115,10 +116,12 @@ private:
 	void ApplyInterpTransition();
 	void ApplyInstantCameraTarget();
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
+	void ApplyPendingMountPreview();
 	void CommitLoadoutColor();
 	void CommitLoadoutEyeShape();
 	void CommitLoadoutWeapon();
 	void CommitLoadoutMount();
+	void SetLocalSlotMountPreviewVisible(bool bVisible);
 	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
@@ -156,6 +159,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")
 	FLoadoutCameraViewSettings LoadoutWeaponView;
+
+	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")
+	FLoadoutCameraViewSettings LoadoutMountView;
 
 	/** Cam Settings **/
 	UPROPERTY()

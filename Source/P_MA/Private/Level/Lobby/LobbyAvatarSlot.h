@@ -32,6 +32,8 @@ public:
 	void SetLocalHidden(bool bHide);
 	void ApplyLoadoutColor(const FMaterialParamDataPair& ColorData);
 	void ApplyLoadoutEyeShape(FName EyeShapeId);
+	void ApplyLoadoutMountId(FName MountId);
+	void SetMountPreviewVisible(bool bVisible);
 	void SetLobbyState(ELobbyAvatarState State);
 	void SetWeaponOnlyOwnerSee(bool bEnable);
 	void ApplyLoadoutWeaponId(FName WeaponId);
@@ -46,6 +48,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	USkeletalMeshComponent* WeaponMesh = nullptr;
+
+	UPROPERTY(VisibleAnywhere)
+	USkeletalMeshComponent* MountMesh = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
 	USpotLightComponent* AvatarSpotLight = nullptr;
@@ -81,4 +86,5 @@ private:
 	FDelegateHandle LoadoutColorChangedHandle;
 	FDelegateHandle LoadoutEyeShapeChangedHandle;
 	FDelegateHandle LoadoutWeaponChangedHandle;
+	bool bMountPreviewVisible = false;
 };
