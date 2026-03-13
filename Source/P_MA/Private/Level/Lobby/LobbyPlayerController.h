@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LobbyAvatarState.h"
 #include "LobbyPlayerController.generated.h"
 
@@ -117,24 +117,14 @@ private:
 	void ApplyInstantCameraTarget();
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
 	void ApplyPendingMountPreview();
-	void CommitLoadoutColor();
-	void CommitLoadoutEyeShape();
-	void CommitLoadoutWeapon();
-	void CommitLoadoutMount();
+	void EnsurePendingLoadoutInitialized();
+	void CommitPendingLoadout();
 	void SetLocalSlotMountPreviewVisible(bool bVisible);
+	void SetLocalSlotWeaponPreviewVisible(bool bVisible);
 	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutWeaponId(FName WeaponId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutEyeShape(FName EyeShapeId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutMountId(FName MountId);
+	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLobbyState(ELobbyAvatarState NewState);
@@ -179,12 +169,6 @@ private:
 	FLoadoutCameraViewSettings ActiveViewSettings;
 	bool bIsCameraFading = false;
 
-	FMaterialParamDataPair PendingLoadoutColor;
-	bool bHasPendingLoadoutColor = false;
-	FName PendingEyeShapeId = NAME_None;
-	bool bHasPendingEyeShape = false;
-	FName PendingWeaponId;
-	bool bHasPendingWeapon = false;
-	FName PendingMountId = NAME_None;
-	bool bHasPendingMount = false;
+	FLoadoutSelection PendingLoadout;
+	bool bHasPendingLoadout = false;
 };

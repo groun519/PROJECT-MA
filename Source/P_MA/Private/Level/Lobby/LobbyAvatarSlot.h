@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "LobbyAvatarState.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LobbyAvatarSlot.generated.h"
 
 class USkeletalMeshComponent;
@@ -13,8 +13,6 @@ class USpotLightComponent;
 class UWidgetComponent;
 class AMAPlayerState;
 class UMaterialInstanceDynamic;
-class ULobbyAvatarReadyWidget;
-class ULobbyAvatarAnimInstance;
 
 UCLASS()
 class P_MA_API ALobbyAvatarSlot : public AActor
@@ -34,12 +32,15 @@ public:
 	void ApplyLoadoutEyeShape(FName EyeShapeId);
 	void ApplyLoadoutMountId(FName MountId);
 	void SetMountPreviewVisible(bool bVisible);
+	void SetWeaponPreviewVisible(bool bVisible);
 	void SetLobbyState(ELobbyAvatarState State);
 	void SetWeaponOnlyOwnerSee(bool bEnable);
 	void ApplyLoadoutWeaponId(FName WeaponId);
 	void ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransform& Offset);
 
 private:
+	void HandleLoadoutChanged(const FLoadoutSelection& Loadout);
+
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root = nullptr;
 
@@ -61,20 +62,11 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	UWidgetComponent* NameWidget = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Lobby")
-	TSubclassOf<class ULobbyAvatarNameWidget> NameWidgetClass;
-
 	UPROPERTY(VisibleAnywhere)
 	UWidgetComponent* ReadyWidget = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "Lobby")
-	TSubclassOf<ULobbyAvatarReadyWidget> ReadyWidgetClass;
-
 	UPROPERTY(VisibleAnywhere)
 	UWidgetComponent* InviteWidget = nullptr;
-
-	UPROPERTY(EditAnywhere, Category = "Lobby")
-	TSubclassOf<class ULobbyInviteWidget> InviteWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> Occupant;
@@ -83,8 +75,7 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> AvatarDynMat;
 	FEyeShapeParamData CurrentEyeShapeData;
 
-	FDelegateHandle LoadoutColorChangedHandle;
-	FDelegateHandle LoadoutEyeShapeChangedHandle;
-	FDelegateHandle LoadoutWeaponChangedHandle;
+	FDelegateHandle LoadoutChangedHandle;
 	bool bMountPreviewVisible = false;
+	bool bWeaponPreviewVisible = true;
 };

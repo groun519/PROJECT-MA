@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LoadoutSaveGame.generated.h"
 
 UCLASS()
@@ -14,16 +14,7 @@ class P_MA_API ULoadoutSaveGame : public USaveGame
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
-	FMaterialParamDataPair SavedColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
-	FName SavedWeaponId = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
-	FName SavedEyeShapeId = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
-	FName SavedMountId = NAME_None;
+	FLoadoutSelection SavedLoadout;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loadout")
 	// Reserved for future save migration. Not used in current load path.

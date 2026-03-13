@@ -8,7 +8,7 @@
 #include "OnlineSessionSettings.h"
 #include "Widgets/SWidget.h"
 #include "Misc/CoreDelegates.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "MAGameInstance.generated.h"
 
 class ULoadingScreenWidget;
@@ -45,15 +45,10 @@ public:
 	void UpdateLoadingStatus();
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	void SaveLoadout(
-		const FMaterialParamDataPair& Color,
-		FName WeaponId,
-		FName EyeShapeId,
-		FName MountId
-	);
+	void SaveLoadout(const FLoadoutSelection& Loadout);
 
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
-	bool LoadLoadout(FMaterialParamDataPair& OutColor, FName& OutWeaponId, FName& OutEyeShapeId, FName& OutMountId);
+	bool LoadLoadout(FLoadoutSelection& OutLoadout);
 
 	void NotifyLocalLoadingVisualComplete();
 

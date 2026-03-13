@@ -15,10 +15,7 @@ void AMAPlayerState::CopyProperties(APlayerState* PlayerState)
 	if (!NewPS) return;
 
 	NewPS->DefaultSkill = DefaultSkill;
-	NewPS->LoadoutColor = LoadoutColor;
-	NewPS->LoadoutWeaponId = LoadoutWeaponId;
-	NewPS->LoadoutEyeShapeId = LoadoutEyeShapeId;
-	NewPS->LoadoutMountId = LoadoutMountId;
+	NewPS->LoadoutSelection = LoadoutSelection;
 	NewPS->bHasFinishedLoading = bHasFinishedLoading;
 	NewPS->LobbySlotIndex = LobbySlotIndex;
 }
@@ -31,10 +28,7 @@ void AMAPlayerState::OverrideWith(APlayerState* PlayerState)
 	if (!OldPS) return;
 
 	DefaultSkill = OldPS->DefaultSkill;
-	LoadoutColor = OldPS->LoadoutColor;
-	LoadoutWeaponId = OldPS->LoadoutWeaponId;
-	LoadoutEyeShapeId = OldPS->LoadoutEyeShapeId;
-	LoadoutMountId = OldPS->LoadoutMountId;
+	LoadoutSelection = OldPS->LoadoutSelection;
 	bHasFinishedLoading = OldPS->bHasFinishedLoading;
 	LobbySlotIndex = OldPS->LobbySlotIndex;
 }
@@ -44,28 +38,15 @@ void AMAPlayerState::SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill)
 	DefaultSkill = NewSkill;
 }
 
-void AMAPlayerState::SetLoadoutColor(const FMaterialParamDataPair& NewColor)
+void AMAPlayerState::SetLoadoutSelection(const FLoadoutSelection& NewLoadout)
 {
-	LoadoutColor = NewColor;
-	OnLoadoutColorChanged.Broadcast(LoadoutColor);
+	LoadoutSelection = NewLoadout;
+	OnLoadoutChanged.Broadcast(LoadoutSelection);
 }
 
-void AMAPlayerState::SetLoadoutWeaponId(FName NewWeaponId)
+const FLoadoutSelection& AMAPlayerState::GetLoadoutSelection() const
 {
-	LoadoutWeaponId = NewWeaponId;
-	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
-}
-
-void AMAPlayerState::SetLoadoutEyeShapeId(FName NewEyeShapeId)
-{
-	LoadoutEyeShapeId = NewEyeShapeId;
-	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
-}
-
-void AMAPlayerState::SetLoadoutMountId(FName NewMountId)
-{
-	LoadoutMountId = NewMountId;
-	OnLoadoutMountChanged.Broadcast(LoadoutMountId);
+	return LoadoutSelection;
 }
 
 void AMAPlayerState::SetLoadingComplete(bool bComplete)
@@ -83,24 +64,9 @@ void AMAPlayerState::OnRep_DefaultSkill()
 {
 }
 
-void AMAPlayerState::OnRep_LoadoutColor()
+void AMAPlayerState::OnRep_LoadoutSelection()
 {
-	OnLoadoutColorChanged.Broadcast(LoadoutColor);
-}
-
-void AMAPlayerState::OnRep_LoadoutWeaponId()
-{
-	OnLoadoutWeaponChanged.Broadcast(LoadoutWeaponId);
-}
-
-void AMAPlayerState::OnRep_LoadoutEyeShapeId()
-{
-	OnLoadoutEyeShapeChanged.Broadcast(LoadoutEyeShapeId);
-}
-
-void AMAPlayerState::OnRep_LoadoutMountId()
-{
-	OnLoadoutMountChanged.Broadcast(LoadoutMountId);
+	OnLoadoutChanged.Broadcast(LoadoutSelection);
 }
 
 void AMAPlayerState::OnRep_LoadingComplete()
@@ -121,10 +87,7 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
-	DOREPLIFETIME(AMAPlayerState, LoadoutColor);
-	DOREPLIFETIME(AMAPlayerState, LoadoutWeaponId);
-	DOREPLIFETIME(AMAPlayerState, LoadoutEyeShapeId);
-	DOREPLIFETIME(AMAPlayerState, LoadoutMountId);
+	DOREPLIFETIME(AMAPlayerState, LoadoutSelection);
 	DOREPLIFETIME(AMAPlayerState, bHasFinishedLoading);
 	DOREPLIFETIME(AMAPlayerState, LobbySlotIndex);
 }

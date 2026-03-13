@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
 
@@ -50,16 +50,7 @@ public:
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutWeaponId(FName WeaponId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutEyeShape(FName EyeShapeId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutMountId(FName MountId);
+	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
 
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)

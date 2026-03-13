@@ -419,22 +419,14 @@ void UMAGameInstance::UpdateLoadingStatus()
 
 }
 
-void UMAGameInstance::SaveLoadout(
-	const FMaterialParamDataPair& Color,
-	FName WeaponId,
-	FName EyeShapeId,
-	FName MountId
-)
+void UMAGameInstance::SaveLoadout(const FLoadoutSelection& Loadout)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return;
 
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(UGameplayStatics::CreateSaveGameObject(ULoadoutSaveGame::StaticClass()));
 	if (!SaveGame) return;
 
-	SaveGame->SavedColor = Color;
-	SaveGame->SavedWeaponId = WeaponId;
-	SaveGame->SavedEyeShapeId = EyeShapeId;
-	SaveGame->SavedMountId = MountId;
+	SaveGame->SavedLoadout = Loadout;
 	// Reserved for future save migration. Current load logic does not branch on version.
 	SaveGame->Version = 1;
 
@@ -444,25 +436,18 @@ void UMAGameInstance::SaveLoadout(
 	}
 }
 
-bool UMAGameInstance::LoadLoadout(
-	FMaterialParamDataPair& OutColor,
-	FName& OutWeaponId,
-	FName& OutEyeShapeId,
-	FName& OutMountId
-)
+bool UMAGameInstance::LoadLoadout(FLoadoutSelection& OutLoadout)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return false;
 
-	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex))
+	OutLoadout = FLoadoutSelection();
+
+	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
+	if (!Loaded)
 	{
-		OutColor = FMaterialParamDataPair();
-		OutWeaponId = TEXT("Weapon_Sword");
-		OutEyeShapeId = TEXT("EyeShape_Default");
-		OutMountId = TEXT("Mount_Horse");
 		return true;
 	}
 
-	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(Loaded);
 	if (!SaveGame)
 	{
@@ -470,10 +455,7 @@ bool UMAGameInstance::LoadLoadout(
 		return false;
 	}
 
-	OutColor = SaveGame->SavedColor;
-	OutWeaponId = SaveGame->SavedWeaponId;
-	OutEyeShapeId = SaveGame->SavedEyeShapeId;
-	OutMountId = SaveGame->SavedMountId;
+	OutLoadout = SaveGame->SavedLoadout;
 	return true;
 }
 

@@ -71,50 +71,23 @@ void ALobbyPlayerController::BeginPlay()
 
 		if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 		{
-			FMaterialParamDataPair LoadedColor;
-			FName LoadedWeaponId = NAME_None;
-			FName LoadedEyeShapeId = NAME_None;
-			FName LoadedMountId = NAME_None;
-			if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId, LoadedMountId))
+			FLoadoutSelection LoadedLoadout;
+			if (GI->LoadLoadout(LoadedLoadout))
 			{
 				if (HasAuthority())
 				{
 					if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 					{
-						PS->SetLoadoutColor(LoadedColor);
-						PS->SetLoadoutEyeShapeId(LoadedEyeShapeId);
-						if (!LoadedWeaponId.IsNone())
-						{
-							PS->SetLoadoutWeaponId(LoadedWeaponId);
-						}
-						if (!LoadedMountId.IsNone())
-						{
-							PS->SetLoadoutMountId(LoadedMountId);
-						}
+						PS->SetLoadoutSelection(LoadedLoadout);
 					}
 				}
 				else
 				{
-					ServerSetLoadoutColor(LoadedColor);
-					ServerSetLoadoutEyeShape(LoadedEyeShapeId);
-					if (!LoadedWeaponId.IsNone())
-					{
-						ServerSetLoadoutWeaponId(LoadedWeaponId);
-					}
-					if (!LoadedMountId.IsNone())
-					{
-						ServerSetLoadoutMountId(LoadedMountId);
-					}
+					ServerSetLoadoutSelection(LoadedLoadout);
 				}
 
-				PendingLoadoutColor = LoadedColor;
-				bHasPendingLoadoutColor = true;
-				PendingEyeShapeId = LoadedEyeShapeId;
-				bHasPendingEyeShape = !LoadedEyeShapeId.IsNone();
-				PendingWeaponId = LoadedWeaponId;
-				bHasPendingWeapon = !LoadedWeaponId.IsNone();
-				PendingMountId = LoadedMountId;
-				bHasPendingMount = !LoadedMountId.IsNone();
+				PendingLoadout = LoadedLoadout;
+				bHasPendingLoadout = true;
 			}
 		}
 
@@ -203,7 +176,7 @@ void ALobbyPlayerController::SetReady(bool bNewReady)
 
 void ALobbyPlayerController::ServerSetReady_Implementation(bool bNewReady)
 {
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		LGS->SetPlayerReady(GetPlayerState<APlayerState>(), bNewReady);
 	}
@@ -223,68 +196,55 @@ void ALobbyPlayerController::ShowInviteUI()
 
 void ALobbyPlayerController::PreviewEyeColor(const FMaterialParamData& EyeData)
 {
-	if (!bHasPendingLoadoutColor)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingLoadoutColor = PS->GetLoadoutColor();
-		}
-		bHasPendingLoadoutColor = true;
-	}
+	EnsurePendingLoadoutInitialized();
 
-	PendingLoadoutColor.EyeData = EyeData;
-	ApplyPreviewColor(PendingLoadoutColor);
+	PendingLoadout.Color.EyeData = EyeData;
+	ApplyPreviewColor(PendingLoadout.Color);
 }
 
 void ALobbyPlayerController::PreviewEyeShape(FName EyeShapeId)
 {
-	PendingEyeShapeId = EyeShapeId;
-	bHasPendingEyeShape = true;
+	EnsurePendingLoadoutInitialized();
+	PendingLoadout.EyeShapeId = EyeShapeId;
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
 		{
-			Slot->ApplyLoadoutEyeShape(PendingEyeShapeId);
+			Slot->ApplyLoadoutEyeShape(PendingLoadout.EyeShapeId);
 		}
 	}
 }
 
 void ALobbyPlayerController::PreviewBodyColor(const FMaterialParamData& BodyData)
 {
-	if (!bHasPendingLoadoutColor)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingLoadoutColor = PS->GetLoadoutColor();
-		}
-		bHasPendingLoadoutColor = true;
-	}
+	EnsurePendingLoadoutInitialized();
 
-	PendingLoadoutColor.BodyData = BodyData;
-	ApplyPreviewColor(PendingLoadoutColor);
+	PendingLoadout.Color.BodyData = BodyData;
+	ApplyPreviewColor(PendingLoadout.Color);
 }
 
 void ALobbyPlayerController::PreviewWeapon(FName WeaponId, USkeletalMesh* Mesh, const FTransform& Offset)
 {
-	PendingWeaponId = WeaponId;
-	bHasPendingWeapon = !WeaponId.IsNone();
+	EnsurePendingLoadoutInitialized();
+	PendingLoadout.WeaponId = WeaponId;
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
 		{
 			Slot->ApplyLoadoutWeaponMesh(Mesh, Offset);
+			Slot->SetWeaponPreviewVisible(true);
 		}
 	}
 }
 
 void ALobbyPlayerController::SetPendingMount(FName MountId)
 {
-	PendingMountId = MountId;
-	bHasPendingMount = !MountId.IsNone();
+	EnsurePendingLoadoutInitialized();
+	PendingLoadout.MountId = MountId;
 
 	if (bInLoadoutView && CurrentLoadoutView == ELoadoutView::Mount)
 	{
@@ -294,12 +254,12 @@ void ALobbyPlayerController::SetPendingMount(FName MountId)
 
 void ALobbyPlayerController::ApplyPendingWeaponPreview()
 {
-	if (!bHasPendingWeapon || PendingWeaponId.IsNone())
+	if (PendingLoadout.WeaponId.IsNone())
 	{
 		return;
 	}
 
-	const FName WeaponId = PendingWeaponId;
+	const FName WeaponId = PendingLoadout.WeaponId;
 
 	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
 	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
@@ -321,14 +281,28 @@ void ALobbyPlayerController::ApplyPendingWeaponPreview()
 
 void ALobbyPlayerController::ApplyPendingMountPreview()
 {
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
 		{
-			Slot->ApplyLoadoutMountId(PendingMountId);
+			Slot->ApplyLoadoutMountId(PendingLoadout.MountId);
 			Slot->SetMountPreviewVisible(true);
 		}
+	}
+}
+
+void ALobbyPlayerController::EnsurePendingLoadoutInitialized()
+{
+	if (bHasPendingLoadout)
+	{
+		return;
+	}
+
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PendingLoadout = PS->GetLoadoutSelection();
+		bHasPendingLoadout = true;
 	}
 }
 
@@ -357,7 +331,7 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 	{
 		if (LobbyRootWidgetInstance)
 		{
-			if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+			if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 			{
 				const int32 ReadyCount = LGS->GetReadyCount();
 				const int32 TotalCount = LGS->GetPlayerCount();
@@ -385,7 +359,7 @@ void ALobbyPlayerController::HandleReadyStartClicked()
 		return;
 	}
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const bool bIsReady = LGS->IsPlayerReady(GetPlayerState<APlayerState>());
 		SetReady(!bIsReady);
@@ -418,7 +392,7 @@ void ALobbyPlayerController::UpdateLobbyUI()
 {
 	if (!LobbyRootWidgetInstance || !LobbyRootWidgetInstance->LobbyReadyStartWidget) return;
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 ReadyCount = LGS->GetReadyCount();
 		const int32 TotalCount = LGS->GetPlayerCount();
@@ -449,7 +423,7 @@ void ALobbyPlayerController::EnterLoadoutView()
 	CurrentLoadoutView = ELoadoutView::Body;
 	UpdateCameraTarget();
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 MySlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		const TArray<TObjectPtr<ALobbyAvatarSlot>>& Slots = LGS->GetAvatarSlots();
@@ -469,48 +443,12 @@ void ALobbyPlayerController::EnterLoadoutView()
 		LobbyRootWidgetInstance->LoadoutButtonText->SetText(FText::FromString(TEXT("Save")));
 	}
 
-	if (!bHasPendingLoadoutColor)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingLoadoutColor = PS->GetLoadoutColor();
-			bHasPendingLoadoutColor = true;
-		}
-	}
-	if (!bHasPendingEyeShape)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingEyeShapeId = PS->GetLoadoutEyeShapeId();
-			bHasPendingEyeShape = true;
-		}
-	}
-	if (!bHasPendingWeapon)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingWeaponId = PS->GetLoadoutWeaponId();
-			bHasPendingWeapon = !PendingWeaponId.IsNone();
-		}
-	}
-	if (!bHasPendingMount)
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PendingMountId = PS->GetLoadoutMountId();
-			bHasPendingMount = !PendingMountId.IsNone();
-		}
-	}
+	EnsurePendingLoadoutInitialized();
 
 	if (LobbyRootWidgetInstance && LobbyRootWidgetInstance->LoadoutWidget)
 	{
 		LobbyRootWidgetInstance->LoadoutWidget->ActivateBodyTabUI();
-		LobbyRootWidgetInstance->LoadoutWidget->SyncSelectionFromPending(
-			PendingLoadoutColor,
-			PendingEyeShapeId,
-			PendingWeaponId,
-			PendingMountId
-		);
+		LobbyRootWidgetInstance->LoadoutWidget->SyncSelectionFromPending(PendingLoadout);
 		LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 
@@ -523,6 +461,12 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
 	CurrentLoadoutView = NewView;
+
+	if (CurrentLoadoutView != ELoadoutView::Weapon)
+	{
+		GetWorldTimerManager().ClearTimer(WeaponPreviewTimerHandle);
+		SetLocalSlotWeaponPreviewVisible(false);
+	}
 
 	if (CurrentLoadoutView == ELoadoutView::Mount)
 	{
@@ -541,49 +485,23 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 void ALobbyPlayerController::ExitLoadoutView()
 {
 	const FLoadoutCameraViewSettings PrevViewSettings = ActiveViewSettings;
-	CommitLoadoutColor();
-	CommitLoadoutEyeShape();
-	CommitLoadoutWeapon();
-	CommitLoadoutMount();
+	CommitPendingLoadout();
+	GetWorldTimerManager().ClearTimer(WeaponPreviewTimerHandle);
 	SetLocalSlotMountPreviewVisible(false);
+	SetLocalSlotWeaponPreviewVisible(true);
 
 	if (IsLocalController())
 	{
 		if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 		{
-			FMaterialParamDataPair ColorToSave = PendingLoadoutColor;
-			FName EyeShapeIdToSave = PendingEyeShapeId;
-			FName WeaponToSave = PendingWeaponId;
-			FName MountToSave = PendingMountId;
-			if (!bHasPendingLoadoutColor || !bHasPendingEyeShape || !bHasPendingWeapon || !bHasPendingMount)
-			{
-				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-				{
-					if (!bHasPendingLoadoutColor)
-					{
-						ColorToSave = PS->GetLoadoutColor();
-					}
-					if (!bHasPendingEyeShape)
-					{
-						EyeShapeIdToSave = PS->GetLoadoutEyeShapeId();
-					}
-					if (!bHasPendingWeapon)
-					{
-						WeaponToSave = PS->GetLoadoutWeaponId();
-					}
-					if (!bHasPendingMount)
-					{
-						MountToSave = PS->GetLoadoutMountId();
-					}
-				}
-			}
-			GI->SaveLoadout(ColorToSave, WeaponToSave, EyeShapeIdToSave, MountToSave);
+			EnsurePendingLoadoutInitialized();
+			GI->SaveLoadout(PendingLoadout);
 		}
 	}
 	bInLoadoutView = false;
 	UpdateCameraTarget();
 
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const TArray<TObjectPtr<ALobbyAvatarSlot>>& Slots = LGS->GetAvatarSlots();
 		for (ALobbyAvatarSlot* Slot : Slots)
@@ -633,7 +551,7 @@ void ALobbyPlayerController::UpdateCameraTarget()
 		return;
 	}
 
-	ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr;
+	ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>();
 	if (!LGS)
 	{
 		TargetCameraTransform = LobbyCameraTransform;
@@ -785,7 +703,7 @@ void ALobbyPlayerController::TriggerInstantCameraFade(const FLoadoutCameraViewSe
 
 void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& ColorData)
 {
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
@@ -797,7 +715,7 @@ void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& Col
 
 void ALobbyPlayerController::SetLocalSlotMountPreviewVisible(bool bVisible)
 {
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
 		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
@@ -807,109 +725,46 @@ void ALobbyPlayerController::SetLocalSlotMountPreviewVisible(bool bVisible)
 	}
 }
 
-void ALobbyPlayerController::CommitLoadoutColor()
+void ALobbyPlayerController::SetLocalSlotWeaponPreviewVisible(bool bVisible)
 {
-	if (!bHasPendingLoadoutColor) return;
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
+	{
+		const int32 SlotIndex = LGS->GetSlotIndex(GetPlayerState<APlayerState>());
+		if (ALobbyAvatarSlot* Slot = LGS->GetAvatarSlot(SlotIndex))
+		{
+			Slot->SetWeaponPreviewVisible(bVisible);
+		}
+	}
+}
+
+void ALobbyPlayerController::CommitPendingLoadout()
+{
+	if (!bHasPendingLoadout) return;
 
 	if (HasAuthority())
 	{
 		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 		{
-			PS->SetLoadoutColor(PendingLoadoutColor);
+			PS->SetLoadoutSelection(PendingLoadout);
 		}
 	}
 	else
 	{
-		ServerSetLoadoutColor(PendingLoadoutColor);
+		ServerSetLoadoutSelection(PendingLoadout);
 	}
 }
 
-void ALobbyPlayerController::CommitLoadoutEyeShape()
-{
-	if (!bHasPendingEyeShape) return;
-
-	if (HasAuthority())
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PS->SetLoadoutEyeShapeId(PendingEyeShapeId);
-		}
-	}
-	else
-	{
-		ServerSetLoadoutEyeShape(PendingEyeShapeId);
-	}
-}
-
-void ALobbyPlayerController::CommitLoadoutWeapon()
-{
-	if (!bHasPendingWeapon) return;
-
-	if (HasAuthority())
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PS->SetLoadoutWeaponId(PendingWeaponId);
-		}
-	}
-	else
-	{
-		ServerSetLoadoutWeaponId(PendingWeaponId);
-	}
-}
-
-void ALobbyPlayerController::CommitLoadoutMount()
-{
-	if (!bHasPendingMount) return;
-
-	if (HasAuthority())
-	{
-		if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-		{
-			PS->SetLoadoutMountId(PendingMountId);
-		}
-	}
-	else
-	{
-		ServerSetLoadoutMountId(PendingMountId);
-	}
-}
-
-void ALobbyPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
+void ALobbyPlayerController::ServerSetLoadoutSelection_Implementation(const FLoadoutSelection& Loadout)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
-		PS->SetLoadoutWeaponId(WeaponId);
-	}
-}
-
-void ALobbyPlayerController::ServerSetLoadoutMountId_Implementation(FName MountId)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutMountId(MountId);
-	}
-}
-
-void ALobbyPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutColor(ColorData);
-	}
-}
-
-void ALobbyPlayerController::ServerSetLoadoutEyeShape_Implementation(FName EyeShapeId)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutEyeShapeId(EyeShapeId);
+		PS->SetLoadoutSelection(Loadout);
 	}
 }
 
 void ALobbyPlayerController::ServerSetLobbyState_Implementation(ELobbyAvatarState NewState)
 {
-	if (ALobbyGameState* LGS = GetWorld() ? GetWorld()->GetGameState<ALobbyGameState>() : nullptr)
+	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		LGS->SetPlayerLobbyState(GetPlayerState<APlayerState>(), NewState);
 	}
