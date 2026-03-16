@@ -8,6 +8,7 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
+#include "Widget/System/SystemMenuWidget.h"
 #include "Widget/SkillBookWidget.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Inventory/MAFieldItem.h"

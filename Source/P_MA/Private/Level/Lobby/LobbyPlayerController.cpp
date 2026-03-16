@@ -11,6 +11,7 @@
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWidget.h"
+#include "Widget/System/SystemMenuWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -30,8 +31,9 @@ void ALobbyPlayerController::BeginPlay()
 		ShowLobbyUI();
 
 		bShowMouseCursor = true;
-		FInputModeUIOnly InputMode;
+		FInputModeGameAndUI InputMode;
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
 		SetInputMode(InputMode);
 
 		if (LobbyRootWidgetClass)

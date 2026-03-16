@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
+#include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
@@ -22,7 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FSt
  * 
  */
 UCLASS()
-class AMAPlayerController : public APlayerController, public IGenericTeamAgentInterface
+class AMAPlayerController : public AMAPlayerControllerBase, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -109,4 +109,5 @@ private:
 	
 	UFUNCTION()
 	void ToggleSkillBook();
+
 };

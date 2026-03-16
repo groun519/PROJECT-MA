@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
+#include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "LobbyAvatarState.h"
 #include "LobbyPlayerController.generated.h"
@@ -51,7 +51,7 @@ struct FLoadoutCameraViewSettings
 };
 
 UCLASS()
-class P_MA_API ALobbyPlayerController : public APlayerController
+class P_MA_API ALobbyPlayerController : public AMAPlayerControllerBase
 {
 	GENERATED_BODY()
 
@@ -68,6 +68,8 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void SetReady(bool bNewReady);
 
