@@ -17,17 +17,17 @@ AMAAIController::AMAAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>("Sight Config");
 
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
-	SightConfig->DetectionByAffiliation.bDetectFriendlies = false;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = false;
 
 	SightConfig->SightRadius = 1000.f;
 	SightConfig->LoseSightRadius = 1200.f;
+	SightConfig->PeripheralVisionAngleDegrees = 45;
 	
-	SightConfig->SetMaxAge(5.f);
-
-	SightConfig->PeripheralVisionAngleDegrees = 180.f;
-
+	SightConfig->SetMaxAge(1.f);
+	
 	AIPerceptionComponent->ConfigureSense(*SightConfig);
+	AIPerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
 	AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AMAAIController::TargetPerceptionUpdated);
 	AIPerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(this, &AMAAIController::TargetForgotten);
 }
@@ -86,7 +86,7 @@ void AMAAIController::TargetForgotten(AActor* ForgottenActor)
 
 AActor* AMAAIController::GetNextPerceivedActor() const
 {
-	if (PerceptionComponent)
+	if (AIPerceptionComponent)
 	{
 		TArray<AActor*> Actors;
 		AIPerceptionComponent->GetPerceivedHostileActors(Actors);
