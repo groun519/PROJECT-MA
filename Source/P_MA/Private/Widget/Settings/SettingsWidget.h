@@ -17,20 +17,12 @@ class P_MA_API USettingsWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 	void SetActiveCategory(ESettingsCategory NewCategory);
 
 protected:
-	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
-	void HandleApplyRequested();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
-	void HandleCancelRequested();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
-	void HandleDefaultRequested();
-
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsCategoryButtonWidget> GraphicsCategoryButton_0;
 
@@ -45,15 +37,6 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> SettingsPanelSwitcher;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> ApplyButton;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> CancelButton;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> DefaultButton;
 
 private:
 	void UpdateCategorySelection(ESettingsCategory ActiveCategory);

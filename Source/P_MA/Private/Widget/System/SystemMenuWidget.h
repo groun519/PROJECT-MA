@@ -25,6 +25,7 @@ class P_MA_API USystemMenuWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	FOnSystemMenuActionRequested OnActionRequested;
 

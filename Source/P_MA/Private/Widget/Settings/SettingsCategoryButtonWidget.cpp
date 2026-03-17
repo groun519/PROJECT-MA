@@ -3,6 +3,14 @@
 #include "Widget/Settings/SettingsCategoryButtonWidget.h"
 
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
+
+void USettingsCategoryButtonWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+
+	LabelText->SetText(GetCategoryLabelText());
+}
 
 void USettingsCategoryButtonWidget::NativeConstruct()
 {
@@ -25,6 +33,23 @@ void USettingsCategoryButtonWidget::SetSelected(bool bSelected)
 	}
 
 	Button->SetStyle(ButtonStyle);
+}
+
+FText USettingsCategoryButtonWidget::GetCategoryLabelText() const
+{
+	switch (Category)
+	{
+	case ESettingsCategory::Graphics:
+		return NSLOCTEXT("SettingsCategoryButton", "Graphics", "Graphics");
+	case ESettingsCategory::Audio:
+		return NSLOCTEXT("SettingsCategoryButton", "Audio", "Audio");
+	case ESettingsCategory::Controls:
+		return NSLOCTEXT("SettingsCategoryButton", "Controls", "Controls");
+	case ESettingsCategory::Gameplay:
+		return NSLOCTEXT("SettingsCategoryButton", "Gameplay", "Gameplay");
+	default:
+		return FText::GetEmpty();
+	}
 }
 
 void USettingsCategoryButtonWidget::CacheButtonStyle()

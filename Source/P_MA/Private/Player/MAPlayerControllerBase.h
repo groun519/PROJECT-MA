@@ -24,6 +24,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleSystemMenu();
 
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void CloseSystemMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void CloseSettingsWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void RefreshSettingsFocus();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* SystemMenuInputMapping;
@@ -42,8 +51,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USettingsWidget> ActiveSettingsWidget;
-
-	void CloseSystemMenu();
 
 	virtual void ApplySystemMenuOpenInputMode();
 	virtual void ApplySystemMenuClosedInputMode();

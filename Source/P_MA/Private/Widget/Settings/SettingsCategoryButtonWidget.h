@@ -8,6 +8,7 @@
 #include "SettingsCategoryButtonWidget.generated.h"
 
 class UButton;
+class UTextBlock;
 
 UENUM(BlueprintType)
 enum class ESettingsCategory : uint8
@@ -26,6 +27,7 @@ class P_MA_API USettingsCategoryButtonWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 
 	void SetSelected(bool bSelected);
@@ -40,10 +42,14 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> Button;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> LabelText;
+
 private:
 	FButtonStyle BaseButtonStyle;
 	bool bStyleCached = false;
 
+	FText GetCategoryLabelText() const;
 	void CacheButtonStyle();
 
 	UFUNCTION()

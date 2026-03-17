@@ -38,6 +38,12 @@ void AMAPlayerControllerBase::ToggleSystemMenu()
 {
 	if (!IsLocalController()) return;
 
+	if (ActiveSettingsWidget && ActiveSettingsWidget->IsInViewport())
+	{
+		CloseSettingsWidget();
+		return;
+	}
+
 	if (ActiveSystemMenuWidget && ActiveSystemMenuWidget->IsInViewport())
 	{
 		CloseSystemMenu();
@@ -70,6 +76,26 @@ void AMAPlayerControllerBase::CloseSystemMenu()
 	}
 
 	ApplySystemMenuClosedInputMode();
+}
+
+void AMAPlayerControllerBase::CloseSettingsWidget()
+{
+	if (!ActiveSettingsWidget) return;
+
+	ActiveSettingsWidget->RemoveFromParent();
+	ActiveSettingsWidget = nullptr;
+	ApplyGameAndUiInputMode();
+}
+
+void AMAPlayerControllerBase::RefreshSettingsFocus()
+{
+	if (ActiveSettingsWidget && ActiveSettingsWidget->IsInViewport())
+	{
+		ApplyWidgetFocusInputMode(ActiveSettingsWidget);
+		return;
+	}
+
+	ApplyGameAndUiInputMode();
 }
 
 void AMAPlayerControllerBase::ApplySystemMenuClosedInputMode()
