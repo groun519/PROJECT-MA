@@ -40,6 +40,7 @@ public:
 
 private:
 	void HandleLoadoutChanged(const FLoadoutSelection& Loadout);
+	bool EnsureAvatarDynMat();
 
 	UPROPERTY(VisibleAnywhere)
 	USceneComponent* Root = nullptr;

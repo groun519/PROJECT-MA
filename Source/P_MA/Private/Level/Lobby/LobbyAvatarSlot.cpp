@@ -153,16 +153,18 @@ void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
 	SetActorHiddenInGame(bHide);
 }
 
-void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
+bool ALobbyAvatarSlot::EnsureAvatarDynMat()
 {
 	if (!AvatarDynMat)
 	{
 		AvatarDynMat = AvatarMesh->CreateAndSetMaterialInstanceDynamic(0);
 	}
-	if (!AvatarDynMat)
-	{
-		return;
-	}
+	return AvatarDynMat != nullptr;
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
+{
+	if (!EnsureAvatarDynMat()) return;
 
 	AvatarDynMat->SetVectorParameterValue("Body_Color", ColorData.BodyData.Color);
 	AvatarDynMat->SetScalarParameterValue("Body_Emissive", ColorData.BodyData.Emissive);
@@ -190,10 +192,15 @@ void ALobbyAvatarSlot::ApplyLoadoutEyeShape(FName EyeShapeId)
 	CurrentEyeShapeData = FEyeShapeParamData();
 	LoadoutEyeShapeTableUtils::ResolveEyeShapeData(ResolvedEyeShapeDataTable, EyeShapeId, CurrentEyeShapeData);
 
-	if (!AvatarDynMat)
-	{
-		AvatarDynMat = AvatarMesh->CreateAndSetMaterialInstanceDynamic(0);
-	}
+	if (!EnsureAvatarDynMat()) return;
+
+	AvatarDynMat->SetScalarParameterValue("Radius_Inner", CurrentEyeShapeData.RadiusInner);
+	AvatarDynMat->SetScalarParameterValue("Radius_Outter", CurrentEyeShapeData.RadiusOutter);
+	AvatarDynMat->SetScalarParameterValue("Softness", CurrentEyeShapeData.Softness);
+	AvatarDynMat->SetScalarParameterValue("Eye_Width", CurrentEyeShapeData.EyeWidth);
+	AvatarDynMat->SetScalarParameterValue("Eye_Height", CurrentEyeShapeData.EyeHeight);
+	AvatarDynMat->SetScalarParameterValue("_UseTexture", CurrentEyeShapeData.UseTexture);
+	AvatarDynMat->SetTextureParameterValue("_EyeTexture", CurrentEyeShapeData.EyeTexture);
 }
 
 void ALobbyAvatarSlot::ApplyLoadoutMountId(FName MountId)
@@ -312,10 +319,7 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransf
 }
 void ALobbyAvatarSlot::SetLobbyState(ELobbyAvatarState State)
 {
-	if (!Occupant)
-	{
-		return;
-	}
+	if (!Occupant) return;
 
 	if (ULobbyAvatarReadyWidget* ReadyUI = Cast<ULobbyAvatarReadyWidget>(ReadyWidget->GetUserWidgetObject()))
 	{

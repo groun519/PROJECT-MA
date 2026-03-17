@@ -13,7 +13,6 @@ namespace
 {
 	const TArray<FIntPoint> GResolutionValues =
 	{
-		FIntPoint(800, 450),
 		FIntPoint(960, 540),
 		FIntPoint(1280, 720),
 		FIntPoint(1600, 900),
