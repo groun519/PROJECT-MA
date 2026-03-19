@@ -22,6 +22,22 @@ namespace
 	};
 
 	const TArray<int32> GMaxFpsValues = { 30, 60, 80, 120, 144, 0 };
+
+	constexpr int32 GPresetCustomIndex = 5;
+
+	const TArray<FText>& GetQualityOptions()
+	{
+		static const TArray<FText> QualityOptions =
+		{
+			NSLOCTEXT("GraphicsSettingsPanel", "QualityLow", "Low"),
+			NSLOCTEXT("GraphicsSettingsPanel", "QualityMedium", "Medium"),
+			NSLOCTEXT("GraphicsSettingsPanel", "QualityHigh", "High"),
+			NSLOCTEXT("GraphicsSettingsPanel", "QualityEpic", "Epic"),
+			NSLOCTEXT("GraphicsSettingsPanel", "QualityUltra", "Ultra")
+		};
+
+		return QualityOptions;
+	}
 }
 
 void UGraphicsSettingsPanelWidget::NativeOnInitialized()
@@ -31,6 +47,16 @@ void UGraphicsSettingsPanelWidget::NativeOnInitialized()
 	WindowModeDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged);
 	ResolutionDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleResolutionSelectionChanged);
 	PresetDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandlePresetSelectionChanged);
+	ViewDistanceToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleViewDistanceSelectionChanged);
+	ShadowToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleShadowSelectionChanged);
+	GlobalIlluminationToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleGlobalIlluminationSelectionChanged);
+	ReflectionToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleReflectionSelectionChanged);
+	AntiAliasingToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleAntiAliasingSelectionChanged);
+	TextureToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleTextureSelectionChanged);
+	EffectToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleEffectSelectionChanged);
+	PostProcessingToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandlePostProcessingSelectionChanged);
+	FoliageToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleFoliageSelectionChanged);
+	ShadingToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleShadingSelectionChanged);
 	MaxFpsDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleMaxFpsSelectionChanged);
 	VSyncToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleVSyncSelectionChanged);
 }
@@ -43,6 +69,7 @@ void UGraphicsSettingsPanelWidget::NativeConstruct()
 	InitWindowModeRow(Settings);
 	InitResolutionRow(Settings);
 	InitPresetRow(Settings);
+	InitQualityRows(Settings);
 	InitMaxFpsRow(Settings);
 	InitVSyncRow(Settings);
 }
@@ -114,8 +141,6 @@ void UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged(int32 InInde
 
 void UGraphicsSettingsPanelWidget::ApplySettingsAndKeepFocus(UGameUserSettings* Settings)
 {
-	if (!Settings) return;
-
 	Settings->ApplySettings(false);
 
 	if (AMAPlayerControllerBase* PC = GetOwningPlayer<AMAPlayerControllerBase>())
@@ -237,12 +262,13 @@ void UGraphicsSettingsPanelWidget::NudgeWindowedGameWindowDown() const
 void UGraphicsSettingsPanelWidget::InitPresetRow(const UGameUserSettings* Settings)
 {
 	TArray<FText> PresetOptions;
-	PresetOptions.Reserve(5);
+	PresetOptions.Reserve(6);
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetLow", "Low"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetMedium", "Medium"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetHigh", "High"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetEpic", "Epic"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetUltra", "Ultra"));
+	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetCustom", "Custom"));
 
 	SelectedPresetIndex = ResolvePresetIndex(Settings);
 
@@ -251,13 +277,19 @@ void UGraphicsSettingsPanelWidget::InitPresetRow(const UGameUserSettings* Settin
 
 void UGraphicsSettingsPanelWidget::HandlePresetSelectionChanged(int32 InIndex)
 {
-	SelectedPresetIndex = FMath::Clamp(InIndex, 0, 4);
-
 	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
 	if (!Settings) return;
+	if (InIndex == GPresetCustomIndex)
+	{
+		InitPresetRow(Settings);
+		return;
+	}
+
+	SelectedPresetIndex = FMath::Clamp(InIndex, 0, GPresetCustomIndex - 1);
 
 	ApplyPresetQualityLevel(Settings, SelectedPresetIndex);
 	ApplySettingsAndKeepFocus(Settings);
+	InitQualityRows(Settings);
 }
 
 int32 UGraphicsSettingsPanelWidget::ResolvePresetIndex(const UGameUserSettings* Settings) const
@@ -276,13 +308,11 @@ int32 UGraphicsSettingsPanelWidget::ResolvePresetIndex(const UGameUserSettings* 
 		Settings->GetFoliageQuality() == QualityLevel &&
 		Settings->GetShadingQuality() == QualityLevel;
 
-	return bMatchesSingleLevel ? FMath::Clamp(QualityLevel, 0, 4) : 2;
+	return bMatchesSingleLevel ? FMath::Clamp(QualityLevel, 0, GPresetCustomIndex - 1) : GPresetCustomIndex;
 }
 
 void UGraphicsSettingsPanelWidget::ApplyPresetQualityLevel(UGameUserSettings* Settings, int32 InQualityLevel) const
 {
-	if (!Settings) return;
-
 	const int32 QualityLevel = FMath::Clamp(InQualityLevel, 0, 4);
 	Settings->SetViewDistanceQuality(QualityLevel);
 	Settings->SetShadowQuality(QualityLevel);
@@ -294,6 +324,86 @@ void UGraphicsSettingsPanelWidget::ApplyPresetQualityLevel(UGameUserSettings* Se
 	Settings->SetPostProcessingQuality(QualityLevel);
 	Settings->SetFoliageQuality(QualityLevel);
 	Settings->SetShadingQuality(QualityLevel);
+}
+
+/** Quality **/
+void UGraphicsSettingsPanelWidget::InitQualityRows(const UGameUserSettings* Settings)
+{
+	InitQualityRow(ViewDistanceToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "ViewDistance", "View Distance"), Settings ? Settings->GetViewDistanceQuality() : 2);
+	InitQualityRow(ShadowToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Shadows", "Shadows"), Settings ? Settings->GetShadowQuality() : 2);
+	InitQualityRow(GlobalIlluminationToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "GlobalIllumination", "Global Illumination"), Settings ? Settings->GetGlobalIlluminationQuality() : 2);
+	InitQualityRow(ReflectionToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Reflections", "Reflections"), Settings ? Settings->GetReflectionQuality() : 2);
+	InitQualityRow(AntiAliasingToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "AntiAliasing", "Anti-Aliasing"), Settings ? Settings->GetAntiAliasingQuality() : 2);
+	InitQualityRow(TextureToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Textures", "Textures"), Settings ? Settings->GetTextureQuality() : 2);
+	InitQualityRow(EffectToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Effects", "Effects"), Settings ? Settings->GetVisualEffectQuality() : 2);
+	InitQualityRow(PostProcessingToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "PostProcessing", "Post Processing"), Settings ? Settings->GetPostProcessingQuality() : 2);
+	InitQualityRow(FoliageToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Foliage", "Foliage"), Settings ? Settings->GetFoliageQuality() : 2);
+	InitQualityRow(ShadingToggleRow, NSLOCTEXT("GraphicsSettingsPanel", "Shading", "Shading"), Settings ? Settings->GetShadingQuality() : 2);
+}
+
+void UGraphicsSettingsPanelWidget::InitQualityRow(USettingsToggleRowWidget* Row, const FText& Label, int32 InQualityLevel) const
+{
+	Row->SetupOptions(Label, GetQualityOptions(), FMath::Clamp(InQualityLevel, 0, GPresetCustomIndex - 1));
+}
+
+void UGraphicsSettingsPanelWidget::ApplySingleQualityLevel(int32 InIndex, void (UGameUserSettings::*Setter)(int32))
+{
+	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
+	if (!Settings) return;
+
+	(Settings->*Setter)(FMath::Clamp(InIndex, 0, GPresetCustomIndex - 1));
+	ApplySettingsAndKeepFocus(Settings);
+	InitPresetRow(Settings);
+}
+
+void UGraphicsSettingsPanelWidget::HandleViewDistanceSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetViewDistanceQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleShadowSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetShadowQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleGlobalIlluminationSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetGlobalIlluminationQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleReflectionSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetReflectionQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleAntiAliasingSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetAntiAliasingQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleTextureSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetTextureQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleEffectSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetVisualEffectQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandlePostProcessingSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetPostProcessingQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleFoliageSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetFoliageQuality);
+}
+
+void UGraphicsSettingsPanelWidget::HandleShadingSelectionChanged(int32 InIndex)
+{
+	ApplySingleQualityLevel(InIndex, &UGameUserSettings::SetShadingQuality);
 }
 
 /** Max FPS **/

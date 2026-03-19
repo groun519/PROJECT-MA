@@ -52,6 +52,51 @@ private:
 	int32 ResolvePresetIndex(const UGameUserSettings* Settings) const;
 	void ApplyPresetQualityLevel(UGameUserSettings* Settings, int32 InQualityLevel) const;
 
+	/** Quality **/
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> ViewDistanceToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> ShadowToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> GlobalIlluminationToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> ReflectionToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> AntiAliasingToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> TextureToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> EffectToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> PostProcessingToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> FoliageToggleRow;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> ShadingToggleRow;
+
+	void InitQualityRows(const UGameUserSettings* Settings);
+	void InitQualityRow(USettingsToggleRowWidget* Row, const FText& Label, int32 InQualityLevel) const;
+	void ApplySingleQualityLevel(int32 InIndex, void (UGameUserSettings::*Setter)(int32));
+	void HandleViewDistanceSelectionChanged(int32 InIndex);
+	void HandleShadowSelectionChanged(int32 InIndex);
+	void HandleGlobalIlluminationSelectionChanged(int32 InIndex);
+	void HandleReflectionSelectionChanged(int32 InIndex);
+	void HandleAntiAliasingSelectionChanged(int32 InIndex);
+	void HandleTextureSelectionChanged(int32 InIndex);
+	void HandleEffectSelectionChanged(int32 InIndex);
+	void HandlePostProcessingSelectionChanged(int32 InIndex);
+	void HandleFoliageSelectionChanged(int32 InIndex);
+	void HandleShadingSelectionChanged(int32 InIndex);
+
 	/** Max FPS **/
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsDropdownRowWidget> MaxFpsDropdownRow;

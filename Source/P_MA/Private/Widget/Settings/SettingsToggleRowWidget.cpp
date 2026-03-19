@@ -46,8 +46,6 @@ void USettingsToggleRowWidget::SetupOptions(const FText& InLabel, const TArray<F
 
 void USettingsToggleRowWidget::CacheToggleButtons()
 {
-	if (ToggleButtons.Num() > 0) return;
-
 	ToggleButtons.Reserve(5);
 	if (ToggleButton_0) ToggleButtons.Add(ToggleButton_0);
 	if (ToggleButton_1) ToggleButtons.Add(ToggleButton_1);
