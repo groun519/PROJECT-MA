@@ -6,8 +6,10 @@
 #include "OnlineSessionSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "MoviePlayer.h"
+#include "Engine/Engine.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameUserSettings.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
@@ -16,6 +18,12 @@
 void UMAGameInstance::Init()
 {
 	Super::Init();
+
+	if (UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
+	{
+		Settings->LoadSettings(false);
+		Settings->ApplySettings(false);
+	}
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UMAGameInstance::HandlePostLoadMapWithWorld);

@@ -60,6 +60,7 @@ void USettingsDropdownRowWidget::SetOptionEnabledFlags(const TArray<bool>& InEna
 
 void USettingsDropdownRowWidget::RefreshOptions()
 {
+	bUpdatingSelection = true;
 	Dropdown->ClearOptions();
 
 	for (const FText& Option : Options)
@@ -67,9 +68,12 @@ void USettingsDropdownRowWidget::RefreshOptions()
 		Dropdown->AddOption(Option.ToString());
 	}
 
-	if (!Options.IsValidIndex(SelectedIndex)) return;
+	if (!Options.IsValidIndex(SelectedIndex))
+	{
+		bUpdatingSelection = false;
+		return;
+	}
 
-	bUpdatingSelection = true;
 	Dropdown->SetSelectedOption(Options[SelectedIndex].ToString());
 	bUpdatingSelection = false;
 }

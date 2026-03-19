@@ -7,6 +7,7 @@
 #include "GraphicsSettingsPanelWidget.generated.h"
 
 class USettingsDropdownRowWidget;
+class USettingsToggleRowWidget;
 
 UCLASS()
 class P_MA_API UGraphicsSettingsPanelWidget : public USettingsPanelWidgetBase
@@ -14,6 +15,7 @@ class P_MA_API UGraphicsSettingsPanelWidget : public USettingsPanelWidgetBase
 	GENERATED_BODY()
 
 public:
+	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 
 private:
@@ -35,10 +37,10 @@ private:
 	void InitResolutionRow(const UGameUserSettings* Settings);
 	void HandleResolutionSelectionChanged(int32 InIndex);
 	void ApplyResolutionForCurrentMode();
-	void ApplyFullscreenResolutionScale();
-	void ApplyWindowedResolution();
+	void ApplyDirectResolution();
 	void SetScreenPercentage(float Value);
 	FIntPoint GetDesktopResolution() const;
+	void NudgeWindowedGameWindowDown() const;
 
 	/** Preset **/
 	UPROPERTY(meta = (BindWidget))
@@ -47,13 +49,20 @@ private:
 	int32 SelectedPresetIndex = 2;
 	void InitPresetRow(const UGameUserSettings* Settings);
 	void HandlePresetSelectionChanged(int32 InIndex);
+	int32 ResolvePresetIndex(const UGameUserSettings* Settings) const;
+	void ApplyPresetQualityLevel(UGameUserSettings* Settings, int32 InQualityLevel) const;
 
 	/** Max FPS **/
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsDropdownRowWidget> MaxFpsDropdownRow;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USettingsToggleRowWidget> VSyncToggleRow;
+
 	int32 SelectedMaxFpsIndex = 1;
 	int32 SelectedMaxFpsValue = 60;
 	void InitMaxFpsRow(const UGameUserSettings* Settings);
 	void HandleMaxFpsSelectionChanged(int32 InIndex);
+	void InitVSyncRow(const UGameUserSettings* Settings);
+	void HandleVSyncSelectionChanged(int32 InIndex);
 };

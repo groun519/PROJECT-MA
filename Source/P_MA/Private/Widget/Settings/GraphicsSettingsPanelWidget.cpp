@@ -3,23 +3,36 @@
 #include "Widget/Settings/GraphicsSettingsPanelWidget.h"
 
 #include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/GameUserSettings.h"
-#include "GenericPlatform/GenericApplication.h"
 #include "HAL/IConsoleManager.h"
 #include "Player/MAPlayerControllerBase.h"
+#include "Widgets/SWindow.h"
 #include "Widget/Settings/SettingsDropdownRowWidget.h"
+#include "Widget/Settings/SettingsToggleRowWidget.h"
 
 namespace
 {
 	const TArray<FIntPoint> GResolutionValues =
 	{
-		FIntPoint(960, 540),
 		FIntPoint(1280, 720),
 		FIntPoint(1600, 900),
 		FIntPoint(1920, 1080),
 	};
 
 	const TArray<int32> GMaxFpsValues = { 30, 60, 80, 120, 144, 0 };
+}
+
+void UGraphicsSettingsPanelWidget::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
+	WindowModeDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged);
+	ResolutionDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleResolutionSelectionChanged);
+	PresetDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandlePresetSelectionChanged);
+	MaxFpsDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleMaxFpsSelectionChanged);
+	VSyncToggleRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleVSyncSelectionChanged);
 }
 
 void UGraphicsSettingsPanelWidget::NativeConstruct()
@@ -31,13 +44,12 @@ void UGraphicsSettingsPanelWidget::NativeConstruct()
 	InitResolutionRow(Settings);
 	InitPresetRow(Settings);
 	InitMaxFpsRow(Settings);
+	InitVSyncRow(Settings);
 }
 
 /** Window Mode **/
 void UGraphicsSettingsPanelWidget::InitWindowModeRow(const UGameUserSettings* Settings)
 {
-	if (!WindowModeDropdownRow) return;
-
 	TArray<FText> WindowModeOptions;
 	WindowModeOptions.Reserve(3);
 	WindowModeOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "Windowed", "Windowed"));
@@ -58,7 +70,6 @@ void UGraphicsSettingsPanelWidget::InitWindowModeRow(const UGameUserSettings* Se
 		break;
 	}
 
-	WindowModeDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged);
 	WindowModeDropdownRow->SetupOptions(NSLOCTEXT("GraphicsSettingsPanel", "WindowMode", "Window Mode"), WindowModeOptions, SelectedWindowModeIndex);
 }
 
@@ -82,7 +93,7 @@ void UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged(int32 InInde
 		break;
 	}
 
-	if (SelectedWindowModeIndex == 1 || SelectedWindowModeIndex == 2)
+	if (SelectedWindowModeIndex == 1)
 	{
 		const FIntPoint DesktopResolution = GetDesktopResolution();
 		if (DesktopResolution.X > 0 && DesktopResolution.Y > 0)
@@ -90,9 +101,15 @@ void UGraphicsSettingsPanelWidget::HandleWindowModeSelectionChanged(int32 InInde
 			Settings->SetScreenResolution(DesktopResolution);
 		}
 	}
+	else
+	{
+		Settings->SetScreenResolution(SelectedResolution);
+	}
 
+	SetScreenPercentage(100.0f);
 	ApplySettingsAndKeepFocus(Settings);
-	ApplyResolutionForCurrentMode();
+	if (SelectedWindowModeIndex == 0) NudgeWindowedGameWindowDown();
+	InitResolutionRow(Settings);
 }
 
 void UGraphicsSettingsPanelWidget::ApplySettingsAndKeepFocus(UGameUserSettings* Settings)
@@ -100,7 +117,6 @@ void UGraphicsSettingsPanelWidget::ApplySettingsAndKeepFocus(UGameUserSettings* 
 	if (!Settings) return;
 
 	Settings->ApplySettings(false);
-	Settings->SaveSettings();
 
 	if (AMAPlayerControllerBase* PC = GetOwningPlayer<AMAPlayerControllerBase>())
 	{
@@ -111,8 +127,6 @@ void UGraphicsSettingsPanelWidget::ApplySettingsAndKeepFocus(UGameUserSettings* 
 /** Resolution **/
 void UGraphicsSettingsPanelWidget::InitResolutionRow(const UGameUserSettings* Settings)
 {
-	if (!ResolutionDropdownRow) return;
-
 	TArray<FText> ResolutionOptions;
 	ResolutionOptions.Reserve(GResolutionValues.Num());
 
@@ -121,30 +135,15 @@ void UGraphicsSettingsPanelWidget::InitResolutionRow(const UGameUserSettings* Se
 		ResolutionOptions.Add(FText::FromString(FString::Printf(TEXT("%dx%d"), Value.X, Value.Y)));
 	}
 
-	FIntPoint BaseResolution = Settings ? Settings->GetScreenResolution() : FIntPoint(1920, 1080);
+	FIntPoint CurrentResolution = Settings ? Settings->GetScreenResolution() : FIntPoint(1920, 1080);
 	if (SelectedWindowModeIndex == 1)
 	{
 		const FIntPoint DesktopResolution = GetDesktopResolution();
 		if (DesktopResolution.X > 0 && DesktopResolution.Y > 0)
 		{
-			BaseResolution = DesktopResolution;
+			CurrentResolution = DesktopResolution;
 		}
 	}
-
-	float ScreenPercentage = 100.0f;
-	if (SelectedWindowModeIndex != 0)
-	{
-		if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage")))
-		{
-			ScreenPercentage = CVar->GetFloat();
-		}
-	}
-
-	const float Scale = FMath::Clamp(ScreenPercentage * 0.01f, 0.1f, 1.0f);
-	const FIntPoint CurrentResolution(
-		FMath::Max(1, FMath::RoundToInt(static_cast<float>(BaseResolution.X) * Scale)),
-		FMath::Max(1, FMath::RoundToInt(static_cast<float>(BaseResolution.Y) * Scale))
-	);
 	SelectedResolutionIndex = GResolutionValues.IndexOfByKey(CurrentResolution);
 
 	if (SelectedResolutionIndex == INDEX_NONE)
@@ -167,7 +166,7 @@ void UGraphicsSettingsPanelWidget::InitResolutionRow(const UGameUserSettings* Se
 	}
 
 	SelectedResolution = GResolutionValues.IsValidIndex(SelectedResolutionIndex) ? GResolutionValues[SelectedResolutionIndex] : FIntPoint(1920, 1080);
-	ResolutionDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleResolutionSelectionChanged);
+	ResolutionDropdownRow->SetIsEnabled(SelectedWindowModeIndex != 1);
 	ResolutionDropdownRow->SetupOptions(NSLOCTEXT("GraphicsSettingsPanel", "Resolution", "Resolution"), ResolutionOptions, SelectedResolutionIndex);
 }
 
@@ -183,32 +182,12 @@ void UGraphicsSettingsPanelWidget::HandleResolutionSelectionChanged(int32 InInde
 
 void UGraphicsSettingsPanelWidget::ApplyResolutionForCurrentMode()
 {
-	if (SelectedWindowModeIndex != 0)
-	{
-		ApplyFullscreenResolutionScale();
-		return;
-	}
+	if (SelectedWindowModeIndex == 1) return;
 
-	ApplyWindowedResolution();
+	ApplyDirectResolution();
 }
 
-void UGraphicsSettingsPanelWidget::ApplyFullscreenResolutionScale()
-{
-	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
-	if (!Settings) return;
-
-	const FIntPoint BaseResolution = (SelectedWindowModeIndex == 1) ? GetDesktopResolution() : Settings->GetScreenResolution();
-	if (BaseResolution.X <= 0 || BaseResolution.Y <= 0) return;
-
-	const float ScaleX = static_cast<float>(SelectedResolution.X) / static_cast<float>(BaseResolution.X);
-	const float ScaleY = static_cast<float>(SelectedResolution.Y) / static_cast<float>(BaseResolution.Y);
-	const float TargetScale = FMath::Clamp(FMath::Min(ScaleX, ScaleY) * 100.0f, 50.0f, 100.0f);
-
-	SetScreenPercentage(TargetScale);
-	Settings->SaveSettings();
-}
-
-void UGraphicsSettingsPanelWidget::ApplyWindowedResolution()
+void UGraphicsSettingsPanelWidget::ApplyDirectResolution()
 {
 	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
 	if (!Settings) return;
@@ -216,6 +195,7 @@ void UGraphicsSettingsPanelWidget::ApplyWindowedResolution()
 	Settings->SetScreenResolution(SelectedResolution);
 	ApplySettingsAndKeepFocus(Settings);
 	SetScreenPercentage(100.0f);
+	NudgeWindowedGameWindowDown();
 }
 
 void UGraphicsSettingsPanelWidget::SetScreenPercentage(float Value)
@@ -233,23 +213,39 @@ FIntPoint UGraphicsSettingsPanelWidget::GetDesktopResolution() const
 	return FIntPoint(Metrics.PrimaryDisplayWidth, Metrics.PrimaryDisplayHeight);
 }
 
+void UGraphicsSettingsPanelWidget::NudgeWindowedGameWindowDown() const
+{
+	if (!FSlateApplication::IsInitialized()) return;
+	if (!GEngine || !GEngine->GameViewport) return;
+
+	const TSharedPtr<SWindow> GameWindow = GEngine->GameViewport->GetWindow();
+	if (!GameWindow.IsValid() || GameWindow->GetWindowMode() != EWindowMode::Windowed) return;
+
+	const FVector2D WindowPosition = GameWindow->GetPositionInScreen();
+	const FVector2D WindowSize = GameWindow->GetSizeInScreen();
+	const FSlateRect WorkArea = FSlateApplication::Get().GetWorkArea(FSlateRect::FromPointAndExtent(WindowPosition, WindowSize));
+	const float TargetX = FMath::Max(WindowPosition.X, WorkArea.Left);
+	const float TargetY = FMath::Max(WindowPosition.Y, WorkArea.Top + 24.0f);
+
+	if (!FMath::IsNearlyEqual(TargetX, WindowPosition.X) || !FMath::IsNearlyEqual(TargetY, WindowPosition.Y))
+	{
+		GameWindow->MoveWindowTo(FVector2D(TargetX, TargetY));
+	}
+}
+
 /** Preset **/
 void UGraphicsSettingsPanelWidget::InitPresetRow(const UGameUserSettings* Settings)
 {
-	if (!PresetDropdownRow) return;
-
 	TArray<FText> PresetOptions;
 	PresetOptions.Reserve(5);
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetLow", "Low"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetMedium", "Medium"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetHigh", "High"));
 	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetEpic", "Epic"));
-	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetCinematic", "Cinematic"));
+	PresetOptions.Add(NSLOCTEXT("GraphicsSettingsPanel", "PresetUltra", "Ultra"));
 
-	const int32 CurrentPreset = Settings ? Settings->GetOverallScalabilityLevel() : 2;
-	SelectedPresetIndex = FMath::Clamp(CurrentPreset, 0, 4);
+	SelectedPresetIndex = ResolvePresetIndex(Settings);
 
-	PresetDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandlePresetSelectionChanged);
 	PresetDropdownRow->SetupOptions(NSLOCTEXT("GraphicsSettingsPanel", "Preset", "Preset"), PresetOptions, SelectedPresetIndex);
 }
 
@@ -260,15 +256,49 @@ void UGraphicsSettingsPanelWidget::HandlePresetSelectionChanged(int32 InIndex)
 	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
 	if (!Settings) return;
 
-	Settings->SetOverallScalabilityLevel(SelectedPresetIndex);
+	ApplyPresetQualityLevel(Settings, SelectedPresetIndex);
 	ApplySettingsAndKeepFocus(Settings);
+}
+
+int32 UGraphicsSettingsPanelWidget::ResolvePresetIndex(const UGameUserSettings* Settings) const
+{
+	if (!Settings) return 2;
+
+	const int32 QualityLevel = Settings->GetViewDistanceQuality();
+	const bool bMatchesSingleLevel =
+		Settings->GetShadowQuality() == QualityLevel &&
+		Settings->GetGlobalIlluminationQuality() == QualityLevel &&
+		Settings->GetReflectionQuality() == QualityLevel &&
+		Settings->GetAntiAliasingQuality() == QualityLevel &&
+		Settings->GetTextureQuality() == QualityLevel &&
+		Settings->GetVisualEffectQuality() == QualityLevel &&
+		Settings->GetPostProcessingQuality() == QualityLevel &&
+		Settings->GetFoliageQuality() == QualityLevel &&
+		Settings->GetShadingQuality() == QualityLevel;
+
+	return bMatchesSingleLevel ? FMath::Clamp(QualityLevel, 0, 4) : 2;
+}
+
+void UGraphicsSettingsPanelWidget::ApplyPresetQualityLevel(UGameUserSettings* Settings, int32 InQualityLevel) const
+{
+	if (!Settings) return;
+
+	const int32 QualityLevel = FMath::Clamp(InQualityLevel, 0, 4);
+	Settings->SetViewDistanceQuality(QualityLevel);
+	Settings->SetShadowQuality(QualityLevel);
+	Settings->SetGlobalIlluminationQuality(QualityLevel);
+	Settings->SetReflectionQuality(QualityLevel);
+	Settings->SetAntiAliasingQuality(QualityLevel);
+	Settings->SetTextureQuality(QualityLevel);
+	Settings->SetVisualEffectQuality(QualityLevel);
+	Settings->SetPostProcessingQuality(QualityLevel);
+	Settings->SetFoliageQuality(QualityLevel);
+	Settings->SetShadingQuality(QualityLevel);
 }
 
 /** Max FPS **/
 void UGraphicsSettingsPanelWidget::InitMaxFpsRow(const UGameUserSettings* Settings)
 {
-	if (!MaxFpsDropdownRow) return;
-
 	TArray<FText> Options;
 	Options.Reserve(GMaxFpsValues.Num());
 
@@ -306,7 +336,6 @@ void UGraphicsSettingsPanelWidget::InitMaxFpsRow(const UGameUserSettings* Settin
 
 	SelectedMaxFpsValue = GMaxFpsValues.IsValidIndex(SelectedMaxFpsIndex) ? GMaxFpsValues[SelectedMaxFpsIndex] : 60;
 
-	MaxFpsDropdownRow->OnSelectionChanged.AddUObject(this, &UGraphicsSettingsPanelWidget::HandleMaxFpsSelectionChanged);
 	MaxFpsDropdownRow->SetupOptions(NSLOCTEXT("GraphicsSettingsPanel", "MaxFps", "Max FPS"), Options, SelectedMaxFpsIndex);
 }
 
@@ -321,5 +350,29 @@ void UGraphicsSettingsPanelWidget::HandleMaxFpsSelectionChanged(int32 InIndex)
 	if (!Settings) return;
 
 	Settings->SetFrameRateLimit(static_cast<float>(SelectedMaxFpsValue));
+	ApplySettingsAndKeepFocus(Settings);
+}
+
+/** VSync **/
+void UGraphicsSettingsPanelWidget::InitVSyncRow(const UGameUserSettings* Settings)
+{
+	const bool bVSyncEnabled = Settings ? Settings->IsVSyncEnabled() : false;
+	const int32 SelectedIndex = bVSyncEnabled ? 0 : 1;
+	const TArray<FText> Options =
+	{
+		NSLOCTEXT("GraphicsSettingsPanel", "VSyncOn", "On"),
+		NSLOCTEXT("GraphicsSettingsPanel", "VSyncOff", "Off")
+	};
+
+	VSyncToggleRow->SetupOptions(NSLOCTEXT("GraphicsSettingsPanel", "VSync", "VSync"), Options, SelectedIndex);
+}
+
+void UGraphicsSettingsPanelWidget::HandleVSyncSelectionChanged(int32 InIndex)
+{
+	UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
+	if (!Settings) return;
+
+	const bool bEnable = (InIndex == 0);
+	Settings->SetVSyncEnabled(bEnable);
 	ApplySettingsAndKeepFocus(Settings);
 }
