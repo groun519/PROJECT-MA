@@ -7,6 +7,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "MoviePlayer.h"
 #include "Engine/Engine.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/GameUserSettings.h"
@@ -15,6 +18,13 @@
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Framework/LoadoutSaveGame.h"
 
+namespace
+{
+	const TCHAR* GLanguageSettingsSection = TEXT("MA.Localization");
+	const TCHAR* GLanguageCultureKey = TEXT("LanguageCulture");
+}
+
+/** Lifecycle **/
 void UMAGameInstance::Init()
 {
 	Super::Init();
@@ -24,6 +34,7 @@ void UMAGameInstance::Init()
 		Settings->LoadSettings(false);
 		Settings->ApplySettings(false);
 	}
+	LoadLanguageSetting();
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UMAGameInstance::HandlePostLoadMapWithWorld);
@@ -53,6 +64,44 @@ void UMAGameInstance::Init()
 	}
 }
 
+/** Localization **/
+FString UMAGameInstance::GetCurrentLanguageCulture() const
+{
+	return NormalizeLanguageCulture(FInternationalization::Get().GetCurrentLanguage()->GetName());
+}
+
+void UMAGameInstance::SetCurrentLanguageCulture(const FString& InCulture)
+{
+	ApplyLanguageSetting(InCulture);
+	SaveLanguageSetting(InCulture);
+}
+
+void UMAGameInstance::LoadLanguageSetting()
+{
+	FString Culture;
+	GConfig->GetString(GLanguageSettingsSection, GLanguageCultureKey, Culture, GGameUserSettingsIni);
+	ApplyLanguageSetting(Culture);
+}
+
+void UMAGameInstance::SaveLanguageSetting(const FString& InCulture) const
+{
+	GConfig->SetString(GLanguageSettingsSection, GLanguageCultureKey, *NormalizeLanguageCulture(InCulture), GGameUserSettingsIni);
+	GConfig->Flush(false, GGameUserSettingsIni);
+}
+
+void UMAGameInstance::ApplyLanguageSetting(const FString& InCulture) const
+{
+	FInternationalization::Get().SetCurrentLanguageAndLocale(NormalizeLanguageCulture(InCulture));
+}
+
+FString UMAGameInstance::NormalizeLanguageCulture(const FString& InCulture) const
+{
+	if (InCulture.StartsWith(TEXT("ko"))) return TEXT("ko");
+	if (InCulture.StartsWith(TEXT("en"))) return TEXT("en");
+	return DefaultLanguageCulture.IsEmpty() ? TEXT("en") : DefaultLanguageCulture;
+}
+
+/** Lifecycle **/
 void UMAGameInstance::Shutdown()
 {
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
@@ -75,6 +124,7 @@ const ULoadoutDataSet* UMAGameInstance::TryGetLoadoutDataSet() const
 	return LoadoutDataSet;
 }
 
+/** Online **/
 void UMAGameInstance::HostSession(int32 MaxPlayers, bool bIsLAN)
 {
 	if (!SessionInterface.IsValid()) return;
@@ -123,6 +173,7 @@ void UMAGameInstance::DestroySession()
 	SessionInterface->DestroySession(NAME_GameSession);
 }
 
+/** Loading **/
 void UMAGameInstance::StartLoadingScreen()
 {
 	if (bLoadingScreenActive) return;
@@ -300,6 +351,7 @@ void UMAGameInstance::NotifyLocalLoadingVisualComplete()
 	TrySendLocalLoadedNotify();
 }
 
+/** Online **/
 void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
 {
 	if (!LoadedWorld) return;
@@ -427,6 +479,7 @@ void UMAGameInstance::UpdateLoadingStatus()
 
 }
 
+/** Loadout **/
 void UMAGameInstance::SaveLoadout(const FLoadoutSelection& Loadout)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return;
@@ -491,6 +544,7 @@ bool UMAGameInstance::AreAllPlayersLoaded(UWorld* World) const
 	return Total > 0 && Loaded == Total;
 }
 
+/** Online **/
 void UMAGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	if (!SessionInterface.IsValid()) return;

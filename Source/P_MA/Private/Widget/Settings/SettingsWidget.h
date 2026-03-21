@@ -19,8 +19,13 @@ public:
 	virtual void NativeConstruct() override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
+	void SetInitialCategory(ESettingsCategory NewCategory);
+
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 	void SetActiveCategory(ESettingsCategory NewCategory);
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	ESettingsCategory GetActiveCategory() const { return ActiveCategory; }
 
 protected:
 	UPROPERTY(meta = (BindWidget))
@@ -39,6 +44,8 @@ protected:
 	TObjectPtr<UWidgetSwitcher> SettingsPanelSwitcher;
 
 private:
+	ESettingsCategory ActiveCategory = ESettingsCategory::Graphics;
+
 	void UpdateCategorySelection(ESettingsCategory ActiveCategory);
 
 	UFUNCTION()

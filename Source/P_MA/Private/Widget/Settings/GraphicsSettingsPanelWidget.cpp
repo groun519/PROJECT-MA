@@ -414,7 +414,7 @@ void UGraphicsSettingsPanelWidget::InitMaxFpsRow(const UGameUserSettings* Settin
 
 	for (int32 Value : GMaxFpsValues)
 	{
-		Options.Add(Value > 0 ? FText::AsNumber(Value) : FText::FromString(TEXT("Unlimited")));
+		Options.Add(Value > 0 ? FText::AsNumber(Value) : NSLOCTEXT("GraphicsSettingsPanel", "Unlimited", "Unlimited"));
 	}
 
 	const float CurrentLimit = Settings ? Settings->GetFrameRateLimit() : 60.0f;

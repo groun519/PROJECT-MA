@@ -98,6 +98,15 @@ void AMAPlayerControllerBase::RefreshSettingsFocus()
 	ApplyGameAndUiInputMode();
 }
 
+void AMAPlayerControllerBase::ReopenSettingsWidget()
+{
+	if (!ActiveSettingsWidget || !ActiveSettingsWidget->IsInViewport()) return;
+
+	const ESettingsCategory ActiveCategory = ActiveSettingsWidget->GetActiveCategory();
+	CloseSettingsWidget();
+	OpenSettingsWidget(ActiveCategory);
+}
+
 void AMAPlayerControllerBase::ApplySystemMenuClosedInputMode()
 {
 	ApplyGameAndUiInputMode();
@@ -131,7 +140,7 @@ void AMAPlayerControllerBase::HandleSystemMenuActionRequested(ESystemMenuAction 
 		break;
 	case ESystemMenuAction::Settings:
 		CloseSystemMenu();
-		OpenSettingsWidget();
+		OpenSettingsWidget(ESettingsCategory::Graphics);
 		break;
 	case ESystemMenuAction::Exit:
 		UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, false);
@@ -141,10 +150,11 @@ void AMAPlayerControllerBase::HandleSystemMenuActionRequested(ESystemMenuAction 
 	}
 }
 
-void AMAPlayerControllerBase::OpenSettingsWidget()
+void AMAPlayerControllerBase::OpenSettingsWidget(ESettingsCategory InitialCategory)
 {
 	if (ActiveSettingsWidget && ActiveSettingsWidget->IsInViewport())
 	{
+		ActiveSettingsWidget->SetActiveCategory(InitialCategory);
 		ApplyWidgetFocusInputMode(ActiveSettingsWidget);
 		return;
 	}
@@ -154,6 +164,7 @@ void AMAPlayerControllerBase::OpenSettingsWidget()
 	ActiveSettingsWidget = CreateWidget<USettingsWidget>(this, SettingsWidgetClass);
 	if (!ActiveSettingsWidget) return;
 
+	ActiveSettingsWidget->SetInitialCategory(InitialCategory);
 	ActiveSettingsWidget->AddToViewport(210);
 	ApplyWidgetFocusInputMode(ActiveSettingsWidget);
 }

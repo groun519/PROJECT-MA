@@ -23,9 +23,18 @@ class P_MA_API UMAGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	/** Lifecycle **/
 	virtual void Init() override;
 	virtual void Shutdown() override;
 
+	/** Localization **/
+	UFUNCTION(BlueprintCallable, Category = "Localization")
+	FString GetCurrentLanguageCulture() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Localization")
+	void SetCurrentLanguageCulture(const FString& InCulture);
+
+	/** Online **/
 	UFUNCTION(BlueprintCallable, Category = "Online")
 	void HostSession(int32 MaxPlayers, bool bIsLAN);
 
@@ -35,6 +44,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Online")
 	void DestroySession();
 
+	/** Loading **/
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void StartLoadingScreen();
 
@@ -44,6 +54,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void UpdateLoadingStatus();
 
+	/** Loadout **/
 	UFUNCTION(BlueprintCallable, Category = "Loadout")
 	void SaveLoadout(const FLoadoutSelection& Loadout);
 
@@ -57,6 +68,13 @@ public:
 	const ULoadoutDataSet* TryGetLoadoutDataSet() const;
 
 private:
+	/** Localization **/
+	void LoadLanguageSetting();
+	void SaveLanguageSetting(const FString& InCulture) const;
+	void ApplyLanguageSetting(const FString& InCulture) const;
+	FString NormalizeLanguageCulture(const FString& InCulture) const;
+
+	/** Loading **/
 	void HandlePreLoadMap(const FString& MapName);
 	void HandlePostLoadMapWithWorld(UWorld* LoadedWorld);
 	void StartLocalMainMapFinishPhase(UWorld* LoadedWorld, const FString& LoadedMapName);
@@ -66,6 +84,7 @@ private:
 	void HandleBeginFrame();
 	void HandleMoviePlayerTick(float DeltaTime);
 
+	/** Online **/
 	void HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void HandleStartSessionComplete(FName SessionName, bool bWasSuccessful);
 	void HandleDestroySessionComplete(FName SessionName, bool bWasSuccessful);
@@ -78,6 +97,7 @@ private:
 	void JoinPendingInviteSession();
 	void HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
+	/** Online **/
 	IOnlineSessionPtr SessionInterface;
 	FDelegateHandle CreateSessionCompleteHandle;
 	FDelegateHandle StartSessionCompleteHandle;
@@ -85,6 +105,7 @@ private:
 	FDelegateHandle SessionInviteAcceptedHandle;
 	FDelegateHandle JoinSessionCompleteHandle;
 
+	/** Loading **/
 	UPROPERTY(EditAnywhere, Category = "Loading")
 	TSubclassOf<ULoadingScreenWidget> LoadingScreenWidgetClass;
 
@@ -113,6 +134,7 @@ private:
 	bool bLocalMainMapLoaded = false;
 	bool bLocalLoadedNotifySent = false;
 
+	/** Online **/
 	UPROPERTY(EditAnywhere, Category = "Online")
 	int32 LobbyMaxPlayers = 4;
 
@@ -125,6 +147,7 @@ private:
 	int32 PendingInviteControllerId = 0;
 	FOnlineSessionSearchResult PendingInviteResult;
 
+	/** Loadout **/
 	UPROPERTY(EditAnywhere, Category = "Loadout")
 	FString LoadoutSaveSlot = TEXT("LoadoutSlot");
 
@@ -133,4 +156,8 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Loadout")
 	TObjectPtr<ULoadoutDataSet> LoadoutDataSet;
+
+	/** Localization **/
+	UPROPERTY(EditAnywhere, Category = "Localization")
+	FString DefaultLanguageCulture = TEXT("en");
 };

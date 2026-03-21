@@ -11,6 +11,7 @@ class UInputMappingContext;
 class USettingsWidget;
 class USystemMenuWidget;
 class UUserWidget;
+enum class ESettingsCategory : uint8;
 enum class ESystemMenuAction : uint8;
 
 UCLASS()
@@ -32,6 +33,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void RefreshSettingsFocus();
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void ReopenSettingsWidget();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -59,5 +63,5 @@ protected:
 
 private:
 	void HandleSystemMenuActionRequested(ESystemMenuAction Action);
-	void OpenSettingsWidget();
+	void OpenSettingsWidget(ESettingsCategory InitialCategory);
 };
