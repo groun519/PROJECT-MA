@@ -40,5 +40,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
 	float AttackCooldown;
 
-	float LastAttackRequestTime;
+private:
+	static const FName TargetKeyName;
+	static const FName PlayerLocationKeyName;
+	static const FName AIStateKeyName;
+	static const FName ShouldRetreatKeyName;
 };

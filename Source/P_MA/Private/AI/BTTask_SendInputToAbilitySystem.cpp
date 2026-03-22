@@ -6,10 +6,9 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "AIController.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogBTTaskAbilitySystem, Log, All);
 
 EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
@@ -29,6 +28,10 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 	if (!Attr)
 		return EBTNodeResult::Failed;
 
+	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
+	if (!Blackboard)
+		return EBTNodeResult::Failed;
+	
 	const float Fury = Attr->GetFury();
 	const float Threshold = Monster->FuryThreshold;
 
@@ -42,7 +45,8 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 	const TCHAR* InputName = (InputToUse == EMAAbilityInputID::Skill1) ? TEXT("Skill1") : TEXT("Attack");
 
 	ASC->PressInputID(static_cast<int32>(InputToUse));
-
+	Blackboard->SetValueAsBool(TEXT("ShouldRetreat"), true);
+	
 	if (InputToUse == EMAAbilityInputID::Skill1)
 	{
 		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End"));
