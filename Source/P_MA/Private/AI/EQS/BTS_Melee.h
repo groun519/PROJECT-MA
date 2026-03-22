@@ -18,12 +18,27 @@ class UBTS_Melee : public UBTService
 
 public:
 	UBTS_Melee();
-	void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
+protected:
+	void SetAIState(UBlackboardComponent* Blackboard, EAIStateEnum NewState);
+
+public:
 	class AMonster* Monster;
 	AMAAIController* AIController;
 	FVector PlayerLoc;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	EAIStateEnum currentState;
+	EAIStateEnum CurrentState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+	float AttackRange;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+	float StrafeRange;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+	float AttackCooldown;
+
+	float LastAttackRequestTime;
 };
