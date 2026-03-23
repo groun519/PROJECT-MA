@@ -18,5 +18,7 @@ public:
 	UBTTask_ClearRetreat();
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Combat")
+	float StrafeAfterRetreatTime;
 };

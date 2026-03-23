@@ -11,6 +11,7 @@ const FName UBTS_Melee::TargetKeyName(TEXT("Target"));
 const FName UBTS_Melee::PlayerLocationKeyName(TEXT("PlayerLocation"));
 const FName UBTS_Melee::AIStateKeyName(TEXT("AIState"));
 const FName UBTS_Melee::ShouldRetreatKeyName(TEXT("ShouldRetreat"));
+const FName UBTS_Melee::AttackBlockedUntilKeyName(TEXT("AttackBlockedUntil"));
 
 UBTS_Melee::UBTS_Melee()
 {
@@ -40,32 +41,6 @@ void UBTS_Melee::SetAIState(UBlackboardComponent* Blackboard, EAIStateEnum NewSt
 	if (CurrentState == NewState)
 	{
 		return;
-	}
-
-	switch (NewState)
-	{
-	case EAIStateEnum::Attack:
-		UE_LOG(LogTemp, Warning, TEXT("[BTS] Set AIState = Attack"));
-		break;
-
-	case EAIStateEnum::Strafe:
-		UE_LOG(LogTemp, Warning, TEXT("[BTS] Set AIState = Strafe"));
-		break;
-
-	case EAIStateEnum::Chase:
-		UE_LOG(LogTemp, Warning, TEXT("[BTS] Set AIState = Chase"));
-		break;
-
-	case EAIStateEnum::Retreat:
-		UE_LOG(LogTemp, Warning, TEXT("[BTS] Set AIState = Retreat"));
-		break;
-
-	case EAIStateEnum::Patrol:
-		UE_LOG(LogTemp, Warning, TEXT("[BTS] Set AIState = Patrol"));
-		break;
-
-	default:
-		break;
 	}
 
 	CurrentState = NewState;
@@ -110,10 +85,20 @@ void UBTS_Melee::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, 
 	Blackboard->SetValueAsVector(PlayerLocationKeyName, PlayerLoc);
 
 	const float Distance = FVector::Dist(PlayerLoc, MonsterLoc);
-	
+	const float CurrentTime = Monster->GetWorld()->GetTimeSeconds();
+	const float AttackBlockedUntil = Blackboard->GetValueAsFloat(AttackBlockedUntilKeyName);
+	const bool bAttackBlocked = CurrentTime < AttackBlockedUntil;
+
 	if (Distance <= AttackRange)
 	{
-		SetAIState(Blackboard, EAIStateEnum::Attack);
+		if (bAttackBlocked)
+		{
+			SetAIState(Blackboard, EAIStateEnum::Strafe);
+		}
+		else
+		{
+			SetAIState(Blackboard, EAIStateEnum::Attack);
+		}
 		return;
 	}
 

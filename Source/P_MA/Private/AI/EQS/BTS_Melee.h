@@ -45,4 +45,5 @@ private:
 	static const FName PlayerLocationKeyName;
 	static const FName AIStateKeyName;
 	static const FName ShouldRetreatKeyName;
+	static const FName AttackBlockedUntilKeyName;
 };
