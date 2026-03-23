@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/EQS/BTTask_MoveToPlayer.h"
+#include "AI/AIBehaviorTree/BTTask_MoveToPlayer.h"
 
 #include "EAIStateEnum.h"
 #include "AI/Golem/Monster.h"

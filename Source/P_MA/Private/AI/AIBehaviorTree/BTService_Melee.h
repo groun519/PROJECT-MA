@@ -6,18 +6,18 @@
 #include "EAIStateEnum.h"
 #include "AI/MAAIController.h"
 #include "BehaviorTree/BTService.h"
-#include "BTS_Melee.generated.h"
+#include "BTService_Melee.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UBTS_Melee : public UBTService
+class UBTService_Melee : public UBTService
 {
 	GENERATED_BODY()
 
 public:
-	UBTS_Melee();
+	UBTService_Melee();
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 protected:

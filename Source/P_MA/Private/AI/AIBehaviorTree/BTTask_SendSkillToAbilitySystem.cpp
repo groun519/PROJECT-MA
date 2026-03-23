@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AI/BTTask_SendSkillToAbilitySystem.h"
+#include "AI/AIBehaviorTree/BTTask_SendSkillToAbilitySystem.h"
 
 #include "AI/Golem/Monster.h"
 #include "AbilitySystemBlueprintLibrary.h"

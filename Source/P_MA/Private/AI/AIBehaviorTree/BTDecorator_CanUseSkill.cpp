@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/EQS/BTDecorator_CanUseSkill.h"
+#include "AI/AIBehaviorTree/BTDecorator_CanUseSkill.h"
 
 #include "AI/Golem/Monster.h"
 #include "AbilitySystemBlueprintLibrary.h"

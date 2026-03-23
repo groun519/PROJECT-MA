@@ -1,18 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/EQS/BTS_SetFocus.h"
+#include "AI/AIBehaviorTree/BTService_SetFocus.h"
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
-UBTS_SetFocus::UBTS_SetFocus()
+UBTService_SetFocus::UBTService_SetFocus()
 {
 	NodeName = "Set Focus";
 	bNotifyTick = true;
 }
 
-void UBTS_SetFocus::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_SetFocus::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 

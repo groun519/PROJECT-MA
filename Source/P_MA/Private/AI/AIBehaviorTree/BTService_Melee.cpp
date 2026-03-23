@@ -1,19 +1,19 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AI/EQS/BTS_Melee.h"
+#include "AI/AIBehaviorTree/BTService_Melee.h"
 
 #include "AI/Golem/Monster.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Player/MAPlayerCharacter.h"
 
-const FName UBTS_Melee::TargetKeyName(TEXT("Target"));
-const FName UBTS_Melee::PlayerLocationKeyName(TEXT("PlayerLocation"));
-const FName UBTS_Melee::AIStateKeyName(TEXT("AIState"));
-const FName UBTS_Melee::ShouldRetreatKeyName(TEXT("ShouldRetreat"));
-const FName UBTS_Melee::AttackBlockedUntilKeyName(TEXT("AttackBlockedUntil"));
+const FName UBTService_Melee::TargetKeyName(TEXT("Target"));
+const FName UBTService_Melee::PlayerLocationKeyName(TEXT("PlayerLocation"));
+const FName UBTService_Melee::AIStateKeyName(TEXT("AIState"));
+const FName UBTService_Melee::ShouldRetreatKeyName(TEXT("ShouldRetreat"));
+const FName UBTService_Melee::AttackBlockedUntilKeyName(TEXT("AttackBlockedUntil"));
 
-UBTS_Melee::UBTS_Melee()
+UBTService_Melee::UBTService_Melee()
 {
 	NodeName = "Player Detect Service";
 
@@ -31,7 +31,7 @@ UBTS_Melee::UBTS_Melee()
 	PlayerLoc = FVector::ZeroVector;
 }
 
-void UBTS_Melee::SetAIState(UBlackboardComponent* Blackboard, EAIStateEnum NewState)
+void UBTService_Melee::SetAIState(UBlackboardComponent* Blackboard, EAIStateEnum NewState)
 {
 	if (Blackboard == nullptr)
 	{
@@ -47,7 +47,7 @@ void UBTS_Melee::SetAIState(UBlackboardComponent* Blackboard, EAIStateEnum NewSt
 	Blackboard->SetValueAsEnum(AIStateKeyName, static_cast<uint8>(CurrentState));
 }
 
-void UBTS_Melee::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService_Melee::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	if (Blackboard == nullptr)
