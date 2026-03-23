@@ -10,4 +10,6 @@ UCLASS()
 class P_MA_API UAudioSettingsPanelWidget : public USettingsPanelWidgetBase
 {
 	GENERATED_BODY()
+
+	/** Reserved **/
 };

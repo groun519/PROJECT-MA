@@ -4,6 +4,7 @@
 
 #include "Components/Button.h"
 
+/** Lifecycle **/
 void USettingsPanelWidgetBase::NativeConstruct()
 {
 	Super::NativeConstruct();

@@ -14,10 +14,12 @@ class P_MA_API UGameplaySettingsPanelWidget : public USettingsPanelWidgetBase
 	GENERATED_BODY()
 
 public:
+	/** Lifecycle **/
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 
 private:
+	/** Language **/
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsDropdownRowWidget> LanguageDropdownRow;
 

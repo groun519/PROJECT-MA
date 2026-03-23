@@ -29,6 +29,20 @@ void USettingsKeyBindingRowWidget::SetupSecondaryKey(const FText& InKeyText)
 	SetSecondaryKeyVisible(true);
 }
 
+void USettingsKeyBindingRowWidget::SetKeyTextBySlot(int32 SlotIndex, const FText& InKeyText)
+{
+	if (SlotIndex == 1)
+	{
+		if (!SecondaryKeyText) return;
+
+		SetKeyText(SecondaryKeyText, InKeyText);
+		SetSecondaryKeyVisible(true);
+		return;
+	}
+
+	SetKeyText(CurrentKeyText, InKeyText);
+}
+
 void USettingsKeyBindingRowWidget::SetKeyText(UTextBlock* TargetText, const FText& InKeyText)
 {
 	TargetText->SetText(InKeyText);

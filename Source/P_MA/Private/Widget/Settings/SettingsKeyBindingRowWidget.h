@@ -22,6 +22,7 @@ public:
 
 	void SetupRow(const FText& InActionName, const FText& InKeyText);
 	void SetupSecondaryKey(const FText& InKeyText);
+	void SetKeyTextBySlot(int32 SlotIndex, const FText& InKeyText);
 
 	FOnSettingsKeyBindingRowRebindRequested OnRebindRequested;
 	FOnSettingsKeyBindingRowActionRequested OnResetRequested;

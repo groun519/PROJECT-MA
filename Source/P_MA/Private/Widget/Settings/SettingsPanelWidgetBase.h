@@ -14,9 +14,11 @@ class P_MA_API USettingsPanelWidgetBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	/** Lifecycle **/
 	virtual void NativeConstruct() override;
 
 protected:
+	/** Default **/
 	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
 	void HandleDefaultRequested();
 

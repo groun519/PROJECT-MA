@@ -30,6 +30,7 @@ namespace
 	}
 }
 
+/** Lifecycle **/
 void UGameplaySettingsPanelWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -44,6 +45,7 @@ void UGameplaySettingsPanelWidget::NativeConstruct()
 	InitLanguageRow();
 }
 
+/** Language **/
 void UGameplaySettingsPanelWidget::InitLanguageRow()
 {
 	const UMAGameInstance* GameInstance = Cast<UMAGameInstance>(GetGameInstance());
