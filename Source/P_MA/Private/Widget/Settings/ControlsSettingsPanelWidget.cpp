@@ -3,13 +3,14 @@
 #include "Widget/Settings/ControlsSettingsPanelWidget.h"
 
 #include "Components/VerticalBox.h"
-#include "EnhancedInputSubsystems.h"
 #include "EnhancedActionKeyMapping.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputCoreTypes.h"
 #include "InputMappingContext.h"
-#include "UserSettings/EnhancedInputUserSettings.h"
 #include "Player/MAPlayerControllerBase.h"
-#include "Widget/Settings/SettingsKeyCaptureWidget.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
 #include "Widget/Settings/SettingsKeyBindingRowWidget.h"
+#include "Widget/Settings/SettingsKeyCaptureWidget.h"
 #include "Widget/Settings/SettingsSectionHeaderWidget.h"
 
 namespace
@@ -102,6 +103,7 @@ void UControlsSettingsPanelWidget::RegisterSourceContexts()
 	if (!UserSettings) return;
 
 	const TArray<TObjectPtr<UInputMappingContext>>* EffectiveSourceContexts = GetEffectiveSourceContexts();
+	if (!EffectiveSourceContexts) return;
 
 	for (const UInputMappingContext* Context : *EffectiveSourceContexts)
 	{
@@ -115,7 +117,7 @@ void UControlsSettingsPanelWidget::RebuildBindingRows()
 	const TSubclassOf<USettingsSectionHeaderWidget> EffectiveCategoryHeaderWidgetClass = GetEffectiveCategoryHeaderWidgetClass();
 	const TArray<TObjectPtr<UInputMappingContext>>* EffectiveSourceContexts = GetEffectiveSourceContexts();
 
-	if (!BindingRowsBox || !EffectiveKeyBindingRowClass || !GetOwningPlayer()) return;
+	if (!BindingRowsBox || !EffectiveKeyBindingRowClass || !GetOwningPlayer() || !EffectiveSourceContexts) return;
 
 	BindingRowsBox->ClearChildren();
 	RowMetadataByWidget.Empty();
@@ -190,6 +192,7 @@ void UControlsSettingsPanelWidget::RebuildBindingRows()
 		if (BindingRow.bHasSecondaryKey) Row->SetupSecondaryKey(BindingRow.SecondaryKeyText);
 		Row->OnRebindRequested.AddUObject(this, &UControlsSettingsPanelWidget::HandleRowRebindRequested);
 		Row->OnResetRequested.AddUObject(this, &UControlsSettingsPanelWidget::HandleRowResetRequested);
+
 		FBindingRowMeta RowMeta;
 		RowMeta.MappingName = BindingRow.MappingName;
 		RowMeta.DisplayName = BindingRow.DisplayName;
@@ -233,6 +236,18 @@ void UControlsSettingsPanelWidget::HandleRowResetRequested(USettingsKeyBindingRo
 	if (ResetBindingRow(RowMeta->MappingName)) RebuildBindingRows();
 }
 
+bool UControlsSettingsPanelWidget::IsDisallowedBindingKey(const FKey& Key) const
+{
+	return Key == EKeys::Escape
+		|| Key == EKeys::MouseWheelAxis
+		|| Key == EKeys::MouseX
+		|| Key == EKeys::MouseY
+		|| Key == EKeys::Pause
+		|| Key == EKeys::ScrollLock
+		|| Key == EKeys::MouseScrollUp
+		|| Key == EKeys::MouseScrollDown;
+}
+
 bool UControlsSettingsPanelWidget::FindBindingConflict(const FKey& NewKey, const FName IgnoredMappingName, int32 IgnoredSlotIndex, FText& OutConflictDisplayName) const
 {
 	if (!NewKey.IsValid()) return false;
@@ -241,6 +256,8 @@ bool UControlsSettingsPanelWidget::FindBindingConflict(const FKey& NewKey, const
 	if (!UserSettings) return false;
 
 	const TArray<TObjectPtr<UInputMappingContext>>* EffectiveSourceContexts = GetEffectiveSourceContexts();
+	if (!EffectiveSourceContexts) return false;
+
 	TMap<FName, int32> MappingSlotCounts;
 
 	for (const UInputMappingContext* Context : *EffectiveSourceContexts)
@@ -327,18 +344,6 @@ bool UControlsSettingsPanelWidget::ResetBindingRow(const FName MappingName)
 
 	ApplyAndSaveInputSettings(UserSettings);
 	return true;
-}
-
-bool UControlsSettingsPanelWidget::IsDisallowedBindingKey(const FKey& Key) const
-{
-	return Key == EKeys::Escape
-		|| Key == EKeys::MouseWheelAxis
-		|| Key == EKeys::MouseX
-		|| Key == EKeys::MouseY
-		|| Key == EKeys::Pause
-		|| Key == EKeys::ScrollLock
-		|| Key == EKeys::MouseScrollUp
-		|| Key == EKeys::MouseScrollDown;
 }
 
 FText UControlsSettingsPanelWidget::GetCurrentKeyText(UEnhancedInputUserSettings* UserSettings, const FName MappingName, int32 SlotIndex, const FKey& DefaultKey) const
