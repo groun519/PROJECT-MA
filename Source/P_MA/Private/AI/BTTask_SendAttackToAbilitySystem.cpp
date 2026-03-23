@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 
 EBTNodeResult::Type UBTTask_SendAttackToAbilitySystem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -27,9 +28,17 @@ EBTNodeResult::Type UBTTask_SendAttackToAbilitySystem::ExecuteTask(UBehaviorTree
 		return EBTNodeResult::Failed;
 	}
 
+	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
+	if (!Blackboard)
+	{
+		return EBTNodeResult::Failed;
+	}
+
 	const int32 InputID = static_cast<int32>(EMAAbilityInputID::Attack);
 	ASC->PressInputID(InputID);
 	ASC->ReleaseInputID(InputID);
+
+	Blackboard->SetValueAsBool(TEXT("ShouldRetreat"), true);
 
 	return EBTNodeResult::Succeeded;
 }
