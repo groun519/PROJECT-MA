@@ -27,6 +27,13 @@ public:
 	virtual void Init() override;
 	virtual void Shutdown() override;
 
+	/** Audio **/
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	float GetCurrentMasterVolume() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void SetCurrentMasterVolume(float InVolume);
+
 	/** Localization **/
 	UFUNCTION(BlueprintCallable, Category = "Localization")
 	FString GetCurrentLanguageCulture() const;
@@ -68,6 +75,12 @@ public:
 	const ULoadoutDataSet* TryGetLoadoutDataSet() const;
 
 private:
+	/** Audio **/
+	void LoadMasterVolumeSetting();
+	void SaveMasterVolumeSetting(float InVolume) const;
+	void ApplyMasterVolumeSetting(float InVolume) const;
+	float NormalizeMasterVolume(float InVolume) const;
+
 	/** Localization **/
 	void LoadLanguageSetting();
 	void SaveLanguageSetting(const FString& InCulture) const;
@@ -160,4 +173,8 @@ private:
 	/** Localization **/
 	UPROPERTY(EditAnywhere, Category = "Localization")
 	FString DefaultLanguageCulture = TEXT("en");
+
+	/** Audio **/
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	float DefaultMasterVolume = 1.0f;
 };
