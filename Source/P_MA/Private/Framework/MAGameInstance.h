@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "Player/Loadout/LoadoutTypes.h"
+#include "Misc/CoreDelegates.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
 #include "Widgets/SWidget.h"
-#include "Misc/CoreDelegates.h"
-#include "Player/Loadout/LoadoutTypes.h"
 #include "MAGameInstance.generated.h"
 
 class ULoadingScreenWidget;
@@ -26,13 +26,6 @@ public:
 	/** Lifecycle **/
 	virtual void Init() override;
 	virtual void Shutdown() override;
-
-	/** Audio **/
-	UFUNCTION(BlueprintCallable, Category = "Audio")
-	float GetCurrentMasterVolume() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Audio")
-	void SetCurrentMasterVolume(float InVolume);
 
 	/** Localization **/
 	UFUNCTION(BlueprintCallable, Category = "Localization")
@@ -75,12 +68,6 @@ public:
 	const ULoadoutDataSet* TryGetLoadoutDataSet() const;
 
 private:
-	/** Audio **/
-	void LoadMasterVolumeSetting();
-	void SaveMasterVolumeSetting(float InVolume) const;
-	void ApplyMasterVolumeSetting(float InVolume) const;
-	float NormalizeMasterVolume(float InVolume) const;
-
 	/** Localization **/
 	void LoadLanguageSetting();
 	void SaveLanguageSetting(const FString& InCulture) const;
@@ -173,8 +160,4 @@ private:
 	/** Localization **/
 	UPROPERTY(EditAnywhere, Category = "Localization")
 	FString DefaultLanguageCulture = TEXT("en");
-
-	/** Audio **/
-	UPROPERTY(EditAnywhere, Category = "Audio")
-	float DefaultMasterVolume = 1.0f;
 };

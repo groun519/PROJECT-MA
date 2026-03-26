@@ -2,18 +2,17 @@
 
 
 #include "MAGameInstance.h"
-#include "AudioDevice.h"
-#include "OnlineSubsystem.h"
-#include "OnlineSessionSettings.h"
-#include "Kismet/GameplayStatics.h"
-#include "MoviePlayer.h"
 #include "Engine/Engine.h"
-#include "Internationalization/Culture.h"
-#include "Internationalization/Internationalization.h"
-#include "Misc/ConfigCacheIni.h"
-#include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/ConfigCacheIni.h"
+#include "MoviePlayer.h"
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
+#include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
@@ -21,8 +20,6 @@
 
 namespace
 {
-	const TCHAR* GAudioSettingsSection = TEXT("MA.Audio");
-	const TCHAR* GMasterVolumeKey = TEXT("MasterVolume");
 	const TCHAR* GLanguageSettingsSection = TEXT("MA.Localization");
 	const TCHAR* GLanguageCultureKey = TEXT("LanguageCulture");
 }
@@ -37,7 +34,6 @@ void UMAGameInstance::Init()
 		Settings->LoadSettings(false);
 		Settings->ApplySettings(false);
 	}
-	LoadMasterVolumeSetting();
 	LoadLanguageSetting();
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
@@ -66,46 +62,6 @@ void UMAGameInstance::Init()
 			);
 		}
 	}
-}
-
-/** Audio **/
-float UMAGameInstance::GetCurrentMasterVolume() const
-{
-	float Volume = DefaultMasterVolume;
-	GConfig->GetFloat(GAudioSettingsSection, GMasterVolumeKey, Volume, GGameUserSettingsIni);
-	return NormalizeMasterVolume(Volume);
-}
-
-void UMAGameInstance::SetCurrentMasterVolume(float InVolume)
-{
-	ApplyMasterVolumeSetting(InVolume);
-	SaveMasterVolumeSetting(InVolume);
-}
-
-void UMAGameInstance::LoadMasterVolumeSetting()
-{
-	float Volume = DefaultMasterVolume;
-	GConfig->GetFloat(GAudioSettingsSection, GMasterVolumeKey, Volume, GGameUserSettingsIni);
-	ApplyMasterVolumeSetting(Volume);
-}
-
-void UMAGameInstance::SaveMasterVolumeSetting(float InVolume) const
-{
-	GConfig->SetFloat(GAudioSettingsSection, GMasterVolumeKey, NormalizeMasterVolume(InVolume), GGameUserSettingsIni);
-	GConfig->Flush(false, GGameUserSettingsIni);
-}
-
-void UMAGameInstance::ApplyMasterVolumeSetting(float InVolume) const
-{
-	if (FAudioDevice* AudioDevice = GEngine ? GEngine->GetMainAudioDeviceRaw() : nullptr)
-	{
-		AudioDevice->SetTransientPrimaryVolume(NormalizeMasterVolume(InVolume));
-	}
-}
-
-float UMAGameInstance::NormalizeMasterVolume(float InVolume) const
-{
-	return FMath::Clamp(InVolume, 0.0f, 1.0f);
 }
 
 /** Localization **/
