@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LoadoutColorButtonWidget.generated.h"
 
 class UButton;

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LoadoutEyeColorPresetData.generated.h"
 
 UCLASS(BlueprintType)

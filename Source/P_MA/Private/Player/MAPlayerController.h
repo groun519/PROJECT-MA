@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/MAPlayerControllerBase.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
 
@@ -22,7 +22,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FSt
  * 
  */
 UCLASS()
-class AMAPlayerController : public APlayerController, public IGenericTeamAgentInterface
+class AMAPlayerController : public AMAPlayerControllerBase, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -50,16 +50,7 @@ public:
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutWeaponId(FName WeaponId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutEyeShape(FName EyeShapeId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutMountId(FName MountId);
+	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
 
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
@@ -123,11 +114,8 @@ private:
 	
 	UFUNCTION()
 	void ToggleSkillBook();
-	// 마우스 커서 관련 여기 코드는 강의에는 없는 별도 코드입니다.
-	bool bOnMouseCursorRecord = false;
-	void CheckMouseCursorShape();
-	// 여기까지
 
+	/** Camera Shake **/
 	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
 	TSubclassOf<class UCameraShakeBase> RegularCameraShake;
 

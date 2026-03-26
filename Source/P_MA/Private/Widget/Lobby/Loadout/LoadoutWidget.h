@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LoadoutWidget.generated.h"
 
 class UButton;
@@ -21,7 +21,7 @@ class P_MA_API ULoadoutWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	void SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId, FName PendingMountId);
+	void SyncSelectionFromPending(const FLoadoutSelection& PendingLoadout);
 	void ActivateBodyTabUI();
 
 	UPROPERTY(meta=(BindWidget))

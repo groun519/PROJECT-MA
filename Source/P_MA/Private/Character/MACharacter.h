@@ -10,7 +10,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
 #include "Abilities/GameplayAbility.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
@@ -32,7 +32,7 @@ class AMACharacter : public ACharacter, public IAbilitySystemInterface, public I
 	GENERATED_BODY()
 
 public:
-	AMACharacter();
+	AMACharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	void ServerSideInit();
 	void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const;

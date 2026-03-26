@@ -27,6 +27,7 @@
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
+#include "Player/Components/MAPlayerCharacterMovementComponent.h"
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
@@ -37,7 +38,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
-AMAPlayerCharacter::AMAPlayerCharacter()
+AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -195,7 +197,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
-	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation();
+	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked();
 	if (!bBlockManualRotation)
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
@@ -217,7 +219,7 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	float AttachedYaw = 0.f;
 	// Simulated proxies must follow replicated rotation only.
 	if ((HasAuthority() || IsLocallyControlled()) &&
-		ReadyRideComponent && ReadyRideComponent->TryGetAttachedYaw(AttachedYaw))
+		ReadyRideComponent && ReadyRideComponent->TryGetRideYaw(AttachedYaw))
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
@@ -246,7 +248,7 @@ void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
-	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
 	if (IsDead()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
@@ -464,7 +466,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
-	if (ReadyRideComponent && ReadyRideComponent->ShouldBlockManualRotation()) return;
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
 	if (IsDead()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
@@ -533,35 +535,17 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 
 	if (CachedLoadoutPlayerState)
 	{
-		if (LoadoutColorChangedHandle.IsValid())
+		if (LoadoutChangedHandle.IsValid())
 		{
-			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
-			LoadoutColorChangedHandle.Reset();
-		}
-		if (LoadoutEyeShapeChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
-			LoadoutEyeShapeChangedHandle.Reset();
-		}
-		if (LoadoutWeaponChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
-			LoadoutWeaponChangedHandle.Reset();
-		}
-		if (LoadoutMountChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutMountChanged.Remove(LoadoutMountChangedHandle);
-			LoadoutMountChangedHandle.Reset();
+			CachedLoadoutPlayerState->OnLoadoutChanged.Remove(LoadoutChangedHandle);
+			LoadoutChangedHandle.Reset();
 		}
 	}
 
 	CachedLoadoutPlayerState = NewPlayerState;
 	if (!NewPlayerState) return;
 
-	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
-	LoadoutEyeShapeChangedHandle = NewPlayerState->OnLoadoutEyeShapeChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutEyeShapeChanged);
-	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
-	LoadoutMountChangedHandle = NewPlayerState->OnLoadoutMountChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutMountChanged);
+	LoadoutChangedHandle = NewPlayerState->OnLoadoutChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutChanged);
 
 	ApplyLoadoutFromPlayerState();
 }
@@ -570,10 +554,15 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 {
 	if (!CachedLoadoutPlayerState) return;
 
-	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
-	HandleLoadoutEyeShapeChanged(CachedLoadoutPlayerState->GetLoadoutEyeShapeId());
-	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
-	HandleLoadoutMountChanged(CachedLoadoutPlayerState->GetLoadoutMountId());
+	HandleLoadoutChanged(CachedLoadoutPlayerState->GetLoadoutSelection());
+}
+
+void AMAPlayerCharacter::HandleLoadoutChanged(const FLoadoutSelection& Loadout)
+{
+	HandleLoadoutColorChanged(Loadout.Color);
+	HandleLoadoutEyeShapeChanged(Loadout.EyeShapeId);
+	HandleLoadoutWeaponChanged(Loadout.WeaponId);
+	HandleLoadoutMountChanged(Loadout.MountId);
 }
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
@@ -611,7 +600,7 @@ void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (!WeaponComponent || WeaponId.IsNone()) return;
+	if (WeaponId.IsNone()) return;
 
 	const UDataTable* ResolvedWeaponDataTable = nullptr;
 	if (LoadoutComponent)
@@ -684,8 +673,6 @@ void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow*
 
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 {
-	if (!MountMesh) return;
-
 	UAnimSequence* RiderSequence = nullptr;
 
 	if (!MountId.IsNone() && LoadoutComponent)

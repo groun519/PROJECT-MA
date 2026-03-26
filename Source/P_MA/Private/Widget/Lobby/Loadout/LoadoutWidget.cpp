@@ -15,19 +15,19 @@ void ULoadoutWidget::NativeConstruct()
 
 	if (HeadTabButton)
 	{
-		HeadTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleHeadTabClicked);
+		HeadTabButton->OnClicked.AddUniqueDynamic(this, &ULoadoutWidget::HandleHeadTabClicked);
 	}
 	if (BodyTabButton)
 	{
-		BodyTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleBodyTabClicked);
+		BodyTabButton->OnClicked.AddUniqueDynamic(this, &ULoadoutWidget::HandleBodyTabClicked);
 	}
 	if (WeaponTabButton)
 	{
-		WeaponTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleWeaponTabClicked);
+		WeaponTabButton->OnClicked.AddUniqueDynamic(this, &ULoadoutWidget::HandleWeaponTabClicked);
 	}
 	if (MountTabButton)
 	{
-		MountTabButton->OnClicked.AddDynamic(this, &ULoadoutWidget::HandleMountTabClicked);
+		MountTabButton->OnClicked.AddUniqueDynamic(this, &ULoadoutWidget::HandleMountTabClicked);
 	}
 
 	SetActiveTab(1);
@@ -57,6 +57,7 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
 	{
 		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Weapon);
+		// Weapon tab only preview timing; kept as a fixed value by design.
 		PC->ApplyPendingWeaponPreviewDelayed(0.3f);
 	}
 }
@@ -64,6 +65,11 @@ void ULoadoutWidget::HandleWeaponTabClicked()
 void ULoadoutWidget::HandleMountTabClicked()
 {
 	SetActiveTab(3);
+
+	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
+	{
+		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Mount);
+	}
 }
 
 void ULoadoutWidget::SetActiveTab(int32 TabIndex)
@@ -97,25 +103,25 @@ void ULoadoutWidget::ActivateBodyTabUI()
 	SetActiveTab(1);
 }
 
-void ULoadoutWidget::SyncSelectionFromPending(const FMaterialParamDataPair& PendingColor, FName PendingEyeShapeId, FName PendingWeaponId, FName PendingMountId)
+void ULoadoutWidget::SyncSelectionFromPending(const FLoadoutSelection& PendingLoadout)
 {
 	if (BodyTabWidget)
 	{
-		BodyTabWidget->SyncFromPendingBody(PendingColor.BodyData);
+		BodyTabWidget->SyncFromPendingBody(PendingLoadout.Color.BodyData);
 	}
 
 	if (HeadTabWidget)
 	{
-		HeadTabWidget->SyncFromPendingHead(PendingColor.EyeData, PendingEyeShapeId);
+		HeadTabWidget->SyncFromPendingHead(PendingLoadout.Color.EyeData, PendingLoadout.EyeShapeId);
 	}
 
 	if (WeaponTabWidget)
 	{
-		WeaponTabWidget->SyncFromPendingWeapon(PendingWeaponId);
+		WeaponTabWidget->SyncFromPendingWeapon(PendingLoadout.WeaponId);
 	}
 
 	if (MountTabWidget)
 	{
-		MountTabWidget->SyncFromPendingMount(PendingMountId);
+		MountTabWidget->SyncFromPendingMount(PendingLoadout.MountId);
 	}
 }

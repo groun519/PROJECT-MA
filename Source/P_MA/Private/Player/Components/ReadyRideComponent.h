@@ -30,25 +30,26 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	void NotifyReadyRideAttachmentChanged(ARideRoot* InRideRoot);
-	bool IsAttachedReady() const;
-	bool ShouldBlockManualRotation() const { return IsAttachedReady(); }
-	bool TryGetAttachedYaw(float& OutYaw) const;
-	float GetAttachedMoveSpeed() const { return AttachedMoveSpeed; }
-	FVector GetAttachedMoveVelocity() const { return AttachedMoveVelocity; }
+	void SetRidingRoot(ARideRoot* InRideRoot);
+	bool IsRiding() const;
+	ARideRoot* GetRidingRoot() const { return RidingRoot; }
+	bool IsRideRotationLocked() const { return IsRiding(); }
+	bool TryGetRideYaw(float& OutYaw) const;
+	float GetRideMoveSpeed() const { return RideMoveSpeed; }
+	FVector GetRideMoveVelocity() const { return RideMoveVelocity; }
 	ERideMountState GetMountState() const { return MountState; }
 
 	void RefreshRideCollisionMode();
 	void HandleOwnerBaseChanged();
 
 private:
+	void SyncRideMovementBase() const;
 	void UpdateRideCollisionWithOtherPlayer(AMAPlayerCharacter* OwnerCharacter, AMAPlayerCharacter* OtherPlayer) const;
-	void HandleReplicatedAttachStateChanged(bool bNowAttached);
-	void ApplyRideState(bool bNowAttached);
-	void UpdateRideMovementMode(bool bNowAttached) const;
-	void UpdateTickPolicy(bool bAttachedByReady);
-	void UpdateMountState(bool bNowAttached);
-	void UpdateProxyMeshSmoothing(bool bNowAttached);
+	void ApplyRideState(bool bIsRiding);
+	void UpdateRideMovementMode(bool bIsRiding) const;
+	void UpdateTickPolicy(bool bIsRiding);
+	void UpdateMountState(bool bIsRiding);
+	void UpdateRemoteViewMeshSmoothing(bool bIsRiding);
 	void CacheOwnerMeshAttachment();
 	void AttachOwnerMeshToMount();
 	void RestoreOwnerMeshAttachment();
@@ -59,10 +60,9 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_RidingRoot)
 	TObjectPtr<ARideRoot> RidingRoot = nullptr;
 
-	bool bIsRidingPlatform = false;
-	bool bPrevAttachedReady = false;
-	float AttachedMoveSpeed = 0.f;
-	FVector AttachedMoveVelocity = FVector::ZeroVector;
+	bool bIsRidingState = false;
+	float RideMoveSpeed = 0.f;
+	FVector RideMoveVelocity = FVector::ZeroVector;
 	FVector PrevTickLocation = FVector::ZeroVector;
 	ERideMountState MountState = ERideMountState::None;
 	TWeakObjectPtr<USceneComponent> CachedOwnerMeshParent;

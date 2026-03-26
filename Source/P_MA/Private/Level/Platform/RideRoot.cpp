@@ -44,6 +44,8 @@ ARideRoot::ARideRoot()
 
 	MoveInTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MoveInTrigger"));
 	MoveInTrigger->SetupAttachment(RootComponent);
+	MoveInTrigger->SetMobility(EComponentMobility::Movable);
+	MoveInTrigger->SetNetAddressable();
 	MoveInTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MoveInTrigger->SetCollisionObjectType(ECC_WorldDynamic);
 	MoveInTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -108,11 +110,15 @@ void ARideRoot::ReleaseAttachedPlayers()
 		AMAPlayerCharacter* PlayerCharacter = *It;
 		if (!PlayerCharacter) continue;
 
-		USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent();
-		if (!PlayerRoot || PlayerRoot->GetAttachParent() != MoveInTrigger) continue;
+		UReadyRideComponent* ReadyRideComp = PlayerCharacter->GetReadyRideComponent();
+		if (!ReadyRideComp || ReadyRideComp->GetRidingRoot() != this) continue;
 
-		PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
+		if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
+		{
+			PlayerCharacter->SetBase(nullptr);
+		}
+
+		ReadyRideComp->SetRidingRoot(nullptr);
 	}
 }
 
@@ -297,27 +303,23 @@ void ARideRoot::SyncReadyByMoveInTrigger(bool bReady)
 
 		if (bReady)
 		{
-			PlayerCharacter->AttachToComponent(
-				MoveInTrigger,
-				FAttachmentTransformRules(
-					EAttachmentRule::KeepWorld,
-					EAttachmentRule::SnapToTarget,
-					EAttachmentRule::KeepWorld,
-					false));
-			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(this);
+			PlayerCharacter->SetBase(GetRideBaseComponent());
+			PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(this);
 		}
 		else
 		{
-			if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
+			if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
 			{
-				if (PlayerRoot->GetAttachParent() == MoveInTrigger)
-				{
-					PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-				}
+				PlayerCharacter->SetBase(nullptr);
 			}
-			PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
+			PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(nullptr);
 		}
 	}
+}
+
+UPrimitiveComponent* ARideRoot::GetRideBaseComponent() const
+{
+	return MoveInTrigger;
 }
 
 void ARideRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -333,14 +335,8 @@ void ARideRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 
 	ReadyComp->SetReady(true);
 
-	PlayerCharacter->AttachToComponent(
-		MoveInTrigger,
-		FAttachmentTransformRules(
-			EAttachmentRule::KeepWorld,
-			EAttachmentRule::SnapToTarget,
-			EAttachmentRule::KeepWorld,
-			false));
-	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(this);
+	PlayerCharacter->SetBase(GetRideBaseComponent());
+	PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(this);
 }
 
 void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -357,12 +353,9 @@ void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedCom
 
 	ReadyComp->SetReady(false);
 
-	if (USceneComponent* PlayerRoot = PlayerCharacter->GetRootComponent())
+	if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
 	{
-		if (PlayerRoot->GetAttachParent() == MoveInTrigger)
-		{
-			PlayerCharacter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		}
+		PlayerCharacter->SetBase(nullptr);
 	}
-	PlayerCharacter->GetReadyRideComponent()->NotifyReadyRideAttachmentChanged(nullptr);
+	PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(nullptr);
 }

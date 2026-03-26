@@ -26,11 +26,11 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				ReadyRideComp)
 			{
 				bIsMounted = ReadyRideComp->GetMountState() == ERideMountState::Mounted;
-				const bool bUseRideMovementSource = ReadyRideComp->IsAttachedReady();
+				const bool bUseRideMovementSource = ReadyRideComp->IsRiding();
 				if (bUseRideMovementSource)
 				{
-					Velocity = ReadyRideComp->GetAttachedMoveVelocity();
-					Speed = ReadyRideComp->GetAttachedMoveSpeed();
+					Velocity = ReadyRideComp->GetRideMoveVelocity();
+					Speed = ReadyRideComp->GetRideMoveSpeed();
 				}
 				else
 				{

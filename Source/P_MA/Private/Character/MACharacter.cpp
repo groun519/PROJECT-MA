@@ -24,7 +24,8 @@
 #include "P_MA/P_MA.h"
 #include "Player/Loadout/LoadoutComponent.h"
 
-AMACharacter::AMACharacter()
+AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
 

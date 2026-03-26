@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "LoadoutColorTypes.generated.h"
+#include "LoadoutTypes.generated.h"
 
 class UTexture2D;
 
@@ -62,4 +62,22 @@ struct FEyeShapeParamData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	TObjectPtr<UTexture2D> EyeTexture = nullptr;
+};
+
+USTRUCT(BlueprintType)
+struct FLoadoutSelection
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FMaterialParamDataPair Color;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FName WeaponId = TEXT("Weapon_Sword");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FName EyeShapeId = TEXT("EyeShape_Default");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	FName MountId = TEXT("Mount_Horse");
 };

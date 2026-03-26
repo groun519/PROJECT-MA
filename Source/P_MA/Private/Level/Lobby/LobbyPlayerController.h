@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/MAPlayerControllerBase.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LobbyAvatarState.h"
 #include "LobbyPlayerController.generated.h"
 
@@ -51,7 +51,7 @@ struct FLoadoutCameraViewSettings
 };
 
 UCLASS()
-class P_MA_API ALobbyPlayerController : public APlayerController
+class P_MA_API ALobbyPlayerController : public AMAPlayerControllerBase
 {
 	GENERATED_BODY()
 
@@ -60,13 +60,16 @@ public:
 	{
 		Head,
 		Body,
-		Weapon
+		Weapon,
+		Mount
 	};
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaTime) override;
 
+protected:
+public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void SetReady(bool bNewReady);
 
@@ -115,23 +118,15 @@ private:
 	void ApplyInterpTransition();
 	void ApplyInstantCameraTarget();
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
-	void CommitLoadoutColor();
-	void CommitLoadoutEyeShape();
-	void CommitLoadoutWeapon();
-	void CommitLoadoutMount();
+	void ApplyPendingMountPreview();
+	void EnsurePendingLoadoutInitialized();
+	void CommitPendingLoadout();
+	void SetLocalSlotMountPreviewVisible(bool bVisible);
+	void SetLocalSlotWeaponPreviewVisible(bool bVisible);
 	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutColor(const FMaterialParamDataPair& ColorData);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutWeaponId(FName WeaponId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutEyeShape(FName EyeShapeId);
-
-	UFUNCTION(Server, Reliable)
-	void ServerSetLoadoutMountId(FName MountId);
+	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLobbyState(ELobbyAvatarState NewState);
@@ -157,6 +152,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")
 	FLoadoutCameraViewSettings LoadoutWeaponView;
 
+	UPROPERTY(EditAnywhere, Category = "Lobby|Camera")
+	FLoadoutCameraViewSettings LoadoutMountView;
+
 	/** Cam Settings **/
 	UPROPERTY()
 	TObjectPtr<AActor> LobbyCameraActor;
@@ -173,12 +171,6 @@ private:
 	FLoadoutCameraViewSettings ActiveViewSettings;
 	bool bIsCameraFading = false;
 
-	FMaterialParamDataPair PendingLoadoutColor;
-	bool bHasPendingLoadoutColor = false;
-	FName PendingEyeShapeId = NAME_None;
-	bool bHasPendingEyeShape = false;
-	FName PendingWeaponId;
-	bool bHasPendingWeapon = false;
-	FName PendingMountId = NAME_None;
-	bool bHasPendingMount = false;
+	FLoadoutSelection PendingLoadout;
+	bool bHasPendingLoadout = false;
 };

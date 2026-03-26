@@ -34,7 +34,7 @@ class AMAPlayerCharacter : public AMACharacter
 	GENERATED_BODY()
 	
 public:
-	AMAPlayerCharacter();
+	AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	virtual void Tick(float DeltaTime) override;
 	virtual void PawnClientRestart() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -166,6 +166,7 @@ public:
 	/** Loadout **/
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
+	void HandleLoadoutChanged(const FLoadoutSelection& Loadout);
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
 	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
@@ -176,10 +177,7 @@ public:
 	void EquipWeaponFromSave();
 	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
 	
-	FDelegateHandle LoadoutColorChangedHandle;
-	FDelegateHandle LoadoutEyeShapeChangedHandle;
-	FDelegateHandle LoadoutWeaponChangedHandle;
-	FDelegateHandle LoadoutMountChangedHandle;
+	FDelegateHandle LoadoutChangedHandle;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
