@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Widget/Lobby/Loadout/LoadoutTabWidgetBase.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "LoadoutHeadTabWidget.generated.h"
 
 class UScrollBox;

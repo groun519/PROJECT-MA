@@ -526,35 +526,17 @@ void AMAPlayerCharacter::BindLoadoutDelegates()
 
 	if (CachedLoadoutPlayerState)
 	{
-		if (LoadoutColorChangedHandle.IsValid())
+		if (LoadoutChangedHandle.IsValid())
 		{
-			CachedLoadoutPlayerState->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
-			LoadoutColorChangedHandle.Reset();
-		}
-		if (LoadoutEyeShapeChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
-			LoadoutEyeShapeChangedHandle.Reset();
-		}
-		if (LoadoutWeaponChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
-			LoadoutWeaponChangedHandle.Reset();
-		}
-		if (LoadoutMountChangedHandle.IsValid())
-		{
-			CachedLoadoutPlayerState->OnLoadoutMountChanged.Remove(LoadoutMountChangedHandle);
-			LoadoutMountChangedHandle.Reset();
+			CachedLoadoutPlayerState->OnLoadoutChanged.Remove(LoadoutChangedHandle);
+			LoadoutChangedHandle.Reset();
 		}
 	}
 
 	CachedLoadoutPlayerState = NewPlayerState;
 	if (!NewPlayerState) return;
 
-	LoadoutColorChangedHandle = NewPlayerState->OnLoadoutColorChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutColorChanged);
-	LoadoutEyeShapeChangedHandle = NewPlayerState->OnLoadoutEyeShapeChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutEyeShapeChanged);
-	LoadoutWeaponChangedHandle = NewPlayerState->OnLoadoutWeaponChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutWeaponChanged);
-	LoadoutMountChangedHandle = NewPlayerState->OnLoadoutMountChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutMountChanged);
+	LoadoutChangedHandle = NewPlayerState->OnLoadoutChanged.AddUObject(this, &AMAPlayerCharacter::HandleLoadoutChanged);
 
 	ApplyLoadoutFromPlayerState();
 }
@@ -563,10 +545,15 @@ void AMAPlayerCharacter::ApplyLoadoutFromPlayerState()
 {
 	if (!CachedLoadoutPlayerState) return;
 
-	HandleLoadoutColorChanged(CachedLoadoutPlayerState->GetLoadoutColor());
-	HandleLoadoutEyeShapeChanged(CachedLoadoutPlayerState->GetLoadoutEyeShapeId());
-	HandleLoadoutWeaponChanged(CachedLoadoutPlayerState->GetLoadoutWeaponId());
-	HandleLoadoutMountChanged(CachedLoadoutPlayerState->GetLoadoutMountId());
+	HandleLoadoutChanged(CachedLoadoutPlayerState->GetLoadoutSelection());
+}
+
+void AMAPlayerCharacter::HandleLoadoutChanged(const FLoadoutSelection& Loadout)
+{
+	HandleLoadoutColorChanged(Loadout.Color);
+	HandleLoadoutEyeShapeChanged(Loadout.EyeShapeId);
+	HandleLoadoutWeaponChanged(Loadout.WeaponId);
+	HandleLoadoutMountChanged(Loadout.MountId);
 }
 
 void AMAPlayerCharacter::HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData)
@@ -604,7 +591,7 @@ void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (!WeaponComponent || WeaponId.IsNone()) return;
+	if (WeaponId.IsNone()) return;
 
 	const UDataTable* ResolvedWeaponDataTable = nullptr;
 	if (LoadoutComponent)
@@ -631,8 +618,6 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 {
-	if (!MountMesh) return;
-
 	UAnimSequence* RiderSequence = nullptr;
 
 	if (!MountId.IsNone() && LoadoutComponent)

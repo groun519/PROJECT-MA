@@ -8,6 +8,7 @@
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
+#include "Widget/System/SystemMenuWidget.h"
 #include "Widget/SkillBookWidget.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Inventory/MAFieldItem.h"
@@ -45,40 +46,19 @@ void AMAPlayerController::BeginPlay()
 
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 	{
-		FMaterialParamDataPair LoadedColor;
-		FName LoadedWeaponId = NAME_None;
-		FName LoadedEyeShapeId = NAME_None;
-		FName LoadedMountId = NAME_None;
-		if (GI->LoadLoadout(LoadedColor, LoadedWeaponId, LoadedEyeShapeId, LoadedMountId))
+		FLoadoutSelection LoadedLoadout;
+		if (GI->LoadLoadout(LoadedLoadout))
 		{
 			if (HasAuthority())
 			{
 				if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 				{
-					PS->SetLoadoutColor(LoadedColor);
-					PS->SetLoadoutEyeShapeId(LoadedEyeShapeId);
-					if (!LoadedWeaponId.IsNone())
-					{
-						PS->SetLoadoutWeaponId(LoadedWeaponId);
-					}
-					if (!LoadedMountId.IsNone())
-					{
-						PS->SetLoadoutMountId(LoadedMountId);
-					}
+					PS->SetLoadoutSelection(LoadedLoadout);
 				}
 			}
 			else
 			{
-				ServerSetLoadoutColor(LoadedColor);
-				ServerSetLoadoutEyeShape(LoadedEyeShapeId);
-				if (!LoadedWeaponId.IsNone())
-				{
-					ServerSetLoadoutWeaponId(LoadedWeaponId);
-				}
-				if (!LoadedMountId.IsNone())
-				{
-					ServerSetLoadoutMountId(LoadedMountId);
-				}
+				ServerSetLoadoutSelection(LoadedLoadout);
 			}
 		}
 	}
@@ -255,35 +235,11 @@ void AMAPlayerController::ServerNotifyLoaded_Implementation()
 	}
 }
 
-void AMAPlayerController::ServerSetLoadoutColor_Implementation(const FMaterialParamDataPair& ColorData)
+void AMAPlayerController::ServerSetLoadoutSelection_Implementation(const FLoadoutSelection& Loadout)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
-		PS->SetLoadoutColor(ColorData);
-	}
-}
-
-void AMAPlayerController::ServerSetLoadoutWeaponId_Implementation(FName WeaponId)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutWeaponId(WeaponId);
-	}
-}
-
-void AMAPlayerController::ServerSetLoadoutEyeShape_Implementation(FName EyeShapeId)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutEyeShapeId(EyeShapeId);
-	}
-}
-
-void AMAPlayerController::ServerSetLoadoutMountId_Implementation(FName MountId)
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadoutMountId(MountId);
+		PS->SetLoadoutSelection(Loadout);
 	}
 }
 

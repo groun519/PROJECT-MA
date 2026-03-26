@@ -56,6 +56,23 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 	FCollisionQueryParams QueryParams;
 	if (bIgnoreSelf) QueryParams.AddIgnoredActor(GetAvatarActorFromActorInfo());
+	const bool bDoSectorFilter = bUseSector && SectorAngle > 0.f;
+	FVector SectorForward = FVector::ForwardVector;
+	float SectorCosThreshold = -1.f;
+	if (bDoSectorFilter)
+	{
+		if (AActor* AvatarActor = GetAvatarActorFromActorInfo())
+		{
+			SectorForward = AvatarActor->GetActorForwardVector();
+		}
+		SectorForward.Z = 0.f;
+		if (!SectorForward.Normalize())
+		{
+			SectorForward = FVector::ForwardVector;
+		}
+		SectorCosThreshold = FMath::Cos(FMath::DegreesToRadians(SectorAngle * 0.5f));
+	}
+
 
 	TArray<FOverlapResult> OverlapResults;
 	if (TraceObjType == EVA_Shape::None)
@@ -108,6 +125,21 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	
 	for (const FOverlapResult& Result : OverlapResults)
 	{
+		AActor* HitActor = Result.GetActor();
+		if (!HitActor) continue;
+
+		if (HitActors.Contains(HitActor)) continue;
+
+		if (bDoSectorFilter)
+		{
+			FVector ToTarget = HitActor->GetActorLocation() - Center;
+			ToTarget.Z = 0.f;
+			if (!ToTarget.Normalize()) continue;
+
+			const float Dot = FVector::DotProduct(SectorForward, ToTarget);
+			if (Dot < SectorCosThreshold) continue;
+		}
+
 		// 중복 피격 방지
 		if (HitActors.Contains(Result.GetActor())) continue;
 
@@ -121,14 +153,11 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		 */
 		if (OwnerTeamInterface)
 		{
-			ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
-			if (OtherActorTeamAttitude != TargetTeam)
-			{
-				continue;
-			}
+			ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
+			if (OtherActorTeamAttitude != TargetTeam) continue;
 		}
 
-		HitActors.Add(Result.GetActor());
+		HitActors.Add(HitActor);
 		OutResults.Add(Result);
 	}
 	TArray<FHitResult> OutHits;

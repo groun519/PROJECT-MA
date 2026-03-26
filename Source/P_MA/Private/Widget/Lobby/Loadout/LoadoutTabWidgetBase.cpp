@@ -4,7 +4,7 @@
 #include "Components/Widget.h"
 #include "Components/ScrollBox.h"
 #include "Components/ScrollBoxSlot.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 
 void ULoadoutTabWidgetBase::AddButtonToScrollBox(UScrollBox* ScrollBox, UWidget* ButtonWidget, const FMargin& Padding)
 {

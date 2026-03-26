@@ -10,13 +10,13 @@
 #include "Framework/MAGameInstance.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarNameWidget.h"
 #include "Widget/Lobby/Avatar/LobbyAvatarReadyWidget.h"
-#include "Widget/Lobby/LobbyInviteWidget.h"
 #include "LobbyAvatarAnimInstance.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
+#include "Player/Mount/Data/MountData.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/DataTable.h"
-#include "Engine/Texture2D.h"
 
 ALobbyAvatarSlot::ALobbyAvatarSlot()
 {
@@ -33,6 +33,13 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 	/** Weapon SKM **/
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(AvatarMesh, WeaponSocketName);
+
+	/** Mount SKM **/
+	MountMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MountMesh"));
+	MountMesh->SetupAttachment(Root);
+	MountMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MountMesh->SetGenerateOverlapEvents(false);
+	MountMesh->SetCanEverAffectNavigation(false);
 
 	/** Spot Light **/
 	AvatarSpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("AvatarSpotLight"));
@@ -67,6 +74,7 @@ ALobbyAvatarSlot::ALobbyAvatarSlot()
 
 	AvatarMesh->SetVisibility(false, true);
 	WeaponMesh->SetVisibility(false, true);
+	MountMesh->SetVisibility(false, true);
 	NameWidget->SetVisibility(false, true);
 	ReadyWidget->SetVisibility(false, true);
 	InviteWidget->SetVisibility(false, true);
@@ -87,20 +95,10 @@ void ALobbyAvatarSlot::BeginPlay()
 
 void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 {
-	if (Occupant && LoadoutColorChangedHandle.IsValid())
+	if (Occupant && LoadoutChangedHandle.IsValid())
 	{
-		Occupant->OnLoadoutColorChanged.Remove(LoadoutColorChangedHandle);
-		LoadoutColorChangedHandle.Reset();
-	}
-	if (Occupant && LoadoutEyeShapeChangedHandle.IsValid())
-	{
-		Occupant->OnLoadoutEyeShapeChanged.Remove(LoadoutEyeShapeChangedHandle);
-		LoadoutEyeShapeChangedHandle.Reset();
-	}
-	if (Occupant && LoadoutWeaponChangedHandle.IsValid())
-	{
-		Occupant->OnLoadoutWeaponChanged.Remove(LoadoutWeaponChangedHandle);
-		LoadoutWeaponChangedHandle.Reset();
+		Occupant->OnLoadoutChanged.Remove(LoadoutChangedHandle);
+		LoadoutChangedHandle.Reset();
 	}
 
 	Occupant = NewPlayerState;
@@ -112,66 +110,42 @@ void ALobbyAvatarSlot::SetOccupant(AMAPlayerState* NewPlayerState)
 	{
 		SetOwner(nullptr);
 	}
-	if (NameWidget)
+	if (ULobbyAvatarNameWidget* NameUI = Cast<ULobbyAvatarNameWidget>(NameWidget->GetUserWidgetObject()))
 	{
-		if (NameWidgetClass)
-		{
-			NameWidget->SetWidgetClass(NameWidgetClass);
-		}
-		if (ULobbyAvatarNameWidget* NameUI = Cast<ULobbyAvatarNameWidget>(NameWidget->GetUserWidgetObject()))
-		{
-			const FString NewText = Occupant ? Occupant->GetPlayerName() : TEXT("Empty");
-			NameUI->SetNameText(NewText);
-		}
-		NameWidget->SetVisibility(Occupant != nullptr, true);
+		const FString NewText = Occupant ? Occupant->GetPlayerName() : TEXT("Empty");
+		NameUI->SetNameText(NewText);
 	}
-	if (ReadyWidget)
-	{
-		if (ReadyWidgetClass)
-		{
-			ReadyWidget->SetWidgetClass(ReadyWidgetClass);
-		}
-		ReadyWidget->SetVisibility(Occupant != nullptr, true);
-	}
-	if (InviteWidget)
-	{
-		if (InviteWidgetClass)
-		{
-			InviteWidget->SetWidgetClass(InviteWidgetClass);
-		}
-		InviteWidget->SetVisibility(Occupant == nullptr, true);
-	}
-	if (AvatarMesh)
-	{
-		AvatarMesh->SetVisibility(Occupant != nullptr, true);
-	}
-	if (WeaponMesh)
-	{
-		WeaponMesh->SetVisibility(Occupant != nullptr, true);
-	}
-	if (AvatarSpotLight)
-	{
-		AvatarSpotLight->SetVisibility(Occupant != nullptr, true);
-	}
+	NameWidget->SetVisibility(Occupant != nullptr, true);
+
+	ReadyWidget->SetVisibility(Occupant != nullptr, true);
+
+	InviteWidget->SetVisibility(Occupant == nullptr, true);
+
+	AvatarMesh->SetVisibility(Occupant != nullptr && !bMountPreviewVisible, true);
+	WeaponMesh->SetVisibility(Occupant != nullptr && !bMountPreviewVisible && bWeaponPreviewVisible, true);
+	const bool bShowMountPreview = Occupant != nullptr && bMountPreviewVisible && MountMesh->GetSkeletalMeshAsset() != nullptr;
+	MountMesh->SetVisibility(bShowMountPreview, true);
+	AvatarSpotLight->SetVisibility(Occupant != nullptr, true);
 
 	if (Occupant)
 	{
-		LoadoutColorChangedHandle = Occupant->OnLoadoutColorChanged.AddUObject(
+		LoadoutChangedHandle = Occupant->OnLoadoutChanged.AddUObject(
 			this,
-			&ALobbyAvatarSlot::ApplyLoadoutColor
+			&ALobbyAvatarSlot::HandleLoadoutChanged
 		);
-		LoadoutEyeShapeChangedHandle = Occupant->OnLoadoutEyeShapeChanged.AddUObject(
-			this,
-			&ALobbyAvatarSlot::ApplyLoadoutEyeShape
-		);
-		LoadoutWeaponChangedHandle = Occupant->OnLoadoutWeaponChanged.AddUObject(
-			this,
-			&ALobbyAvatarSlot::ApplyLoadoutWeaponId
-		);
-		ApplyLoadoutEyeShape(Occupant->GetLoadoutEyeShapeId());
-		ApplyLoadoutColor(Occupant->GetLoadoutColor());
-		ApplyLoadoutWeaponId(Occupant->GetLoadoutWeaponId());
+		HandleLoadoutChanged(Occupant->GetLoadoutSelection());
 	}
+	else
+	{
+		ApplyLoadoutMountId(NAME_None);
+	}
+}
+
+void ALobbyAvatarSlot::HandleLoadoutChanged(const FLoadoutSelection& Loadout)
+{
+	ApplyLoadoutEyeShape(Loadout.EyeShapeId);
+	ApplyLoadoutWeaponId(Loadout.WeaponId);
+	ApplyLoadoutColor(Loadout.Color);
 }
 
 void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
@@ -179,18 +153,18 @@ void ALobbyAvatarSlot::SetLocalHidden(bool bHide)
 	SetActorHiddenInGame(bHide);
 }
 
-void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
+bool ALobbyAvatarSlot::EnsureAvatarDynMat()
 {
-	if (!AvatarMesh) return;
-
 	if (!AvatarDynMat)
 	{
 		AvatarDynMat = AvatarMesh->CreateAndSetMaterialInstanceDynamic(0);
 	}
-	if (!AvatarDynMat)
-	{
-		return;
-	}
+	return AvatarDynMat != nullptr;
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutColor(const FMaterialParamDataPair& ColorData)
+{
+	if (!EnsureAvatarDynMat()) return;
 
 	AvatarDynMat->SetVectorParameterValue("Body_Color", ColorData.BodyData.Color);
 	AvatarDynMat->SetScalarParameterValue("Body_Emissive", ColorData.BodyData.Emissive);
@@ -218,37 +192,90 @@ void ALobbyAvatarSlot::ApplyLoadoutEyeShape(FName EyeShapeId)
 	CurrentEyeShapeData = FEyeShapeParamData();
 	LoadoutEyeShapeTableUtils::ResolveEyeShapeData(ResolvedEyeShapeDataTable, EyeShapeId, CurrentEyeShapeData);
 
-	if (!AvatarMesh)
+	if (!EnsureAvatarDynMat()) return;
+
+	AvatarDynMat->SetScalarParameterValue("Radius_Inner", CurrentEyeShapeData.RadiusInner);
+	AvatarDynMat->SetScalarParameterValue("Radius_Outter", CurrentEyeShapeData.RadiusOutter);
+	AvatarDynMat->SetScalarParameterValue("Softness", CurrentEyeShapeData.Softness);
+	AvatarDynMat->SetScalarParameterValue("Eye_Width", CurrentEyeShapeData.EyeWidth);
+	AvatarDynMat->SetScalarParameterValue("Eye_Height", CurrentEyeShapeData.EyeHeight);
+	AvatarDynMat->SetScalarParameterValue("_UseTexture", CurrentEyeShapeData.UseTexture);
+	AvatarDynMat->SetTextureParameterValue("_EyeTexture", CurrentEyeShapeData.EyeTexture);
+}
+
+void ALobbyAvatarSlot::ApplyLoadoutMountId(FName MountId)
+{
+	if (MountId.IsNone())
 	{
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
 		return;
 	}
 
-	if (!AvatarDynMat)
+	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
+	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
+	if (!MountDataTable)
 	{
-		AvatarDynMat = AvatarMesh->CreateAndSetMaterialInstanceDynamic(0);
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
+		return;
 	}
 
-	if (AvatarDynMat && Occupant)
+	const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LobbyAvatarSlotMountPreview"));
+	if (!Row)
 	{
-		ApplyLoadoutColor(Occupant->GetLoadoutColor());
+		MountMesh->SetSkeletalMesh(nullptr);
+		MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		MountMesh->SetAnimation(nullptr);
+		SetMountPreviewVisible(bMountPreviewVisible);
+		return;
 	}
+
+	MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
+	MountMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+
+	if (UAnimSequence* PreviewIdleAnimation = Row->PreviewIdleAnimation.LoadSynchronous())
+	{
+		MountMesh->PlayAnimation(PreviewIdleAnimation, true);
+	}
+	else
+	{
+		MountMesh->SetAnimation(nullptr);
+	}
+
+	SetMountPreviewVisible(bMountPreviewVisible);
+}
+
+void ALobbyAvatarSlot::SetMountPreviewVisible(bool bVisible)
+{
+	bMountPreviewVisible = bVisible;
+
+	const bool bShowAvatarMeshes = Occupant != nullptr && !bMountPreviewVisible;
+	AvatarMesh->SetVisibility(bShowAvatarMeshes, true);
+	WeaponMesh->SetVisibility(bShowAvatarMeshes && bWeaponPreviewVisible, true);
+	const bool bShowMountPreview = Occupant != nullptr && bMountPreviewVisible && MountMesh->GetSkeletalMeshAsset() != nullptr;
+	MountMesh->SetVisibility(bShowMountPreview, true);
+}
+
+void ALobbyAvatarSlot::SetWeaponPreviewVisible(bool bVisible)
+{
+	bWeaponPreviewVisible = bVisible;
+	const bool bShowWeapon = Occupant != nullptr && !bMountPreviewVisible && bWeaponPreviewVisible;
+	WeaponMesh->SetVisibility(bShowWeapon, true);
 }
 
 void ALobbyAvatarSlot::SetWeaponOnlyOwnerSee(bool bEnable)
 {
-	if (WeaponMesh)
-	{
-		WeaponMesh->SetOnlyOwnerSee(bEnable);
-	}
+	WeaponMesh->SetOnlyOwnerSee(bEnable);
 }
 
 void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 {
-	if (!WeaponMesh)
-	{
-		return;
-	}
-
 	if (WeaponId.IsNone())
 	{
 		WeaponMesh->SetSkeletalMesh(nullptr);
@@ -283,43 +310,29 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 
 void ALobbyAvatarSlot::ApplyLoadoutWeaponMesh(USkeletalMesh* Mesh, const FTransform& Offset)
 {
-	if (!WeaponMesh)
-	{
-		return;
-	}
-
 	WeaponMesh->SetSkeletalMesh(Mesh);
 	WeaponMesh->SetRelativeTransform(Offset);
 	WeaponMesh->SetHiddenInGame(false);
-	WeaponMesh->SetVisibility(true, true);
+	WeaponMesh->SetVisibility(Occupant != nullptr && !bMountPreviewVisible && bWeaponPreviewVisible, true);
 	WeaponMesh->SetOnlyOwnerSee(false);
 	WeaponMesh->SetOwnerNoSee(false);
 }
 void ALobbyAvatarSlot::SetLobbyState(ELobbyAvatarState State)
 {
-	if (!ReadyWidget || !Occupant)
-	{
-		return;
-	}
+	if (!Occupant) return;
 
 	if (ULobbyAvatarReadyWidget* ReadyUI = Cast<ULobbyAvatarReadyWidget>(ReadyWidget->GetUserWidgetObject()))
 	{
 		ReadyUI->SetLobbyState(State);
 	}
 
-	if (AvatarMesh)
+	if (ULobbyAvatarAnimInstance* LobbyAnim = Cast<ULobbyAvatarAnimInstance>(AvatarMesh->GetAnimInstance()))
 	{
-		if (ULobbyAvatarAnimInstance* LobbyAnim = Cast<ULobbyAvatarAnimInstance>(AvatarMesh->GetAnimInstance()))
-		{
-			LobbyAnim->SetLobbyState(State);
-		}
+		LobbyAnim->SetLobbyState(State);
 	}
 
-	if (AvatarSpotLight)
-	{
-		const FLinearColor LightColor = (State == ELobbyAvatarState::Ready)
-			? FLinearColor(0.1f, 0.9f, 0.1f, 1.0f)
-			: FLinearColor::White;
-		AvatarSpotLight->SetLightColor(LightColor);
-	}
+	const FLinearColor LightColor = (State == ELobbyAvatarState::Ready)
+		? FLinearColor(0.1f, 0.9f, 0.1f, 1.0f)
+		: FLinearColor::White;
+	AvatarSpotLight->SetLightColor(LightColor);
 }

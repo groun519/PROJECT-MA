@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
 #include "Abilities/GameplayAbility.h"
-#include "Player/Loadout/LoadoutColorTypes.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "MAPlayerState.generated.h"
 
 UCLASS()
@@ -17,25 +17,21 @@ public:
 	virtual void CopyProperties(APlayerState* PlayerState) override;
 	virtual void OverrideWith(APlayerState* PlayerState) override;
 
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutColorChanged, const FMaterialParamDataPair&);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponChanged, FName);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutEyeShapeChanged, FName);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutMountChanged, FName);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutChanged, const FLoadoutSelection&);
 
 	void SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill);
 	TSubclassOf<UGameplayAbility> GetDefaultSkill() const { return DefaultSkill; }
 
-	void SetLoadoutColor(const FMaterialParamDataPair& NewColor);
-	const FMaterialParamDataPair& GetLoadoutColor() const { return LoadoutColor; }
+	const FMaterialParamDataPair& GetLoadoutColor() const { return LoadoutSelection.Color; }
 
-	void SetLoadoutWeaponId(FName NewWeaponId);
-	FName GetLoadoutWeaponId() const { return LoadoutWeaponId; }
+	void SetLoadoutSelection(const FLoadoutSelection& NewLoadout);
+	const FLoadoutSelection& GetLoadoutSelection() const;
 
-	void SetLoadoutEyeShapeId(FName NewEyeShapeId);
-	FName GetLoadoutEyeShapeId() const { return LoadoutEyeShapeId; }
+	FName GetLoadoutWeaponId() const { return LoadoutSelection.WeaponId; }
 
-	void SetLoadoutMountId(FName NewMountId);
-	FName GetLoadoutMountId() const { return LoadoutMountId; }
+	FName GetLoadoutEyeShapeId() const { return LoadoutSelection.EyeShapeId; }
+
+	FName GetLoadoutMountId() const { return LoadoutSelection.MountId; }
 
 	void SetLoadingComplete(bool bComplete);
 	bool IsLoadingComplete() const { return bHasFinishedLoading; }
@@ -44,10 +40,7 @@ public:
 	int32 GetLobbySlotIndex() const { return LobbySlotIndex; }
 
 
-	FOnLoadoutColorChanged OnLoadoutColorChanged;
-	FOnLoadoutWeaponChanged OnLoadoutWeaponChanged;
-	FOnLoadoutEyeShapeChanged OnLoadoutEyeShapeChanged;
-	FOnLoadoutMountChanged OnLoadoutMountChanged;
+	FOnLoadoutChanged OnLoadoutChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -58,29 +51,11 @@ private:
 	UFUNCTION()
 	void OnRep_DefaultSkill();
 
-	UPROPERTY(ReplicatedUsing = OnRep_LoadoutColor)
-	FMaterialParamDataPair LoadoutColor;
+	UPROPERTY(ReplicatedUsing = OnRep_LoadoutSelection)
+	FLoadoutSelection LoadoutSelection;
 
 	UFUNCTION()
-	void OnRep_LoadoutColor();
-
-	UPROPERTY(ReplicatedUsing = OnRep_LoadoutWeaponId)
-	FName LoadoutWeaponId = TEXT("1");
-
-	UFUNCTION()
-	void OnRep_LoadoutWeaponId();
-
-	UPROPERTY(ReplicatedUsing = OnRep_LoadoutEyeShapeId)
-	FName LoadoutEyeShapeId = NAME_None;
-
-	UFUNCTION()
-	void OnRep_LoadoutEyeShapeId();
-
-	UPROPERTY(ReplicatedUsing = OnRep_LoadoutMountId)
-	FName LoadoutMountId = TEXT("1");
-
-	UFUNCTION()
-	void OnRep_LoadoutMountId();
+	void OnRep_LoadoutSelection();
 
 	UPROPERTY(ReplicatedUsing = OnRep_LoadingComplete)
 	bool bHasFinishedLoading = false;

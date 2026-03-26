@@ -2,20 +2,39 @@
 
 
 #include "MAGameInstance.h"
-#include "OnlineSubsystem.h"
-#include "OnlineSessionSettings.h"
-#include "Kismet/GameplayStatics.h"
-#include "MoviePlayer.h"
-#include "Widget/Lobby/Loading/LoadingScreenWidget.h"
+#include "Engine/Engine.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/ConfigCacheIni.h"
+#include "MoviePlayer.h"
+#include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
+#include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Framework/LoadoutSaveGame.h"
 
+namespace
+{
+	const TCHAR* GLanguageSettingsSection = TEXT("MA.Localization");
+	const TCHAR* GLanguageCultureKey = TEXT("LanguageCulture");
+}
+
+/** Lifecycle **/
 void UMAGameInstance::Init()
 {
 	Super::Init();
+
+	if (UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr)
+	{
+		Settings->LoadSettings(false);
+		Settings->ApplySettings(false);
+	}
+	LoadLanguageSetting();
 
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UMAGameInstance::HandlePreLoadMap);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UMAGameInstance::HandlePostLoadMapWithWorld);
@@ -45,6 +64,44 @@ void UMAGameInstance::Init()
 	}
 }
 
+/** Localization **/
+FString UMAGameInstance::GetCurrentLanguageCulture() const
+{
+	return NormalizeLanguageCulture(FInternationalization::Get().GetCurrentLanguage()->GetName());
+}
+
+void UMAGameInstance::SetCurrentLanguageCulture(const FString& InCulture)
+{
+	ApplyLanguageSetting(InCulture);
+	SaveLanguageSetting(InCulture);
+}
+
+void UMAGameInstance::LoadLanguageSetting()
+{
+	FString Culture;
+	GConfig->GetString(GLanguageSettingsSection, GLanguageCultureKey, Culture, GGameUserSettingsIni);
+	ApplyLanguageSetting(Culture);
+}
+
+void UMAGameInstance::SaveLanguageSetting(const FString& InCulture) const
+{
+	GConfig->SetString(GLanguageSettingsSection, GLanguageCultureKey, *NormalizeLanguageCulture(InCulture), GGameUserSettingsIni);
+	GConfig->Flush(false, GGameUserSettingsIni);
+}
+
+void UMAGameInstance::ApplyLanguageSetting(const FString& InCulture) const
+{
+	FInternationalization::Get().SetCurrentLanguageAndLocale(NormalizeLanguageCulture(InCulture));
+}
+
+FString UMAGameInstance::NormalizeLanguageCulture(const FString& InCulture) const
+{
+	if (InCulture.StartsWith(TEXT("ko"))) return TEXT("ko");
+	if (InCulture.StartsWith(TEXT("en"))) return TEXT("en");
+	return DefaultLanguageCulture.IsEmpty() ? TEXT("en") : DefaultLanguageCulture;
+}
+
+/** Lifecycle **/
 void UMAGameInstance::Shutdown()
 {
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
@@ -67,6 +124,7 @@ const ULoadoutDataSet* UMAGameInstance::TryGetLoadoutDataSet() const
 	return LoadoutDataSet;
 }
 
+/** Online **/
 void UMAGameInstance::HostSession(int32 MaxPlayers, bool bIsLAN)
 {
 	if (!SessionInterface.IsValid()) return;
@@ -115,6 +173,7 @@ void UMAGameInstance::DestroySession()
 	SessionInterface->DestroySession(NAME_GameSession);
 }
 
+/** Loading **/
 void UMAGameInstance::StartLoadingScreen()
 {
 	if (bLoadingScreenActive) return;
@@ -292,6 +351,7 @@ void UMAGameInstance::NotifyLocalLoadingVisualComplete()
 	TrySendLocalLoadedNotify();
 }
 
+/** Online **/
 void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
 {
 	if (!LoadedWorld) return;
@@ -419,22 +479,15 @@ void UMAGameInstance::UpdateLoadingStatus()
 
 }
 
-void UMAGameInstance::SaveLoadout(
-	const FMaterialParamDataPair& Color,
-	FName WeaponId,
-	FName EyeShapeId,
-	FName MountId
-)
+/** Loadout **/
+void UMAGameInstance::SaveLoadout(const FLoadoutSelection& Loadout)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return;
 
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(UGameplayStatics::CreateSaveGameObject(ULoadoutSaveGame::StaticClass()));
 	if (!SaveGame) return;
 
-	SaveGame->SavedColor = Color;
-	SaveGame->SavedWeaponId = WeaponId;
-	SaveGame->SavedEyeShapeId = EyeShapeId;
-	SaveGame->SavedMountId = MountId;
+	SaveGame->SavedLoadout = Loadout;
 	// Reserved for future save migration. Current load logic does not branch on version.
 	SaveGame->Version = 1;
 
@@ -444,18 +497,18 @@ void UMAGameInstance::SaveLoadout(
 	}
 }
 
-bool UMAGameInstance::LoadLoadout(
-	FMaterialParamDataPair& OutColor,
-	FName& OutWeaponId,
-	FName& OutEyeShapeId,
-	FName& OutMountId
-)
+bool UMAGameInstance::LoadLoadout(FLoadoutSelection& OutLoadout)
 {
 	if (LoadoutSaveSlot.IsEmpty()) return false;
 
-	if (!UGameplayStatics::DoesSaveGameExist(LoadoutSaveSlot, LoadoutSaveUserIndex)) return false;
+	OutLoadout = FLoadoutSelection();
 
 	USaveGame* Loaded = UGameplayStatics::LoadGameFromSlot(LoadoutSaveSlot, LoadoutSaveUserIndex);
+	if (!Loaded)
+	{
+		return true;
+	}
+
 	ULoadoutSaveGame* SaveGame = Cast<ULoadoutSaveGame>(Loaded);
 	if (!SaveGame)
 	{
@@ -463,10 +516,7 @@ bool UMAGameInstance::LoadLoadout(
 		return false;
 	}
 
-	OutColor = SaveGame->SavedColor;
-	OutWeaponId = SaveGame->SavedWeaponId;
-	OutEyeShapeId = SaveGame->SavedEyeShapeId;
-	OutMountId = SaveGame->SavedMountId;
+	OutLoadout = SaveGame->SavedLoadout;
 	return true;
 }
 
@@ -494,6 +544,7 @@ bool UMAGameInstance::AreAllPlayersLoaded(UWorld* World) const
 	return Total > 0 && Loaded == Total;
 }
 
+/** Online **/
 void UMAGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	if (!SessionInterface.IsValid()) return;

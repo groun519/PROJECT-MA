@@ -163,15 +163,13 @@ private:
 	/** Loadout **/
 	void BindLoadoutDelegates();
 	void ApplyLoadoutFromPlayerState();
+	void HandleLoadoutChanged(const FLoadoutSelection& Loadout);
 	void HandleLoadoutColorChanged(const FMaterialParamDataPair& ColorData);
 	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 	void HandleLoadoutMountChanged(FName MountId);
 
-	FDelegateHandle LoadoutColorChangedHandle;
-	FDelegateHandle LoadoutEyeShapeChangedHandle;
-	FDelegateHandle LoadoutWeaponChangedHandle;
-	FDelegateHandle LoadoutMountChangedHandle;
+	FDelegateHandle LoadoutChangedHandle;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
