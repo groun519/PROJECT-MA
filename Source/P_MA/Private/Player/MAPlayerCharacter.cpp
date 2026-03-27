@@ -34,8 +34,6 @@
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
-#include "Framework/LoadoutSaveGame.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -160,10 +158,6 @@ void AMAPlayerCharacter::BeginPlay()
 void AMAPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	if (HasAuthority())
-	{
-		EquipWeaponFromSave();
-	}
 	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
@@ -623,35 +617,7 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	}
 
 	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
-}
-
-void AMAPlayerCharacter::EquipWeaponFromSave()
-{
-	if (!LoadoutComponent) return;
-
-	const UDataTable* ResolvedWeaponDataTable = nullptr;
-	if (const ULoadoutDataSet* LoadoutDataSet = LoadoutComponent->GetLoadoutDataSet())
-	{
-		ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
-	}
-
-	if (!ResolvedWeaponDataTable) return;
-
-	// 2. 세이브 게임 로드 (현재는 동기식 유지, 추후 개선 필요)
-	ULoadoutSaveGame* LoadoutSave = Cast<ULoadoutSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("LoadoutSlot"), 0));
-	
-	FName SelectedWeaponID = TEXT("Sword");
-	if (LoadoutSave)
-	{
-		SelectedWeaponID = LoadoutSave->SavedWeaponId;
-	}
-
-	// 3. 무기 데이터 조회 및 장착
-	const FLoadoutWeaponDataRow* WeaponData = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(SelectedWeaponID, TEXT("EquipWeaponFromSave"));
-	if (WeaponData)
-	{
-		EquipWeaponFromData(WeaponData);
-	}
+	EquipWeaponFromData(Row);
 }
 
 void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)

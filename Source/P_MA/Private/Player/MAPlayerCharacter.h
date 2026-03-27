@@ -174,7 +174,6 @@ public:
 
 	UPROPERTY(Transient)
 	FGameplayAbilitySpecHandle CurrentBasicAttackHandle;
-	void EquipWeaponFromSave();
 	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
 	
 	FDelegateHandle LoadoutChangedHandle;

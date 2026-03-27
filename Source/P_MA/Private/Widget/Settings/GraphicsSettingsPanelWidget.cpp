@@ -233,9 +233,8 @@ void UGraphicsSettingsPanelWidget::SetScreenPercentage(float Value)
 
 FIntPoint UGraphicsSettingsPanelWidget::GetDesktopResolution() const
 {
-	FDisplayMetrics Metrics;
-	FDisplayMetrics::RebuildDisplayMetrics(Metrics);
-	return FIntPoint(Metrics.PrimaryDisplayWidth, Metrics.PrimaryDisplayHeight);
+	const UGameUserSettings* Settings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
+	return Settings ? Settings->GetDesktopResolution() : FIntPoint::ZeroValue;
 }
 
 void UGraphicsSettingsPanelWidget::NudgeWindowedGameWindowDown() const
