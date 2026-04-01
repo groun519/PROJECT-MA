@@ -1,0 +1,40 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
+#include "GAS/Skill/Action/MASkillAction.h"
+#include "MASkillAction_SpawnProjectile.generated.h"
+
+class AMAProjectile;
+class UGameplayEffect;
+
+USTRUCT(BlueprintType)
+struct FMASkillActionConfig_SpawnProjectile
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	TSubclassOf<AMAProjectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	FName SpawnSocketName = TEXT("WeaponHandSocket");
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	float ExplodeRadius = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	bool bIsPenetrating = false;
+};
+
+UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
+class P_MA_API UMASkillAction_SpawnProjectile : public UMASkillAction
+{
+	GENERATED_BODY()
+
+public:
+	virtual void Execute(UMASkillAbility* SkillAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Action")
+	FMASkillActionConfig_SpawnProjectile Config;
+};
