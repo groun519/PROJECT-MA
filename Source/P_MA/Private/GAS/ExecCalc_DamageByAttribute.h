@@ -1,0 +1,45 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameplayEffectExecutionCalculation.h"
+#include "ExecCalc_DamageByAttribute.generated.h"
+
+UCLASS()
+class P_MA_API UExecCalc_DamageByAttribute : public UGameplayEffectExecutionCalculation
+{
+	GENERATED_BODY()
+
+public:
+	UExecCalc_DamageByAttribute();
+
+	virtual void Execute_Implementation(
+		const FGameplayEffectCustomExecutionParameters& ExecutionParams,
+		FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const override;
+
+private:
+	FGameplayEffectAttributeCaptureDefinition SourceHealthDef;
+	FGameplayEffectAttributeCaptureDefinition SourceMaxHealthDef;
+	FGameplayEffectAttributeCaptureDefinition SourceAttackDef;
+	FGameplayEffectAttributeCaptureDefinition SourceMoveSpeedDef;
+	FGameplayEffectAttributeCaptureDefinition SourceAttackSpeedDef;
+	FGameplayEffectAttributeCaptureDefinition SourceArmorDef;
+	FGameplayEffectAttributeCaptureDefinition SourceArmorPenetrationDef;
+	FGameplayEffectAttributeCaptureDefinition SourceCriticalChanceDef;
+	FGameplayEffectAttributeCaptureDefinition SourceCriticalDamageDef;
+
+	FGameplayEffectAttributeCaptureDefinition TargetHealthDef;
+	FGameplayEffectAttributeCaptureDefinition TargetMaxHealthDef;
+	FGameplayEffectAttributeCaptureDefinition TargetAttackDef;
+	FGameplayEffectAttributeCaptureDefinition TargetMoveSpeedDef;
+	FGameplayEffectAttributeCaptureDefinition TargetAttackSpeedDef;
+	FGameplayEffectAttributeCaptureDefinition TargetArmorDef;
+	FGameplayEffectAttributeCaptureDefinition TargetArmorPenetrationDef;
+	FGameplayEffectAttributeCaptureDefinition TargetCriticalChanceDef;
+	FGameplayEffectAttributeCaptureDefinition TargetCriticalDamageDef;
+
+	FGameplayEffectAttributeCaptureDefinition SourceDamageVarianceDef;
+
+	FGameplayTag BehaviorModifierTag;
+	FGameplayTag UtilityModifierTag;
+	FGameplayTag ElementalModifierTag;
+};

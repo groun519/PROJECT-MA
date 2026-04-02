@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MAAbilitySystemStatics.generated.h"
@@ -11,6 +12,9 @@
 class UGameplayAbility;
 struct FGameplayAbilitySpec;
 class UAbilitySystemComponent;
+enum class EMADamageAttribute : uint8;
+enum class EMADamageAttributeSide : uint8;
+struct FMADamageExecutionConfig;
 /**
  * 
  */
@@ -50,6 +54,9 @@ public:
 	static FGameplayTag GetBehaviorMultiplierTag();
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
+	static FGameplayTag GetDamageBaseTag();
+	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);
+	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);
 
 	static FGameplayTag GetHitReactTag();
 	static FGameplayTag GetAnyReactionStateTag();

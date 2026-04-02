@@ -10,10 +10,11 @@
 #include "GameFramework/Character.h"
 
 #include "DebugShapeHelper.h"
-#include "MAAbilitySystemStatics.h"
-#include "VirtualSocketTargetData.h"
 #include "Engine/OverlapResult.h"
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "P_MA/P_MA.h"
+#include "VirtualSocketTargetData.h"
 
 
 UMAGameplayAbility::UMAGameplayAbility()
@@ -293,14 +294,29 @@ FGenericTeamId UMAGameplayAbility::GetOwnerTeamId() const
 }
 
 void UMAGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult,
-                                                             TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
+                                                             TSubclassOf<UGameplayEffect> GameplayEffect, int Level,
+                                                             const FMADamageExecutionConfig* DamageConfig)
 {
-	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, Level);
-		
+	FGameplayEffectSpecHandle EffectSpecHandle = MakeDamageEffectSpec(GameplayEffect, Level, DamageConfig);
+	if (!EffectSpecHandle.IsValid()) return;
+
 	FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
 	EffectContext.AddHitResult(HitResult);
 
 	EffectSpecHandle.Data->SetContext(EffectContext);
 
 	ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), CurrentActorInfo, CurrentActivationInfo, EffectSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitResult.GetActor()));
+}
+
+FGameplayEffectSpecHandle UMAGameplayAbility::MakeDamageEffectSpec(
+	TSubclassOf<UGameplayEffect> GameplayEffect,
+	int32 Level,
+	const FMADamageExecutionConfig* DamageConfig)
+{
+	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(GameplayEffect, Level);
+	if (DamageConfig)
+	{
+		UMAAbilitySystemStatics::ApplyDamageExecutionConfig(EffectSpecHandle, *DamageConfig);
+	}
+	return EffectSpecHandle;
 }

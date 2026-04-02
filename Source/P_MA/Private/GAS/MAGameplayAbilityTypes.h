@@ -75,6 +75,72 @@ public:
 	FVector PushVelocity;
 };
 
+UENUM(BlueprintType)
+enum class EMADamageAttribute : uint8
+{
+	Health,
+	MaxHealth,
+	Attack,
+	MoveSpeed,
+	AttackSpeed,
+	Armor,
+	ArmorPenetration,
+	CriticalChance,
+	CriticalDamage
+};
+
+UENUM(BlueprintType)
+enum class EMADamageAttributeSide : uint8
+{
+	Source,
+	Target
+};
+
+USTRUCT(BlueprintType)
+struct FMADamageAttributeCoefficient
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	EMADamageAttributeSide Side = EMADamageAttributeSide::Source;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	EMADamageAttribute Attribute = EMADamageAttribute::Attack;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float Coefficient = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FMADamageExecutionConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float BaseDamage = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
+
+	void Append(const FMADamageExecutionConfig& Other)
+	{
+		BaseDamage += Other.BaseDamage;
+		AttributeCoefficients.Append(Other.AttributeCoefficients);
+	}
+
+	bool HasValues() const
+	{
+		if (!FMath::IsNearlyZero(BaseDamage)) return true;
+
+		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
+		{
+			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
+		}
+
+		return false;
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FPlayerBaseStats : public FTableRowBase
 {

@@ -25,17 +25,19 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
+	UMASkillFlowPart* GetRuntimeFlowPart() const { return RuntimeFlowPart; }
 
 protected:
-	/** Definition **/
+	/** Definition DataAsset **/
 	UPROPERTY(EditDefaultsOnly, Category="Definition")
 	TObjectPtr<UMASkillDefinition> SkillDefinition;
 
 private:
 	/** Register **/
 	void RegisterFlowPart();
-	void RegisterEventParts();
+	void RefreshEventBindings();
 
+	/** RuntimeContext **/
 	UPROPERTY(Transient)
 	FSkillRuntimeContext RuntimeContext;
 

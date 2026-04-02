@@ -9,7 +9,7 @@
 namespace
 {
 	template <typename TaskType>
-	void EndTasksAndReset(TArray<TObjectPtr<TaskType>>& Tasks)
+	void EndAbilityTasksAndReset(TArray<TObjectPtr<TaskType>>& Tasks)
 	{
 		for (TaskType* Task : Tasks)
 		{
@@ -47,9 +47,9 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 		PlayMontageTask->ReadyForActivation();
 	}
 
-	RuntimeContext.ClearIgnoredActors();
-	RegisterEventParts();
+	RuntimeContext.Initialize(this);
 	RegisterFlowPart();
+	RefreshEventBindings();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
@@ -63,21 +63,15 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		RuntimeFlowPart = nullptr;
 	}
 
-	EndTasksAndReset(EventTasks);
+	EndAbilityTasksAndReset(EventTasks);
+	RuntimeContext.Reset();
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
-	if (!SkillDefinition) return;
-
-	for (const FMASkillGameplayEventPart& EventPart : SkillDefinition->GetEventParts())
-	{
-		if (EventPart.EventTag != Payload.EventTag || !EventPart.Action) continue;
-		
-		EventPart.Action->Execute(this, RuntimeContext, Payload);
-	}
+	RuntimeContext.HandleEvent(Payload);
 }
 
 void UMASkillAbility::RegisterFlowPart()
@@ -87,23 +81,17 @@ void UMASkillAbility::RegisterFlowPart()
 	RuntimeFlowPart = DuplicateObject<UMASkillFlowPart>(SkillDefinition->GetFlowPart(), this);
 	if (RuntimeFlowPart)
 	{
-		RuntimeFlowPart->StartFlow(this);
+		RuntimeFlowPart->StartFlow(this, &RuntimeContext);
 	}
 }
 
-void UMASkillAbility::RegisterEventParts()
+void UMASkillAbility::RefreshEventBindings()
 {
-	EndTasksAndReset(EventTasks);
-	TSet<FGameplayTag> RegisteredTags;
-
-	for (const FMASkillGameplayEventPart& EventPart : SkillDefinition->GetEventParts())
+	EndAbilityTasksAndReset(EventTasks);
+	const TSet<FGameplayTag> RequiredTags = RuntimeContext.ResolveRequiredEventTags();
+	for (const FGameplayTag& EventTag : RequiredTags)
 	{
-		if (!EventPart.EventTag.IsValid() || !EventPart.Action) continue;
-
-		if (RegisteredTags.Contains(EventPart.EventTag)) continue;
-		RegisteredTags.Add(EventPart.EventTag);
-
-		UAbilityTask_WaitGameplayEvent* WaitGameplayEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventPart.EventTag, nullptr, false, false);
+		UAbilityTask_WaitGameplayEvent* WaitGameplayEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, false);
 		WaitGameplayEventTask->EventReceived.AddDynamic(this, &UMASkillAbility::HandleSkillGameplayEvent);
 		WaitGameplayEventTask->ReadyForActivation();
 		EventTasks.Add(WaitGameplayEventTask);

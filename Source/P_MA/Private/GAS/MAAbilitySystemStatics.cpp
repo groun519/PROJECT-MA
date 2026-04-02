@@ -8,6 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
 #include "MAAbilitySystemComponent.h"
+#include "MAGameplayAbilityTypes.h"
 #include "Ability/MAGameplayAbility_Skill.h"
 #include "Setting/MASkillSubsystem.h"
 
@@ -124,6 +125,54 @@ FGameplayTag UMAAbilitySystemStatics::GetElementalMultiplierTag()
 FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
 {
 	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDamageBaseTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.Base");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
+{
+	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
+	const TCHAR* AttributeName = TEXT("Attack");
+
+	switch (Attribute)
+	{
+	case EMADamageAttribute::Health: AttributeName = TEXT("Health"); break;
+	case EMADamageAttribute::MaxHealth: AttributeName = TEXT("MaxHealth"); break;
+	case EMADamageAttribute::Attack: AttributeName = TEXT("Attack"); break;
+	case EMADamageAttribute::MoveSpeed: AttributeName = TEXT("MoveSpeed"); break;
+	case EMADamageAttribute::AttackSpeed: AttributeName = TEXT("AttackSpeed"); break;
+	case EMADamageAttribute::Armor: AttributeName = TEXT("Armor"); break;
+	case EMADamageAttribute::ArmorPenetration: AttributeName = TEXT("ArmorPenetration"); break;
+	case EMADamageAttribute::CriticalChance: AttributeName = TEXT("CriticalChance"); break;
+	case EMADamageAttribute::CriticalDamage: AttributeName = TEXT("CriticalDamage"); break;
+	}
+
+	return FGameplayTag::RequestGameplayTag(*FString::Printf(TEXT("Data.Damage.Coeff.%s.%s"), SideName, AttributeName));
+}
+
+void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig)
+{
+	if (!SpecHandle.IsValid()) return;
+
+	TMap<FGameplayTag, float> SummedMagnitudes;
+	SummedMagnitudes.FindOrAdd(GetDamageBaseTag()) += DamageConfig.BaseDamage;
+
+	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
+	{
+		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
+
+		SummedMagnitudes.FindOrAdd(GetDamageAttributeCoefficientTag(Coefficient.Side, Coefficient.Attribute)) += Coefficient.Coefficient;
+	}
+
+	for (const TPair<FGameplayTag, float>& Pair : SummedMagnitudes)
+	{
+		if (FMath::IsNearlyZero(Pair.Value)) continue;
+
+		SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
+	}
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()

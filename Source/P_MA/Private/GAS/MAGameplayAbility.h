@@ -31,7 +31,15 @@ public:
 	
 	class UAnimInstance* GetOwnerAnimInstance() const;
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
-	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level=1);
+	FGameplayEffectSpecHandle MakeDamageEffectSpec(
+		TSubclassOf<UGameplayEffect> GameplayEffect,
+		int32 Level = 1,
+		const struct FMADamageExecutionConfig* DamageConfig = nullptr);
+	void ApplyGameplayEffectToHitResultActor(
+		const FHitResult& HitResult,
+		TSubclassOf<UGameplayEffect> GameplayEffect,
+		int Level = 1,
+		const struct FMADamageExecutionConfig* DamageConfig = nullptr);
 protected:
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,

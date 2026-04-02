@@ -4,7 +4,6 @@
 #include "UObject/Object.h"
 #include "MASkillAction.generated.h"
 
-class UMASkillAbility;
 struct FGameplayEventData;
 struct FSkillRuntimeContext;
 
@@ -14,6 +13,6 @@ class P_MA_API UMASkillAction : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility* SkillAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
+	virtual void Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 		PURE_VIRTUAL(UMASkillAction::Execute, );
 };

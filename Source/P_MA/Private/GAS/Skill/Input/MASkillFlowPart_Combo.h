@@ -8,7 +8,6 @@
 
 class UAbilityTask_WaitInputPress;
 class UAbilityTask_WaitInputRelease;
-class UAbilityTask_WaitGameplayEvent;
 
 USTRUCT(BlueprintType)
 struct FMASkillComboInputEvent
@@ -37,18 +36,6 @@ struct FMASkillComboInputLoopState
 };
 
 USTRUCT()
-struct FMASkillComboWindowState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> OpenEventTasks;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UAbilityTask_WaitGameplayEvent> CloseEventTask;
-};
-
-USTRUCT()
 struct FMASkillComboReservationState
 {
 	GENERATED_BODY()
@@ -63,8 +50,10 @@ class P_MA_API UMASkillFlowPart_Combo : public UMASkillFlowPart
 	GENERATED_BODY()
 
 public:
-	virtual void StartFlow(UMASkillAbility* SkillAbility) override;
+	virtual void StartFlow(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext) override;
 	virtual void StopFlow() override;
+	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const override;
+	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) override;
 
 private:
 	UFUNCTION()
@@ -74,12 +63,6 @@ private:
 	void HandleInputReleased(float TimeHeld);
 
 	UFUNCTION()
-	void HandleComboEventOpened(FGameplayEventData Payload);
-
-	UFUNCTION()
-	void HandleComboEventClosed(FGameplayEventData Payload);
-
-	UFUNCTION()
 	void HandleHoldTick();
 
 	/** Input Loop **/
@@ -87,12 +70,8 @@ private:
 	void ArmInputRelease();
 	void StartHoldLoop();
 	void StopInputLoop();
-	void RegisterComboEventWaits();
 	void StopHoldLoop();
 
-	/** Combo Window **/
-	void UnregisterComboEventWaits();
-	FName FindNextSectionByTag(const FGameplayTag& EventTag) const;
 	void ClearReservedState();
 
 	/** Section Reservation **/
@@ -110,9 +89,6 @@ private:
 
 	UPROPERTY(Transient)
 	FMASkillComboInputLoopState InputLoopState;
-
-	UPROPERTY(Transient)
-	FMASkillComboWindowState ComboWindowState;
 
 	UPROPERTY(Transient)
 	FMASkillComboReservationState ReservationState;

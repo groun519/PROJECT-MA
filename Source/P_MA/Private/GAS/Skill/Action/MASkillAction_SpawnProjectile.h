@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "MASkillAction_SpawnProjectile.generated.h"
 
@@ -32,9 +33,12 @@ class P_MA_API UMASkillAction_SpawnProjectile : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility* SkillAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
+	virtual void Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Action")
 	FMASkillActionConfig_SpawnProjectile Config;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	FMADamageExecutionConfig DamageConfig;
 };

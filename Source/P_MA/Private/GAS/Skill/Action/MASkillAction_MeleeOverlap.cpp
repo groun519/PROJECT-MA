@@ -1,25 +1,12 @@
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
 
-#include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 
-void UMASkillAction_MeleeOverlap::Execute(UMASkillAbility* SkillAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
+void UMASkillAction_MeleeOverlap::Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 {
-	if (!SkillAbility || !SkillAbility->K2_HasAuthority())
-	{
-		return;
-	}
+	if (!RuntimeContext.HasAuthority()) return;
 
-	const UMASkillDefinition* SkillDefinition = SkillAbility->GetSkillDefinition();
-	const TSubclassOf<UGameplayEffect> ResolvedDamageEffect = SkillDefinition ? SkillDefinition->GetDefaultDamageEffect() : nullptr;
-	if (!ResolvedDamageEffect)
-	{
-		return;
-	}
-
-	const TArray<FHitResult> HitResults = SkillAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
-	const int32 AbilityLevel = SkillAbility->GetAbilityLevel(SkillAbility->GetCurrentAbilitySpecHandle(), SkillAbility->GetCurrentActorInfo());
+	const TArray<FHitResult> HitResults = RuntimeContext.GetHitResultsFromPayload(Payload);
 
 	TSet<AActor*> HitActors;
 	for (const FHitResult& HitResult : HitResults)
@@ -30,7 +17,7 @@ void UMASkillAction_MeleeOverlap::Execute(UMASkillAbility* SkillAbility, FSkillR
 			continue;
 		}
 
-		SkillAbility->ApplyGameplayEffectToHitResultActor(HitResult, ResolvedDamageEffect, AbilityLevel);
+		RuntimeContext.ApplyDamageToHitResult(HitResult, &DamageConfig);
 		HitActors.Add(HitActor);
 		RuntimeContext.AddIgnoredActor(HitActor);
 	}
