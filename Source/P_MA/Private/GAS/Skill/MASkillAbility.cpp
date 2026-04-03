@@ -2,8 +2,8 @@
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
-#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Event/MASkillEventSource.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
 
 namespace
@@ -38,18 +38,20 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 		return;
 	}
 
+	RuntimeContext.Initialize(this);
+	DesiredMontagePlayRate = 1.f;
+	RegisterEventSources();
+	RegisterFlowPart();
+	RefreshEventBindings();
+
 	if (UAnimMontage* SkillMontage = SkillDefinition->GetSkillMontage(); HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo) && SkillMontage)
 	{
-		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SkillMontage);
+		UAbilityTask_PlayMontageAndWait* PlayMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SkillMontage, DesiredMontagePlayRate);
 		PlayMontageTask->OnCancelled.AddDynamic(this, &UMASkillAbility::K2_EndAbility);
 		PlayMontageTask->OnCompleted.AddDynamic(this, &UMASkillAbility::K2_EndAbility);
 		PlayMontageTask->OnInterrupted.AddDynamic(this, &UMASkillAbility::K2_EndAbility);
 		PlayMontageTask->ReadyForActivation();
 	}
-
-	RuntimeContext.Initialize(this);
-	RegisterFlowPart();
-	RefreshEventBindings();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
@@ -63,6 +65,7 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		RuntimeFlowPart = nullptr;
 	}
 
+	UnregisterEventSources();
 	EndAbilityTasksAndReset(EventTasks);
 	RuntimeContext.Reset();
 
@@ -72,6 +75,49 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
 	RuntimeContext.HandleEvent(Payload);
+}
+
+void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
+{
+	DesiredMontagePlayRate = FMath::Max(NewPlayRate, KINDA_SMALL_NUMBER);
+
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	UAnimMontage* SkillMontage = SkillDefinition ? SkillDefinition->GetSkillMontage() : nullptr;
+	if (!AnimInstance || !SkillMontage) return;
+
+	if (AnimInstance->Montage_IsPlaying(SkillMontage))
+	{
+		AnimInstance->Montage_SetPlayRate(SkillMontage, DesiredMontagePlayRate);
+	}
+}
+
+void UMASkillAbility::RegisterEventSources()
+{
+	UnregisterEventSources();
+
+	if (!SkillDefinition) return;
+
+	for (UMASkillEventSource* EventSource : SkillDefinition->GetEventSources())
+	{
+		if (!EventSource) continue;
+
+		UMASkillEventSource* RuntimeEventSource = DuplicateObject<UMASkillEventSource>(EventSource, this);
+		if (!RuntimeEventSource) continue;
+
+		RuntimeEventSource->StartSource(this, &RuntimeContext);
+		RuntimeEventSources.Add(RuntimeEventSource);
+	}
+}
+
+void UMASkillAbility::UnregisterEventSources()
+{
+	for (UMASkillEventSource* RuntimeEventSource : RuntimeEventSources)
+	{
+		if (!RuntimeEventSource) continue;
+		RuntimeEventSource->StopSource();
+	}
+
+	RuntimeEventSources.Reset();
 }
 
 void UMASkillAbility::RegisterFlowPart()

@@ -4,13 +4,13 @@
 #include "GameplayTagContainer.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
 #include "TimerManager.h"
-#include "MASkillFlowPart_Combo.generated.h"
+#include "MASkillFlowPart_AttackSequence.generated.h"
 
 class UAbilityTask_WaitInputPress;
 class UAbilityTask_WaitInputRelease;
 
 USTRUCT(BlueprintType)
-struct FMASkillComboInputEvent
+struct FMASkillAttackSequenceEvent
 {
 	GENERATED_BODY()
 
@@ -22,7 +22,7 @@ struct FMASkillComboInputEvent
 };
 
 USTRUCT()
-struct FMASkillComboInputLoopState
+struct FMASkillAttackSequenceInputLoopState
 {
 	GENERATED_BODY()
 
@@ -36,7 +36,7 @@ struct FMASkillComboInputLoopState
 };
 
 USTRUCT()
-struct FMASkillComboReservationState
+struct FMASkillAttackSequenceReservationState
 {
 	GENERATED_BODY()
 
@@ -45,7 +45,7 @@ struct FMASkillComboReservationState
 };
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
-class P_MA_API UMASkillFlowPart_Combo : public UMASkillFlowPart
+class P_MA_API UMASkillFlowPart_AttackSequence : public UMASkillFlowPart
 {
 	GENERATED_BODY()
 
@@ -75,11 +75,12 @@ private:
 	void ClearReservedState();
 
 	/** Section Reservation **/
+	bool TryGetCurrentSectionContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const;
 	void CommitReservedNextSection();
 	void ClearCurrentSectionLink();
 
 	UPROPERTY(EditDefaultsOnly, Category="Flow")
-	TArray<FMASkillComboInputEvent> ComboEvents;
+	TArray<FMASkillAttackSequenceEvent> AttackSequenceEvents;
 
 	UPROPERTY(EditDefaultsOnly, Category="Flow")
 	FGameplayTag CloseTag;
@@ -88,8 +89,8 @@ private:
 	float HoldInterval = 0.01f;
 
 	UPROPERTY(Transient)
-	FMASkillComboInputLoopState InputLoopState;
+	FMASkillAttackSequenceInputLoopState InputLoopState;
 
 	UPROPERTY(Transient)
-	FMASkillComboReservationState ReservationState;
+	FMASkillAttackSequenceReservationState ReservationState;
 };

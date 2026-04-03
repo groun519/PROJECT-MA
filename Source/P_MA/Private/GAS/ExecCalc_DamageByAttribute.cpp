@@ -103,7 +103,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 
 	if (!bHasConfiguredBaseDamage)
 	{
-		BaseDamage = CaptureMagnitude(SourceAttackDef);
+		return;
 	}
 
 	BaseDamage = FMath::Max(0.f, BaseDamage);

@@ -10,6 +10,7 @@
 
 class UAbilityTask_WaitGameplayEvent;
 class UMASkillDefinition;
+class UMASkillEventSource;
 class UMASkillFlowPart;
 struct FMASkillGameplayEventPart;
 
@@ -26,6 +27,8 @@ public:
 
 	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
 	UMASkillFlowPart* GetRuntimeFlowPart() const { return RuntimeFlowPart; }
+	void SetDesiredMontagePlayRate(float NewPlayRate);
+	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 
 protected:
 	/** Definition DataAsset **/
@@ -34,6 +37,8 @@ protected:
 
 private:
 	/** Register **/
+	void RegisterEventSources();
+	void UnregisterEventSources();
 	void RegisterFlowPart();
 	void RefreshEventBindings();
 
@@ -45,9 +50,16 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillFlowPart> RuntimeFlowPart;
 
+	/** Event Sources **/
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMASkillEventSource>> RuntimeEventSources;
+
 	/** Event Part **/
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> EventTasks;
+
+	UPROPERTY(Transient)
+	float DesiredMontagePlayRate = 1.f;
 
 	UFUNCTION()
 	void HandleSkillGameplayEvent(FGameplayEventData Payload);

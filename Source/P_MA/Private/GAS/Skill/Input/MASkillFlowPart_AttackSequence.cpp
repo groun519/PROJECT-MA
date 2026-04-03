@@ -1,4 +1,4 @@
-#include "GAS/Skill/Input/MASkillFlowPart_Combo.h"
+#include "GAS/Skill/Input/MASkillFlowPart_AttackSequence.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -19,7 +19,7 @@ namespace
 	}
 }
 
-void UMASkillFlowPart_Combo::StartFlow(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext)
+void UMASkillFlowPart_AttackSequence::StartFlow(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext)
 {
 	Super::StartFlow(SkillAbility, InRuntimeContext);
 
@@ -27,7 +27,7 @@ void UMASkillFlowPart_Combo::StartFlow(UMASkillAbility* SkillAbility, FSkillRunt
 	ArmInputPress();
 }
 
-void UMASkillFlowPart_Combo::StopFlow()
+void UMASkillFlowPart_AttackSequence::StopFlow()
 {
 	StopInputLoop();
 	ClearReservedState();
@@ -35,9 +35,9 @@ void UMASkillFlowPart_Combo::StopFlow()
 	Super::StopFlow();
 }
 
-void UMASkillFlowPart_Combo::CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const
+void UMASkillFlowPart_AttackSequence::CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const
 {
-	for (const FMASkillComboInputEvent& Event : ComboEvents)
+	for (const FMASkillAttackSequenceEvent& Event : AttackSequenceEvents)
 	{
 		if (Event.OpenTag.IsValid())
 		{
@@ -51,9 +51,9 @@ void UMASkillFlowPart_Combo::CollectRequiredEventTags(TSet<FGameplayTag>& OutTag
 	}
 }
 
-void UMASkillFlowPart_Combo::HandleRuntimeEvent(const FGameplayEventData& Payload)
+void UMASkillFlowPart_AttackSequence::HandleRuntimeEvent(const FGameplayEventData& Payload)
 {
-	for (const FMASkillComboInputEvent& Event : ComboEvents)
+	for (const FMASkillAttackSequenceEvent& Event : AttackSequenceEvents)
 	{
 		if (Event.OpenTag != Payload.EventTag) continue;
 		ClearCurrentSectionLink();
@@ -67,7 +67,7 @@ void UMASkillFlowPart_Combo::HandleRuntimeEvent(const FGameplayEventData& Payloa
 	}
 }
 
-void UMASkillFlowPart_Combo::HandleInputPressed(float TimeWaited)
+void UMASkillFlowPart_AttackSequence::HandleInputPressed(float TimeWaited)
 {
 	(void)TimeWaited;
 
@@ -77,7 +77,7 @@ void UMASkillFlowPart_Combo::HandleInputPressed(float TimeWaited)
 	ArmInputRelease();
 }
 
-void UMASkillFlowPart_Combo::HandleInputReleased(float TimeHeld)
+void UMASkillFlowPart_AttackSequence::HandleInputReleased(float TimeHeld)
 {
 	(void)TimeHeld;
 
@@ -86,77 +86,81 @@ void UMASkillFlowPart_Combo::HandleInputReleased(float TimeHeld)
 	ArmInputPress();
 }
 
-void UMASkillFlowPart_Combo::HandleHoldTick()
+void UMASkillFlowPart_AttackSequence::HandleHoldTick()
 {
 	CommitReservedNextSection();
 }
 
-void UMASkillFlowPart_Combo::ArmInputPress()
+void UMASkillFlowPart_AttackSequence::ArmInputPress()
 {
 	if (!GetOwnerSkillAbility()) return;
 
 	InputLoopState.InputPressTask = UAbilityTask_WaitInputPress::WaitInputPress(GetOwnerSkillAbility(), true);
-	InputLoopState.InputPressTask->OnPress.AddDynamic(this, &UMASkillFlowPart_Combo::HandleInputPressed);
+	InputLoopState.InputPressTask->OnPress.AddDynamic(this, &UMASkillFlowPart_AttackSequence::HandleInputPressed);
 	InputLoopState.InputPressTask->ReadyForActivation();
 }
 
-void UMASkillFlowPart_Combo::ArmInputRelease()
+void UMASkillFlowPart_AttackSequence::ArmInputRelease()
 {
 	if (!GetOwnerSkillAbility()) return;
 
 	InputLoopState.InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(GetOwnerSkillAbility(), false);
-	InputLoopState.InputReleaseTask->OnRelease.AddDynamic(this, &UMASkillFlowPart_Combo::HandleInputReleased);
+	InputLoopState.InputReleaseTask->OnRelease.AddDynamic(this, &UMASkillFlowPart_AttackSequence::HandleInputReleased);
 	InputLoopState.InputReleaseTask->ReadyForActivation();
 }
 
-void UMASkillFlowPart_Combo::StartHoldLoop()
+void UMASkillFlowPart_AttackSequence::StartHoldLoop()
 {
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().SetTimer(
 			InputLoopState.HoldTimerHandle,
 			this,
-			&UMASkillFlowPart_Combo::HandleHoldTick,
+			&UMASkillFlowPart_AttackSequence::HandleHoldTick,
 			HoldInterval,
 			true,
 			HoldInterval);
 	}
 }
 
-void UMASkillFlowPart_Combo::StopInputLoop()
+void UMASkillFlowPart_AttackSequence::StopInputLoop()
 {
 	StopHoldLoop();
 	EndTaskAndReset(InputLoopState.InputPressTask);
 	EndTaskAndReset(InputLoopState.InputReleaseTask);
 }
 
-void UMASkillFlowPart_Combo::ClearCurrentSectionLink()
+bool UMASkillFlowPart_AttackSequence::TryGetCurrentSectionContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const
 {
 	FSkillRuntimeContext* RuntimeContextPtr = GetRuntimeContext();
+	return RuntimeContextPtr && RuntimeContextPtr->TryGetCurrentSkillSection(OutAnimInstance, OutSkillMontage, OutCurrentSectionName);
+}
+
+void UMASkillFlowPart_AttackSequence::ClearCurrentSectionLink()
+{
 	UAnimInstance* OwnerAnimInstance = nullptr;
 	UAnimMontage* SkillMontage = nullptr;
 	FName CurrentSectionName = NAME_None;
-	if (!RuntimeContextPtr || !RuntimeContextPtr->TryGetCurrentSkillSection(OwnerAnimInstance, SkillMontage, CurrentSectionName)) return;
+	if (!TryGetCurrentSectionContext(OwnerAnimInstance, SkillMontage, CurrentSectionName)) return;
 
 	OwnerAnimInstance->Montage_SetNextSection(CurrentSectionName, NAME_None, SkillMontage);
 }
 
-void UMASkillFlowPart_Combo::CommitReservedNextSection()
+void UMASkillFlowPart_AttackSequence::CommitReservedNextSection()
 {
 	if (ReservationState.ReservedNextSection.IsNone()) return;
 
-	FSkillRuntimeContext* RuntimeContextPtr = GetRuntimeContext();
 	UAnimInstance* OwnerAnimInstance = nullptr;
 	UAnimMontage* SkillMontage = nullptr;
 	FName CurrentSectionName = NAME_None;
-	if (!RuntimeContextPtr || !RuntimeContextPtr->TryGetCurrentSkillSection(OwnerAnimInstance, SkillMontage, CurrentSectionName)) return;
+	if (!TryGetCurrentSectionContext(OwnerAnimInstance, SkillMontage, CurrentSectionName)) return;
 
 	if (CurrentSectionName == ReservationState.ReservedNextSection) return;
 
 	OwnerAnimInstance->Montage_SetNextSection(CurrentSectionName, ReservationState.ReservedNextSection, SkillMontage);
 }
 
-void UMASkillFlowPart_Combo::StopHoldLoop()
+void UMASkillFlowPart_AttackSequence::StopHoldLoop()
 {
 	if (UWorld* World = GetWorld())
 	{
@@ -164,7 +168,7 @@ void UMASkillFlowPart_Combo::StopHoldLoop()
 	}
 }
 
-void UMASkillFlowPart_Combo::ClearReservedState()
+void UMASkillFlowPart_AttackSequence::ClearReservedState()
 {
 	ReservationState.ReservedNextSection = NAME_None;
 }

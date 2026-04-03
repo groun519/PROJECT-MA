@@ -7,6 +7,7 @@
 
 class UAnimMontage;
 class UGameplayEffect;
+class UMASkillEventSource;
 class UMASkillFlowPart;
 
 UCLASS(BlueprintType)
@@ -17,6 +18,7 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 public:
 	UAnimMontage* GetSkillMontage() const { return SkillMontage; }
 	TSubclassOf<UGameplayEffect> GetDefaultDamageEffect() const { return DefaultDamageEffect; }
+	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	const TArray<FMASkillGameplayEventPart>& GetEventParts() const { return EventParts; }
 	UMASkillFlowPart* GetFlowPart() const { return FlowPart; }
 
@@ -32,6 +34,10 @@ private:
 	/** Flow **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Flow")
 	TObjectPtr<UMASkillFlowPart> FlowPart;
+
+	/** Event Source **/
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="Event")
+	TArray<TObjectPtr<UMASkillEventSource>> EventSources;
 
 	/** Event **/
 	UPROPERTY(EditDefaultsOnly, Category="Event")

@@ -1,8 +1,10 @@
 #include "GAS/Skill/Action/MASkillAction_SpawnProjectile.h"
 
 #include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
+#include "GameFramework/Pawn.h"
 
 void UMASkillAction_SpawnProjectile::Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 {
@@ -10,8 +12,9 @@ void UMASkillAction_SpawnProjectile::Execute(FSkillRuntimeContext& RuntimeContex
 
 	if (!RuntimeContext.HasAuthority() || !Config.ProjectileClass) return;
 
+	UWorld* World = RuntimeContext.GetWorld();
 	AActor* AvatarActor = RuntimeContext.GetAvatarActor();
-	if (!AvatarActor) return;
+	if (!World || !AvatarActor) return;
 
 	FVector SpawnLocation = AvatarActor->GetActorLocation();
 	if (USkeletalMeshComponent* MeshComponent = RuntimeContext.GetOwningMeshComponent())
@@ -22,12 +25,20 @@ void UMASkillAction_SpawnProjectile::Execute(FSkillRuntimeContext& RuntimeContex
 		}
 	}
 
-	AMAProjectile* Projectile = RuntimeContext.SpawnDamageProjectile(
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = AvatarActor;
+	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AMAProjectile* Projectile = World->SpawnActor<AMAProjectile>(
 		Config.ProjectileClass,
 		SpawnLocation,
 		AvatarActor->GetActorRotation(),
-		&DamageConfig,
+		SpawnParams);
+	if (!Projectile) return;
+
+	Projectile->InitializeProjectile(
+		RuntimeContext.MakeDamageSpec(&DamageConfig),
 		Config.ExplodeRadius,
 		Config.bIsPenetrating);
-	if (!Projectile) return;
 }

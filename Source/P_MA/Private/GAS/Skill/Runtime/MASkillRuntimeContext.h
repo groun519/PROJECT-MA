@@ -6,13 +6,14 @@
 #include "MASkillRuntimeContext.generated.h"
 
 class AActor;
-class AMAProjectile;
+class UAbilitySystemComponent;
 class UGameplayEffect;
 class UMASkillAbility;
 class UAnimInstance;
 class UAnimMontage;
 class UMASkillAction;
 class USkeletalMeshComponent;
+struct FGameplayAttribute;
 struct FGameplayEventData;
 struct FMADamageExecutionConfig;
 
@@ -23,6 +24,7 @@ struct FSkillRuntimeContext
 
 	void Initialize(UMASkillAbility* InOwnerAbility);
 	void Reset();
+	void HandleTagEvent(const FGameplayTag& EventTag);
 	void HandleEvent(const FGameplayEventData& Payload);
 	void ClearDamageConfig();
 	void AddDamageConfig(const FMADamageExecutionConfig& DamageConfig);
@@ -31,21 +33,17 @@ struct FSkillRuntimeContext
 
 	bool HasAuthority() const;
 	AActor* GetAvatarActor() const;
+	UAbilitySystemComponent* GetAbilitySystemComponent() const;
 	USkeletalMeshComponent* GetOwningMeshComponent() const;
 	UWorld* GetWorld() const;
 	UAnimInstance* GetOwnerAnimInstance() const;
 	UAnimMontage* GetSkillMontage() const;
+	float GetAttributeValue(const FGameplayAttribute& Attribute, float DefaultValue = 0.f) const;
+	void SetDesiredMontagePlayRate(float PlayRate) const;
 	bool TryGetCurrentSkillSection(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const;
 	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload) const;
 	FGameplayEffectSpecHandle MakeDamageSpec(const FMADamageExecutionConfig* DamageConfig = nullptr) const;
 	void ApplyDamageToHitResult(const FHitResult& HitResult, const FMADamageExecutionConfig* DamageConfig = nullptr) const;
-	AMAProjectile* SpawnDamageProjectile(
-		TSubclassOf<AMAProjectile> ProjectileClass,
-		const FVector& SpawnLocation,
-		const FRotator& SpawnRotation,
-		const FMADamageExecutionConfig* DamageConfig = nullptr,
-		float ExplodeRadius = 0.f,
-		bool bIsPenetrating = false) const;
 
 	void ClearIgnoredActors()
 	{

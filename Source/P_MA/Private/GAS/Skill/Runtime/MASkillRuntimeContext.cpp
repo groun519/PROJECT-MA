@@ -1,15 +1,14 @@
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 
+#include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GameFramework/Pawn.h"
 #include "Animation/AnimInstance.h"
 
 void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
@@ -22,9 +21,19 @@ void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 
 void FSkillRuntimeContext::Reset()
 {
+	OwnerAbility = nullptr;
 	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
 	ClearDamageConfig();
+}
+
+void FSkillRuntimeContext::HandleTagEvent(const FGameplayTag& EventTag)
+{
+	if (!EventTag.IsValid()) return;
+
+	FGameplayEventData Payload;
+	Payload.EventTag = EventTag;
+	HandleEvent(Payload);
 }
 
 void FSkillRuntimeContext::HandleEvent(const FGameplayEventData& Payload)
@@ -100,6 +109,11 @@ AActor* FSkillRuntimeContext::GetAvatarActor() const
 	return OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr;
 }
 
+UAbilitySystemComponent* FSkillRuntimeContext::GetAbilitySystemComponent() const
+{
+	return OwnerAbility ? OwnerAbility->GetAbilitySystemComponentFromActorInfo() : nullptr;
+}
+
 USkeletalMeshComponent* FSkillRuntimeContext::GetOwningMeshComponent() const
 {
 	return OwnerAbility ? OwnerAbility->GetOwningComponentFromActorInfo() : nullptr;
@@ -119,6 +133,25 @@ UAnimMontage* FSkillRuntimeContext::GetSkillMontage() const
 {
 	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
 	return SkillDefinition ? SkillDefinition->GetSkillMontage() : nullptr;
+}
+
+float FSkillRuntimeContext::GetAttributeValue(const FGameplayAttribute& Attribute, float DefaultValue) const
+{
+	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent();
+	if (!AbilitySystemComponent || !Attribute.IsValid())
+	{
+		return DefaultValue;
+	}
+
+	return AbilitySystemComponent->GetNumericAttribute(Attribute);
+}
+
+void FSkillRuntimeContext::SetDesiredMontagePlayRate(float PlayRate) const
+{
+	if (OwnerAbility)
+	{
+		OwnerAbility->SetDesiredMontagePlayRate(PlayRate);
+	}
 }
 
 bool FSkillRuntimeContext::TryGetCurrentSkillSection(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const
@@ -156,32 +189,6 @@ void FSkillRuntimeContext::ApplyDamageToHitResult(const FHitResult& HitResult, c
 		DamageEffect,
 		1,
 		ResolvedDamageConfig.HasValues() ? &ResolvedDamageConfig : nullptr);
-}
-
-AMAProjectile* FSkillRuntimeContext::SpawnDamageProjectile(
-	TSubclassOf<AMAProjectile> ProjectileClass,
-	const FVector& SpawnLocation,
-	const FRotator& SpawnRotation,
-	const FMADamageExecutionConfig* DamageConfig,
-	float ExplodeRadius,
-	bool bIsPenetrating) const
-{
-	if (!OwnerAbility || !ProjectileClass) return nullptr;
-
-	UWorld* World = GetWorld();
-	AActor* AvatarActor = GetAvatarActor();
-	if (!World || !AvatarActor) return nullptr;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = AvatarActor;
-	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	AMAProjectile* Projectile = World->SpawnActor<AMAProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-	if (!Projectile) return nullptr;
-
-	Projectile->InitializeProjectile(MakeDamageSpec(DamageConfig), ExplodeRadius, bIsPenetrating);
-	return Projectile;
 }
 
 FMADamageExecutionConfig FSkillRuntimeContext::BuildMergedDamageConfig(const FMADamageExecutionConfig* DamageConfig) const
