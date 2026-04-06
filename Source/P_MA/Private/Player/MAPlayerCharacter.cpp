@@ -182,7 +182,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 
 	// Skill-only movement path. This is unrelated to ready-ride movement sync,
 	// so ride fixes must not change behavior here.
-	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
+	if (!IsMovementBlocked() && GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
 	{
 		AddMovementInput(GetActorForwardVector(), 2.f);
 	}
@@ -191,14 +191,13 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
-	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked();
-	if (!bBlockManualRotation)
+	if (!IsRotationBlocked())
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
 		if (!IsLocallyControlled()) return;
 
 		FVector LookDir;
-		if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
+		if (GetLookDirectionToMouse(LookDir))
 		{
 			const FRotator CurrentRotation = GetActorRotation();
 			const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
@@ -217,6 +216,15 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
+}
+
+bool AMAPlayerCharacter::IsRotationBlocked() const
+{
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return true;
+	if (IsDead()) return true;
+
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC && ASC->HasMatchingGameplayTag(RotationLockTag);
 }
 
 void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
@@ -242,8 +250,7 @@ void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
-	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
-	if (IsDead()) return;
+	if (IsRotationBlocked()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
 
@@ -405,6 +412,12 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
+	if (IsMovementBlocked() || IsDead())
+	{
+		RideHorizontalInput = 0.f;
+		return;
+	}
+
 	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
 	if (InputVal.IsNearlyZero()) return;
 
@@ -460,8 +473,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
-	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
-	if (IsDead()) return;
+	if (IsRotationBlocked()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
 	{
@@ -702,17 +714,6 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 
 	OutDirection = Dir;
 	return true;
-}
-
-void AMAPlayerCharacter::OnStun()
-{
-	SetInputEnabledFromPlayerController(false);
-}
-
-void AMAPlayerCharacter::OnRecoverFromStun()
-{
-	if (IsDead()) return;
-	SetInputEnabledFromPlayerController(true);
 }
 
 void AMAPlayerCharacter::OnDead()

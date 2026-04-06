@@ -19,7 +19,7 @@
 
 UMAGameplayAbility::UMAGameplayAbility()
 {
-	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 
@@ -33,14 +33,11 @@ class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 	return nullptr;
 }
 
-/** GetHitResultFromSweepLocationTargetData
- * @param TargetTeam 타겟의 팀을 받아오는게 아니라, 타게팅할 팀을 받아오는 매개변수
- */
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	const FGameplayAbilityTargetDataHandle& TargetDataHandle,
 	FVector HalfSize, FRotator BoxRot,
 	bool bUseSector, float SectorAngle,
-	ETeamAttitude::Type TargetTeam,
+	int32 TargetRelationMask,
 	EVA_Shape TraceObjType,
 	bool bDrawDebug, bool bIgnoreSelf)
 {
@@ -145,18 +142,10 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		// 중복 피격 방지
 		if (HitActors.Contains(Result.GetActor())) continue;
 
-		/** 대상과의 팀 관계(OtherActorTeamAttitude, PlayerTeam -> TargetTeam)가 TargetTeam과 같지 않으면 피해x
-		 * ex1.	TargetTeam				= ETeamAttitude::Friendly	"이 스킬은 아군에게만 적용."
-		 *		OtherActorTeamAttitude	= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
-		 *			=> 피격 가능 (힐 스킬인데, 적군을 캐스팅했음.)
-		 * ex2.	OtherActorTeamAttitude  = ETeamAttitude::Hostile	"이 스킬은 적군에게만 적용."
-		 *		TargetTeam				= ETeamAttitude::Friendly	"대상 액터의 팀과의 관계는 아군."
-		 *			=> 피격 불가 (딜 스킬인데, 아군이 피격 범위에 존재했음.)
-		 */
 		if (OwnerTeamInterface)
 		{
-			ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
-			if (OtherActorTeamAttitude != TargetTeam) continue;
+			const ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
+			if (!MATargetRelation::MatchesMask(TargetRelationMask, OtherActorTeamAttitude)) continue;
 		}
 
 		HitActors.Add(HitActor);
@@ -171,7 +160,14 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	const FGameplayAbilityTargetDataHandle& Handle)
 {
-	// 1) VS 데이터/위치 추출
+	return GetHitResultFromVirtualSocketTargetData(Handle, MATargetRelation::GetDefaultMask());
+}
+
+TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
+	const FGameplayAbilityTargetDataHandle& Handle,
+	int32 OverrideTargetRelationMask)
+{
+	// 1) Virtual socket target data and location data extraction
 	const FGameplayAbilityTargetData_VirtualSocket* VS = nullptr;
 	const FGameplayAbilityTargetData_LocationInfo*  Loc= nullptr;
 	
@@ -190,25 +186,24 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 		LocHandle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(Copy));
 	}
 	
-	// 2) 기존 범용 함수로 위임
+	// 2) Reuse the shared sweep helper with an overridden target team
 	TArray<FHitResult> OutHits;
 	if (VS->Shape == EVA_Shape::Sphere)
 	{
 		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, FVector(VS->SphereRadius,0,0),
 			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
-			VS->TargetTeam, EVA_Shape::Sphere, VS->bDrawDebug, VS->bIgnoreOwner);
+			OverrideTargetRelationMask, EVA_Shape::Sphere, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 	else // Box
 	{
-		// 주의: 현재 박스는 ZeroRotator로 트레이스함. 박스 회전이 필요하면 아래 “선택 개선” 참고.
 		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize,
 			VS->LocalRotation, false, 0,
-			VS->TargetTeam, EVA_Shape::Box, VS->bDrawDebug, VS->bIgnoreOwner);
+			OverrideTargetRelationMask, EVA_Shape::Box, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 
-	// 3) GameplayCue 실행
+	// 3) Execute gameplay cues for each resolved hit actor
 	for (FHitResult& Result : OutHits)
 	{
 		AActor* HitActor = Result.GetActor();
@@ -229,30 +224,6 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	}
 
 	return OutHits;
-}
-
-void UMAGameplayAbility::PushSelf(const FVector& PushVel)
-{
-	if (ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter())
-	{
-		OwningAvatarCharacter -> LaunchCharacter(PushVel, true, true);
-	}
-}
-
-//대상 (Target 액터)에게 "발사/밀어내기" 이벤트 보내는 함수
-void UMAGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
-{
-	if (!Target)	return;
-
-	FGameplayEventData EventData;
-	FGameplayAbilityTargetData_SingleTargetHit* HitData = new FGameplayAbilityTargetData_SingleTargetHit;
-	FHitResult HitResult;
-	HitResult.ImpactNormal = PushVel;
-	HitData -> HitResult = HitResult;
-	EventData.TargetData.Add(HitData);
-	EventData.EventTag = UMAAbilitySystemStatics::GetLaunchActivateTag();
-
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventData.EventTag, EventData);
 }
 
 void UMAGameplayAbility::StopMontageAfterCurrentSection(UAnimMontage* Montage)
@@ -298,6 +269,14 @@ void UMAGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& H
                                                              const FMADamageExecutionConfig* DamageConfig)
 {
 	FGameplayEffectSpecHandle EffectSpecHandle = MakeDamageEffectSpec(GameplayEffect, Level, DamageConfig);
+	if (!EffectSpecHandle.IsValid()) return;
+
+	ApplyGameplayEffectSpecToHitResultActor(HitResult, EffectSpecHandle);
+}
+
+void UMAGameplayAbility::ApplyGameplayEffectSpecToHitResultActor(const FHitResult& HitResult,
+                                                                 const FGameplayEffectSpecHandle& EffectSpecHandle)
+{
 	if (!EffectSpecHandle.IsValid()) return;
 
 	FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());

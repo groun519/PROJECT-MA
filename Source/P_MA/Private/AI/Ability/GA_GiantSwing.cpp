@@ -184,16 +184,6 @@ void UGA_GiantSwing::OnSwingEvent(FGameplayEventData Data)
 		if (ACharacter* Character = Cast<ACharacter>(GrabbedTarget))
 		{
 			Character->LaunchCharacter(Impulse, true, true);
-
-			FGameplayEventData EventData;
-			EventData.Instigator = GetAvatarActorFromActorInfo();
-			EventData.Target = Character;
-
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-				Character,
-				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockdown")),
-				EventData
-			);
 		}
 	}
 }

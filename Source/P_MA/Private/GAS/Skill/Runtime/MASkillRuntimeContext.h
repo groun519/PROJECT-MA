@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/MASkillDamageConfig.h"
 #include "GameplayEffectTypes.h"
 #include "MASkillRuntimeContext.generated.h"
 
@@ -15,7 +16,33 @@ class UMASkillAction;
 class USkeletalMeshComponent;
 struct FGameplayAttribute;
 struct FGameplayEventData;
-struct FMADamageExecutionConfig;
+
+USTRUCT()
+struct FResolvedCrowdControlEffect
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	FGameplayEffectSpecHandle SpecHandle;
+
+	UPROPERTY(Transient)
+	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+};
+
+USTRUCT()
+struct FResolvedSkillHitEffects
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	int32 TargetRelationMask = MATargetRelation::ToMask(EMATargetRelation::None);
+
+	UPROPERTY(Transient)
+	FGameplayEffectSpecHandle DamageSpec;
+
+	UPROPERTY(Transient)
+	TArray<FResolvedCrowdControlEffect> CrowdControlEffects;
+};
 
 USTRUCT(BlueprintType)
 struct FSkillRuntimeContext
@@ -27,7 +54,8 @@ struct FSkillRuntimeContext
 	void HandleTagEvent(const FGameplayTag& EventTag);
 	void HandleEvent(const FGameplayEventData& Payload);
 	void ClearDamageConfig();
-	void AddDamageConfig(const FMADamageExecutionConfig& DamageConfig);
+	void AddDamageConfig(const FMASkillDamageConfig& DamageConfig);
+	void AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier);
 	TSet<FGameplayTag> ResolveRequiredEventTags() const;
 	void ResolveActionsForEvent(const FGameplayEventData& Payload, TArray<UMASkillAction*>& OutActions) const;
 
@@ -41,9 +69,10 @@ struct FSkillRuntimeContext
 	float GetAttributeValue(const FGameplayAttribute& Attribute, float DefaultValue = 0.f) const;
 	void SetDesiredMontagePlayRate(float PlayRate) const;
 	bool TryGetCurrentSkillSection(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const;
-	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload) const;
-	FGameplayEffectSpecHandle MakeDamageSpec(const FMADamageExecutionConfig* DamageConfig = nullptr) const;
-	void ApplyDamageToHitResult(const FHitResult& HitResult, const FMADamageExecutionConfig* DamageConfig = nullptr) const;
+	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload, const FMASkillDamageConfig* DamageConfig = nullptr) const;
+	FVector GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const;
+	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig* DamageConfig = nullptr) const;
+	void ApplyResolvedHitEffectsToHitResult(const FHitResult& HitResult, const FResolvedSkillHitEffects& ResolvedHitEffects, const FVector& CenterSourcePoint) const;
 
 	void ClearIgnoredActors()
 	{
@@ -64,7 +93,11 @@ struct FSkillRuntimeContext
 	}
 
 private:
-	FMADamageExecutionConfig BuildMergedDamageConfig(const FMADamageExecutionConfig* DamageConfig) const;
+	FMASkillDamageConfig BuildMergedDamageConfig(const FMASkillDamageConfig* DamageConfig) const;
+	int32 ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig = nullptr) const;
+	FGameplayEffectSpecHandle MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const;
+	TArray<FResolvedCrowdControlEffect> MakeCrowdControlEffectSpecs(const FMASkillDamageConfig& ResolvedDamageConfig) const;
+	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const;
 	void RefreshStateFromEvent(const FGameplayEventData& Payload);
 
 	UPROPERTY(Transient)
@@ -78,5 +111,9 @@ private:
 
 	// TODO: Future runtime modules should contribute into this shared damage config before actions resolve local damage settings.
 	UPROPERTY(Transient)
-	FMADamageExecutionConfig AccumulatedDamageConfig;
+	FMASkillDamageConfig AccumulatedDamageConfig;
+
+	// TODO: Future runtime modules can push ordered target relation modifiers here after the action-local base mask is resolved.
+	UPROPERTY(Transient)
+	TArray<FMASkillTargetRelationModifier> AccumulatedTargetRelationModifiers;
 };

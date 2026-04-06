@@ -30,11 +30,16 @@ public:
 	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetKnockbackStatTag();
 	
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
 	static FGameplayTag GetAimingTag();
 	static FGameplayTag GetMoveBlockTag();
+	static FGameplayTag GetAbilityBlockTag();
+	static FGameplayTag GetReactionSourceXTag();
+	static FGameplayTag GetReactionSourceYTag();
+	static FGameplayTag GetReactionSourceZTag();
 
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
@@ -48,8 +53,6 @@ public:
 	
 	static FGameplayTag GetMontageDamageTag();
 	static FGameplayTag GetMontageProjectileTag();
-	
-	static FGameplayTag GetLaunchActivateTag();
 
 	static FGameplayTag GetBehaviorMultiplierTag();
 	static FGameplayTag GetElementalMultiplierTag();
@@ -57,13 +60,10 @@ public:
 	static FGameplayTag GetDamageBaseTag();
 	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);
 	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);
+	static void SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint);
+	static bool TryGetReactionSourcePoint(const FGameplayEffectSpec& Spec, FVector& OutSourcePoint);
 
-	static FGameplayTag GetHitReactTag();
 	static FGameplayTag GetAnyReactionStateTag();
-	static FGameplayTag GetAirborneTag();
-	static FGameplayTag GetKnockdownTag();
-	static FGameplayTag GetRecoveryTag();
-	
 	static bool IsPlayer(const AActor* ActorToCheck);
 
 	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);

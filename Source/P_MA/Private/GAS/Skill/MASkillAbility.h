@@ -20,6 +20,7 @@ class P_MA_API UMASkillAbility : public UMAGameplayAbility
 	GENERATED_BODY()
 
 public:
+	UMASkillAbility();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -35,12 +36,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Definition")
 	TObjectPtr<UMASkillDefinition> SkillDefinition;
 
+	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
+	FGameplayTagContainer CancelTriggerTags;
+
 private:
 	/** Register **/
 	void RegisterEventSources();
 	void UnregisterEventSources();
 	void RegisterFlowPart();
 	void RefreshEventBindings();
+	void RegisterCancelTriggers();
+	void UnregisterCancelTriggers();
+	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
 
 	/** RuntimeContext **/
 	UPROPERTY(Transient)
@@ -60,6 +67,8 @@ private:
 
 	UPROPERTY(Transient)
 	float DesiredMontagePlayRate = 1.f;
+
+	TMap<FGameplayTag, FDelegateHandle> CancelTriggerDelegateHandles;
 
 	UFUNCTION()
 	void HandleSkillGameplayEvent(FGameplayEventData Payload);

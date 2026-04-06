@@ -3,7 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameplayEffectTypes.h"
+#include "GenericTeamAgentInterface.h"
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
@@ -54,6 +57,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
+	TArray<FResolvedCrowdControlEffect> AdditionalCrowdControlEffects;
 
 	void SendLocalGameplayCue(const FHitResult& HitResult);
 
@@ -63,10 +67,13 @@ protected:
 	UFUNCTION()
 	void OnRep_ProjectileVFX();
 public:	
-	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false);
+	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false, const TArray<FResolvedCrowdControlEffect>& InAdditionalCrowdControlEffects = {}, int32 InTargetRelationMask = MATargetRelation::GetDefaultMask());
 
 
 private:
+	void ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC);
+	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const;
+	bool CanDamageActor(AActor* OtherActor) const;
 	void CheckAndHandleNearTargetDestroy();
 
 	UPROPERTY()
@@ -85,4 +92,7 @@ private:
 	TWeakObjectPtr<AActor> DamageTarget;
 	UPROPERTY()
 	bool bHitOnlyDamageTarget = false;
+
+	UPROPERTY()
+	int32 DamageTargetRelationMask = MATargetRelation::GetDefaultMask();
 };

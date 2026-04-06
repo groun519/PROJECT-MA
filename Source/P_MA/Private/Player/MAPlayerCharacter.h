@@ -154,6 +154,7 @@ public:
 	/** Player Rotate **/
 	void UpdateRotationByReadyRide(float DeltaTime);
 	void TrySendRotationToServer(const FVector& LookDirection);
+	bool IsRotationBlocked() const;
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SetRotation(FVector LookDirection);
@@ -188,10 +189,6 @@ public:
 	UPROPERTY(Transient)
 	FGameplayAbilitySpecHandle CurrentAttackAbilityHandle;
 
-	/** Stun **/
-	virtual void OnStun() override;
-	virtual void OnRecoverFromStun() override;
-	
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;

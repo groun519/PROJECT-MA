@@ -3,7 +3,6 @@
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
-#include "AIController.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -13,6 +12,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Character/MAReactionComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -41,6 +41,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
+	ReactionComponent = CreateDefaultSubobject<UMAReactionComponent>("Reaction Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
@@ -53,8 +54,6 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 void AMACharacter::ServerSideInit()
 {
 	MAAbilitySystemComponent->InitAbilityActorInfo(this, this);
-	//MAAbilitySystemComponent->ApplyInitialEffects();
-	//MAAbilitySystemComponent->GiveInitialAbilities();
 	MAAbilitySystemComponent->ServerSideInit();
 }
 
@@ -103,11 +102,6 @@ void AMACharacter::PossessedBy(AController* NewController)
 	}
 }
 
-void AMACharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);	
-}
-
 void AMACharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
 	TeamID = NewTeamID;
@@ -140,11 +134,9 @@ void AMACharacter::BindGASChangeDelegates()
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		//MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-		//MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
 	}
 }
 
@@ -160,85 +152,70 @@ void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	}
 }
 
-void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-	if (NewCount != 0)
-	{
-		OnStun();
-		PlayAnimMontage(StunMontage);
-	}
-	else
-	{
-		OnRecoverFromStun();
-		StopAnimMontage(StunMontage);
-	}
-	
-}
-
 void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
 	if (IsDead()) return;
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (!MoveComp) return;
-	
-	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
-	if (NewCount != 0)
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed*0.2;
-	}
-	else
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed;
-	}
+	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
 	if (IsDead()) return;
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (!MoveComp) return;
-	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
-	if (NewCount != 0)
-	{
-		MoveComp->MaxWalkSpeed =0.f;
-	}
-	else
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed;
-	}
+	if (NewCount != 0) StopMovementForBlock();
+	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
 {
-	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 {
 	GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
-	if (bIsEnabled)
-	{
-		// TODO:
-		// ConfigureOverHeadStatusWidget();
-	}
-	else
+	if (!bIsEnabled)
 	{
 		OverHeadWidgetComponent->SetHiddenInGame(true);
 	}
 }
 
-void AMACharacter::OnStun()
-{
-}
-
-void AMACharacter::OnRecoverFromStun()
-{
-}
-
 bool AMACharacter::IsDead() const
 {
 	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+}
+
+bool AMACharacter::IsMovementBlocked() const
+{
+	return MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+}
+
+void AMACharacter::RefreshMaxWalkSpeed()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp || !MAAttributeSet || !MAAbilitySystemComponent) return;
+
+	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
+	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag()))
+	{
+		MoveComp->MaxWalkSpeed = 0.f;
+		return;
+	}
+
+	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetAimingTag()))
+	{
+		MoveComp->MaxWalkSpeed = MoveSpeed * 0.2f;
+		return;
+	}
+
+	MoveComp->MaxWalkSpeed = MoveSpeed;
+}
+
+void AMACharacter::StopMovementForBlock()
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+	}
 }
 
 void AMACharacter::RespawnImmediately()
@@ -249,40 +226,22 @@ void AMACharacter::RespawnImmediately()
 	}
 }
 
-// void AMACharacter::DeathMontageFinished()
-// {
-// 	SetRagdollEnabled(true);
-// }
-
-// void AMACharacter::SetRagdollEnabled(bool bIsEnabled)
-// {
-// 	if (bIsEnabled)
-// 	{
-// 		GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-// 		GetMesh()->SetSimulatePhysics(true);
-// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-// 	}
-// 	else
-// 	{
-// 		GetMesh()->SetSimulatePhysics(false);
-// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-// 		GetMesh()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-// 		GetMesh()->SetRelativeTransform(MeshRelativeTransform);
-// 	}
-// }
-
 void AMACharacter::PlayDeathAnimation()
 {
 	if (DeathMontage)
 	{
 		float MontageDuration = PlayAnimMontage(DeathMontage);
-		//GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &AMACharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimeShift);
 	}
 }
 
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
+
+	if (ReactionComponent)
+	{
+		ReactionComponent->ResetTransientReactionState();
+	}
 
 	if (MAAbilitySystemComponent)
 	{
@@ -299,8 +258,12 @@ void AMACharacter::StartDeathSequence()
 
 void AMACharacter::Respawn()
 {
+	if (ReactionComponent)
+	{
+		ReactionComponent->ResetTransientReactionState();
+	}
+
 	SetAIPerceptionStimuliSourceEnabled(true);
-	//SetRagdollEnabled(false);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
@@ -339,7 +302,7 @@ void AMACharacter::OnRep_TeamID()
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
 {
-	if (!PerceptionStimuliSourceComponent)		return;
+	if (!PerceptionStimuliSourceComponent) return;
 
 	if (bIsEnabled)
 	{
@@ -360,10 +323,7 @@ void AMACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void AMACharacter::ConfigureOverHeadStatusWidget()
 {
-	if (!OverHeadWidgetComponent)
-	{
-		return; 
-	}
+	if (!OverHeadWidgetComponent) return;
 
 	if (IsLocallyControlledByPlayer())
 	{
@@ -399,74 +359,6 @@ void AMACharacter::UpdateHeadGaugeVisibility()
 		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());
 		OverHeadWidgetComponent->SetHiddenInGame(DistSquared > HeadStatGaugeVisibilityRangeSquared);
 	}
-}
-
-void AMACharacter::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	if (!bPendingKnockdown)
-		return;
-
-	bPendingKnockdown = false;
-
-	if (!KnockdownMontage)
-		return;
-
-	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-	if (!Anim)
-		return;
-
-	Anim->Montage_Play(KnockdownMontage);
-
-	FOnMontageBlendingOutStarted BlendOutDelegate;
-	BlendOutDelegate.BindUObject(this, &AMACharacter::OnKnockdownMontageBlendingOut);
-
-	Anim->Montage_SetBlendingOutDelegate(BlendOutDelegate, KnockdownMontage);
-}
-
-
-void AMACharacter::OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
-{
-	if (IsDead())
-		return;
-
-	bPendingKnockdown = true;
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetKnockdownTag());
-	}
-}
-
-void AMACharacter::ResetKnockdownState()
-{
-	bPendingKnockdown = false;
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->RemoveLooseGameplayTag(
-			UMAAbilitySystemStatics::GetKnockdownTag());
-	}
-
-	if (UCharacterMovementComponent* Move = GetCharacterMovement())
-	{
-		if (Move->MovementMode == MOVE_None)
-		{
-			Move->SetMovementMode(MOVE_Walking);
-		}
-	}
-}
-
-void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (Montage != KnockdownMontage)
-		return;
-
-	if (IsDead())
-		return;
-
-	ResetKnockdownState();
 }
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
@@ -529,10 +421,5 @@ void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage,
 
 bool AMACharacter::GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const
 {
-	if (const FReactionAnimConfig* FoundConfig = ReactionAnimMap.Find(ReactionTag))
-	{
-		OutConfig = *FoundConfig;
-		return true;
-	}
-	return false;
+	return ReactionComponent ? ReactionComponent->GetReactionAnimConfig(ReactionTag, OutConfig) : false;
 }

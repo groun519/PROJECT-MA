@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "DebugShapeHelper.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "VirtualSocketTargetData.h"
 
@@ -31,10 +32,14 @@ public:
 	
 	class UAnimInstance* GetOwnerAnimInstance() const;
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
+	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle, int32 OverrideTargetRelationMask);
 	FGameplayEffectSpecHandle MakeDamageEffectSpec(
 		TSubclassOf<UGameplayEffect> GameplayEffect,
 		int32 Level = 1,
 		const struct FMADamageExecutionConfig* DamageConfig = nullptr);
+	void ApplyGameplayEffectSpecToHitResultActor(
+		const FHitResult& HitResult,
+		const FGameplayEffectSpecHandle& EffectSpecHandle);
 	void ApplyGameplayEffectToHitResultActor(
 		const FHitResult& HitResult,
 		TSubclassOf<UGameplayEffect> GameplayEffect,
@@ -46,7 +51,7 @@ protected:
 		FVector HalfSize = FVector(30.f, 0, 0),
 		FRotator BoxRot = FRotator(0, 0, 0),
 		bool bUseSector = false, float SectorAngle = 0.0f,
-		ETeamAttitude::Type TargetTeam = ETeamAttitude::Hostile,
+		int32 TargetRelationMask = MATargetRelation::GetDefaultMask(),
 		EVA_Shape TraceObjType = EVA_Shape::None,
 		bool bDrawDebug = false, bool bIgnoreSelf = true);
 	UFUNCTION()
@@ -58,10 +63,7 @@ protected:
 	void PlayMontageLocally(UAnimMontage* Montage);
 public:
 	FGenericTeamId GetOwnerTeamId() const;
-	//== Movement ==//
-	void PushSelf(const FVector& PushVel);
-	void PushTarget(AActor* Target, const FVector& PushVel);
-	
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Debug")
 	bool bShouldDrawDebug = true;

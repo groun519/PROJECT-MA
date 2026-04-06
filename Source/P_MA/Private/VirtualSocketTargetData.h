@@ -1,7 +1,6 @@
 #pragma once
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "DebugShapeHelper.h"
-#include "GenericTeamAgentInterface.h"
 #include "VirtualSocketTargetData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -38,9 +37,6 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 	bool bDrawDebug = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TEnumAsByte<ETeamAttitude::Type> TargetTeam = ETeamAttitude::Hostile;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FGameplayTagContainer TriggerGameplayCueTags = FGameplayTagContainer();
 
 	virtual UScriptStruct* GetScriptStruct() const override
@@ -59,7 +55,6 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 		Ar << SectorAngle;
 		Ar << bIgnoreOwner;
 		Ar << bDrawDebug;
-		Ar << TargetTeam;
 		for (FGameplayTag CueTag : TriggerGameplayCueTags)
 		{
 			Ar << CueTag;

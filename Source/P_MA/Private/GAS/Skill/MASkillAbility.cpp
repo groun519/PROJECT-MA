@@ -2,6 +2,8 @@
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillEventSource.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
@@ -23,26 +25,25 @@ namespace
 	}
 }
 
+UMASkillAbility::UMASkillAbility()
+{
+	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetKnockbackStatTag());
+}
+
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if (!SkillDefinition)
-	{
-		K2_EndAbility();
-		return;
-	}
+	if (!SkillDefinition) { K2_EndAbility(); return; }
 
-	if (!K2_CommitAbility())
-	{
-		K2_EndAbility();
-		return;
-	}
+	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
-	RegisterEventSources();
 	RegisterFlowPart();
+	RegisterEventSources();
 	RefreshEventBindings();
+	RegisterCancelTriggers();
 
 	if (UAnimMontage* SkillMontage = SkillDefinition->GetSkillMontage(); HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo) && SkillMontage)
 	{
@@ -67,6 +68,7 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 
 	UnregisterEventSources();
 	EndAbilityTasksAndReset(EventTasks);
+	UnregisterCancelTriggers();
 	RuntimeContext.Reset();
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -142,4 +144,48 @@ void UMASkillAbility::RefreshEventBindings()
 		WaitGameplayEventTask->ReadyForActivation();
 		EventTasks.Add(WaitGameplayEventTask);
 	}
+}
+
+void UMASkillAbility::RegisterCancelTriggers()
+{
+	UnregisterCancelTriggers();
+
+	if (CancelTriggerTags.IsEmpty()) return;
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC) return;
+
+	for (const FGameplayTag& CancelTriggerTag : CancelTriggerTags)
+	{
+		if (!CancelTriggerTag.IsValid()) continue;
+
+		FDelegateHandle DelegateHandle = ASC->RegisterGameplayTagEvent(CancelTriggerTag).AddUObject(this, &UMASkillAbility::HandleCancelTriggerTagChanged);
+		CancelTriggerDelegateHandles.Add(CancelTriggerTag, DelegateHandle);
+	}
+}
+
+void UMASkillAbility::UnregisterCancelTriggers()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC)
+	{
+		CancelTriggerDelegateHandles.Reset();
+		return;
+	}
+
+	for (const TPair<FGameplayTag, FDelegateHandle>& DelegatePair : CancelTriggerDelegateHandles)
+	{
+		ASC->RegisterGameplayTagEvent(DelegatePair.Key).Remove(DelegatePair.Value);
+	}
+
+	CancelTriggerDelegateHandles.Reset();
+}
+
+void UMASkillAbility::HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount)
+{
+	if (NewCount != 1) return;
+	if (!CancelTriggerTags.HasTagExact(Tag)) return;
+	if (!IsActive()) return;
+
+	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 }

@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/MASkillDamageConfig.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "MASkillAction_SpawnProjectile.generated.h"
 
@@ -40,5 +40,5 @@ private:
 	FMASkillActionConfig_SpawnProjectile Config;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
-	FMADamageExecutionConfig DamageConfig;
+	FMASkillDamageConfig DamageConfig;
 };

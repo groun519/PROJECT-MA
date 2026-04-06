@@ -8,10 +8,27 @@
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/OverlapResult.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "P_MA/P_MA.h"
 
+
+namespace
+{
+bool ShouldAffectActor(const AActor* SourceActor, const AActor* TargetActor, const int32 TargetRelationMask)
+{
+	if (!TargetActor) return false;
+
+	const IGenericTeamAgentInterface* SourceTeamInterface = Cast<IGenericTeamAgentInterface>(SourceActor);
+	if (!SourceTeamInterface)
+	{
+		return true;
+	}
+
+	return MATargetRelation::MatchesMask(TargetRelationMask, SourceTeamInterface->GetTeamAttitudeTowards(*TargetActor));
+}
+}
 
 AMAProjectile::AMAProjectile()
 {
@@ -80,15 +97,16 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
 	if (HitActors.Contains(OtherActor)) return;
+	if (!CanDamageActor(OtherActor)) return;
 	if (bHitOnlyDamageTarget)
 	{
 		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
 	}
 
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
-	if (TargetASC && DamageEffectSpecHandle.IsValid())
+	if (TargetASC)
 	{
-		TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+		ApplyEffectSpecsToTarget(TargetASC);
 	}
 	HitActors.Add(OtherActor);
 	OnProjectileHit.Broadcast(OtherActor);
@@ -107,10 +125,12 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 			AActor* AoE_Target = OverlapResult.GetActor();
 			if (AoE_Target && AoE_Target != GetInstigator() && AoE_Target != this && !HitActors.Contains(AoE_Target))
 			{
+				if (!CanDamageActor(AoE_Target)) continue;
+
 				UAbilitySystemComponent* AoE_ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(AoE_Target);
-				if (AoE_ASC && DamageEffectSpecHandle.IsValid())
+				if (AoE_ASC)
 				{
-					AoE_ASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+					ApplyEffectSpecsToTarget(AoE_ASC);
 					HitActors.Add(AoE_Target);
 					OnProjectileHit.Broadcast(AoE_Target);
 				}
@@ -153,6 +173,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
+	if (!CanDamageActor(OtherActor)) return;
 	if (bHitOnlyDamageTarget)
 	{
 		if (!DamageTarget.IsValid() || OtherActor != DamageTarget.Get()) return;
@@ -163,10 +184,6 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		SendLocalGameplayCue(Hit);
 	}
 		
-	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
-	if (!SourceASC)
-		return;
-
 	TArray<FOverlapResult> Overlaps;
 	FCollisionObjectQueryParams ObjectQueryParams(ECC_Hitbox);
 	FCollisionShape CollisionShape = FCollisionShape::MakeSphere(ExplodeRadius);
@@ -180,6 +197,7 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		AActor* TargetActor = OverlapResult.GetActor();
 		if (TargetActor && TargetActor != GetInstigator())
 		{
+			if (!CanDamageActor(TargetActor)) continue;
 			if (bHitOnlyDamageTarget)
 			{
 				if (!DamageTarget.IsValid() || TargetActor != DamageTarget.Get()) continue;
@@ -187,11 +205,8 @@ void AMAProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 			if (TargetASC)
 			{
-				if (DamageEffectSpecHandle.IsValid())
-				{
-					TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
-					OnProjectileHit.Broadcast(TargetActor);
-				}
+				ApplyEffectSpecsToTarget(TargetASC);
+				OnProjectileHit.Broadcast(TargetActor);
 			}
 		}
 	}
@@ -236,11 +251,56 @@ void AMAProjectile::OnRep_ProjectileVFX()
 	}
 }
 
-void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrating)
+void AMAProjectile::InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrating, const TArray<FResolvedCrowdControlEffect>& InAdditionalCrowdControlEffects, int32 InTargetRelationMask)
 {
 	DamageEffectSpecHandle = InSpecHandle;
+	AdditionalCrowdControlEffects = InAdditionalCrowdControlEffects;
 	ExplodeRadius = InExplodeRadius;
 	bIsPenetrating = bInPenetrating;
+	DamageTargetRelationMask = InTargetRelationMask;
+}
+
+bool AMAProjectile::CanDamageActor(AActor* OtherActor) const
+{
+	const AActor* SourceActor = GetOwner() ? GetOwner() : GetInstigator();
+	return ShouldAffectActor(SourceActor, OtherActor, DamageTargetRelationMask);
+}
+
+void AMAProjectile::ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC)
+{
+	if (!TargetASC) return;
+
+	if (DamageEffectSpecHandle.IsValid())
+	{
+		TargetASC->ApplyGameplayEffectSpecToSelf(*DamageEffectSpecHandle.Data.Get());
+	}
+
+	for (const FResolvedCrowdControlEffect& CrowdControlEffect : AdditionalCrowdControlEffects)
+	{
+		if (!CrowdControlEffect.SpecHandle.IsValid()) continue;
+
+		FGameplayEffectSpecHandle CrowdControlSpecHandle = CrowdControlEffect.SpecHandle;
+		UMAAbilitySystemStatics::SetReactionSourcePoint(
+			CrowdControlSpecHandle,
+			ResolveCrowdControlSourcePoint(CrowdControlEffect.SourceType));
+		TargetASC->ApplyGameplayEffectSpecToSelf(*CrowdControlSpecHandle.Data.Get());
+	}
+}
+
+FVector AMAProjectile::ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const
+{
+	switch (SourceType)
+	{
+	case EMASkillCrowdControlSourceType::Center:
+		return GetActorLocation();
+	case EMASkillCrowdControlSourceType::Instigator:
+	default:
+		if (const AActor* InstigatorActor = GetInstigator())
+		{
+			return InstigatorActor->GetActorLocation();
+		}
+		return GetActorLocation();
+	}
 }
 
 /** Targeting Logics **/

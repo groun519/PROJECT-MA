@@ -6,7 +6,9 @@ void UMASkillAction_MeleeOverlap::Execute(FSkillRuntimeContext& RuntimeContext, 
 {
 	if (!RuntimeContext.HasAuthority()) return;
 
-	const TArray<FHitResult> HitResults = RuntimeContext.GetHitResultsFromPayload(Payload);
+	const TArray<FHitResult> HitResults = RuntimeContext.GetHitResultsFromPayload(Payload, &DamageConfig);
+	const FResolvedSkillHitEffects ResolvedHitEffects = RuntimeContext.BuildResolvedHitEffects(&DamageConfig);
+	const FVector CrowdControlCenterPoint = RuntimeContext.GetCrowdControlCenterPoint(Payload);
 
 	TSet<AActor*> HitActors;
 	for (const FHitResult& HitResult : HitResults)
@@ -17,7 +19,7 @@ void UMASkillAction_MeleeOverlap::Execute(FSkillRuntimeContext& RuntimeContext, 
 			continue;
 		}
 
-		RuntimeContext.ApplyDamageToHitResult(HitResult, &DamageConfig);
+		RuntimeContext.ApplyResolvedHitEffectsToHitResult(HitResult, ResolvedHitEffects, CrowdControlCenterPoint);
 		HitActors.Add(HitActor);
 		RuntimeContext.AddIgnoredActor(HitActor);
 	}

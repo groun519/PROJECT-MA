@@ -73,7 +73,6 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 
 				VSData->bIgnoreOwner			= bIgnoreOwner;
 				VSData->bDrawDebug				= bDrawDebug;
-				VSData->TargetTeam				= TargetTeam;
 				VSData->TriggerGameplayCueTags	= TriggerGameplayCueTags;
 
 				Data.TargetData.Add(VSData);

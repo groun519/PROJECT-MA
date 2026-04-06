@@ -37,8 +37,11 @@ void UMASkillAction_SpawnProjectile::Execute(FSkillRuntimeContext& RuntimeContex
 		SpawnParams);
 	if (!Projectile) return;
 
+	const FResolvedSkillHitEffects ResolvedHitEffects = RuntimeContext.BuildResolvedHitEffects(&DamageConfig);
 	Projectile->InitializeProjectile(
-		RuntimeContext.MakeDamageSpec(&DamageConfig),
+		ResolvedHitEffects.DamageSpec,
 		Config.ExplodeRadius,
-		Config.bIsPenetrating);
+		Config.bIsPenetrating,
+		ResolvedHitEffects.CrowdControlEffects,
+		ResolvedHitEffects.TargetRelationMask);
 }

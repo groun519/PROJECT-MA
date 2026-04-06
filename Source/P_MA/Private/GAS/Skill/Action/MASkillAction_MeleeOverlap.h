@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/MASkillDamageConfig.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "MASkillAction_MeleeOverlap.generated.h"
 
@@ -15,5 +15,5 @@ public:
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
-	FMADamageExecutionConfig DamageConfig;
+	FMASkillDamageConfig DamageConfig;
 };

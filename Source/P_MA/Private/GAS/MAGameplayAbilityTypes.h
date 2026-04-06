@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GenericTeamAgentInterface.h"
 #include "GameplayEffect.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
@@ -95,6 +96,49 @@ enum class EMADamageAttributeSide : uint8
 	Source,
 	Target
 };
+
+UENUM(BlueprintType, meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
+enum class EMATargetRelation : uint8
+{
+	None     = 0 UMETA(Hidden),
+	Friendly = 1 << 0,
+	Hostile  = 1 << 1,
+	Neutral  = 1 << 2
+};
+ENUM_CLASS_FLAGS(EMATargetRelation);
+
+namespace MATargetRelation
+{
+	FORCEINLINE int32 ToMask(const EMATargetRelation Relation)
+	{
+		return static_cast<int32>(Relation);
+	}
+
+	FORCEINLINE int32 ToMask(const ETeamAttitude::Type TeamAttitude)
+	{
+		switch (TeamAttitude)
+		{
+		case ETeamAttitude::Friendly:
+			return ToMask(EMATargetRelation::Friendly);
+		case ETeamAttitude::Hostile:
+			return ToMask(EMATargetRelation::Hostile);
+		case ETeamAttitude::Neutral:
+			return ToMask(EMATargetRelation::Neutral);
+		default:
+			return ToMask(EMATargetRelation::None);
+		}
+	}
+
+	FORCEINLINE int32 GetDefaultMask()
+	{
+		return ToMask(EMATargetRelation::Hostile);
+	}
+
+	FORCEINLINE bool MatchesMask(const int32 AllowedRelationMask, const ETeamAttitude::Type TeamAttitude)
+	{
+		return (AllowedRelationMask & ToMask(TeamAttitude)) != 0;
+	}
+}
 
 USTRUCT(BlueprintType)
 struct FMADamageAttributeCoefficient

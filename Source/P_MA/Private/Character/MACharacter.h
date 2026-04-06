@@ -3,28 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Character/MAReactionTypes.h"
 #include "GameFramework/Character.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
-#include "GAS/MAGameplayAbilityTypes.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
-#include "Abilities/GameplayAbility.h" // 일단 문제가 있어서 이렇게 했는데 왜인지 모르겠음
+#include "GAS/MAGameplayAbilityTypes.h"
+#include "Abilities/GameplayAbility.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
-
-USTRUCT()
-struct FReactionAnimConfig
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly)
-	UAnimMontage* Montage = nullptr;
-	UPROPERTY(EditDefaultsOnly)
-	float VerticalLaunchScale = 0.f;
-};
 
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
@@ -45,7 +35,6 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/** Gameplay Ability **/
@@ -54,15 +43,14 @@ public:
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
-	
-	UPROPERTY()
-	TWeakObjectPtr<AActor> CurrentGiantSwingInstigator;
+
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void RefreshMaxWalkSpeed();
+	void StopMovementForBlock();
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
 
@@ -70,6 +58,9 @@ private:
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
 	UPROPERTY()
 	class UMAAttributeSet* MAAttributeSet;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Reaction")
+	class UMAReactionComponent* ReactionComponent;
 
 	/** UI **/
 private:
@@ -90,16 +81,9 @@ private:
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
 
-	/** Stun **/
-private:
-	UPROPERTY(EditDefaultsOnly, Category = "Stun")
-	UAnimMontage* StunMontage;
-
-	virtual void OnStun();
-	virtual void OnRecoverFromStun();
-	
 	/** Death and Respawn **/
 public:
+	bool IsMovementBlocked() const;
 	bool IsDead() const;
 	void RespawnImmediately();
 	
@@ -167,24 +151,7 @@ public:
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
-	
-	/** Knockdown **/
-public:
-	virtual void Landed(const FHitResult& Hit) override;
 
-	void OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
-	void ResetKnockdownState();
-	void OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
-	
 	UFUNCTION()
 	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;
-	
-private:
-	UPROPERTY(EditDefaultsOnly)
-	UAnimMontage* KnockdownMontage;
-	
-	bool bPendingKnockdown = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Reaction", meta=(Categories="Effect.Reaction"))
-	TMap<FGameplayTag, FReactionAnimConfig> ReactionAnimMap;
 };

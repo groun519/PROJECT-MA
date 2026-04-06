@@ -62,6 +62,26 @@ FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()
 	return FGameplayTag::RequestGameplayTag("State.MoveBlocked");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetAbilityBlockTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.AbilityBlocked");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceXTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.X");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceYTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.Y");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceZTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.Z");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Full");
@@ -105,11 +125,6 @@ FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.LaunchActivate");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
@@ -175,34 +190,43 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 	}
 }
 
+void UMAAbilitySystemStatics::SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint)
+{
+	if (!SpecHandle.IsValid()) return;
+
+	// TODO: If reaction payload grows beyond SourcePoint, move this data to a custom GameplayEffectContext.
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceXTag(), SourcePoint.X);
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceYTag(), SourcePoint.Y);
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceZTag(), SourcePoint.Z);
+}
+
+bool UMAAbilitySystemStatics::TryGetReactionSourcePoint(const FGameplayEffectSpec& Spec, FVector& OutSourcePoint)
+{
+	// TODO: If reaction payload grows beyond SourcePoint, read it from a custom GameplayEffectContext instead.
+	const float* SourceX = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceXTag());
+	const float* SourceY = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceYTag());
+	const float* SourceZ = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceZTag());
+	if (!SourceX || !SourceY || !SourceZ) return false;
+
+	OutSourcePoint.X = *SourceX;
+	OutSourcePoint.Y = *SourceY;
+	OutSourcePoint.Z = *SourceZ;
+	return true;
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetHitReactTag()
+FGameplayTag UMAAbilitySystemStatics::GetKnockbackStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("State.Debuff.HitReact");
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockback");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetAnyReactionStateTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetAirborneTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Debuff.Airborne");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetKnockdownTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockdown");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetRecoveryTag()
-{
-	return FGameplayTag::RequestGameplayTag("Stats.Recovery");
 }
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
