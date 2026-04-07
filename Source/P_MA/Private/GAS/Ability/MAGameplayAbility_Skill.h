@@ -82,20 +82,10 @@ protected:
 */
 	FGameplayTag VFXRootTag;
 	FGameplayTag IgnoreClearTag;
-
-	UFUNCTION()
-	void HandleProjectileHit(AActor* HitActor);
-
-	UPROPERTY(Transient)
-	float CurrentReactDuration = 0.f;
 	
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
-	void SetHitReactionTag(FGameplayTag NewTag) {CachedSkillData.HitReactionTag = NewTag;}
-
-	void SetReactDuration(float NewDuration) {CurrentReactDuration = NewDuration;}
-	float GetReactDuration() const {return CurrentReactDuration;}
 	
 	bool TryActivateComboModule();
 	

@@ -219,6 +219,16 @@ FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetGrabStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Grab");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetStaggerStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Stagger");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetKnockbackStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockback");

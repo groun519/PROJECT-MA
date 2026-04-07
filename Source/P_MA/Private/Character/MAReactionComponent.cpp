@@ -11,31 +11,55 @@
 
 namespace
 {
+	constexpr int32 DefaultCrowdControlBlockFlags =
+		static_cast<int32>(EReactionBlockFlags::Move) |
+		static_cast<int32>(EReactionBlockFlags::Rotation) |
+		static_cast<int32>(EReactionBlockFlags::Ability);
+
+	FReactionRule MakeReactionRule(
+		const FGameplayTag& CrowdControlTag,
+		const EReactionImpulseMode ImpulseMode,
+		const bool bStopAIOnStart,
+		const bool bStopMovementOnStart)
+	{
+		FReactionRule ReactionRule;
+		ReactionRule.CrowdControlTag = CrowdControlTag;
+		ReactionRule.BlockFlags = DefaultCrowdControlBlockFlags;
+		ReactionRule.ImpulseMode = ImpulseMode;
+		ReactionRule.bPlayMontageOnStart = true;
+		ReactionRule.bStopMontageOnEnd = true;
+		ReactionRule.bStopAIOnStart = bStopAIOnStart;
+		ReactionRule.bStopMovementOnStart = bStopMovementOnStart;
+		return ReactionRule;
+	}
+
 	void AddDefaultReactionRules(TArray<FReactionRule>& ReactionRules)
 	{
 		if (ReactionRules.Num() > 0) return;
 
-		FReactionRule StunRule;
-		StunRule.CrowdControlTag = UMAAbilitySystemStatics::GetStunStatTag();
-		StunRule.BlockFlags = static_cast<int32>(EReactionBlockFlags::Move) |
-			static_cast<int32>(EReactionBlockFlags::Rotation) |
-			static_cast<int32>(EReactionBlockFlags::Ability);
-		StunRule.ImpulseMode = EReactionImpulseMode::None;
-		StunRule.bPlayMontageOnStart = true;
-		StunRule.bStopMontageOnEnd = true;
-		StunRule.bStopAIOnStart = true;
-		StunRule.bStopMovementOnStart = true;
-		ReactionRules.Add(StunRule);
+		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetStunStatTag(),
+			EReactionImpulseMode::None,
+			true,
+			true));
 
-		FReactionRule KnockbackRule;
-		KnockbackRule.CrowdControlTag = UMAAbilitySystemStatics::GetKnockbackStatTag();
-		KnockbackRule.BlockFlags = static_cast<int32>(EReactionBlockFlags::Move) |
-			static_cast<int32>(EReactionBlockFlags::Rotation) |
-			static_cast<int32>(EReactionBlockFlags::Ability);
-		KnockbackRule.ImpulseMode = EReactionImpulseMode::PushFromSource;
-		KnockbackRule.bPlayMontageOnStart = true;
-		KnockbackRule.bStopMontageOnEnd = true;
-		ReactionRules.Add(KnockbackRule);
+		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetGrabStatTag(),
+			EReactionImpulseMode::PullToSource,
+			false,
+			false));
+
+		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetKnockbackStatTag(),
+			EReactionImpulseMode::PushFromSource,
+			false,
+			false));
+
+		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetStaggerStatTag(),
+			EReactionImpulseMode::PushFromSource,
+			true,
+			true));
 	}
 }
 
@@ -78,16 +102,7 @@ const FReactionRule* UMAReactionComponent::FindReactionRule(const FGameplayTag& 
 
 bool UMAReactionComponent::HasActiveImpulseReaction() const
 {
-	for (const FGameplayTag& ActiveCrowdControlTag : ActiveCrowdControlTags)
-	{
-		const FReactionRule* ReactionRule = FindReactionRule(ActiveCrowdControlTag);
-		if (!ReactionRule) continue;
-		if (ReactionRule->ImpulseMode != EReactionImpulseMode::None)
-		{
-			return true;
-		}
-	}
-	return false;
+	return ActiveImpulseContributions.Num() > 0;
 }
 
 void UMAReactionComponent::BindToASC()
@@ -162,11 +177,6 @@ void UMAReactionComponent::HandleCrowdControlStarted(const FReactionRule& Reacti
 		}
 	}
 
-	if (ReactionRule.ImpulseMode != EReactionImpulseMode::None)
-	{
-		BeginImpulseMovementOverride();
-	}
-
 	RefreshControlBlockTags();
 }
 
@@ -177,9 +187,17 @@ void UMAReactionComponent::HandleCrowdControlEnded(const FReactionRule& Reaction
 		StopReactionMontage(ReactionRule.CrowdControlTag);
 	}
 
-	if (ReactionRule.ImpulseMode != EReactionImpulseMode::None && !HasActiveImpulseReaction())
+	if (ReactionRule.ImpulseMode != EReactionImpulseMode::None)
 	{
-		ClearImpulseReactionState();
+		ActiveImpulseContributions.Remove(ReactionRule.CrowdControlTag);
+		if (HasActiveImpulseReaction())
+		{
+			RecalculateImpulseReactionVelocity(false);
+		}
+		else
+		{
+			ClearImpulseReactionState();
+		}
 	}
 
 	RefreshControlBlockTags();
@@ -228,10 +246,6 @@ void UMAReactionComponent::ApplyImpulseReaction(EReactionImpulseMode ImpulseMode
 	if (GetReactionAnimConfig(ReactionTag, ReactionAnimConfig))
 	{
 		VerticalLaunchScale = ReactionAnimConfig.VerticalLaunchScale;
-		if (ReactionAnimConfig.Montage)
-		{
-			OwnerCharacter->PlayAnimMontage(ReactionAnimConfig.Montage);
-		}
 	}
 
 	FVector ReactionDirection = GetReactionDirection(SourcePoint, ImpulseMode);
@@ -244,9 +258,10 @@ void UMAReactionComponent::ApplyImpulseReaction(EReactionImpulseMode ImpulseMode
 			AIController->StopMovement();
 		}
 
+		const bool bShouldStopMovementImmediately = !bImpulseMovementOverrideActive;
 		BeginImpulseMovementOverride();
-		CharacterMovementComponent->StopMovementImmediately();
-		CharacterMovementComponent->Velocity = ReactionDirection * Magnitude;
+		ActiveImpulseContributions.Add(ReactionTag, ReactionDirection * Magnitude);
+		RecalculateImpulseReactionVelocity(bShouldStopMovementImmediately);
 	}
 }
 
@@ -317,10 +332,41 @@ void UMAReactionComponent::StopAllReactionMontages()
 
 void UMAReactionComponent::ClearImpulseReactionState()
 {
+	ActiveImpulseContributions.Reset();
+
+	if (OwnerCharacter)
+	{
+		if (UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement())
+		{
+			CharacterMovementComponent->Velocity = FVector::ZeroVector;
+		}
+	}
+
 	if (bImpulseMovementOverrideActive)
 	{
 		EndImpulseMovementOverride();
 	}
+}
+
+void UMAReactionComponent::RecalculateImpulseReactionVelocity(bool bStopMovementImmediately)
+{
+	if (!OwnerCharacter) return;
+
+	UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement();
+	if (!CharacterMovementComponent) return;
+
+	FVector CombinedVelocity = FVector::ZeroVector;
+	for (const TPair<FGameplayTag, FVector>& ContributionEntry : ActiveImpulseContributions)
+	{
+		CombinedVelocity += ContributionEntry.Value;
+	}
+
+	if (bStopMovementImmediately)
+	{
+		CharacterMovementComponent->StopMovementImmediately();
+	}
+
+	CharacterMovementComponent->Velocity = CombinedVelocity;
 }
 
 void UMAReactionComponent::RefreshControlBlockTags()

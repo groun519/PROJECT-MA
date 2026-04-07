@@ -68,6 +68,36 @@ struct P_MA_API FSkillCrowdControlKnockbackConfig : public FSkillCrowdControlCon
 	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
 };
 
+USTRUCT(BlueprintType)
+struct P_MA_API FSkillCrowdControlGrabConfig : public FSkillCrowdControlConfigBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Magnitude = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Duration = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+};
+
+USTRUCT(BlueprintType)
+struct P_MA_API FSkillCrowdControlStaggerConfig : public FSkillCrowdControlConfigBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Magnitude = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Duration = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+};
+
 UENUM(BlueprintType)
 enum class EMASkillTargetRelationMergeOp : uint8
 {
@@ -131,24 +161,60 @@ struct P_MA_API FMASkillDamageConfig
 	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(BaseStruct="/Script/P_MA.SkillCrowdControlConfigBase", ExcludeBaseStruct))
 	TArray<FInstancedStruct> CrowdControlConfigs;
 
+	static bool BuildCrowdControlEntry(
+		const FGameplayTag CrowdControlTag,
+		const float Magnitude,
+		const float Duration,
+		const EMASkillCrowdControlSourceType SourceType,
+		FMASkillCrowdControlEntry& OutEntry)
+	{
+		OutEntry.CrowdControlTag = CrowdControlTag;
+		OutEntry.Magnitude = Magnitude;
+		OutEntry.Duration = Duration;
+		OutEntry.SourceType = SourceType;
+		return OutEntry.HasValidData();
+	}
+
 	static bool TryResolveCrowdControlEntry(const FInstancedStruct& CrowdControlConfig, FMASkillCrowdControlEntry& OutEntry)
 	{
 		if (const FSkillCrowdControlStunConfig* StunConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlStunConfig>())
 		{
-			OutEntry.CrowdControlTag = FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stun"));
-			OutEntry.Magnitude = 0.f;
-			OutEntry.Duration = StunConfig->Duration;
-			OutEntry.SourceType = EMASkillCrowdControlSourceType::Instigator;
-			return OutEntry.HasValidData();
+			return BuildCrowdControlEntry(
+				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stun")),
+				0.f,
+				StunConfig->Duration,
+				EMASkillCrowdControlSourceType::Instigator,
+				OutEntry);
+		}
+
+		if (const FSkillCrowdControlStaggerConfig* StaggerConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlStaggerConfig>())
+		{
+			return BuildCrowdControlEntry(
+				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stagger")),
+				StaggerConfig->Magnitude,
+				StaggerConfig->Duration,
+				StaggerConfig->SourceType,
+				OutEntry);
 		}
 
 		if (const FSkillCrowdControlKnockbackConfig* KnockbackConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlKnockbackConfig>())
 		{
-			OutEntry.CrowdControlTag = FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockback"));
-			OutEntry.Magnitude = KnockbackConfig->Magnitude;
-			OutEntry.Duration = KnockbackConfig->Duration;
-			OutEntry.SourceType = KnockbackConfig->SourceType;
-			return OutEntry.HasValidData();
+			return BuildCrowdControlEntry(
+				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockback")),
+				KnockbackConfig->Magnitude,
+				KnockbackConfig->Duration,
+				KnockbackConfig->SourceType,
+				OutEntry);
+		}
+
+		if (const FSkillCrowdControlGrabConfig* GrabConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlGrabConfig>())
+		{
+			return BuildCrowdControlEntry(
+				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Grab")),
+				GrabConfig->Magnitude,
+				GrabConfig->Duration,
+				GrabConfig->SourceType,
+				OutEntry);
 		}
 
 		return false;

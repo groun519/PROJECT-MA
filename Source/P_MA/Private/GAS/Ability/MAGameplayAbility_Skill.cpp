@@ -77,7 +77,6 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 	
 	IgnoreTargets.Empty();
 	ChargeRatio = 1.f;
-	CurrentReactDuration = CachedSkillData.ReactDuration;
 
 	/*
 	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
@@ -252,18 +251,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
-
-			if (CachedSkillData.HitReactionTag.IsValid())
-			{
-				FGameplayEventData EventPayload;
-				EventPayload.EventTag = CachedSkillData.HitReactionTag;
-				EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
-				EventPayload.OptionalObject = this;
-				EventPayload.Instigator = GetAvatarActorFromActorInfo();
-				EventPayload.Target = HitActor;
-
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
-			}
 
 			ApplyHitStop(HitActor);
 		}
@@ -549,7 +536,6 @@ AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class
 		{
 			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
 		}
-		Projectile->OnProjectileHit.AddDynamic(this, &UMAGameplayAbility_Skill::HandleProjectileHit);
 	}
 	return SpawnedActor;
 }
@@ -650,24 +636,6 @@ float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
 		}
 	}
 	return TotalSpeed;
-}
-
-void UMAGameplayAbility_Skill::HandleProjectileHit(AActor* HitActor)
-{
-	if (!HitActor || !HasAuthority(&CurrentActivationInfo))
-		return;
-
-	if (CachedSkillData.HitReactionTag.IsValid())
-	{
-		FGameplayEventData EventPayload;
-		EventPayload.EventTag = CachedSkillData.HitReactionTag;
-		EventPayload.EventMagnitude = CachedSkillData.ReactionForce;
-		EventPayload.OptionalObject = this;
-		EventPayload.Instigator = GetAvatarActorFromActorInfo();
-		EventPayload.Target = HitActor;
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, CachedSkillData.HitReactionTag, EventPayload);
-	}
 }
 
 void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)

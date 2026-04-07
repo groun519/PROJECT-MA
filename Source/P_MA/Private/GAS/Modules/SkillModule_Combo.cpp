@@ -119,17 +119,6 @@ void USkillModule_Combo::StartComboMontage()
 
 	const FModuleBehaviorData& ComboData = OwnerSkill->GetComboData();
 	const FBehavior_Combo* ComboConfig = ComboData.ModuleConfig.GetPtr<FBehavior_Combo>();
-	
-	if (ComboConfig->ComboHitReactionTag.IsValid())
-	{
-		OwnerSkill->SetHitReactionTag(ComboConfig->ComboHitReactionTag);
-	}
-	else
-	{
-		OwnerSkill->SetHitReactionTag(FGameplayTag());
-	}
-
-	OwnerSkill->SetReactDuration(ComboConfig->ReactDuration);
 
 	float PlayRate = OwnerSkill->GetTotalAnimSpeed();
 	ComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(OwnerSkill, NAME_None, ComboConfig->ComboMontage,PlayRate);

@@ -32,6 +32,7 @@ private:
 	void StopReactionMontage(const FGameplayTag& ReactionTag);
 	void StopAllReactionMontages();
 	void ClearImpulseReactionState();
+	void RecalculateImpulseReactionVelocity(bool bStopMovementImmediately);
 	void RefreshControlBlockTags();
 
 	/** Owner **/
@@ -69,4 +70,5 @@ private:
 	float SavedImpulseBrakingDecelerationWalking = 0.f;
 	TEnumAsByte<ECollisionResponse> SavedImpulseHitboxResponse = ECR_Block;
 	bool bImpulseMovementOverrideActive = false;
+	TMap<FGameplayTag, FVector> ActiveImpulseContributions;
 };

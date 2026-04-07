@@ -30,6 +30,8 @@ public:
 	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetGrabStatTag();
+	static FGameplayTag GetStaggerStatTag();
 	static FGameplayTag GetKnockbackStatTag();
 	
 	static FGameplayTag GetRotationLockTag();
