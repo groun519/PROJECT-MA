@@ -30,6 +30,7 @@ public:
 	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetRootStatTag();
 	static FGameplayTag GetAirborneStatTag();
 	static FGameplayTag GetAirborneRiseTimeTag();
 	static FGameplayTag GetGrabStatTag();

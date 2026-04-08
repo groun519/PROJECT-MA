@@ -1,92 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InstancedStruct.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "MASkillDamageConfig.generated.h"
 
-UENUM(BlueprintType)
-enum class EMASkillCrowdControlSourceType : uint8
-{
-	Instigator,
-	Center
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlStunConfig : public FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlAirborneConfig : public FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Magnitude = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float RiseTime = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlKnockbackConfig : public FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Magnitude = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlGrabConfig : public FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Magnitude = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FSkillCrowdControlStaggerConfig : public FSkillCrowdControlConfigBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Magnitude = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
-};
+class UMASkillCrowdControl;
 
 UENUM(BlueprintType)
 enum class EMASkillTargetRelationMergeOp : uint8
@@ -148,14 +68,14 @@ struct P_MA_API FMASkillDamageConfig
 	UPROPERTY(EditDefaultsOnly, Category="Targeting", meta=(Bitmask, BitmaskEnum="/Script/P_MA.EMATargetRelation"))
 	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
 
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(BaseStruct="/Script/P_MA.SkillCrowdControlConfigBase", ExcludeBaseStruct))
-	TArray<FInstancedStruct> CrowdControlConfigs;
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="CrowdControl")
+	TArray<TObjectPtr<UMASkillCrowdControl>> CrowdControls;
 
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
-		CrowdControlConfigs.Append(Other.CrowdControlConfigs);
+		CrowdControls.Append(Other.CrowdControls);
 	}
 
 	bool HasValues() const
@@ -167,7 +87,7 @@ struct P_MA_API FMASkillDamageConfig
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
 		}
 
-		return CrowdControlConfigs.Num() > 0;
+		return CrowdControls.Num() > 0;
 	}
 
 	FMADamageExecutionConfig ToExecutionConfig() const

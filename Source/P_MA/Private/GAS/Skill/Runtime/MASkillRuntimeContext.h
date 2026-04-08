@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControlResolvedTypes.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GAS/Skill/MASkillDamageConfig.h"
 #include "GameplayEffectTypes.h"
 #include "MASkillRuntimeContext.generated.h"

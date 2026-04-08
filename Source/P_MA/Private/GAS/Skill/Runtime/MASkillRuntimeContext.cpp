@@ -6,7 +6,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControlSpecBuilder.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
@@ -220,7 +220,11 @@ FResolvedSkillHitEffects FSkillRuntimeContext::BuildResolvedHitEffects(const FMA
 	ResolvedHitEffects.DamageSpec = MakeDamageSpec(ResolvedDamageConfig);
 	if (OwnerAbility)
 	{
-		ResolvedHitEffects.CrowdControlEffects = FMASkillCrowdControlSpecBuilder::BuildSpecs(*OwnerAbility, ResolvedDamageConfig);
+		for (const TObjectPtr<UMASkillCrowdControl>& CrowdControl : ResolvedDamageConfig.CrowdControls)
+		{
+			if (!CrowdControl) continue;
+			CrowdControl->BuildResolvedEffect(*OwnerAbility, ResolvedHitEffects.CrowdControlEffects);
+		}
 	}
 	return ResolvedHitEffects;
 }

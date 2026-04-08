@@ -20,14 +20,17 @@ namespace
 		const FGameplayTag& CrowdControlTag,
 		const EReactionImpulseMode ImpulseMode,
 		const bool bStopAIOnStart,
-		const bool bStopMovementOnStart)
+		const bool bStopMovementOnStart,
+		const int32 BlockFlags = DefaultCrowdControlBlockFlags,
+		const bool bPlayMontageOnStart = true,
+		const bool bStopMontageOnEnd = true)
 	{
 		FReactionRule ReactionRule;
 		ReactionRule.CrowdControlTag = CrowdControlTag;
-		ReactionRule.BlockFlags = DefaultCrowdControlBlockFlags;
+		ReactionRule.BlockFlags = BlockFlags;
 		ReactionRule.ImpulseMode = ImpulseMode;
-		ReactionRule.bPlayMontageOnStart = true;
-		ReactionRule.bStopMontageOnEnd = true;
+		ReactionRule.bPlayMontageOnStart = bPlayMontageOnStart;
+		ReactionRule.bStopMontageOnEnd = bStopMontageOnEnd;
 		ReactionRule.bStopAIOnStart = bStopAIOnStart;
 		ReactionRule.bStopMovementOnStart = bStopMovementOnStart;
 		return ReactionRule;
@@ -48,6 +51,15 @@ namespace
 			EReactionImpulseMode::None,
 			true,
 			true));
+
+		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetRootStatTag(),
+			EReactionImpulseMode::None,
+			true,
+			true,
+			static_cast<int32>(EReactionBlockFlags::Move),
+			false,
+			false));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetGrabStatTag(),

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControlResolvedTypes.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GameplayEffectTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameFramework/Actor.h"

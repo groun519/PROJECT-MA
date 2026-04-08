@@ -2,8 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
-#include "GAS/Skill/MASkillDamageConfig.h"
-#include "MASkillCrowdControlResolvedTypes.generated.h"
+#include "MASkillCrowdControlTypes.generated.h"
+
+UENUM(BlueprintType)
+enum class EMASkillCrowdControlSourceType : uint8
+{
+	Instigator,
+	Center
+};
 
 USTRUCT()
 struct P_MA_API FResolvedCrowdControlEffect
