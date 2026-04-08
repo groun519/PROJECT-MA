@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControl_State.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControl_Impulse.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControl_Airborne.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "MASkillDamageConfig.generated.h"
-
-class UMASkillCrowdControl;
 
 UENUM(BlueprintType)
 enum class EMASkillTargetRelationMergeOp : uint8

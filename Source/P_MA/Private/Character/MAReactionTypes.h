@@ -5,16 +5,6 @@
 #include "GameplayTagContainer.h"
 #include "MAReactionTypes.generated.h"
 
-UENUM(BlueprintType, meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
-enum class EReactionBlockFlags : uint8
-{
-	None = 0,
-	Move = 1 << 0,
-	Rotation = 1 << 1,
-	Ability = 1 << 2
-};
-ENUM_CLASS_FLAGS(EReactionBlockFlags);
-
 UENUM(BlueprintType)
 enum class EReactionImpulseMode : uint8
 {
@@ -43,9 +33,6 @@ struct FReactionRule
 	UPROPERTY(EditDefaultsOnly, meta=(Categories="State,Effect"))
 	FGameplayTag CrowdControlTag;
 
-	UPROPERTY(EditDefaultsOnly, meta=(Bitmask, BitmaskEnum="/Script/P_MA.EReactionBlockFlags"))
-	int32 BlockFlags = static_cast<int32>(EReactionBlockFlags::None);
-
 	UPROPERTY(EditDefaultsOnly)
 	EReactionImpulseMode ImpulseMode = EReactionImpulseMode::None;
 
@@ -54,9 +41,6 @@ struct FReactionRule
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bStopMontageOnEnd = false;
-
-	UPROPERTY(EditDefaultsOnly)
-	bool bStopAIOnStart = false;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bStopMovementOnStart = false;

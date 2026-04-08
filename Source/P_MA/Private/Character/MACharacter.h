@@ -149,6 +149,10 @@ public:
 	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
+	UFUNCTION(NetMulticast, Reliable)
+	// Kept on AMACharacter because the actor already owns the replication entrypoint.
+	// If reaction RPCs grow, move this multicast into UMAReactionComponent.
+	void Multicast_PlayImpulseReaction(const FGameplayTag& ReactionTag, float Magnitude, FVector SourcePoint);
 
 	UFUNCTION()
 	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;

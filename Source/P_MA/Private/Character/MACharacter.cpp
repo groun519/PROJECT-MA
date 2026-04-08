@@ -417,6 +417,14 @@ void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage,
 	}
 }
 
+void AMACharacter::Multicast_PlayImpulseReaction_Implementation(const FGameplayTag& ReactionTag, float Magnitude, FVector SourcePoint)
+{
+	if (HasAuthority()) return;
+	if (!ReactionComponent) return;
+
+	ReactionComponent->PlayReplicatedImpulseReaction(ReactionTag, Magnitude, SourcePoint);
+}
+
 bool AMACharacter::GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const
 {
 	return ReactionComponent ? ReactionComponent->GetReactionAnimConfig(ReactionTag, OutConfig) : false;

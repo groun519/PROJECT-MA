@@ -1,7 +1,6 @@
 #include "Character/MAReactionComponent.h"
 
 #include "AbilitySystemComponent.h"
-#include "AIController.h"
 #include "Character/MACharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
@@ -11,27 +10,18 @@
 
 namespace
 {
-	constexpr int32 DefaultCrowdControlBlockFlags =
-		static_cast<int32>(EReactionBlockFlags::Move) |
-		static_cast<int32>(EReactionBlockFlags::Rotation) |
-		static_cast<int32>(EReactionBlockFlags::Ability);
-
 	FReactionRule MakeReactionRule(
 		const FGameplayTag& CrowdControlTag,
 		const EReactionImpulseMode ImpulseMode,
-		const bool bStopAIOnStart,
 		const bool bStopMovementOnStart,
-		const int32 BlockFlags = DefaultCrowdControlBlockFlags,
 		const bool bPlayMontageOnStart = true,
 		const bool bStopMontageOnEnd = true)
 	{
 		FReactionRule ReactionRule;
 		ReactionRule.CrowdControlTag = CrowdControlTag;
-		ReactionRule.BlockFlags = BlockFlags;
 		ReactionRule.ImpulseMode = ImpulseMode;
 		ReactionRule.bPlayMontageOnStart = bPlayMontageOnStart;
 		ReactionRule.bStopMontageOnEnd = bStopMontageOnEnd;
-		ReactionRule.bStopAIOnStart = bStopAIOnStart;
 		ReactionRule.bStopMovementOnStart = bStopMovementOnStart;
 		return ReactionRule;
 	}
@@ -43,40 +33,33 @@ namespace
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetAirborneStatTag(),
 			EReactionImpulseMode::None,
-			true,
 			true));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetStunStatTag(),
 			EReactionImpulseMode::None,
-			true,
 			true));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetRootStatTag(),
 			EReactionImpulseMode::None,
 			true,
-			true,
-			static_cast<int32>(EReactionBlockFlags::Move),
 			false,
 			false));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetGrabStatTag(),
 			EReactionImpulseMode::PullToSource,
-			false,
 			false));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetKnockbackStatTag(),
 			EReactionImpulseMode::PushFromSource,
-			false,
 			false));
 
 		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetStaggerStatTag(),
 			EReactionImpulseMode::PushFromSource,
-			true,
 			true));
 	}
 }
@@ -152,7 +135,7 @@ void UMAReactionComponent::BindToASC()
 		OwnerASC->RegisterGameplayTagEvent(ReactionRule.CrowdControlTag).AddUObject(this, &UMAReactionComponent::HandleCrowdControlChanged);
 	}
 
-	OwnerASC->OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &UMAReactionComponent::HandleCrowdControlApplied);
+	OwnerASC->OnActiveGameplayEffectAddedDelegateToSelf.AddUObject(this, &UMAReactionComponent::HandleCrowdControlApplied);
 }
 
 /*************************************************************/
@@ -193,14 +176,6 @@ void UMAReactionComponent::HandleCrowdControlStarted(const FReactionRule& Reacti
 		}
 	}
 
-	if (ReactionRule.bStopAIOnStart)
-	{
-		if (AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController()))
-		{
-			AIController->StopMovement();
-		}
-	}
-
 	if (ReactionRule.bStopMovementOnStart)
 	{
 		if (UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement())
@@ -213,8 +188,6 @@ void UMAReactionComponent::HandleCrowdControlStarted(const FReactionRule& Reacti
 	{
 		BeginAirborneVisual();
 	}
-
-	RefreshControlBlockTags();
 }
 
 void UMAReactionComponent::HandleCrowdControlEnded(const FReactionRule& ReactionRule)
@@ -241,8 +214,6 @@ void UMAReactionComponent::HandleCrowdControlEnded(const FReactionRule& Reaction
 			ClearImpulseReactionState();
 		}
 	}
-
-	RefreshControlBlockTags();
 }
 
 /*************************************************************/
@@ -253,10 +224,14 @@ void UMAReactionComponent::HandleCrowdControlApplied(UAbilitySystemComponent* So
 	(void)SourceASC;
 	(void)ActiveHandle;
 
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+	if (!OwnerCharacter || !OwnerASC) return;
 
 	HandleAirborneCrowdControlApplied(Spec);
-	HandleImpulseCrowdControlApplied(Spec);
+
+	if (OwnerCharacter->HasAuthority())
+	{
+		HandleImpulseCrowdControlApplied(Spec);
+	}
 }
 
 void UMAReactionComponent::HandleAirborneCrowdControlApplied(const FGameplayEffectSpec& Spec)
@@ -314,7 +289,20 @@ void UMAReactionComponent::HandleImpulseCrowdControlApplied(const FGameplayEffec
 		}
 
 		ApplyImpulseReaction(ReactionRule.ImpulseMode, Magnitude, SourcePoint, ReactionRule.CrowdControlTag);
+
+		if (OwnerCharacter && OwnerCharacter->HasAuthority())
+		{
+			OwnerCharacter->Multicast_PlayImpulseReaction(ReactionRule.CrowdControlTag, Magnitude, SourcePoint);
+		}
 	}
+}
+
+void UMAReactionComponent::PlayReplicatedImpulseReaction(const FGameplayTag& ReactionTag, float Magnitude, const FVector& SourcePoint)
+{
+	const FReactionRule* ReactionRule = FindReactionRule(ReactionTag);
+	if (!ReactionRule || ReactionRule->ImpulseMode == EReactionImpulseMode::None) return;
+
+	ApplyImpulseReaction(ReactionRule->ImpulseMode, Magnitude, SourcePoint, ReactionTag);
 }
 
 void UMAReactionComponent::ApplyImpulseReaction(EReactionImpulseMode ImpulseMode, float Magnitude, const FVector& SourcePoint, const FGameplayTag& ReactionTag)
@@ -336,11 +324,6 @@ void UMAReactionComponent::ApplyImpulseReaction(EReactionImpulseMode ImpulseMode
 
 	if (UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement())
 	{
-		if (AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController()))
-		{
-			AIController->StopMovement();
-		}
-
 		const bool bShouldStopMovementImmediately = !bImpulseMovementOverrideActive;
 		BeginImpulseMovementOverride();
 		ActiveImpulseContributions.Add(ReactionTag, ReactionDirection * Magnitude);
@@ -455,32 +438,6 @@ void UMAReactionComponent::RecalculateImpulseReactionVelocity(bool bStopMovement
 	}
 
 	CharacterMovementComponent->Velocity = CombinedVelocity;
-}
-
-void UMAReactionComponent::RefreshControlBlockTags()
-{
-	if (!OwnerASC) return;
-
-	int32 BlockMask = static_cast<int32>(EReactionBlockFlags::None);
-	for (const FGameplayTag& ActiveCrowdControlTag : ActiveCrowdControlTags)
-	{
-		const FReactionRule* ReactionRule = FindReactionRule(ActiveCrowdControlTag);
-		if (!ReactionRule) continue;
-		BlockMask |= ReactionRule->BlockFlags;
-	}
-
-	const bool bShouldBlockMove = (BlockMask & static_cast<int32>(EReactionBlockFlags::Move)) != 0;
-	const bool bShouldBlockRotation = (BlockMask & static_cast<int32>(EReactionBlockFlags::Rotation)) != 0;
-	const bool bShouldBlockAbility = (BlockMask & static_cast<int32>(EReactionBlockFlags::Ability)) != 0;
-
-	if (bShouldBlockMove) OwnerASC->AddReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
-	else OwnerASC->RemoveReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
-
-	if (bShouldBlockRotation) OwnerASC->AddReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
-	else OwnerASC->RemoveReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
-
-	if (bShouldBlockAbility) OwnerASC->AddReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
-	else OwnerASC->RemoveReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
 }
 
 void UMAReactionComponent::BeginAirborneVisual()
@@ -600,5 +557,4 @@ void UMAReactionComponent::ResetTransientReactionState()
 	EndAirborneVisual();
 	ClearImpulseReactionState();
 	ActiveCrowdControlTags.Reset();
-	RefreshControlBlockTags();
 }

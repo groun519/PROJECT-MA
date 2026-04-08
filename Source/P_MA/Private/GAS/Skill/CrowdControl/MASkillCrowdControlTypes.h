@@ -11,6 +11,52 @@ enum class EMASkillCrowdControlSourceType : uint8
 	Center
 };
 
+USTRUCT(BlueprintType)
+struct P_MA_API FMASkillCrowdControlGrantedStateRule
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	bool bBlockMove = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	bool bLockRotation = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	bool bBlockAbility = false;
+
+	bool HasAny() const
+	{
+		return bBlockMove || bLockRotation || bBlockAbility;
+	}
+};
+
+USTRUCT()
+struct P_MA_API FMASkillCrowdControlPolicy
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	FGameplayTag CrowdControlTag;
+
+	UPROPERTY(Transient)
+	FGameplayTagContainer GrantedStateTags;
+
+	UPROPERTY(Transient)
+	float Magnitude = 0.f;
+
+	UPROPERTY(Transient)
+	float Duration = 0.f;
+
+	UPROPERTY(Transient)
+	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+
+	bool IsValid() const
+	{
+		return CrowdControlTag.IsValid() && Duration > 0.f;
+	}
+};
+
 USTRUCT()
 struct P_MA_API FResolvedCrowdControlEffect
 {

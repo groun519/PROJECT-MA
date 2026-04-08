@@ -18,6 +18,7 @@ public:
 	UMAReactionComponent();
 	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;
 	void ResetTransientReactionState();
+	void PlayReplicatedImpulseReaction(const FGameplayTag& ReactionTag, float Magnitude, const FVector& SourcePoint);
 
 protected:
 	virtual void BeginPlay() override;
@@ -34,7 +35,6 @@ private:
 	void StopAllReactionMontages();
 	void ClearImpulseReactionState();
 	void RecalculateImpulseReactionVelocity(bool bStopMovementImmediately);
-	void RefreshControlBlockTags();
 	void BeginAirborneVisual();
 	void EndAirborneVisual();
 	void UpdateAirborneVisual(float DeltaTime);
