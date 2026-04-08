@@ -219,6 +219,16 @@ FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetAirborneStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Airborne");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetAirborneRiseTimeTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Airborne.RiseTime");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetGrabStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Grab");

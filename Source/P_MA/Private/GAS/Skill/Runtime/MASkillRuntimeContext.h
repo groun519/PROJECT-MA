@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControlResolvedTypes.h"
 #include "GAS/Skill/MASkillDamageConfig.h"
 #include "GameplayEffectTypes.h"
 #include "MASkillRuntimeContext.generated.h"
@@ -16,18 +17,6 @@ class UMASkillAction;
 class USkeletalMeshComponent;
 struct FGameplayAttribute;
 struct FGameplayEventData;
-
-USTRUCT()
-struct FResolvedCrowdControlEffect
-{
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
-	FGameplayEffectSpecHandle SpecHandle;
-
-	UPROPERTY(Transient)
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
-};
 
 USTRUCT()
 struct FResolvedSkillHitEffects
@@ -96,7 +85,6 @@ private:
 	FMASkillDamageConfig BuildMergedDamageConfig(const FMASkillDamageConfig* DamageConfig) const;
 	int32 ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FGameplayEffectSpecHandle MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const;
-	TArray<FResolvedCrowdControlEffect> MakeCrowdControlEffectSpecs(const FMASkillDamageConfig& ResolvedDamageConfig) const;
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const;
 	void RefreshStateFromEvent(const FGameplayEventData& Payload);
 

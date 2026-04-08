@@ -28,6 +28,7 @@ namespace
 UMASkillAbility::UMASkillAbility()
 {
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetAirborneStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetGrabStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStaggerStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetKnockbackStatTag());

@@ -38,6 +38,12 @@ namespace
 		if (ReactionRules.Num() > 0) return;
 
 		ReactionRules.Add(MakeReactionRule(
+			UMAAbilitySystemStatics::GetAirborneStatTag(),
+			EReactionImpulseMode::None,
+			true,
+			true));
+
+		ReactionRules.Add(MakeReactionRule(
 			UMAAbilitySystemStatics::GetStunStatTag(),
 			EReactionImpulseMode::None,
 			true,
@@ -65,7 +71,8 @@ namespace
 
 UMAReactionComponent::UMAReactionComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
 
 void UMAReactionComponent::BeginPlay()
@@ -73,6 +80,13 @@ void UMAReactionComponent::BeginPlay()
 	Super::BeginPlay();
 
 	OwnerCharacter = Cast<AMACharacter>(GetOwner());
+	if (OwnerCharacter)
+	{
+		if (USkeletalMeshComponent* MeshComponent = OwnerCharacter->GetMesh())
+		{
+			BaseAirborneMeshRelativeLocation = MeshComponent->GetRelativeLocation();
+		}
+	}
 	BindToASC();
 }
 
@@ -80,6 +94,12 @@ void UMAReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ResetTransientReactionState();
 	Super::EndPlay(EndPlayReason);
+}
+
+void UMAReactionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	UpdateAirborneVisual(DeltaTime);
 }
 
 void UMAReactionComponent::BuildReactionRules()
@@ -177,6 +197,11 @@ void UMAReactionComponent::HandleCrowdControlStarted(const FReactionRule& Reacti
 		}
 	}
 
+	if (ReactionRule.CrowdControlTag == UMAAbilitySystemStatics::GetAirborneStatTag())
+	{
+		BeginAirborneVisual();
+	}
+
 	RefreshControlBlockTags();
 }
 
@@ -185,6 +210,11 @@ void UMAReactionComponent::HandleCrowdControlEnded(const FReactionRule& Reaction
 	if (ReactionRule.bStopMontageOnEnd)
 	{
 		StopReactionMontage(ReactionRule.CrowdControlTag);
+	}
+
+	if (ReactionRule.CrowdControlTag == UMAAbilitySystemStatics::GetAirborneStatTag())
+	{
+		EndAirborneVisual();
 	}
 
 	if (ReactionRule.ImpulseMode != EReactionImpulseMode::None)
@@ -213,7 +243,45 @@ void UMAReactionComponent::HandleCrowdControlApplied(UAbilitySystemComponent* So
 
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
 
+	HandleAirborneCrowdControlApplied(Spec);
 	HandleImpulseCrowdControlApplied(Spec);
+}
+
+void UMAReactionComponent::HandleAirborneCrowdControlApplied(const FGameplayEffectSpec& Spec)
+{
+	const FGameplayTag AirborneTag = UMAAbilitySystemStatics::GetAirborneStatTag();
+	if (!Spec.DynamicGrantedTags.HasTag(AirborneTag)) return;
+
+	USkeletalMeshComponent* MeshComponent = OwnerCharacter ? OwnerCharacter->GetMesh() : nullptr;
+	if (!MeshComponent) return;
+
+	const float AppliedHeight = Spec.GetSetByCallerMagnitude(AirborneTag, false, 0.f);
+	CurrentAirborneVisualHeight = !FMath::IsNearlyZero(AppliedHeight) ? AppliedHeight : AirborneVisualHeight;
+	CurrentAirborneVisualDuration = FMath::Max(Spec.GetDuration(), 0.f);
+
+	const float AppliedRiseTime = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetAirborneRiseTimeTag(), false, 0.f);
+	if (CurrentAirborneVisualDuration > 0.f)
+	{
+		CurrentAirborneVisualRiseTime = AppliedRiseTime > 0.f ? FMath::Min(AppliedRiseTime, CurrentAirborneVisualDuration) : CurrentAirborneVisualDuration * 0.5f;
+	}
+	else
+	{
+		CurrentAirborneVisualRiseTime = 0.f;
+	}
+
+	AirborneVisualStartMeshRelativeLocation = bAirborneVisualActive
+		? MeshComponent->GetRelativeLocation()
+		: BaseAirborneMeshRelativeLocation;
+	AirborneVisualPeakMeshRelativeLocation = BaseAirborneMeshRelativeLocation;
+	AirborneVisualPeakMeshRelativeLocation.Z = FMath::Max(
+		AirborneVisualStartMeshRelativeLocation.Z,
+		BaseAirborneMeshRelativeLocation.Z + CurrentAirborneVisualHeight);
+	CurrentAirborneVisualElapsedTime = 0.f;
+
+	if (bAirborneVisualActive)
+	{
+		SetComponentTickEnabled(true);
+	}
 }
 
 void UMAReactionComponent::HandleImpulseCrowdControlApplied(const FGameplayEffectSpec& Spec)
@@ -249,7 +317,10 @@ void UMAReactionComponent::ApplyImpulseReaction(EReactionImpulseMode ImpulseMode
 	}
 
 	FVector ReactionDirection = GetReactionDirection(SourcePoint, ImpulseMode);
-	ReactionDirection.Z = VerticalLaunchScale;
+	if (!FMath::IsNearlyZero(VerticalLaunchScale))
+	{
+		ReactionDirection.Z = VerticalLaunchScale;
+	}
 
 	if (UCharacterMovementComponent* CharacterMovementComponent = OwnerCharacter->GetCharacterMovement())
 	{
@@ -366,6 +437,11 @@ void UMAReactionComponent::RecalculateImpulseReactionVelocity(bool bStopMovement
 		CharacterMovementComponent->StopMovementImmediately();
 	}
 
+	if (CombinedVelocity.Z > 0.f && CharacterMovementComponent->IsMovingOnGround())
+	{
+		CharacterMovementComponent->SetMovementMode(MOVE_Falling);
+	}
+
 	CharacterMovementComponent->Velocity = CombinedVelocity;
 }
 
@@ -393,6 +469,85 @@ void UMAReactionComponent::RefreshControlBlockTags()
 
 	if (bShouldBlockAbility) OwnerASC->AddReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
 	else OwnerASC->RemoveReplicatedLooseGameplayTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
+}
+
+void UMAReactionComponent::BeginAirborneVisual()
+{
+	if (!OwnerCharacter || bAirborneVisualActive) return;
+
+	USkeletalMeshComponent* MeshComponent = OwnerCharacter->GetMesh();
+	if (!MeshComponent) return;
+
+	AirborneVisualStartMeshRelativeLocation = MeshComponent->GetRelativeLocation();
+	AirborneVisualPeakMeshRelativeLocation = BaseAirborneMeshRelativeLocation;
+	AirborneVisualPeakMeshRelativeLocation.Z = FMath::Max(
+		AirborneVisualStartMeshRelativeLocation.Z,
+		BaseAirborneMeshRelativeLocation.Z + CurrentAirborneVisualHeight);
+	bAirborneVisualActive = true;
+	CurrentAirborneVisualElapsedTime = 0.f;
+	SetComponentTickEnabled(true);
+}
+
+void UMAReactionComponent::EndAirborneVisual()
+{
+	if (!OwnerCharacter || !bAirborneVisualActive) return;
+
+	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter->GetMesh())
+	{
+		MeshComponent->SetRelativeLocation(BaseAirborneMeshRelativeLocation);
+	}
+
+	bAirborneVisualActive = false;
+	CurrentAirborneVisualHeight = 0.f;
+	CurrentAirborneVisualDuration = 0.f;
+	CurrentAirborneVisualRiseTime = 0.f;
+	CurrentAirborneVisualElapsedTime = 0.f;
+	AirborneVisualStartMeshRelativeLocation = BaseAirborneMeshRelativeLocation;
+	AirborneVisualPeakMeshRelativeLocation = BaseAirborneMeshRelativeLocation;
+	SetComponentTickEnabled(false);
+}
+
+void UMAReactionComponent::UpdateAirborneVisual(float DeltaTime)
+{
+	if (!OwnerCharacter || !bAirborneVisualActive)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+
+	USkeletalMeshComponent* MeshComponent = OwnerCharacter->GetMesh();
+	if (!MeshComponent)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+
+	CurrentAirborneVisualElapsedTime = FMath::Min(CurrentAirborneVisualElapsedTime + DeltaTime, CurrentAirborneVisualDuration);
+
+	const float ClampedRiseTime = FMath::Clamp(CurrentAirborneVisualRiseTime, 0.f, CurrentAirborneVisualDuration);
+	FVector NextLocation = BaseAirborneMeshRelativeLocation;
+
+	if (CurrentAirborneVisualElapsedTime <= ClampedRiseTime && ClampedRiseTime > KINDA_SMALL_NUMBER)
+	{
+		const float RiseAlpha = FMath::Clamp(CurrentAirborneVisualElapsedTime / ClampedRiseTime, 0.f, 1.f);
+		const float EasedRiseAlpha = 1.f - FMath::Square(1.f - RiseAlpha);
+		NextLocation = FMath::Lerp(AirborneVisualStartMeshRelativeLocation, AirborneVisualPeakMeshRelativeLocation, EasedRiseAlpha);
+	}
+	else if (CurrentAirborneVisualDuration > KINDA_SMALL_NUMBER)
+	{
+		const float FallDuration = FMath::Max(CurrentAirborneVisualDuration - ClampedRiseTime, KINDA_SMALL_NUMBER);
+		const float FallAlpha = FMath::Clamp((CurrentAirborneVisualElapsedTime - ClampedRiseTime) / FallDuration, 0.f, 1.f);
+		const float EasedFallAlpha = FMath::Square(FallAlpha);
+		NextLocation = FMath::Lerp(AirborneVisualPeakMeshRelativeLocation, BaseAirborneMeshRelativeLocation, EasedFallAlpha);
+	}
+
+	MeshComponent->SetRelativeLocation(NextLocation);
+
+	if (CurrentAirborneVisualElapsedTime >= CurrentAirborneVisualDuration)
+	{
+		MeshComponent->SetRelativeLocation(BaseAirborneMeshRelativeLocation);
+		SetComponentTickEnabled(false);
+	}
 }
 
 FVector UMAReactionComponent::GetReactionDirection(const FVector& SourcePoint, EReactionImpulseMode ImpulseMode) const
@@ -430,6 +585,7 @@ bool UMAReactionComponent::GetReactionAnimConfig(const FGameplayTag& ReactionTag
 void UMAReactionComponent::ResetTransientReactionState()
 {
 	StopAllReactionMontages();
+	EndAirborneVisual();
 	ClearImpulseReactionState();
 	ActiveCrowdControlTags.Reset();
 	RefreshControlBlockTags();

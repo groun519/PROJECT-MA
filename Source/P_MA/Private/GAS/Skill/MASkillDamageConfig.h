@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "InstancedStruct.h"
-#include "GameplayTagContainer.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "MASkillDamageConfig.generated.h"
@@ -12,30 +11,6 @@ enum class EMASkillCrowdControlSourceType : uint8
 {
 	Instigator,
 	Center
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FMASkillCrowdControlEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(Categories="State"))
-	FGameplayTag CrowdControlTag;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Magnitude = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
-	float Duration = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
-
-	bool HasValidData() const
-	{
-		if (!CrowdControlTag.IsValid()) return false;
-		return Duration > 0.f;
-	}
 };
 
 USTRUCT(BlueprintType)
@@ -51,6 +26,21 @@ struct P_MA_API FSkillCrowdControlStunConfig : public FSkillCrowdControlConfigBa
 
 	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
 	float Duration = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct P_MA_API FSkillCrowdControlAirborneConfig : public FSkillCrowdControlConfigBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Magnitude = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float Duration = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(ClampMin="0.0"))
+	float RiseTime = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -161,75 +151,6 @@ struct P_MA_API FMASkillDamageConfig
 	UPROPERTY(EditDefaultsOnly, Category="CrowdControl", meta=(BaseStruct="/Script/P_MA.SkillCrowdControlConfigBase", ExcludeBaseStruct))
 	TArray<FInstancedStruct> CrowdControlConfigs;
 
-	static bool BuildCrowdControlEntry(
-		const FGameplayTag CrowdControlTag,
-		const float Magnitude,
-		const float Duration,
-		const EMASkillCrowdControlSourceType SourceType,
-		FMASkillCrowdControlEntry& OutEntry)
-	{
-		OutEntry.CrowdControlTag = CrowdControlTag;
-		OutEntry.Magnitude = Magnitude;
-		OutEntry.Duration = Duration;
-		OutEntry.SourceType = SourceType;
-		return OutEntry.HasValidData();
-	}
-
-	static bool TryResolveCrowdControlEntry(const FInstancedStruct& CrowdControlConfig, FMASkillCrowdControlEntry& OutEntry)
-	{
-		if (const FSkillCrowdControlStunConfig* StunConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlStunConfig>())
-		{
-			return BuildCrowdControlEntry(
-				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stun")),
-				0.f,
-				StunConfig->Duration,
-				EMASkillCrowdControlSourceType::Instigator,
-				OutEntry);
-		}
-
-		if (const FSkillCrowdControlStaggerConfig* StaggerConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlStaggerConfig>())
-		{
-			return BuildCrowdControlEntry(
-				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stagger")),
-				StaggerConfig->Magnitude,
-				StaggerConfig->Duration,
-				StaggerConfig->SourceType,
-				OutEntry);
-		}
-
-		if (const FSkillCrowdControlKnockbackConfig* KnockbackConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlKnockbackConfig>())
-		{
-			return BuildCrowdControlEntry(
-				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockback")),
-				KnockbackConfig->Magnitude,
-				KnockbackConfig->Duration,
-				KnockbackConfig->SourceType,
-				OutEntry);
-		}
-
-		if (const FSkillCrowdControlGrabConfig* GrabConfig = CrowdControlConfig.GetPtr<FSkillCrowdControlGrabConfig>())
-		{
-			return BuildCrowdControlEntry(
-				FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Grab")),
-				GrabConfig->Magnitude,
-				GrabConfig->Duration,
-				GrabConfig->SourceType,
-				OutEntry);
-		}
-
-		return false;
-	}
-
-	void GatherResolvedCrowdControlEntries(TArray<FMASkillCrowdControlEntry>& OutEntries) const
-	{
-		for (const FInstancedStruct& CrowdControlConfig : CrowdControlConfigs)
-		{
-			FMASkillCrowdControlEntry CrowdControlEntry;
-			if (!TryResolveCrowdControlEntry(CrowdControlConfig, CrowdControlEntry)) continue;
-			OutEntries.Add(CrowdControlEntry);
-		}
-	}
-
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
@@ -246,13 +167,7 @@ struct P_MA_API FMASkillDamageConfig
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
 		}
 
-		for (const FInstancedStruct& CrowdControlConfig : CrowdControlConfigs)
-		{
-			FMASkillCrowdControlEntry CrowdControlEntry;
-			if (TryResolveCrowdControlEntry(CrowdControlConfig, CrowdControlEntry)) return true;
-		}
-
-		return false;
+		return CrowdControlConfigs.Num() > 0;
 	}
 
 	FMADamageExecutionConfig ToExecutionConfig() const

@@ -88,8 +88,6 @@ public:
 	void RespawnImmediately();
 	
 private:
-	FTransform MeshRelativeTransform;
-	
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeathMontageFinishTimeShift = -0.8f;
 	

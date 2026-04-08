@@ -43,7 +43,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 	ReactionComponent = CreateDefaultSubobject<UMAReactionComponent>("Reaction Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
-	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
 
 	BindGASChangeDelegates();
@@ -82,8 +82,6 @@ void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	ConfigureOverHeadStatusWidget();
-
-	MeshRelativeTransform = GetMesh()->GetRelativeTransform();
 
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
 

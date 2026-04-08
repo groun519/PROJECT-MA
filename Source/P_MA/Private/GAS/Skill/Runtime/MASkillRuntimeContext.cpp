@@ -6,6 +6,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
+#include "GAS/Skill/CrowdControl/MASkillCrowdControlSpecBuilder.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
@@ -13,45 +14,6 @@
 #include "Animation/AnimInstance.h"
 #include "GameplayEffect.h"
 #include "GenericTeamAgentInterface.h"
-#include "UObject/StrongObjectPtr.h"
-
-namespace
-{
-UGameplayEffect* GetTransientDurationCrowdControlGameplayEffectTemplate()
-{
-	static TStrongObjectPtr<UGameplayEffect> DurationEffectTemplate;
-
-	if (!DurationEffectTemplate.IsValid())
-	{
-		UGameplayEffect* NewTemplate = NewObject<UGameplayEffect>(GetTransientPackage(), NAME_None, RF_Transient);
-		NewTemplate->DurationPolicy = EGameplayEffectDurationType::HasDuration;
-		DurationEffectTemplate.Reset(NewTemplate);
-	}
-
-	return DurationEffectTemplate.Get();
-}
-
-FGameplayEffectSpecHandle MakeTransientGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
-{
-	if (!EffectDefinition) return FGameplayEffectSpecHandle();
-
-	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(
-		EffectDefinition,
-		SkillAbility.MakeEffectContext(SkillAbility.GetCurrentAbilitySpecHandle(), SkillAbility.GetCurrentActorInfo()),
-		Level));
-
-	if (SpecHandle.IsValid())
-	{
-		if (FGameplayAbilitySpec* AbilitySpec = SkillAbility.GetCurrentAbilitySpec())
-		{
-			SkillAbility.ApplyAbilityTagsToGameplayEffectSpec(*SpecHandle.Data.Get(), AbilitySpec);
-			SpecHandle.Data->SetByCallerTagMagnitudes = AbilitySpec->SetByCallerTagMagnitudes;
-		}
-	}
-
-	return SpecHandle;
-}
-}
 
 void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 {
@@ -256,7 +218,10 @@ FResolvedSkillHitEffects FSkillRuntimeContext::BuildResolvedHitEffects(const FMA
 
 	ResolvedHitEffects.TargetRelationMask = ResolveTargetRelationMask(DamageConfig);
 	ResolvedHitEffects.DamageSpec = MakeDamageSpec(ResolvedDamageConfig);
-	ResolvedHitEffects.CrowdControlEffects = MakeCrowdControlEffectSpecs(ResolvedDamageConfig);
+	if (OwnerAbility)
+	{
+		ResolvedHitEffects.CrowdControlEffects = FMASkillCrowdControlSpecBuilder::BuildSpecs(*OwnerAbility, ResolvedDamageConfig);
+	}
 	return ResolvedHitEffects;
 }
 
@@ -271,38 +236,6 @@ FGameplayEffectSpecHandle FSkillRuntimeContext::MakeDamageSpec(const FMASkillDam
 		ExecutionConfig.HasValues() ? &ExecutionConfig : nullptr);
 
 	return SpecHandle;
-}
-
-TArray<FResolvedCrowdControlEffect> FSkillRuntimeContext::MakeCrowdControlEffectSpecs(const FMASkillDamageConfig& ResolvedDamageConfig) const
-{
-	TArray<FResolvedCrowdControlEffect> CrowdControlEffectSpecs;
-
-	if (!OwnerAbility) return CrowdControlEffectSpecs;
-	TArray<FMASkillCrowdControlEntry> ResolvedCrowdControlEntries;
-	ResolvedDamageConfig.GatherResolvedCrowdControlEntries(ResolvedCrowdControlEntries);
-
-	for (const FMASkillCrowdControlEntry& CrowdControlEntry : ResolvedCrowdControlEntries)
-	{
-		if (!CrowdControlEntry.HasValidData()) continue;
-
-		FGameplayEffectSpecHandle CrowdControlSpecHandle = MakeTransientGameplayEffectSpec(*OwnerAbility, GetTransientDurationCrowdControlGameplayEffectTemplate(), 1.f);
-		if (!CrowdControlSpecHandle.IsValid()) continue;
-
-		CrowdControlSpecHandle.Data->DynamicGrantedTags.AddTag(CrowdControlEntry.CrowdControlTag);
-		CrowdControlSpecHandle.Data->SetDuration(CrowdControlEntry.Duration, true);
-
-		if (!FMath::IsNearlyZero(CrowdControlEntry.Magnitude))
-		{
-			CrowdControlSpecHandle.Data->SetSetByCallerMagnitude(CrowdControlEntry.CrowdControlTag, CrowdControlEntry.Magnitude);
-		}
-
-		FResolvedCrowdControlEffect ResolvedCrowdControlEffect;
-		ResolvedCrowdControlEffect.SpecHandle = CrowdControlSpecHandle;
-		ResolvedCrowdControlEffect.SourceType = CrowdControlEntry.SourceType;
-		CrowdControlEffectSpecs.Add(ResolvedCrowdControlEffect);
-	}
-
-	return CrowdControlEffectSpecs;
 }
 
 FVector FSkillRuntimeContext::ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const
