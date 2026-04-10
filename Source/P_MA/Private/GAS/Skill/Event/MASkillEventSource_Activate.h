@@ -15,5 +15,5 @@ public:
 		EmittedTag = FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Activate"));
 	}
 
-	virtual void StartSource(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext) override;
+	virtual void StartSource(UMASkillAbility* SkillAbility) override;
 };

@@ -15,7 +15,7 @@ class P_MA_API UMASkillEventSource_AttributeChanged : public UMASkillEventSource
 public:
 	UMASkillEventSource_AttributeChanged();
 
-	virtual void StartSource(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext) override;
+	virtual void StartSource(UMASkillAbility* SkillAbility) override;
 	virtual void StopSource() override;
 
 #if WITH_EDITOR

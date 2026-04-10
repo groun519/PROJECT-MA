@@ -5,7 +5,6 @@
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "MASkillDefinition.generated.h"
 
-class UAnimMontage;
 class UGameplayEffect;
 class UMASkillEventSource;
 class UMASkillFlowPart;
@@ -16,24 +15,19 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UAnimMontage* GetSkillMontage() const { return SkillMontage; }
 	TSubclassOf<UGameplayEffect> GetDefaultDamageEffect() const { return DefaultDamageEffect; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	const TArray<FMASkillGameplayEventPart>& GetEventParts() const { return EventParts; }
-	UMASkillFlowPart* GetFlowPart() const { return FlowPart; }
+	const TArray<TObjectPtr<UMASkillFlowPart>>& GetFlowParts() const { return FlowParts; }
 
 private:
-	/** Animation **/
-	UPROPERTY(EditDefaultsOnly, Category="Animation")
-	TObjectPtr<UAnimMontage> SkillMontage;
-
 	/** Damage **/
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
 
-	/** Flow **/
+	/** Preferred flow pipeline. Each flow owns its own montage and runtime logic. **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Flow")
-	TObjectPtr<UMASkillFlowPart> FlowPart;
+	TArray<TObjectPtr<UMASkillFlowPart>> FlowParts;
 
 	/** Event Source **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Event")

@@ -94,21 +94,11 @@ void UMAStatusEffectComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	UpdateAirborneVisual(DeltaTime);
 }
 
-void UMAStatusEffectComponent::BuildStatusEffectRules()
-{
-	StatusEffectRules.Reset();
-	AddDefaultStateStatusEffectRules(StatusEffectRules);
-	AddDefaultImpulseStatusEffectRules(StatusEffectRules);
-}
-
 const FStatusEffectRule* UMAStatusEffectComponent::FindStatusEffectRule(const FGameplayTag& StatusEffectTag) const
 {
 	for (const FStatusEffectRule& StatusEffectRule : StatusEffectRules)
 	{
-		if (StatusEffectRule.CrowdControlTag == StatusEffectTag)
-		{
-			return &StatusEffectRule;
-		}
+		if (StatusEffectRule.CrowdControlTag == StatusEffectTag) return &StatusEffectRule;
 	}
 	return nullptr;
 }
@@ -128,30 +118,15 @@ void UMAStatusEffectComponent::ApplyStatusEffectImpulse(const FStatusEffectRule&
 	}
 }
 
-FVector UMAStatusEffectComponent::ResolveStatusEffectSourcePoint(const FGameplayEffectSpec& Spec) const
-{
-	FVector SourcePoint = FVector::ZeroVector;
-	if (UMAAbilitySystemStatics::TryGetReactionSourcePoint(Spec, SourcePoint))
-	{
-		return SourcePoint;
-	}
-
-	const AActor* InstigatorActor = Spec.GetContext().GetInstigator();
-	if (InstigatorActor)
-	{
-		return InstigatorActor->GetActorLocation();
-	}
-
-	return OwnerCharacter ? OwnerCharacter->GetActorLocation() : FVector::ZeroVector;
-}
-
 void UMAStatusEffectComponent::BindToASC()
 {
 	if (!OwnerCharacter) return;
 
 	OwnerASC = Cast<UMAAbilitySystemComponent>(OwnerCharacter->GetAbilitySystemComponent());
 	if (!OwnerASC) return;
-	BuildStatusEffectRules();
+	StatusEffectRules.Reset();
+	AddDefaultStateStatusEffectRules(StatusEffectRules);
+	AddDefaultImpulseStatusEffectRules(StatusEffectRules);
 	if (StatusEffectRules.Num() == 0) return;
 
 	for (const FStatusEffectRule& StatusEffectRule : StatusEffectRules)
@@ -288,7 +263,19 @@ void UMAStatusEffectComponent::HandleImpulseCrowdControlApplied(const FGameplayE
 		const float Magnitude = Spec.GetSetByCallerMagnitude(StatusEffectRule.CrowdControlTag, false, 0.f);
 		if (Magnitude <= 0.f) continue;
 
-		const FVector SourcePoint = ResolveStatusEffectSourcePoint(Spec);
+		FVector SourcePoint = FVector::ZeroVector;
+		if (!UMAAbilitySystemStatics::TryGetReactionSourcePoint(Spec, SourcePoint))
+		{
+			if (const AActor* InstigatorActor = Spec.GetContext().GetInstigator())
+			{
+				SourcePoint = InstigatorActor->GetActorLocation();
+			}
+			else
+			{
+				SourcePoint = OwnerCharacter ? OwnerCharacter->GetActorLocation() : FVector::ZeroVector;
+			}
+		}
+
 		ApplyStatusEffectImpulse(StatusEffectRule, Magnitude, SourcePoint);
 		OwnerCharacter->Multicast_PlayStatusEffectImpulse(StatusEffectRule.CrowdControlTag, Magnitude, SourcePoint);
 	}

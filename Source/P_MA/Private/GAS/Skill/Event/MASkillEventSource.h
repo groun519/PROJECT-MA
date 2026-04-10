@@ -6,7 +6,6 @@
 #include "MASkillEventSource.generated.h"
 
 class UMASkillAbility;
-struct FSkillRuntimeContext;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillEventSource : public UObject
@@ -14,16 +13,14 @@ class P_MA_API UMASkillEventSource : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void StartSource(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext)
+	virtual void StartSource(UMASkillAbility* SkillAbility)
 	{
 		OwnerSkillAbility = SkillAbility;
-		RuntimeContext = InRuntimeContext;
 	}
 
 	virtual void StopSource()
 	{
 		OwnerSkillAbility = nullptr;
-		RuntimeContext = nullptr;
 	}
 
 	const FGameplayTag& GetEmittedTag() const { return EmittedTag; }
@@ -31,13 +28,10 @@ public:
 protected:
 	void EmitEvent() const;
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
-	FSkillRuntimeContext* GetRuntimeContext() const { return RuntimeContext; }
 
 	UPROPERTY(VisibleDefaultsOnly, Category="Event")
 	FGameplayTag EmittedTag;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerSkillAbility;
-
-	FSkillRuntimeContext* RuntimeContext = nullptr;
 };

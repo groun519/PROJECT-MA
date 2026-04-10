@@ -27,11 +27,9 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
-	void BuildStatusEffectRules();
 	const FStatusEffectRule* FindStatusEffectRule(const FGameplayTag& StatusEffectTag) const;
 	UMAImpulseComponent* GetImpulseComponent() const;
 	void ApplyStatusEffectImpulse(const FStatusEffectRule& StatusEffectRule, float Magnitude, const FVector& SourcePoint);
-	FVector ResolveStatusEffectSourcePoint(const FGameplayEffectSpec& Spec) const;
 	void HandleCrowdControlStarted(const FStatusEffectRule& StatusEffectRule);
 	void HandleCrowdControlEnded(const FStatusEffectRule& StatusEffectRule);
 	void StopStatusEffectMontage(const FGameplayTag& StatusEffectTag);

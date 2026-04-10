@@ -9,6 +9,7 @@
 #include "MASkillAbility.generated.h"
 
 class UAbilityTask_WaitGameplayEvent;
+class UAbilityTask_PlayMontageAndWait;
 class UMASkillDefinition;
 class UMASkillEventSource;
 class UMASkillFlowPart;
@@ -25,9 +26,10 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	void HandleSkillTagEvent(const FGameplayTag& EventTag);
 
 	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
-	UMASkillFlowPart* GetRuntimeFlowPart() const { return RuntimeFlowPart; }
+	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 
@@ -43,11 +45,15 @@ private:
 	/** Register **/
 	void RegisterEventSources();
 	void UnregisterEventSources();
-	void RegisterFlowPart();
+	void RegisterFlowParts();
+	void UnregisterFlowParts();
+	void StartCurrentFlow();
+	bool AdvanceToNextFlow();
 	void RefreshEventBindings();
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
+	void HandleCurrentFlowRuntimeEvent(const FGameplayEventData& Payload);
 
 	/** RuntimeContext **/
 	UPROPERTY(Transient)
@@ -55,7 +61,10 @@ private:
 
 	/** Flow Part **/
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillFlowPart> RuntimeFlowPart;
+	TArray<TObjectPtr<UMASkillFlowPart>> RuntimeFlowParts;
+
+	UPROPERTY(Transient)
+	int32 CurrentFlowIndex = INDEX_NONE;
 
 	/** Event Sources **/
 	UPROPERTY(Transient)
@@ -66,10 +75,22 @@ private:
 	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> EventTasks;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
+
+	UPROPERTY(Transient)
 	float DesiredMontagePlayRate = 1.f;
 
 	TMap<FGameplayTag, FDelegateHandle> CancelTriggerDelegateHandles;
 
 	UFUNCTION()
 	void HandleSkillGameplayEvent(FGameplayEventData Payload);
+
+	UFUNCTION()
+	void HandleCurrentFlowMontageCancelled();
+
+	UFUNCTION()
+	void HandleCurrentFlowMontageCompleted();
+
+	UFUNCTION()
+	void HandleCurrentFlowMontageInterrupted();
 };

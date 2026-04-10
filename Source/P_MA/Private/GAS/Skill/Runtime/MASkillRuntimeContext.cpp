@@ -9,7 +9,6 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
-#include "GAS/Skill/Input/MASkillFlowPart.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameplayEffect.h"
 #include "GenericTeamAgentInterface.h"
@@ -28,30 +27,6 @@ void FSkillRuntimeContext::Reset()
 	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
 	ClearDamageConfig();
-}
-
-void FSkillRuntimeContext::HandleTagEvent(const FGameplayTag& EventTag)
-{
-	if (!EventTag.IsValid()) return;
-
-	FGameplayEventData Payload;
-	Payload.EventTag = EventTag;
-	HandleEvent(Payload);
-}
-
-void FSkillRuntimeContext::HandleEvent(const FGameplayEventData& Payload)
-{
-	if (!OwnerAbility) return;
-
-	RefreshStateFromEvent(Payload);
-
-	TArray<UMASkillAction*> ResolvedActions;
-	ResolveActionsForEvent(Payload, ResolvedActions);
-	for (UMASkillAction* Action : ResolvedActions)
-	{
-		if (!Action) continue;
-		Action->Execute(*OwnerAbility, *this, Payload);
-	}
 }
 
 void FSkillRuntimeContext::ClearDamageConfig()
@@ -84,11 +59,6 @@ TSet<FGameplayTag> FSkillRuntimeContext::ResolveRequiredEventTags() const
 		RequiredTags.Add(EventPart.EventTag);
 	}
 
-	if (UMASkillFlowPart* RuntimeFlowPart = OwnerAbility->GetRuntimeFlowPart())
-	{
-		RuntimeFlowPart->CollectRequiredEventTags(RequiredTags);
-	}
-
 	// TODO: Merge additional required event tags from runtime modules here.
 	return RequiredTags;
 }
@@ -118,15 +88,9 @@ TArray<FHitResult> FSkillRuntimeContext::GetHitResultsFromPayload(const FGamepla
 
 FVector FSkillRuntimeContext::GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const
 {
-	if (Payload.TargetData.Num() > 0 && Payload.TargetData.Data[0].IsValid())
-	{
-		return Payload.TargetData.Data[0]->GetOrigin().GetTranslation();
-	}
+	if (Payload.TargetData.Num() > 0 && Payload.TargetData.Data[0].IsValid()) return Payload.TargetData.Data[0]->GetOrigin().GetTranslation();
 
-	if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr)
-	{
-		return AvatarActor->GetActorLocation();
-	}
+	if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr) return AvatarActor->GetActorLocation();
 
 	return FVector::ZeroVector;
 }
@@ -184,10 +148,7 @@ FVector FSkillRuntimeContext::ResolveCrowdControlSourcePoint(EMASkillCrowdContro
 		return CenterSourcePoint;
 	case EMASkillCrowdControlSourceType::Instigator:
 	default:
-		if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr)
-		{
-			return AvatarActor->GetActorLocation();
-		}
+		if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr) return AvatarActor->GetActorLocation();
 		return CenterSourcePoint;
 	}
 }
@@ -225,11 +186,6 @@ void FSkillRuntimeContext::RefreshStateFromEvent(const FGameplayEventData& Paylo
 {
 	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
 	ResolvedDamageEffect = SkillDefinition ? SkillDefinition->GetDefaultDamageEffect() : nullptr;
-
-	if (UMASkillFlowPart* RuntimeFlowPart = OwnerAbility ? OwnerAbility->GetRuntimeFlowPart() : nullptr)
-	{
-		RuntimeFlowPart->HandleRuntimeEvent(Payload);
-	}
 
 	// TODO: Apply additional definition-derived state refresh here before module contributions are merged.
 }

@@ -8,10 +8,7 @@ namespace
 {
 	FGameplayTag BuildAttributeChangedEventTag(const FGameplayAttribute& Attribute)
 	{
-		if (!Attribute.IsValid())
-		{
-			return FGameplayTag();
-		}
+		if (!Attribute.IsValid()) return FGameplayTag();
 
 		const FString TagString = FString::Printf(TEXT("Event.Attribute.%s.Changed"), *Attribute.GetName());
 		return UGameplayTagsManager::Get().RequestGameplayTag(FName(*TagString), false);
@@ -23,9 +20,9 @@ UMASkillEventSource_AttributeChanged::UMASkillEventSource_AttributeChanged()
 	RefreshEmittedTag();
 }
 
-void UMASkillEventSource_AttributeChanged::StartSource(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext)
+void UMASkillEventSource_AttributeChanged::StartSource(UMASkillAbility* SkillAbility)
 {
-	Super::StartSource(SkillAbility, InRuntimeContext);
+	Super::StartSource(SkillAbility);
 	RefreshEmittedTag();
 
 	if (!ChangedAttribute.IsValid()) return;

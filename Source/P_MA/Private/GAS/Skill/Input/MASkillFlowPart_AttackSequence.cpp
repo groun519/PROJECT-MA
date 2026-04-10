@@ -5,7 +5,6 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "Animation/AnimInstance.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 
 namespace
 {
@@ -137,8 +136,7 @@ bool UMASkillFlowPart_AttackSequence::TryGetCurrentSectionContext(UAnimInstance*
 	if (!SkillAbility) return false;
 
 	OutAnimInstance = SkillAbility->GetOwnerAnimInstance();
-	const UMASkillDefinition* SkillDefinition = SkillAbility->GetSkillDefinition();
-	OutSkillMontage = SkillDefinition ? SkillDefinition->GetSkillMontage() : nullptr;
+	OutSkillMontage = ResolveFlowMontage();
 	if (!OutAnimInstance || !OutSkillMontage) return false;
 
 	OutCurrentSectionName = OutAnimInstance->Montage_GetCurrentSection(OutSkillMontage);

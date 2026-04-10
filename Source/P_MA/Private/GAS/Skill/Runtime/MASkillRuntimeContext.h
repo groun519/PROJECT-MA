@@ -38,13 +38,12 @@ struct FSkillRuntimeContext
 
 	void Initialize(UMASkillAbility* InOwnerAbility);
 	void Reset();
-	void HandleTagEvent(const FGameplayTag& EventTag);
-	void HandleEvent(const FGameplayEventData& Payload);
 	void ClearDamageConfig();
 	void AddDamageConfig(const FMASkillDamageConfig& DamageConfig);
 	void AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier);
 	TSet<FGameplayTag> ResolveRequiredEventTags() const;
 	void ResolveActionsForEvent(const FGameplayEventData& Payload, TArray<UMASkillAction*>& OutActions) const;
+	void RefreshStateFromEvent(const FGameplayEventData& Payload);
 	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload, const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FVector GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const;
 	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig* DamageConfig = nullptr) const;
@@ -73,7 +72,6 @@ private:
 	int32 ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FGameplayEffectSpecHandle MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const;
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const;
-	void RefreshStateFromEvent(const FGameplayEventData& Payload);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerAbility = nullptr;

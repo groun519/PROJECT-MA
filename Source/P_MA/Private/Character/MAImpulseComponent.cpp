@@ -19,11 +19,7 @@ void UMAImpulseComponent::BeginPlay()
 
 AMACharacter* UMAImpulseComponent::ResolveOwnerCharacter()
 {
-	if (!OwnerCharacter)
-	{
-		OwnerCharacter = Cast<AMACharacter>(GetOwner());
-	}
-
+	if (!OwnerCharacter) OwnerCharacter = Cast<AMACharacter>(GetOwner());
 	return OwnerCharacter;
 }
 
@@ -49,7 +45,19 @@ void UMAImpulseComponent::ApplyStatusEffectImpulse(EStatusEffectImpulseMode Impu
 		VerticalLaunchScale = StatusEffectAnimConfig.VerticalLaunchScale;
 	}
 
-	FVector StatusEffectDirection = GetStatusEffectDirection(SourcePoint, ImpulseMode);
+	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
+	FVector StatusEffectDirection = FVector::ZeroVector;
+	switch (ImpulseMode)
+	{
+	case EStatusEffectImpulseMode::PushFromSource:
+		StatusEffectDirection = (OwnerLocation - SourcePoint).GetSafeNormal2D();
+		break;
+	case EStatusEffectImpulseMode::PullToSource:
+		StatusEffectDirection = (SourcePoint - OwnerLocation).GetSafeNormal2D();
+		break;
+	default:
+		break;
+	}
 	if (!FMath::IsNearlyZero(VerticalLaunchScale)) StatusEffectDirection.Z = VerticalLaunchScale;
 
 	CancelInterruptibleActionImpulses();
@@ -75,7 +83,7 @@ void UMAImpulseComponent::RemoveImpulse(const FGameplayTag& StatusEffectTag)
 	if (ActiveImpulseContributions.Remove(StatusEffectTag) == 0) return;
 	ActiveActionImpulseOwners.Remove(StatusEffectTag);
 	ClearActionImpulseTimer(StatusEffectTag);
-	if (!HasActiveImpulse())
+	if (ActiveImpulseContributions.IsEmpty())
 	{
 		ClearImpulseState();
 		return;
@@ -170,11 +178,6 @@ void UMAImpulseComponent::ClearAllActionImpulseTimers()
 	ActiveActionImpulseTimers.Reset();
 }
 
-bool UMAImpulseComponent::HasActiveImpulse() const
-{
-	return ActiveImpulseContributions.Num() > 0;
-}
-
 void UMAImpulseComponent::BeginImpulseMovementOverride()
 {
 	AMACharacter* Character = ResolveOwnerCharacter();
@@ -225,6 +228,9 @@ void UMAImpulseComponent::ClearImpulseState()
 	ClearAllActionImpulseTimers();
 	if (UCharacterMovementComponent* CharacterMovementComponent = GetOwnerCharacterMovement())
 	{
+		// TODO: Revisit this if we add falling, momentum-preserving movement, or any motion
+		// that should survive after the final impulse ends. The current movement model treats
+		// impulse motion as fully authoritative, so clearing the last impulse also zeros velocity.
 		CharacterMovementComponent->Velocity = FVector::ZeroVector;
 	}
 
@@ -254,20 +260,4 @@ void UMAImpulseComponent::RecalculateImpulseVelocity(bool bStopMovementImmediate
 	}
 
 	CharacterMovementComponent->Velocity = CombinedVelocity;
-}
-
-FVector UMAImpulseComponent::GetStatusEffectDirection(const FVector& SourcePoint, EStatusEffectImpulseMode ImpulseMode) const
-{
-	if (!OwnerCharacter) return FVector::ZeroVector;
-
-	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
-	switch (ImpulseMode)
-	{
-	case EStatusEffectImpulseMode::PushFromSource:
-		return (OwnerLocation - SourcePoint).GetSafeNormal2D();
-	case EStatusEffectImpulseMode::PullToSource:
-		return (SourcePoint - OwnerLocation).GetSafeNormal2D();
-	default:
-		return FVector::ZeroVector;
-	}
 }
