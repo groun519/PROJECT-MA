@@ -77,19 +77,3 @@ void UMASkillCrowdControl::AppendGrantedStateTags(const FMASkillCrowdControlGran
 		GrantedTags.AddTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
 	}
 }
-
-FMASkillCrowdControlGrantedStateRule UMASkillCrowdControl::MakeFullBlockGrantedStateRule()
-{
-	FMASkillCrowdControlGrantedStateRule Rule;
-	Rule.bBlockMove = true;
-	Rule.bLockRotation = true;
-	Rule.bBlockAbility = true;
-	return Rule;
-}
-
-FMASkillCrowdControlGrantedStateRule UMASkillCrowdControl::MakeMoveOnlyGrantedStateRule()
-{
-	FMASkillCrowdControlGrantedStateRule Rule;
-	Rule.bBlockMove = true;
-	return Rule;
-}

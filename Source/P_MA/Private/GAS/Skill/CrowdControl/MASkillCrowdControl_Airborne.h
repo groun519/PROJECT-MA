@@ -20,6 +20,5 @@ protected:
 	float RiseTime = 0.f;
 
 	virtual bool ResolvePolicy(FMASkillCrowdControlPolicy& OutPolicy) const override;
-	virtual FMASkillCrowdControlGrantedStateRule GetGrantedStateRule() const override;
 	virtual void ApplyCustomPayload(FGameplayEffectSpecHandle& SpecHandle) const override;
 };

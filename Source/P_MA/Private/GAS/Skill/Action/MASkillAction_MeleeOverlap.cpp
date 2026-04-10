@@ -1,10 +1,12 @@
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
 
+#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 
-void UMASkillAction_MeleeOverlap::Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
+void UMASkillAction_MeleeOverlap::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 {
-	if (!RuntimeContext.HasAuthority()) return;
+	(void)OwnerAbility;
+	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	const TArray<FHitResult> HitResults = RuntimeContext.GetHitResultsFromPayload(Payload, &DamageConfig);
 	const FResolvedSkillHitEffects ResolvedHitEffects = RuntimeContext.BuildResolvedHitEffects(&DamageConfig);

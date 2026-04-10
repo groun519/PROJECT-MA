@@ -33,7 +33,7 @@ class P_MA_API UMASkillAction_SpawnProjectile : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Action")

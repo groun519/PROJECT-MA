@@ -9,13 +9,8 @@ bool UMASkillCrowdControlAirborne::ResolvePolicy(FMASkillCrowdControlPolicy& Out
 	OutPolicy.Magnitude = Magnitude;
 	OutPolicy.Duration = Duration;
 	OutPolicy.SourceType = EMASkillCrowdControlSourceType::Instigator;
-	AppendGrantedStateTags(GetGrantedStateRule(), OutPolicy.GrantedStateTags);
+	AppendGrantedStateTags(FMASkillCrowdControlGrantedStateRule(true, true, true), OutPolicy.GrantedStateTags);
 	return true;
-}
-
-FMASkillCrowdControlGrantedStateRule UMASkillCrowdControlAirborne::GetGrantedStateRule() const
-{
-	return MakeFullBlockGrantedStateRule();
 }
 
 void UMASkillCrowdControlAirborne::ApplyCustomPayload(FGameplayEffectSpecHandle& SpecHandle) const

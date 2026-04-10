@@ -12,7 +12,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SphereComponent.h"
-#include "Character/MAReactionComponent.h"
+#include "Character/MAImpulseComponent.h"
+#include "Character/MAStatusEffectComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -41,7 +42,8 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
-	ReactionComponent = CreateDefaultSubobject<UMAReactionComponent>("Reaction Component");
+	StatusEffectComponent = CreateDefaultSubobject<UMAStatusEffectComponent>("Reaction Component");
+	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
@@ -159,7 +161,14 @@ void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
 	if (IsDead()) return;
-	if (NewCount != 0) StopMovementForBlock();
+	if (NewCount != 0)
+	{
+		if (ImpulseComponent)
+		{
+			ImpulseComponent->CancelInterruptibleActionImpulses();
+		}
+		StopMovementForBlock();
+	}
 	RefreshMaxWalkSpeed();
 }
 
@@ -236,10 +245,7 @@ void AMACharacter::StartDeathSequence()
 {
 	OnDead();
 
-	if (ReactionComponent)
-	{
-		ReactionComponent->ResetTransientReactionState();
-	}
+	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
 
 	if (MAAbilitySystemComponent)
 	{
@@ -256,10 +262,7 @@ void AMACharacter::StartDeathSequence()
 
 void AMACharacter::Respawn()
 {
-	if (ReactionComponent)
-	{
-		ReactionComponent->ResetTransientReactionState();
-	}
+	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
 
 	SetAIPerceptionStimuliSourceEnabled(true);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -417,15 +420,15 @@ void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage,
 	}
 }
 
-void AMACharacter::Multicast_PlayImpulseReaction_Implementation(const FGameplayTag& ReactionTag, float Magnitude, FVector SourcePoint)
+void AMACharacter::Multicast_PlayStatusEffectImpulse_Implementation(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint)
 {
 	if (HasAuthority()) return;
-	if (!ReactionComponent) return;
+	if (!StatusEffectComponent) return;
 
-	ReactionComponent->PlayReplicatedImpulseReaction(ReactionTag, Magnitude, SourcePoint);
+	StatusEffectComponent->PlayReplicatedStatusEffectImpulse(StatusEffectTag, Magnitude, SourcePoint);
 }
 
-bool AMACharacter::GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const
+bool AMACharacter::GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const
 {
-	return ReactionComponent ? ReactionComponent->GetReactionAnimConfig(ReactionTag, OutConfig) : false;
+	return StatusEffectComponent ? StatusEffectComponent->GetStatusEffectAnimConfig(StatusEffectTag, OutConfig) : false;
 }

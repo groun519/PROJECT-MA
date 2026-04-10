@@ -3,10 +3,10 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimMontage.h"
 #include "GameplayTagContainer.h"
-#include "MAReactionTypes.generated.h"
+#include "MAStatusEffectTypes.generated.h"
 
 UENUM(BlueprintType)
-enum class EReactionImpulseMode : uint8
+enum class EStatusEffectImpulseMode : uint8
 {
 	None,
 	PushFromSource,
@@ -14,7 +14,7 @@ enum class EReactionImpulseMode : uint8
 };
 
 USTRUCT()
-struct FReactionAnimConfig
+struct FStatusEffectAnimConfig
 {
 	GENERATED_BODY()
 
@@ -26,7 +26,7 @@ struct FReactionAnimConfig
 };
 
 USTRUCT(BlueprintType)
-struct FReactionRule
+struct FStatusEffectRule
 {
 	GENERATED_BODY()
 
@@ -34,7 +34,7 @@ struct FReactionRule
 	FGameplayTag CrowdControlTag;
 
 	UPROPERTY(EditDefaultsOnly)
-	EReactionImpulseMode ImpulseMode = EReactionImpulseMode::None;
+	EStatusEffectImpulseMode ImpulseMode = EStatusEffectImpulseMode::None;
 
 	UPROPERTY(EditDefaultsOnly)
 	bool bPlayMontageOnStart = false;
@@ -48,5 +48,10 @@ struct FReactionRule
 	bool IsValid() const
 	{
 		return CrowdControlTag.IsValid();
+	}
+
+	bool HasImpulseEffect() const
+	{
+		return ImpulseMode != EStatusEffectImpulseMode::None;
 	}
 };

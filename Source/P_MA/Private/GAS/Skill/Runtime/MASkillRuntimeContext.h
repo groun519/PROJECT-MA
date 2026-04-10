@@ -5,16 +5,14 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GAS/Skill/MASkillDamageConfig.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayTagContainer.h"
 #include "MASkillRuntimeContext.generated.h"
 
 class AActor;
 class UAbilitySystemComponent;
 class UGameplayEffect;
 class UMASkillAbility;
-class UAnimInstance;
-class UAnimMontage;
 class UMASkillAction;
-class USkeletalMeshComponent;
 struct FGameplayAttribute;
 struct FGameplayEventData;
 
@@ -47,17 +45,6 @@ struct FSkillRuntimeContext
 	void AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier);
 	TSet<FGameplayTag> ResolveRequiredEventTags() const;
 	void ResolveActionsForEvent(const FGameplayEventData& Payload, TArray<UMASkillAction*>& OutActions) const;
-
-	bool HasAuthority() const;
-	AActor* GetAvatarActor() const;
-	UAbilitySystemComponent* GetAbilitySystemComponent() const;
-	USkeletalMeshComponent* GetOwningMeshComponent() const;
-	UWorld* GetWorld() const;
-	UAnimInstance* GetOwnerAnimInstance() const;
-	UAnimMontage* GetSkillMontage() const;
-	float GetAttributeValue(const FGameplayAttribute& Attribute, float DefaultValue = 0.f) const;
-	void SetDesiredMontagePlayRate(float PlayRate) const;
-	bool TryGetCurrentSkillSection(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const;
 	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload, const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FVector GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const;
 	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig* DamageConfig = nullptr) const;

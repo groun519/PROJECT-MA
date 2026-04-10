@@ -23,7 +23,6 @@ protected:
 		PURE_VIRTUAL(UMASkillCrowdControlImpulseBase::GetCrowdControlTag, return FGameplayTag(););
 
 	virtual bool ResolvePolicy(FMASkillCrowdControlPolicy& OutPolicy) const override;
-	virtual FMASkillCrowdControlGrantedStateRule GetGrantedStateRule() const override;
 };
 
 UCLASS(BlueprintType, DisplayName="CC Knockback")

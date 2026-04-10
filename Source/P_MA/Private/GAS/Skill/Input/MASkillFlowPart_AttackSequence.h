@@ -8,6 +8,8 @@
 
 class UAbilityTask_WaitInputPress;
 class UAbilityTask_WaitInputRelease;
+class UAnimInstance;
+class UAnimMontage;
 
 USTRUCT(BlueprintType)
 struct FMASkillAttackSequenceEvent
@@ -50,7 +52,7 @@ class P_MA_API UMASkillFlowPart_AttackSequence : public UMASkillFlowPart
 	GENERATED_BODY()
 
 public:
-	virtual void StartFlow(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext) override;
+	virtual void StartFlow(UMASkillAbility* SkillAbility) override;
 	virtual void StopFlow() override;
 	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const override;
 	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) override;

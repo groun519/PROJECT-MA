@@ -3,8 +3,9 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "Animation/AnimInstance.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 
 namespace
 {
@@ -19,9 +20,9 @@ namespace
 	}
 }
 
-void UMASkillFlowPart_AttackSequence::StartFlow(UMASkillAbility* SkillAbility, FSkillRuntimeContext* InRuntimeContext)
+void UMASkillFlowPart_AttackSequence::StartFlow(UMASkillAbility* SkillAbility)
 {
-	Super::StartFlow(SkillAbility, InRuntimeContext);
+	Super::StartFlow(SkillAbility);
 
 	ClearReservedState();
 	ArmInputPress();
@@ -132,8 +133,16 @@ void UMASkillFlowPart_AttackSequence::StopInputLoop()
 
 bool UMASkillFlowPart_AttackSequence::TryGetCurrentSectionContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const
 {
-	FSkillRuntimeContext* RuntimeContextPtr = GetRuntimeContext();
-	return RuntimeContextPtr && RuntimeContextPtr->TryGetCurrentSkillSection(OutAnimInstance, OutSkillMontage, OutCurrentSectionName);
+	const UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
+	if (!SkillAbility) return false;
+
+	OutAnimInstance = SkillAbility->GetOwnerAnimInstance();
+	const UMASkillDefinition* SkillDefinition = SkillAbility->GetSkillDefinition();
+	OutSkillMontage = SkillDefinition ? SkillDefinition->GetSkillMontage() : nullptr;
+	if (!OutAnimInstance || !OutSkillMontage) return false;
+
+	OutCurrentSectionName = OutAnimInstance->Montage_GetCurrentSection(OutSkillMontage);
+	return !OutCurrentSectionName.IsNone();
 }
 
 void UMASkillFlowPart_AttackSequence::ClearCurrentSectionLink()

@@ -16,6 +16,15 @@ struct P_MA_API FMASkillCrowdControlGrantedStateRule
 {
 	GENERATED_BODY()
 
+	FMASkillCrowdControlGrantedStateRule() = default;
+
+	FMASkillCrowdControlGrantedStateRule(bool bInBlockMove, bool bInLockRotation, bool bInBlockAbility)
+		: bBlockMove(bInBlockMove)
+		, bLockRotation(bInLockRotation)
+		, bBlockAbility(bInBlockAbility)
+	{
+	}
+
 	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
 	bool bBlockMove = false;
 

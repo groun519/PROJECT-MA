@@ -1,13 +1,17 @@
 #include "GAS/Skill/Action/MASkillAction_SetMontagePlayRateByAttackSpeed.h"
 
+#include "AbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
-#include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
+#include "GAS/Skill/MASkillAbility.h"
 
-void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
+void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext&, const FGameplayEventData&)
 {
-	(void)Payload;
+	float AttackSpeed = 1.f;
+	if (UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo())
+	{
+		AttackSpeed = AbilitySystemComponent->GetNumericAttribute(UMAAttributeSet::GetAttackSpeedAttribute());
+	}
 
-	const float AttackSpeed = RuntimeContext.GetAttributeValue(UMAAttributeSet::GetAttackSpeedAttribute(), 1.f);
 	const float FinalPlayRate = BasePlayRate * (AttackSpeed > 0.f ? AttackSpeed : 1.f);
-	RuntimeContext.SetDesiredMontagePlayRate(FMath::Max(FinalPlayRate, KINDA_SMALL_NUMBER));
+	OwnerAbility.SetDesiredMontagePlayRate(FMath::Max(FinalPlayRate, KINDA_SMALL_NUMBER));
 }

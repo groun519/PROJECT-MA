@@ -19,7 +19,7 @@ FGameplayTag UMASkillCrowdControlStun::GetCrowdControlTag() const
 
 FMASkillCrowdControlGrantedStateRule UMASkillCrowdControlStun::GetGrantedStateRule() const
 {
-	return MakeFullBlockGrantedStateRule();
+	return FMASkillCrowdControlGrantedStateRule(true, true, true);
 }
 
 FGameplayTag UMASkillCrowdControlRoot::GetCrowdControlTag() const
@@ -29,5 +29,5 @@ FGameplayTag UMASkillCrowdControlRoot::GetCrowdControlTag() const
 
 FMASkillCrowdControlGrantedStateRule UMASkillCrowdControlRoot::GetGrantedStateRule() const
 {
-	return MakeMoveOnlyGrantedStateRule();
+	return FMASkillCrowdControlGrantedStateRule(true, false, false);
 }

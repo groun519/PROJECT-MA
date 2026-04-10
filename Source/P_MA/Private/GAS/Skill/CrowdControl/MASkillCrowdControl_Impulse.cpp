@@ -8,13 +8,8 @@ bool UMASkillCrowdControlImpulseBase::ResolvePolicy(FMASkillCrowdControlPolicy& 
 	OutPolicy.Magnitude = Magnitude;
 	OutPolicy.Duration = Duration;
 	OutPolicy.SourceType = SourceType;
-	AppendGrantedStateTags(GetGrantedStateRule(), OutPolicy.GrantedStateTags);
+	AppendGrantedStateTags(FMASkillCrowdControlGrantedStateRule(true, true, true), OutPolicy.GrantedStateTags);
 	return true;
-}
-
-FMASkillCrowdControlGrantedStateRule UMASkillCrowdControlImpulseBase::GetGrantedStateRule() const
-{
-	return MakeFullBlockGrantedStateRule();
 }
 
 FGameplayTag UMASkillCrowdControlKnockback::GetCrowdControlTag() const

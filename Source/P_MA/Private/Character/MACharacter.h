@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/MAReactionTypes.h"
+#include "Character/MAStatusEffectTypes.h"
 #include "GameFramework/Character.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
@@ -15,6 +15,8 @@
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
+class UMAImpulseComponent;
+class UMAStatusEffectComponent;
 
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
@@ -40,6 +42,7 @@ public:
 	/** Gameplay Ability **/
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
+	UMAImpulseComponent* GetImpulseComponent() const { return ImpulseComponent; }
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
@@ -59,8 +62,11 @@ private:
 	UPROPERTY()
 	class UMAAttributeSet* MAAttributeSet;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Reaction")
-	class UMAReactionComponent* ReactionComponent;
+	UPROPERTY(VisibleDefaultsOnly, Category = "Status Effect")
+	UMAStatusEffectComponent* StatusEffectComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Status Effect")
+	TObjectPtr<UMAImpulseComponent> ImpulseComponent;
 
 	/** UI **/
 private:
@@ -151,9 +157,9 @@ public:
 	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
 	UFUNCTION(NetMulticast, Reliable)
 	// Kept on AMACharacter because the actor already owns the replication entrypoint.
-	// If reaction RPCs grow, move this multicast into UMAReactionComponent.
-	void Multicast_PlayImpulseReaction(const FGameplayTag& ReactionTag, float Magnitude, FVector SourcePoint);
+	// If status-effect impulse RPCs grow, move this multicast into UMAStatusEffectComponent.
+	void Multicast_PlayStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint);
 
 	UFUNCTION()
-	bool GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const;
+	bool GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const;
 };

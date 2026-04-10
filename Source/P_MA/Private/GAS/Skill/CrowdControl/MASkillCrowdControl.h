@@ -23,6 +23,4 @@ protected:
 	virtual void ApplyCustomPayload(FGameplayEffectSpecHandle& SpecHandle) const {}
 
 	static void AppendGrantedStateTags(const FMASkillCrowdControlGrantedStateRule& Rule, FGameplayTagContainer& GrantedTags);
-	static FMASkillCrowdControlGrantedStateRule MakeFullBlockGrantedStateRule();
-	static FMASkillCrowdControlGrantedStateRule MakeMoveOnlyGrantedStateRule();
 };

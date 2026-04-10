@@ -11,7 +11,6 @@
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "Animation/AnimInstance.h"
 #include "GameplayEffect.h"
 #include "GenericTeamAgentInterface.h"
 
@@ -51,7 +50,7 @@ void FSkillRuntimeContext::HandleEvent(const FGameplayEventData& Payload)
 	for (UMASkillAction* Action : ResolvedActions)
 	{
 		if (!Action) continue;
-		Action->Execute(*this, Payload);
+		Action->Execute(*OwnerAbility, *this, Payload);
 	}
 }
 
@@ -110,71 +109,6 @@ void FSkillRuntimeContext::ResolveActionsForEvent(const FGameplayEventData& Payl
 	// TODO: Append runtime module action contributions for this event here.
 }
 
-bool FSkillRuntimeContext::HasAuthority() const
-{
-	return OwnerAbility && OwnerAbility->K2_HasAuthority();
-}
-
-AActor* FSkillRuntimeContext::GetAvatarActor() const
-{
-	return OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr;
-}
-
-UAbilitySystemComponent* FSkillRuntimeContext::GetAbilitySystemComponent() const
-{
-	return OwnerAbility ? OwnerAbility->GetAbilitySystemComponentFromActorInfo() : nullptr;
-}
-
-USkeletalMeshComponent* FSkillRuntimeContext::GetOwningMeshComponent() const
-{
-	return OwnerAbility ? OwnerAbility->GetOwningComponentFromActorInfo() : nullptr;
-}
-
-UWorld* FSkillRuntimeContext::GetWorld() const
-{
-	return OwnerAbility ? OwnerAbility->GetWorld() : nullptr;
-}
-
-UAnimInstance* FSkillRuntimeContext::GetOwnerAnimInstance() const
-{
-	return OwnerAbility ? OwnerAbility->GetOwnerAnimInstance() : nullptr;
-}
-
-UAnimMontage* FSkillRuntimeContext::GetSkillMontage() const
-{
-	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
-	return SkillDefinition ? SkillDefinition->GetSkillMontage() : nullptr;
-}
-
-float FSkillRuntimeContext::GetAttributeValue(const FGameplayAttribute& Attribute, float DefaultValue) const
-{
-	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent();
-	if (!AbilitySystemComponent || !Attribute.IsValid())
-	{
-		return DefaultValue;
-	}
-
-	return AbilitySystemComponent->GetNumericAttribute(Attribute);
-}
-
-void FSkillRuntimeContext::SetDesiredMontagePlayRate(float PlayRate) const
-{
-	if (OwnerAbility)
-	{
-		OwnerAbility->SetDesiredMontagePlayRate(PlayRate);
-	}
-}
-
-bool FSkillRuntimeContext::TryGetCurrentSkillSection(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutSkillMontage, FName& OutCurrentSectionName) const
-{
-	OutAnimInstance = GetOwnerAnimInstance();
-	OutSkillMontage = GetSkillMontage();
-	if (!OutAnimInstance || !OutSkillMontage) return false;
-
-	OutCurrentSectionName = OutAnimInstance->Montage_GetCurrentSection(OutSkillMontage);
-	return !OutCurrentSectionName.IsNone();
-}
-
 TArray<FHitResult> FSkillRuntimeContext::GetHitResultsFromPayload(const FGameplayEventData& Payload, const FMASkillDamageConfig* DamageConfig) const
 {
 	if (!OwnerAbility) return TArray<FHitResult>();
@@ -189,7 +123,7 @@ FVector FSkillRuntimeContext::GetCrowdControlCenterPoint(const FGameplayEventDat
 		return Payload.TargetData.Data[0]->GetOrigin().GetTranslation();
 	}
 
-	if (const AActor* AvatarActor = GetAvatarActor())
+	if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr)
 	{
 		return AvatarActor->GetActorLocation();
 	}
@@ -250,7 +184,7 @@ FVector FSkillRuntimeContext::ResolveCrowdControlSourcePoint(EMASkillCrowdContro
 		return CenterSourcePoint;
 	case EMASkillCrowdControlSourceType::Instigator:
 	default:
-		if (const AActor* AvatarActor = GetAvatarActor())
+		if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr)
 		{
 			return AvatarActor->GetActorLocation();
 		}

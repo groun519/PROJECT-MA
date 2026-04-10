@@ -3,6 +3,8 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
+#include "Character/MACharacter.h"
+#include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillEventSource.h"
@@ -72,6 +74,13 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	UnregisterEventSources();
 	EndAbilityTasksAndReset(EventTasks);
 	UnregisterCancelTriggers();
+	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
+		{
+			ImpulseComponent->StopOwnedActionImpulses(this);
+		}
+	}
 	RuntimeContext.Reset();
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -132,7 +141,7 @@ void UMASkillAbility::RegisterFlowPart()
 	RuntimeFlowPart = DuplicateObject<UMASkillFlowPart>(SkillDefinition->GetFlowPart(), this);
 	if (RuntimeFlowPart)
 	{
-		RuntimeFlowPart->StartFlow(this, &RuntimeContext);
+		RuntimeFlowPart->StartFlow(this);
 	}
 }
 
