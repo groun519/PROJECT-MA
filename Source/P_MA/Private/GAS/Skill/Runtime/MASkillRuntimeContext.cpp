@@ -18,6 +18,7 @@ void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 	OwnerAbility = InOwnerAbility;
 	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
+	ClearPayload();
 	ClearDamageConfig();
 }
 
@@ -26,6 +27,7 @@ void FSkillRuntimeContext::Reset()
 	OwnerAbility = nullptr;
 	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
+	ClearPayload();
 	ClearDamageConfig();
 }
 
@@ -180,6 +182,95 @@ FMASkillDamageConfig FSkillRuntimeContext::BuildMergedDamageConfig(const FMASkil
 	FMASkillDamageConfig Result = DamageConfig ? *DamageConfig : FMASkillDamageConfig();
 	Result.Append(AccumulatedDamageConfig);
 	return Result;
+}
+
+void FSkillRuntimeContext::AddPayload(const FGameplayTag& Tag)
+{
+	if (Tag.IsValid())
+	{
+		PayloadTags.AddTag(Tag);
+	}
+}
+
+bool FSkillRuntimeContext::HasPayload(const FGameplayTag& Tag) const
+{
+	if (!Tag.IsValid()) return false;
+
+	return PayloadTags.HasTagExact(Tag)
+		|| PayloadScalars.Contains(Tag)
+		|| PayloadVectors.Contains(Tag)
+		|| PayloadObjects.Contains(Tag);
+}
+
+void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, float Value)
+{
+	if (Key.IsValid())
+	{
+		PayloadScalars.FindOrAdd(Key) = Value;
+	}
+}
+
+bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, float& OutValue) const
+{
+	if (!Key.IsValid()) return false;
+
+	if (const float* Value = PayloadScalars.Find(Key))
+	{
+		OutValue = *Value;
+		return true;
+	}
+
+	return false;
+}
+
+void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, const FVector& Value)
+{
+	if (Key.IsValid())
+	{
+		PayloadVectors.FindOrAdd(Key) = Value;
+	}
+}
+
+bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, FVector& OutValue) const
+{
+	if (!Key.IsValid()) return false;
+
+	if (const FVector* Value = PayloadVectors.Find(Key))
+	{
+		OutValue = *Value;
+		return true;
+	}
+
+	return false;
+}
+
+void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, UObject* Value)
+{
+	if (Key.IsValid())
+	{
+		PayloadObjects.FindOrAdd(Key) = Value;
+	}
+}
+
+bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, UObject*& OutValue) const
+{
+	if (!Key.IsValid()) return false;
+
+	if (const TObjectPtr<UObject>* Value = PayloadObjects.Find(Key))
+	{
+		OutValue = Value->Get();
+		return true;
+	}
+
+	return false;
+}
+
+void FSkillRuntimeContext::ClearPayload()
+{
+	PayloadTags.Reset();
+	PayloadScalars.Reset();
+	PayloadVectors.Reset();
+	PayloadObjects.Reset();
 }
 
 void FSkillRuntimeContext::RefreshStateFromEvent(const FGameplayEventData& Payload)

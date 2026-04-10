@@ -3,6 +3,8 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -13,6 +15,8 @@
 
 namespace
 {
+	constexpr float PreparedPreviewPlayRate = KINDA_SMALL_NUMBER;
+
 	template <typename TaskType>
 	void EndAbilityTasksAndReset(TArray<TObjectPtr<TaskType>>& Tasks)
 	{
@@ -85,7 +89,11 @@ void UMASkillAbility::HandleSkillTagEvent(const FGameplayTag& EventTag)
 
 void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
-	HandleCurrentFlowRuntimeEvent(Payload);
+	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	{
+		CurrentFlowPart->HandleRuntimeEvent(Payload);
+	}
+
 	RuntimeContext.RefreshStateFromEvent(Payload);
 
 	TArray<UMASkillAction*> ResolvedActions;
@@ -104,7 +112,7 @@ UMASkillFlowPart* UMASkillAbility::GetCurrentRuntimeFlowPart() const
 
 void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
 {
-	DesiredMontagePlayRate = FMath::Max(NewPlayRate, KINDA_SMALL_NUMBER);
+	DesiredMontagePlayRate = FMath::Max(NewPlayRate, 0.f);
 
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
 	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
@@ -115,6 +123,70 @@ void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
 	{
 		AnimInstance->Montage_SetPlayRate(FlowMontage, DesiredMontagePlayRate);
 	}
+}
+
+void UMASkillAbility::CompleteCurrentFlow(float MontageBlendOutTime)
+{
+	if (!AdvanceToNextFlow(MontageBlendOutTime))
+	{
+		K2_EndAbility();
+	}
+}
+
+bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
+{
+	if (CurrentFlowStartMode != EMASkillFlowStartMode::Fresh) return false;
+	if (PreparedMontage || PreparedFlowIndex != INDEX_NONE) return false;
+
+	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
+	if (CurrentFlowPart && CurrentFlowPart->ResolveFlowMontage()) return false;
+
+	const int32 NextFlowIndex = CurrentFlowIndex + 1;
+	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex)) return false;
+
+	UMASkillFlowPart* NextFlowPart = RuntimeFlowParts[NextFlowIndex];
+	UAnimMontage* NextFlowMontage = NextFlowPart ? NextFlowPart->ResolveFlowMontage() : nullptr;
+	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	if (!ActorInfo || !HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || !AnimInstance || !NextFlowMontage) return false;
+
+	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), PreparedPreviewPlayRate) <= 0.f) return false;
+
+	BindPreparedMontageDelegates(NextFlowMontage);
+	PreparedMontage = NextFlowMontage;
+	PreparedFlowIndex = NextFlowIndex;
+	return true;
+}
+
+bool UMASkillAbility::ActivatePreparedNextFlow()
+{
+	if (!RuntimeFlowParts.IsValidIndex(PreparedFlowIndex) || !PreparedMontage) return false;
+
+	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
+	if (CurrentFlowPart)
+	{
+		CurrentFlowPart->StopFlow();
+	}
+
+	if (UAnimInstance* AnimInstance = GetOwnerAnimInstance())
+	{
+		if (FAnimMontageInstance* PreparedMontageInstance = AnimInstance->GetInstanceForMontage(PreparedMontage))
+		{
+			PreparedMontageInstance->SetWeight(1.f);
+			PreparedMontageInstance->SetDesiredWeight(1.f);
+		}
+	}
+
+	CurrentFlowIndex = PreparedFlowIndex;
+	PreparedFlowIndex = INDEX_NONE;
+	CurrentFlowStartMode = EMASkillFlowStartMode::Prepared;
+	CurrentMontageTask = nullptr;
+	PreparedMontage = nullptr;
+
+	StartCurrentFlow();
+	RefreshEventBindings();
+	SetDesiredMontagePlayRate(DesiredMontagePlayRate);
+	return true;
 }
 
 void UMASkillAbility::RegisterEventSources()
@@ -161,6 +233,8 @@ void UMASkillAbility::RegisterFlowParts()
 	}
 
 	CurrentFlowIndex = RuntimeFlowParts.IsEmpty() ? INDEX_NONE : 0;
+	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
+	PreparedFlowIndex = INDEX_NONE;
 }
 
 void UMASkillAbility::UnregisterFlowParts()
@@ -170,8 +244,13 @@ void UMASkillAbility::UnregisterFlowParts()
 		CurrentFlowPart->StopFlow();
 	}
 
+	ClearCurrentMontageTask();
+	StopCurrentFlowMontage();
+	ClearPreparedMontage();
 	RuntimeFlowParts.Reset();
 	CurrentFlowIndex = INDEX_NONE;
+	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
+	PreparedFlowIndex = INDEX_NONE;
 }
 
 void UMASkillAbility::StartCurrentFlow()
@@ -179,7 +258,9 @@ void UMASkillAbility::StartCurrentFlow()
 	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
 	if (!CurrentFlowPart) return;
 
-	CurrentFlowPart->StartFlow(this);
+	const EMASkillFlowStartMode FlowStartMode = CurrentFlowStartMode;
+	CurrentFlowPart->StartFlow(this, FlowStartMode);
+	if (FlowStartMode == EMASkillFlowStartMode::Prepared) return;
 
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	UAnimMontage* FlowMontage = CurrentFlowPart->ResolveFlowMontage();
@@ -194,13 +275,17 @@ void UMASkillAbility::StartCurrentFlow()
 	CurrentMontageTask->ReadyForActivation();
 }
 
-bool UMASkillAbility::AdvanceToNextFlow()
+bool UMASkillAbility::AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime)
 {
 	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
 	if (CurrentFlowPart)
 	{
 		CurrentFlowPart->StopFlow();
 	}
+
+	ClearCurrentMontageTask();
+	StopCurrentFlowMontage(CurrentFlowMontageBlendOutTime);
+	ClearPreparedMontage();
 
 	const int32 NextFlowIndex = CurrentFlowIndex + 1;
 	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex))
@@ -210,17 +295,61 @@ bool UMASkillAbility::AdvanceToNextFlow()
 	}
 
 	CurrentFlowIndex = NextFlowIndex;
+	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
+	PreparedFlowIndex = INDEX_NONE;
 	StartCurrentFlow();
 	RefreshEventBindings();
 	return true;
 }
 
-void UMASkillAbility::HandleCurrentFlowRuntimeEvent(const FGameplayEventData& Payload)
+void UMASkillAbility::ClearCurrentMontageTask()
 {
-	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	if (!CurrentMontageTask) return;
+
+	CurrentMontageTask->OnCancelled.Clear();
+	CurrentMontageTask->OnCompleted.Clear();
+	CurrentMontageTask->OnInterrupted.Clear();
+	CurrentMontageTask->EndTask();
+	CurrentMontageTask = nullptr;
+}
+
+void UMASkillAbility::StopCurrentFlowMontage(float MontageBlendOutTime)
+{
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
+	UAnimMontage* FlowMontage = CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr;
+	if (!AnimInstance || !FlowMontage) return;
+
+	if (CurrentFlowStartMode == EMASkillFlowStartMode::Prepared)
 	{
-		CurrentFlowPart->HandleRuntimeEvent(Payload);
+		ClearMontageDelegates(FlowMontage);
 	}
+
+	if (AnimInstance->Montage_IsPlaying(FlowMontage))
+	{
+		AnimInstance->Montage_Stop(MontageBlendOutTime, FlowMontage);
+	}
+}
+
+void UMASkillAbility::ClearPreparedMontage()
+{
+	if (!PreparedMontage)
+	{
+		PreparedFlowIndex = INDEX_NONE;
+		return;
+	}
+
+	ClearMontageDelegates(PreparedMontage);
+	if (UAnimInstance* AnimInstance = GetOwnerAnimInstance())
+	{
+		if (AnimInstance->Montage_IsPlaying(PreparedMontage))
+		{
+			AnimInstance->Montage_Stop(0.f, PreparedMontage);
+		}
+	}
+
+	PreparedMontage = nullptr;
+	PreparedFlowIndex = INDEX_NONE;
 }
 
 void UMASkillAbility::RefreshEventBindings()
@@ -259,6 +388,74 @@ void UMASkillAbility::HandleCurrentFlowMontageInterrupted()
 {
 	CurrentMontageTask = nullptr;
 	K2_EndAbility();
+}
+
+void UMASkillAbility::BindPreparedMontageDelegates(UAnimMontage* Montage)
+{
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	if (!AnimInstance || !Montage) return;
+
+	FOnMontageBlendingOutStarted BlendingOutDelegate;
+	BlendingOutDelegate.BindUObject(this, &UMASkillAbility::HandlePreparedMontageBlendingOut);
+	AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate, Montage);
+
+	FOnMontageEnded EndedDelegate;
+	EndedDelegate.BindUObject(this, &UMASkillAbility::HandlePreparedMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(EndedDelegate, Montage);
+}
+
+void UMASkillAbility::ClearMontageDelegates(UAnimMontage* Montage)
+{
+	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
+	if (!AnimInstance || !Montage) return;
+
+	FOnMontageBlendingOutStarted EmptyBlendingOutDelegate;
+	AnimInstance->Montage_SetBlendingOutDelegate(EmptyBlendingOutDelegate, Montage);
+
+	FOnMontageEnded EmptyEndedDelegate;
+	AnimInstance->Montage_SetEndDelegate(EmptyEndedDelegate, Montage);
+}
+
+void UMASkillAbility::HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!bInterrupted) return;
+	if (!Montage) return;
+
+	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedFlowIndex != INDEX_NONE;
+	const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
+	const bool bIsPreparedCurrentFlow = CurrentFlowStartMode == EMASkillFlowStartMode::Prepared
+		&& Montage == (CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr);
+	if (!bIsPreparedPreview && !bIsPreparedCurrentFlow) return;
+
+	ClearMontageDelegates(Montage);
+	if (bIsPreparedPreview)
+	{
+		PreparedMontage = nullptr;
+		PreparedFlowIndex = INDEX_NONE;
+	}
+	HandleCurrentFlowMontageInterrupted();
+}
+
+void UMASkillAbility::HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!Montage || bInterrupted) return;
+
+	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedFlowIndex != INDEX_NONE;
+	const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
+	const bool bIsPreparedCurrentFlow = CurrentFlowStartMode == EMASkillFlowStartMode::Prepared
+		&& Montage == (CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr);
+	if (!bIsPreparedPreview && !bIsPreparedCurrentFlow) return;
+
+	ClearMontageDelegates(Montage);
+	if (bIsPreparedPreview)
+	{
+		PreparedMontage = nullptr;
+		PreparedFlowIndex = INDEX_NONE;
+		K2_EndAbility();
+		return;
+	}
+
+	HandleCurrentFlowMontageCompleted();
 }
 
 void UMASkillAbility::RegisterCancelTriggers()

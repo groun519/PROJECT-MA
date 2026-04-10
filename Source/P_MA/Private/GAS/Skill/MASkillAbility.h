@@ -1,19 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
+#include "GAS/Skill/Input/MASkillFlowPart.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
 class UAbilityTask_WaitGameplayEvent;
 class UAbilityTask_PlayMontageAndWait;
+class UAnimMontage;
 class UMASkillDefinition;
 class UMASkillEventSource;
-class UMASkillFlowPart;
-struct FMASkillGameplayEventPart;
 
 UCLASS()
 class P_MA_API UMASkillAbility : public UMAGameplayAbility
@@ -32,6 +30,12 @@ public:
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
+	void SetRuntimePayload(const FGameplayTag& Key, float Value) { RuntimeContext.SetPayload(Key, Value); }
+	void SetRuntimePayload(const FGameplayTag& Key, const FVector& Value) { RuntimeContext.SetPayload(Key, Value); }
+	void SetRuntimePayload(const FGameplayTag& Key, UObject* Value) { RuntimeContext.SetPayload(Key, Value); }
+	void CompleteCurrentFlow(float MontageBlendOutTime = 0.f);
+	bool PrepareNextFlowMontage(float PreviewBlendInTime);
+	bool ActivatePreparedNextFlow();
 
 protected:
 	/** Definition DataAsset **/
@@ -48,12 +52,18 @@ private:
 	void RegisterFlowParts();
 	void UnregisterFlowParts();
 	void StartCurrentFlow();
-	bool AdvanceToNextFlow();
+	bool AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime = 0.f);
+	void ClearCurrentMontageTask();
+	void StopCurrentFlowMontage(float MontageBlendOutTime = 0.f);
+	void ClearPreparedMontage();
 	void RefreshEventBindings();
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
-	void HandleCurrentFlowRuntimeEvent(const FGameplayEventData& Payload);
+	void BindPreparedMontageDelegates(UAnimMontage* Montage);
+	void ClearMontageDelegates(UAnimMontage* Montage);
+	void HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+	void HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	/** RuntimeContext **/
 	UPROPERTY(Transient)
@@ -66,6 +76,12 @@ private:
 	UPROPERTY(Transient)
 	int32 CurrentFlowIndex = INDEX_NONE;
 
+	UPROPERTY(Transient)
+	EMASkillFlowStartMode CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
+
+	UPROPERTY(Transient)
+	int32 PreparedFlowIndex = INDEX_NONE;
+
 	/** Event Sources **/
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMASkillEventSource>> RuntimeEventSources;
@@ -76,6 +92,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> PreparedMontage;
 
 	UPROPERTY(Transient)
 	float DesiredMontagePlayRate = 1.f;

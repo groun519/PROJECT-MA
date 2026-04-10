@@ -19,9 +19,9 @@ namespace
 	}
 }
 
-void UMASkillFlowPart_AttackSequence::StartFlow(UMASkillAbility* SkillAbility)
+void UMASkillFlowPart_AttackSequence::StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode)
 {
-	Super::StartFlow(SkillAbility);
+	Super::StartFlow(SkillAbility, StartMode);
 
 	ClearReservedState();
 	ArmInputPress();
@@ -67,20 +67,16 @@ void UMASkillFlowPart_AttackSequence::HandleRuntimeEvent(const FGameplayEventDat
 	}
 }
 
-void UMASkillFlowPart_AttackSequence::HandleInputPressed(float TimeWaited)
+void UMASkillFlowPart_AttackSequence::HandleInputPressed(float /*TimeWaited*/)
 {
-	(void)TimeWaited;
-
 	InputLoopState.InputPressTask = nullptr;
 	CommitReservedNextSection();
 	StartHoldLoop();
 	ArmInputRelease();
 }
 
-void UMASkillFlowPart_AttackSequence::HandleInputReleased(float TimeHeld)
+void UMASkillFlowPart_AttackSequence::HandleInputReleased(float /*TimeHeld*/)
 {
-	(void)TimeHeld;
-
 	InputLoopState.InputReleaseTask = nullptr;
 	StopHoldLoop();
 	ArmInputPress();

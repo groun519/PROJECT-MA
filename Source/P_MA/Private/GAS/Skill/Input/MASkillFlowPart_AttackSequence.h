@@ -52,7 +52,7 @@ class P_MA_API UMASkillFlowPart_AttackSequence : public UMASkillFlowPart
 	GENERATED_BODY()
 
 public:
-	virtual void StartFlow(UMASkillAbility* SkillAbility) override;
+	virtual void StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode) override;
 	virtual void StopFlow() override;
 	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const override;
 	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) override;

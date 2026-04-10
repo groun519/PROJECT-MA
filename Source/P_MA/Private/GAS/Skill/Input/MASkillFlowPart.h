@@ -9,13 +9,20 @@ class UAnimMontage;
 class UMASkillAbility;
 struct FGameplayEventData;
 
+UENUM()
+enum class EMASkillFlowStartMode : uint8
+{
+	Fresh,
+	Prepared
+};
+
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillFlowPart : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	virtual void StartFlow(UMASkillAbility* SkillAbility)
+	virtual void StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode /*StartMode*/)
 	{
 		OwnerSkillAbility = SkillAbility;
 	}

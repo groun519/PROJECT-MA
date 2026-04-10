@@ -9,11 +9,9 @@
 #include "MASkillRuntimeContext.generated.h"
 
 class AActor;
-class UAbilitySystemComponent;
 class UGameplayEffect;
 class UMASkillAbility;
 class UMASkillAction;
-struct FGameplayAttribute;
 struct FGameplayEventData;
 
 USTRUCT()
@@ -48,6 +46,14 @@ struct FSkillRuntimeContext
 	FVector GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const;
 	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	void ApplyResolvedHitEffectsToHitResult(const FHitResult& HitResult, const FResolvedSkillHitEffects& ResolvedHitEffects, const FVector& CenterSourcePoint) const;
+	void AddPayload(const FGameplayTag& Tag);
+	bool HasPayload(const FGameplayTag& Tag) const;
+	void SetPayload(const FGameplayTag& Key, float Value);
+	bool TryGetPayload(const FGameplayTag& Key, float& OutValue) const;
+	void SetPayload(const FGameplayTag& Key, const FVector& Value);
+	bool TryGetPayload(const FGameplayTag& Key, FVector& OutValue) const;
+	void SetPayload(const FGameplayTag& Key, UObject* Value);
+	bool TryGetPayload(const FGameplayTag& Key, UObject*& OutValue) const;
 
 	void ClearIgnoredActors()
 	{
@@ -72,6 +78,7 @@ private:
 	int32 ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FGameplayEffectSpecHandle MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const;
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const;
+	void ClearPayload();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerAbility = nullptr;
@@ -81,6 +88,18 @@ private:
 
 	UPROPERTY(Transient)
 	TSet<TObjectPtr<AActor>> IgnoredActors;
+
+	UPROPERTY(Transient)
+	FGameplayTagContainer PayloadTags;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, float> PayloadScalars;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, FVector> PayloadVectors;
+
+	UPROPERTY(Transient)
+	TMap<FGameplayTag, TObjectPtr<UObject>> PayloadObjects;
 
 	// TODO: Future runtime modules should contribute into this shared damage config before actions resolve local damage settings.
 	UPROPERTY(Transient)
