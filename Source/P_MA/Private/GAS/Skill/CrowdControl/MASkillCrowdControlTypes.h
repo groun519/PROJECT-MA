@@ -11,6 +11,14 @@ enum class EMASkillCrowdControlSourceType : uint8
 	Center
 };
 
+UENUM()
+enum class EMASkillStatusEffectStrengthPolicy : uint8
+{
+	None,
+	LargerMagnitudeStronger,
+	SmallerMagnitudeStronger
+};
+
 USTRUCT(BlueprintType)
 struct P_MA_API FMASkillCrowdControlGrantedStateRule
 {
@@ -76,4 +84,10 @@ struct P_MA_API FResolvedCrowdControlEffect
 
 	UPROPERTY(Transient)
 	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+
+	UPROPERTY(Transient)
+	EMASkillStatusEffectStrengthPolicy StrengthPolicy = EMASkillStatusEffectStrengthPolicy::None;
+
+	UPROPERTY(Transient)
+	float StrengthMagnitude = 0.f;
 };

@@ -164,17 +164,22 @@ struct FMADamageExecutionConfig
 	float BaseDamage = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float FinalDamageMultiplier = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
 
 	void Append(const FMADamageExecutionConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
+		FinalDamageMultiplier *= Other.FinalDamageMultiplier;
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
 	}
 
 	bool HasValues() const
 	{
 		if (!FMath::IsNearlyZero(BaseDamage)) return true;
+		if (!FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)) return true;
 
 		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{

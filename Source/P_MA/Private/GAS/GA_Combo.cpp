@@ -16,7 +16,6 @@ UGA_Combo::UGA_Combo()
 {
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
-	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAimingTag());
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Debuff"));
 }
 

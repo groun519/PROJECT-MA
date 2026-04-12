@@ -11,8 +11,9 @@ const UGameplayEffect* GetDurationCrowdControlGameplayEffectTemplate()
 {
 	return GetDefault<UMAGameplayEffect_CrowdControlDuration>();
 }
+}
 
-FGameplayEffectSpecHandle MakeCrowdControlGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
+FGameplayEffectSpecHandle UMASkillCrowdControl::MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
 {
 	if (!EffectDefinition) return FGameplayEffectSpecHandle();
 
@@ -32,14 +33,13 @@ FGameplayEffectSpecHandle MakeCrowdControlGameplayEffectSpec(UMASkillAbility& Sk
 
 	return SpecHandle;
 }
-}
 
 bool UMASkillCrowdControl::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const
 {
 	FMASkillCrowdControlPolicy Policy;
 	if (!ResolvePolicy(Policy) || !Policy.IsValid()) return false;
 
-	FGameplayEffectSpecHandle SpecHandle = MakeCrowdControlGameplayEffectSpec(SkillAbility, GetDurationCrowdControlGameplayEffectTemplate(), 1.f);
+	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(SkillAbility, GetDurationCrowdControlGameplayEffectTemplate(), 1.f);
 	if (!SpecHandle.IsValid()) return false;
 
 	SpecHandle.Data->DynamicGrantedTags.AppendTags(Policy.GrantedStateTags);

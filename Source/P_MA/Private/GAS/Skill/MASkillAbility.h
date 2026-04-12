@@ -30,6 +30,7 @@ public:
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
+	void MultiplyFinalDamageMultiplier(float Multiplier) { RuntimeContext.MultiplyFinalDamageMultiplier(Multiplier); }
 	void SetRuntimePayload(const FGameplayTag& Key, float Value) { RuntimeContext.SetPayload(Key, Value); }
 	void SetRuntimePayload(const FGameplayTag& Key, const FVector& Value) { RuntimeContext.SetPayload(Key, Value); }
 	void SetRuntimePayload(const FGameplayTag& Key, UObject* Value) { RuntimeContext.SetPayload(Key, Value); }

@@ -1,22 +1,19 @@
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 
 #include "AbilitySystemComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Engine/World.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MAGameplayEffect_SkillDamage.h"
 #include "GameplayEffect.h"
-#include "GenericTeamAgentInterface.h"
+#include "AbilitySystemBlueprintLibrary.h"
 
 void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 {
 	OwnerAbility = InOwnerAbility;
-	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
 	ClearPayload();
 	ClearDamageConfig();
@@ -25,7 +22,6 @@ void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 void FSkillRuntimeContext::Reset()
 {
 	OwnerAbility = nullptr;
-	ResolvedDamageEffect = nullptr;
 	ClearIgnoredActors();
 	ClearPayload();
 	ClearDamageConfig();
@@ -34,12 +30,18 @@ void FSkillRuntimeContext::Reset()
 void FSkillRuntimeContext::ClearDamageConfig()
 {
 	AccumulatedDamageConfig = FMASkillDamageConfig();
+	AccumulatedFinalDamageMultiplier = 1.f;
 	AccumulatedTargetRelationModifiers.Reset();
 }
 
 void FSkillRuntimeContext::AddDamageConfig(const FMASkillDamageConfig& DamageConfig)
 {
 	AccumulatedDamageConfig.Append(DamageConfig);
+}
+
+void FSkillRuntimeContext::MultiplyFinalDamageMultiplier(float Multiplier)
+{
+	AccumulatedFinalDamageMultiplier *= Multiplier;
 }
 
 void FSkillRuntimeContext::AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier)
@@ -131,11 +133,10 @@ FResolvedSkillHitEffects FSkillRuntimeContext::BuildResolvedHitEffects(const FMA
 
 FGameplayEffectSpecHandle FSkillRuntimeContext::MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const
 {
-	const TSubclassOf<UGameplayEffect> DamageEffect = ResolvedDamageEffect;
-	if (!OwnerAbility || !DamageEffect) return FGameplayEffectSpecHandle();
+	if (!OwnerAbility) return FGameplayEffectSpecHandle();
 	const FMADamageExecutionConfig ExecutionConfig = ResolvedDamageConfig.ToExecutionConfig();
 	FGameplayEffectSpecHandle SpecHandle = OwnerAbility->MakeDamageEffectSpec(
-		DamageEffect,
+		UMAGameplayEffect_SkillDamage::StaticClass(),
 		1,
 		ExecutionConfig.HasValues() ? &ExecutionConfig : nullptr);
 
@@ -167,6 +168,7 @@ void FSkillRuntimeContext::ApplyResolvedHitEffectsToHitResult(const FHitResult& 
 	for (const FResolvedCrowdControlEffect& CrowdControlEffect : ResolvedHitEffects.CrowdControlEffects)
 	{
 		if (!CrowdControlEffect.SpecHandle.IsValid()) continue;
+		if (!ShouldApplyResolvedCrowdControlEffect(HitResult.GetActor(), CrowdControlEffect)) continue;
 
 		FGameplayEffectSpecHandle CrowdControlSpecHandle = CrowdControlEffect.SpecHandle;
 		UMAAbilitySystemStatics::SetReactionSourcePoint(
@@ -176,11 +178,78 @@ void FSkillRuntimeContext::ApplyResolvedHitEffectsToHitResult(const FHitResult& 
 	}
 }
 
+bool FSkillRuntimeContext::ShouldApplyResolvedCrowdControlEffect(
+	AActor* TargetActor,
+	const FResolvedCrowdControlEffect& CrowdControlEffect) const
+{
+	if (CrowdControlEffect.StrengthPolicy == EMASkillStatusEffectStrengthPolicy::None) return true;
+	if (!TargetActor || !CrowdControlEffect.SpecHandle.IsValid() || !CrowdControlEffect.SpecHandle.Data.IsValid()) return true;
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+	if (!TargetASC) return true;
+
+	const UGameplayEffect* EffectDefinition = CrowdControlEffect.SpecHandle.Data->Def.Get();
+	if (!EffectDefinition) return true;
+
+	const UClass* EffectDefinitionClass = EffectDefinition->GetClass();
+	FGameplayEffectQuery Query(FActiveGameplayEffectQueryCustomMatch::CreateLambda(
+		[EffectDefinitionClass](const FActiveGameplayEffect& ActiveEffect)
+		{
+			const UGameplayEffect* ActiveDefinition = ActiveEffect.Spec.Def.Get();
+			return ActiveDefinition && ActiveDefinition->GetClass() == EffectDefinitionClass;
+		}));
+
+	const TArray<FActiveGameplayEffectHandle> ActiveEffects = TargetASC->GetActiveEffects(Query);
+	if (ActiveEffects.Num() == 0) return true;
+
+	bool bApplyIncomingEffect = true;
+	for (const FActiveGameplayEffectHandle ActiveEffectHandle : ActiveEffects)
+	{
+		const FActiveGameplayEffect* ActiveEffect = TargetASC->GetActiveGameplayEffect(ActiveEffectHandle);
+		if (!ActiveEffect) continue;
+
+		const float ExistingStrengthMagnitude = ActiveEffect->Spec.GetSetByCallerMagnitude(
+			FGameplayTag::RequestGameplayTag(TEXT("Data.StatusEffect.StrengthMagnitude")),
+			false,
+			CrowdControlEffect.StrengthMagnitude);
+
+		switch (CrowdControlEffect.StrengthPolicy)
+		{
+		case EMASkillStatusEffectStrengthPolicy::LargerMagnitudeStronger:
+			if (ExistingStrengthMagnitude > CrowdControlEffect.StrengthMagnitude
+				&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, CrowdControlEffect.StrengthMagnitude))
+			{
+				bApplyIncomingEffect = false;
+			}
+			break;
+		case EMASkillStatusEffectStrengthPolicy::SmallerMagnitudeStronger:
+			if (ExistingStrengthMagnitude < CrowdControlEffect.StrengthMagnitude
+				&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, CrowdControlEffect.StrengthMagnitude))
+			{
+				bApplyIncomingEffect = false;
+			}
+			break;
+		default:
+			break;
+		}
+
+		if (!bApplyIncomingEffect) return false;
+	}
+
+	for (const FActiveGameplayEffectHandle ActiveEffectHandle : ActiveEffects)
+	{
+		TargetASC->RemoveActiveGameplayEffect(ActiveEffectHandle);
+	}
+
+	return true;
+}
+
 FMASkillDamageConfig FSkillRuntimeContext::BuildMergedDamageConfig(const FMASkillDamageConfig* DamageConfig) const
 {
 	// TODO: Merge future runtime module damage contributions here before action-local config is appended.
 	FMASkillDamageConfig Result = DamageConfig ? *DamageConfig : FMASkillDamageConfig();
 	Result.Append(AccumulatedDamageConfig);
+	Result.FinalDamageMultiplier *= AccumulatedFinalDamageMultiplier;
 	return Result;
 }
 
@@ -275,8 +344,6 @@ void FSkillRuntimeContext::ClearPayload()
 
 void FSkillRuntimeContext::RefreshStateFromEvent(const FGameplayEventData& Payload)
 {
-	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
-	ResolvedDamageEffect = SkillDefinition ? SkillDefinition->GetDefaultDamageEffect() : nullptr;
-
+	(void)Payload;
 	// TODO: Apply additional definition-derived state refresh here before module contributions are merged.
 }

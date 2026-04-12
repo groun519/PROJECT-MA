@@ -50,7 +50,6 @@ public:
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void RefreshMaxWalkSpeed();
 	void StopMovementForBlock();

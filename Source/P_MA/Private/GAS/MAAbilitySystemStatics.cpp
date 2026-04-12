@@ -52,11 +52,6 @@ FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
 	return FGameplayTag::RequestGameplayTag("State.Rushing");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Aiming");
-}
-
 FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.MoveBlocked");
@@ -147,6 +142,11 @@ FGameplayTag UMAAbilitySystemStatics::GetDamageBaseTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.Base");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetFinalDamageMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.FinalModifier");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
 {
 	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
@@ -174,6 +174,10 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 
 	TMap<FGameplayTag, float> SummedMagnitudes;
 	SummedMagnitudes.FindOrAdd(GetDamageBaseTag()) += DamageConfig.BaseDamage;
+	if (!FMath::IsNearlyEqual(DamageConfig.FinalDamageMultiplier, 1.f))
+	{
+		SummedMagnitudes.Add(GetFinalDamageMultiplierTag(), DamageConfig.FinalDamageMultiplier);
+	}
 
 	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{

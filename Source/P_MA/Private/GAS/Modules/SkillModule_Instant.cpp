@@ -38,7 +38,6 @@ void USkillModule_Instant::OnAbilityActivated()
 	{
 		if (UAnimInstance* AnimInst = OwnerSkill->GetOwnerAnimInstance())
 		{
-			AnimInst->Montage_SetNextSection(FName("Aiming"), FName("Aiming"),SkillData.SkillMontage);
 		}
 		StartWaitDamageEventTask(MontageSpawnProjectileTag);
 		StartWaitTargetDataTask();
@@ -173,7 +172,6 @@ void USkillModule_Instant::OnTargetDataConfirmed(const FGameplayAbilityTargetDat
 		const FSkillData& SkillData = OwnerSkill->GetSkillData();
 		UAnimMontage* Montage = SkillData.SkillMontage;
 
-		OwnerSkill->GetOwnerAnimInstance()->Montage_SetNextSection(FName("Aiming"),FName("Cast"), Montage);
 		OwnerSkill->Montage_SetSection(FName("Cast"));
 
 		if (Montage)

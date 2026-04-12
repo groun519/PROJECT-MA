@@ -6,6 +6,7 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl_State.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl_Impulse.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl_Airborne.h"
+#include "GAS/Skill/CrowdControl/MASkillStatusEffect_Attribute.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GenericTeamAgentInterface.h"
 #include "MASkillDamageConfig.generated.h"
@@ -65,6 +66,9 @@ struct P_MA_API FMASkillDamageConfig
 	float BaseDamage = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float FinalDamageMultiplier = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
 
 	UPROPERTY(EditDefaultsOnly, Category="Targeting", meta=(Bitmask, BitmaskEnum="/Script/P_MA.EMATargetRelation"))
@@ -76,6 +80,7 @@ struct P_MA_API FMASkillDamageConfig
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
+		FinalDamageMultiplier *= Other.FinalDamageMultiplier;
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
 		CrowdControls.Append(Other.CrowdControls);
 	}
@@ -83,6 +88,7 @@ struct P_MA_API FMASkillDamageConfig
 	bool HasValues() const
 	{
 		if (!FMath::IsNearlyZero(BaseDamage)) return true;
+		if (!FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)) return true;
 
 		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{
@@ -96,6 +102,7 @@ struct P_MA_API FMASkillDamageConfig
 	{
 		FMADamageExecutionConfig Result;
 		Result.BaseDamage = BaseDamage;
+		Result.FinalDamageMultiplier = FinalDamageMultiplier;
 		Result.AttributeCoefficients = AttributeCoefficients;
 		return Result;
 	}

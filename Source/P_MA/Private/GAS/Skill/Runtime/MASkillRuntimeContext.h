@@ -9,7 +9,6 @@
 #include "MASkillRuntimeContext.generated.h"
 
 class AActor;
-class UGameplayEffect;
 class UMASkillAbility;
 class UMASkillAction;
 struct FGameplayEventData;
@@ -38,6 +37,7 @@ struct FSkillRuntimeContext
 	void Reset();
 	void ClearDamageConfig();
 	void AddDamageConfig(const FMASkillDamageConfig& DamageConfig);
+	void MultiplyFinalDamageMultiplier(float Multiplier);
 	void AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier);
 	TSet<FGameplayTag> ResolveRequiredEventTags() const;
 	void ResolveActionsForEvent(const FGameplayEventData& Payload, TArray<UMASkillAction*>& OutActions) const;
@@ -78,13 +78,13 @@ private:
 	int32 ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig = nullptr) const;
 	FGameplayEffectSpecHandle MakeDamageSpec(const FMASkillDamageConfig& ResolvedDamageConfig) const;
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType, const FVector& CenterSourcePoint) const;
+	bool ShouldApplyResolvedCrowdControlEffect(
+		AActor* TargetActor,
+		const FResolvedCrowdControlEffect& CrowdControlEffect) const;
 	void ClearPayload();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerAbility = nullptr;
-
-	UPROPERTY(Transient)
-	TSubclassOf<UGameplayEffect> ResolvedDamageEffect = nullptr;
 
 	UPROPERTY(Transient)
 	TSet<TObjectPtr<AActor>> IgnoredActors;
@@ -104,6 +104,9 @@ private:
 	// TODO: Future runtime modules should contribute into this shared damage config before actions resolve local damage settings.
 	UPROPERTY(Transient)
 	FMASkillDamageConfig AccumulatedDamageConfig;
+
+	UPROPERTY(Transient)
+	float AccumulatedFinalDamageMultiplier = 1.f;
 
 	// TODO: Future runtime modules can push ordered target relation modifiers here after the action-local base mask is resolved.
 	UPROPERTY(Transient)

@@ -39,7 +39,6 @@ public:
 	
 	static FGameplayTag GetRotationLockTag();
 	static FGameplayTag GetRushingTag();
-	static FGameplayTag GetAimingTag();
 	static FGameplayTag GetMoveBlockTag();
 	static FGameplayTag GetAbilityBlockTag();
 	static FGameplayTag GetReactionSourceXTag();
@@ -63,6 +62,7 @@ public:
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
 	static FGameplayTag GetDamageBaseTag();
+	static FGameplayTag GetFinalDamageMultiplierTag();
 	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);
 	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);
 	static void SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint);

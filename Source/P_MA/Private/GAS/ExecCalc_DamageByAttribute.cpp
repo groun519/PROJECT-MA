@@ -118,6 +118,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	const float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag, false, 1.f);
 	const float UtilityBonus = Spec.GetSetByCallerMagnitude(UtilityModifierTag, false, 1.f);
 	const float ElementBonus = Spec.GetSetByCallerMagnitude(ElementalModifierTag, false, 1.f);
+	const float FinalDamageMultiplier = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(), false, 1.f);
 
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);
 	const float MinMultiplier = 1.f - DamageVariance;
@@ -136,7 +137,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	}
 
 	const float DamageAfterArmor = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
-	const float FinalDamage = FMath::RoundToFloat(DamageAfterArmor * UtilityBonus * ElementBonus * BehaviorBonus);
+	const float FinalDamage = FMath::RoundToFloat(DamageAfterArmor * UtilityBonus * ElementBonus * BehaviorBonus * FinalDamageMultiplier);
 	if (FinalDamage <= 0.f) return;
 
 	OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(

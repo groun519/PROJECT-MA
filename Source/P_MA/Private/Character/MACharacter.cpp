@@ -134,7 +134,6 @@ void AMACharacter::BindGASChangeDelegates()
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
@@ -150,12 +149,6 @@ void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	{
 		Respawn();
 	}
-}
-
-void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
@@ -174,6 +167,7 @@ void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
 {
+	(void)Data;
 	RefreshMaxWalkSpeed();
 }
 
@@ -202,19 +196,18 @@ void AMACharacter::RefreshMaxWalkSpeed()
 	if (!MoveComp || !MAAttributeSet || !MAAbilitySystemComponent) return;
 
 	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
+	const float MovementResponsiveness = 10.f;
 	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag()))
 	{
 		MoveComp->MaxWalkSpeed = 0.f;
-		return;
-	}
-
-	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetAimingTag()))
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed * 0.2f;
+		MoveComp->MaxAcceleration = 0.f;
+		MoveComp->BrakingDecelerationWalking = 0.f;
 		return;
 	}
 
 	MoveComp->MaxWalkSpeed = MoveSpeed;
+	MoveComp->MaxAcceleration = MoveSpeed * MovementResponsiveness;
+	MoveComp->BrakingDecelerationWalking = MoveSpeed * MovementResponsiveness;
 }
 
 void AMACharacter::StopMovementForBlock()
@@ -237,7 +230,7 @@ void AMACharacter::PlayDeathAnimation()
 {
 	if (DeathMontage)
 	{
-		float MontageDuration = PlayAnimMontage(DeathMontage);
+		PlayAnimMontage(DeathMontage);
 	}
 }
 

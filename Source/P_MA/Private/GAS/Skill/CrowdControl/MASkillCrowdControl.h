@@ -6,6 +6,7 @@
 #include "MASkillCrowdControl.generated.h"
 
 class UMASkillAbility;
+class UGameplayEffect;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillCrowdControl : public UObject
@@ -13,7 +14,7 @@ class P_MA_API UMASkillCrowdControl : public UObject
 	GENERATED_BODY()
 
 public:
-	bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const;
+	virtual bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const;
 
 protected:
 	virtual bool ResolvePolicy(FMASkillCrowdControlPolicy& OutPolicy) const
@@ -22,5 +23,6 @@ protected:
 	virtual FMASkillCrowdControlGrantedStateRule GetGrantedStateRule() const { return FMASkillCrowdControlGrantedStateRule(); }
 	virtual void ApplyCustomPayload(FGameplayEffectSpecHandle& SpecHandle) const {}
 
+	static FGameplayEffectSpecHandle MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level);
 	static void AppendGrantedStateTags(const FMASkillCrowdControlGrantedStateRule& Rule, FGameplayTagContainer& GrantedTags);
 };
