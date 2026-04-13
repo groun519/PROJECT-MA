@@ -21,9 +21,6 @@ struct FMASkillActionConfig_SpawnProjectile
 	FName SpawnSocketName = TEXT("WeaponHandSocket");
 
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
-	float ExplodeRadius = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	bool bIsPenetrating = false;
 };
 

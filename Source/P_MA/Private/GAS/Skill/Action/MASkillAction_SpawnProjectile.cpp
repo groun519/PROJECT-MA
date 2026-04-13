@@ -4,6 +4,7 @@
 #include "Engine/World.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameFramework/Pawn.h"
 
@@ -40,10 +41,24 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, FSki
 	if (!Projectile) return;
 
 	const FResolvedSkillHitEffects ResolvedHitEffects = RuntimeContext.BuildResolvedHitEffects(&DamageConfig);
-	Projectile->InitializeProjectile(
-		ResolvedHitEffects.DamageSpec,
-		Config.ExplodeRadius,
-		Config.bIsPenetrating,
-		ResolvedHitEffects.CrowdControlEffects,
-		ResolvedHitEffects.TargetRelationMask);
+	FMAProjectileParams ProjectileParams;
+	ProjectileParams.DamageSpecHandle = ResolvedHitEffects.DamageSpec;
+	ProjectileParams.CrowdControlEffects = ResolvedHitEffects.CrowdControlEffects;
+	ProjectileParams.TargetRelationMask = ResolvedHitEffects.TargetRelationMask;
+	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
+	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();
+
+	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable())
+	{
+		TArray<FMAElementDataRow*> ElementRows;
+		ElementalDataTable->GetAllRows(TEXT("SkillProjectileElementalLookup"), ElementRows);
+		for (const FMAElementDataRow* ElementRow : ElementRows)
+		{
+			if (!ElementRow || ElementRow->ElementTag != ProjectileParams.ElementalSettings.ElementalTag) continue;
+			ProjectileParams.ElementalSettings.ElementalColor = ElementRow->ElementColor;
+			break;
+		}
+	}
+
+	Projectile->InitializeProjectile(ProjectileParams);
 }

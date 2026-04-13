@@ -10,6 +10,7 @@
 class UAbilityTask_WaitGameplayEvent;
 class UAbilityTask_PlayMontageAndWait;
 class UAnimMontage;
+class UDataTable;
 class UMASkillDefinition;
 class UMASkillEventSource;
 
@@ -27,6 +28,8 @@ public:
 	void HandleSkillTagEvent(const FGameplayTag& EventTag);
 
 	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
+	const FGameplayTag& GetElementalTag() const;
+	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
@@ -42,6 +45,11 @@ protected:
 	/** Definition DataAsset **/
 	UPROPERTY(EditDefaultsOnly, Category="Definition")
 	TObjectPtr<UMASkillDefinition> SkillDefinition;
+
+	// TODO: Move this kind of shared lookup data into a common subsystem once the
+	// skill runtime starts depending on more global registries than elemental data.
+	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
+	TObjectPtr<UDataTable> ElementalDataTable;
 
 	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
 	FGameplayTagContainer CancelTriggerTags;

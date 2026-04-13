@@ -362,182 +362,27 @@ void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, f
 
 void UMAGameplayAbility_Skill::SpawnProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
-	if (!HasAuthority(&CurrentActivationInfo))
-		return;
-	
-	const FSkillData& SkillData = GetSkillData();
-	const FActionConfig_Projectile* ProjectileConfig = SkillData.ActionData.GetPtr<FActionConfig_Projectile>();
-	if (!ProjectileConfig || !ProjectileConfig->SkinData)
-		return;
-
-	AActor* AvatarActor = GetAvatarActorFromActorInfo();
-	if (!AvatarActor)
-		return;
-
-	FProjectileSkinInfo FinalSkin = ProjectileConfig->SkinData->GetSkinForTag(CachedElementalData.ElementalTag);
-	TSubclassOf<AMAProjectile> ClassToSpawn = ProjectileConfig->SkinData->ProjectileClass;
-	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
-	FGameplayTag CueTag = FinalSkin.HitCueTag;
-
-	if (!ClassToSpawn)
-		return;
-	
-	FVector AvatarLoc = AvatarActor->GetActorLocation();
-	FRotator AvatarRotator = AvatarActor->GetActorRotation();
-	int32 Num = FMath::Max(1, ProjectileConfig->NumOfProjectiles);
-
-	float FinalDamageMultiplier = DamageMultiplier * ProjectileConfig->DamageMultiplierPerProjectile;
-
-	for (int32 i=0 ; i<Num ; i++)
-	{
-		float CurrentAngle = 0.f;
-		if (Num >1)
-		{
-			if (ProjectileConfig->bIsRadial)
-			{
-				float Step = 360.f / Num;
-				CurrentAngle = i*Step;
-			}
-			else
-			{
-				float HalfAngle = ProjectileConfig ->SpreadAngle /2.f;
-				float Step = ProjectileConfig -> SpreadAngle / (Num -1);
-				CurrentAngle = -HalfAngle + (i*Step);
-			}
-		}
-
-		FRotator SpawnRot = AvatarRotator + FRotator(0.f, CurrentAngle, 0.f);
-		FVector SpawnDirection = SpawnRot.Vector();
-		FVector SpawnLoc = AvatarLoc + (SpawnDirection * ProjectileConfig->SpawnDistanceFromCharacter);
-
-		
-		AActor* SpawnedActor = SpawnProjectileActor(ClassToSpawn,SpawnLoc, SpawnRot, FinalDamageMultiplier, ProjectileConfig->ExplodeRadius, ProjectileConfig->bIsPenetrating);
-		if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
-		{
-			if (VFX)
-			{
-				Proj->SetProjectileVFX(VFX);
-			}
-			Proj->SetGameplayCueTag(CueTag);
-		}
-	}
+	(void)Payload;
+	(void)DamageMultiplier;
+	// Legacy projectile path disabled during projectile init-param migration.
 }
 
 void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payload, float DamageMultiplier)
 {
-	if (!HasAuthority(&CurrentActivationInfo))
-		return;
-	
-	const FSkillData& SkillData = GetSkillData();
-	const FActionConfig_Targeting* TargetConfig = SkillData.ActionData.GetPtr<FActionConfig_Targeting>();
-
-	if (!TargetConfig || !TargetConfig->SkinData)
-		return;
-
-	FGameplayTag CurrentElement = CachedElementalData.ElementalTag;
-	FProjectileSkinInfo FinalSkin = TargetConfig->SkinData->GetSkinForTag(CurrentElement);
-
-	TSubclassOf<AMAProjectile> ClassToSpawn = TargetConfig->SkinData->ProjectileClass;
-	UNiagaraSystem* VFX = FinalSkin.ProjectileVFX;
-	FGameplayTag CueTag = FinalSkin.HitCueTag;
-
-	if (!ClassToSpawn)
-		return;
-
-	FVector TargetLoc = FVector::ZeroVector;
-	float FinalExplodeRadius = TargetConfig->ExplodeRadius;
-
-	const FGameplayAbilityTargetData* ValidData = nullptr;
-	const FHitResult* ValidHit = nullptr;
-	
-	if (Payload.TargetData.Num() > 0)
-	{
-		for (int32 i=0; i<Payload.TargetData.Num() ; ++i)
-		{
-			const FGameplayAbilityTargetData* Data = Payload.TargetData.Get(i);
-			if (Data)
-			{
-				const FHitResult* Hit = Data->GetHitResult();
-				if (Hit)
-				{
-					ValidData = Data;
-					ValidHit = Hit;
-					break;
-				}
-			}
-		}
-	}
-	if (ValidData)
-	{
-		if (ValidHit)
-		{
-			TargetLoc = ValidHit->ImpactPoint;
-			if (ValidHit->Distance > 0.f)
-			{
-				FinalExplodeRadius = ValidHit->Distance;
-			}
-		}
-		else
-		{
-			TargetLoc = ValidData->GetEndPoint();
-		}
-	}
-	else
-	{
-		if (AActor* Avatar = GetAvatarActorFromActorInfo())
-		{
-			TargetLoc = Avatar->GetActorLocation() + (Avatar->GetActorForwardVector()*300.f);
-		}
-	}
-
-	int32 Num = FMath::Max(1, TargetConfig->NumOfProjectiles);
-	float FinalDamageMultiplier = DamageMultiplier * TargetConfig->DamageMultiplierPerProjectile;
-
-	for (int32 i=0 ; i<Num ; i++)
-	{
-		FVector SpawnLoc = TargetLoc + FVector(0,0,TargetConfig->SpawnHeight);
-		FRotator SpawnRot = FRotator(-90.f, 0.f, 0.f);
-
-		if (Num > 1 && TargetConfig->ExplodeRadius > 0.f)
-		{
-			FVector2D RandPoint = FMath::RandPointInCircle(TargetConfig->ExplodeRadius);
-			SpawnLoc += FVector(RandPoint.X, RandPoint.Y, 0.f);
-		}
-		if (K2_HasAuthority())
-		{
-			AActor* SpawnedActor =SpawnProjectileActor(ClassToSpawn, SpawnLoc, SpawnRot, FinalDamageMultiplier,FinalExplodeRadius);
-			if (AMAProjectile* Proj = Cast<AMAProjectile>(SpawnedActor))
-			{
-				if (VFX)
-				{
-					Proj->SetProjectileVFX(VFX);
-				}
-				Proj->SetGameplayCueTag(CueTag);
-			}
-		}
-	}
+	(void)Payload;
+	(void)DamageMultiplier;
+	// Legacy targeting-projectile path disabled during projectile init-param migration.
 }
 
-AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot,float DamageMultiplier, float ExplodeRadius, bool bIsPenetrating)
+AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier, bool bIsPenetrating)
 {
-	if (!Class)
-		return nullptr;
-	
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = GetAvatarActorFromActorInfo();
-	SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(Class, Loc, Rot, SpawnParams);
-	if (AMAProjectile* Projectile = Cast<AMAProjectile>(SpawnedActor))
-	{
-		FGameplayEffectSpecHandle SpecHandle = MakeSkillDamageSpec(DamageMultiplier);
-		if (SpecHandle.IsValid())
-		{
-			Projectile->InitializeProjectile(SpecHandle, ExplodeRadius, bIsPenetrating);
-		}
-	}
-	return SpawnedActor;
+	(void)Class;
+	(void)Loc;
+	(void)Rot;
+	(void)DamageMultiplier;
+	(void)bIsPenetrating;
+	// Legacy projectile spawn path disabled during projectile init-param migration.
+	return nullptr;
 }
 
 

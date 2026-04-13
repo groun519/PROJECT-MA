@@ -105,6 +105,12 @@ void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 	}
 }
 
+const FGameplayTag& UMASkillAbility::GetElementalTag() const
+{
+	static const FGameplayTag EmptyTag;
+	return SkillDefinition ? SkillDefinition->GetElementalTag() : EmptyTag;
+}
+
 UMASkillFlowPart* UMASkillAbility::GetCurrentRuntimeFlowPart() const
 {
 	return RuntimeFlowParts.IsValidIndex(CurrentFlowIndex) ? RuntimeFlowParts[CurrentFlowIndex] : nullptr;

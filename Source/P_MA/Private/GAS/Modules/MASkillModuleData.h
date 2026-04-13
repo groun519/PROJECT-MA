@@ -271,9 +271,6 @@ public:
 	/**투사체별 데미지 조정량*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplierPerProjectile = 1.f;
-	/**투사체 폭발 범위*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ExplodeRadius = 200.f;
 
 	/**투사체가 적을 통과 할 수 있는지*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

@@ -6,7 +6,6 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GameplayEffectTypes.h"
-#include "GenericTeamAgentInterface.h"
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
@@ -17,14 +16,63 @@ class USphereComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
 
+USTRUCT()
+struct P_MA_API FMAProjectileTargetingSettings
+{
+	GENERATED_BODY()
+
+	bool bHitOnlyDamageTarget = false;
+	TWeakObjectPtr<AActor> DamageTarget;
+};
+
+USTRUCT()
+struct P_MA_API FMAProjectilePenetratingSettings
+{
+	GENERATED_BODY()
+
+	bool bIsPenetrating = false;
+	int32 PenetratingCount = 0;
+};
+
+USTRUCT()
+struct P_MA_API FMAProjectileElementalSettings
+{
+	GENERATED_BODY()
+
+	FGameplayTag ElementalTag = FGameplayTag();
+	FLinearColor ElementalColor = FLinearColor::White;
+};
+
+USTRUCT()
+struct P_MA_API FMAProjectileParams
+{
+	GENERATED_BODY()
+
+	FGameplayEffectSpecHandle DamageSpecHandle;
+	TArray<FResolvedCrowdControlEffect> CrowdControlEffects;
+	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
+	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
+
+	/** Settings **/
+	FMAProjectileTargetingSettings TargetingSettings;
+	FMAProjectilePenetratingSettings PenetratingSettings;
+	FMAProjectileElementalSettings ElementalSettings;
+};
+
 UCLASS()
 class AMAProjectile : public AActor
 {
 	GENERATED_BODY()
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+	UFUNCTION()
+	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 public:	
 	AMAProjectile();
-	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<USphereComponent> SphereComp;
@@ -33,66 +81,30 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UNiagaraComponent> Niagara;
 
-	void SetGameplayCueTag(FGameplayTag Tag);
-	void SetProjectileVFX(UNiagaraSystem* NewVFX);
-
 	UPROPERTY()
 	FOnProjectileHitSignature OnProjectileHit;
-	
 
-	/** Targeting Logics **/
-	void SetDamageTarget(AActor* InTarget);
-	void SetHitOnlyDamageTargetEnabled(bool bInEnabled);
-	/**/
-
-protected:
-	virtual void BeginPlay() override;
-	
-	UFUNCTION()
-	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	
-	UFUNCTION()
-	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	FGameplayEffectSpecHandle DamageEffectSpecHandle;
-	TArray<FResolvedCrowdControlEffect> AdditionalCrowdControlEffects;
-
+	void InitializeProjectile(const FMAProjectileParams& InProjectileParams);
 	void SendLocalGameplayCue(const FHitResult& HitResult);
 
-	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVFX)
-	TObjectPtr<UNiagaraSystem> Rep_ProjectileVFX;
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
+	FLinearColor Rep_ElementalColor = FLinearColor::White;
 
 	UFUNCTION()
-	void OnRep_ProjectileVFX();
-public:	
-	virtual void InitializeProjectile(const FGameplayEffectSpecHandle& InSpecHandle, float InExplodeRadius, bool bInPenetrate = false, const TArray<FResolvedCrowdControlEffect>& InAdditionalCrowdControlEffects = {}, int32 InTargetRelationMask = MATargetRelation::GetDefaultMask());
-
+	void OnRep_ProjectileVisuals();
 
 private:
+	FMAProjectileParams ProjectileParams;
+
 	void ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC);
+	void ApplyProjectileVisuals();
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const;
 	bool CanDamageActor(AActor* OtherActor) const;
 	void CheckAndHandleNearTargetDestroy();
-
-	UPROPERTY()
-	float ExplodeRadius;
-
-	bool bIsPenetrating = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="Cue Tag", meta=(Categories="GameplayCue"))
 	FGameplayTag HitGameplayCueTag;
 
 	UPROPERTY()
 	TArray<AActor*> HitActors;
-
-	/** Targeting **/
-	UPROPERTY()
-	TWeakObjectPtr<AActor> DamageTarget;
-	UPROPERTY()
-	bool bHitOnlyDamageTarget = false;
-
-	UPROPERTY()
-	int32 DamageTargetRelationMask = MATargetRelation::GetDefaultMask();
 };
