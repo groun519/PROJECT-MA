@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAAbilitySystemComponent.h"
+
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffectExtension.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -46,8 +44,7 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
 	}
 
-	if (!AbilitySystemGenerics)
-		return;
+	if (!AbilitySystemGenerics) return;
 
 	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
 	{
@@ -57,14 +54,8 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 
 void UMAAbilitySystemComponent::ApplyFullStatEffect()
 {
-	if (!AbilitySystemGenerics)
-		return;
+	if (!AbilitySystemGenerics) return;
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
-}
-
-const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& UMAAbilitySystemComponent::GetAbilities() const
-{
-	return Abilities;
 }
 
 void UMAAbilitySystemComponent::AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level)

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -51,13 +49,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Camera")
 	void Initialize(USpringArmComponent* InCameraBoom, UCameraComponent* InCamera);
-
-	UFUNCTION(BlueprintCallable, Category="Camera|Ready")
-	void CacheReadySettingsFromCurrent();
-
-	UFUNCTION(BlueprintCallable, Category="Camera|Ready")
-	void CacheNotReadySettingsFromCurrent();
-
+	
 	UFUNCTION(BlueprintCallable, Category="Camera|Ready")
 	void ApplyReadySettings();
 

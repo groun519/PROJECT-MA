@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -32,9 +30,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Cursor")
 	ECursorTargetRelation GetCursorTargetRelation() const { return CursorTargetRelation; }
-
-	UPROPERTY(BlueprintAssignable, Category = "Cursor")
-	FOnCursorTargetRelationChanged OnCursorTargetRelationChanged;
 
 private:
 	struct FHighlightedPrimitiveState

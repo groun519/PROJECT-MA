@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/Ability/GA_BasicAttack_Melee.h"
 
 #include "GameplayTagsManager.h"

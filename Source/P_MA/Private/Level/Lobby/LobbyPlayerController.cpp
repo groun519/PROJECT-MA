@@ -1,9 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "LobbyPlayerController.h"
+
 #include "LobbyGameState.h"
 #include "LobbyAvatarSlot.h"
-#include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -11,7 +9,6 @@
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWidget.h"
-#include "Widget/System/SystemMenuWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,7 +17,6 @@
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/MAPlayerState.h"
-#include "Level/Lobby/LobbyAvatarSlot.h"
 
 void ALobbyPlayerController::BeginPlay()
 {
@@ -256,20 +252,14 @@ void ALobbyPlayerController::SetPendingMount(FName MountId)
 
 void ALobbyPlayerController::ApplyPendingWeaponPreview()
 {
-	if (PendingLoadout.WeaponId.IsNone())
-	{
-		return;
-	}
+	if (PendingLoadout.WeaponId.IsNone()) return;
 
 	const FName WeaponId = PendingLoadout.WeaponId;
 
 	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
 	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
 	const UDataTable* WeaponDataTable = LoadoutDataSet ? LoadoutDataSet->WeaponDataTable : nullptr;
-	if (!WeaponDataTable)
-	{
-		return;
-	}
+	if (!WeaponDataTable) return;
 
 	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("ApplyPendingWeaponPreview"));
 	if (!Row)
@@ -296,10 +286,7 @@ void ALobbyPlayerController::ApplyPendingMountPreview()
 
 void ALobbyPlayerController::EnsurePendingLoadoutInitialized()
 {
-	if (bHasPendingLoadout)
-	{
-		return;
-	}
+	if (bHasPendingLoadout) return;
 
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
@@ -311,10 +298,7 @@ void ALobbyPlayerController::EnsurePendingLoadoutInitialized()
 void ALobbyPlayerController::ApplyPendingWeaponPreviewDelayed(float DelaySeconds)
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	if (!World) return;
 
 	World->GetTimerManager().ClearTimer(WeaponPreviewTimerHandle);
 	World->GetTimerManager().SetTimer(
@@ -381,13 +365,9 @@ void ALobbyPlayerController::HandleLoadoutClicked()
 	if (!IsLocalController()) return;
 
 	if (bInLoadoutView)
-	{
 		ExitLoadoutView();
-	}
 	else
-	{
 		EnterLoadoutView();
-	}
 }
 
 void ALobbyPlayerController::UpdateLobbyUI()
@@ -480,7 +460,6 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 	}
 
 	UpdateCameraTarget();
-
 	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
 }
 

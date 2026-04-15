@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Player/Cursor/MACursorSubsystem.h"
 
 #include "Blueprint/UserWidget.h"
@@ -128,7 +126,6 @@ void UMACursorSubsystem::RefreshCursorTargetRelation()
 
 	CursorTargetRelation = NewRelation;
 	ApplyCursorRelationColor(CursorTargetRelation);
-	OnCursorTargetRelationChanged.Broadcast(CursorTargetRelation);
 }
 
 UMACursorSubsystem::FHoveredCursorTarget UMACursorSubsystem::ResolveHoveredTarget() const
@@ -187,14 +184,13 @@ ECursorTargetRelation UMACursorSubsystem::ResolveCursorTargetRelation(AActor* Hi
 void UMACursorSubsystem::UpdateHoveredActorHighlight(const FHoveredCursorTarget& HoveredTarget, ECursorTargetRelation InRelation)
 {
 	if (HighlightedActor.Get() == HoveredTarget.Actor.Get() && HighlightedActorRelation == InRelation)
-	{
 		return;
-	}
 
 	ClearHoveredActorHighlight();
-	if (!HoveredTarget.Actor.IsValid() || InRelation == ECursorTargetRelation::None) return;
+	if (!HoveredTarget.Actor.IsValid() || InRelation == ECursorTargetRelation::None)
+		return;
 
-	int32 StencilValue = NeutralHighlightStencil;
+	int32 StencilValue;
 	switch (InRelation)
 	{
 	case ECursorTargetRelation::Friendly:

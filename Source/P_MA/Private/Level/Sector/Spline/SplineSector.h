@@ -17,7 +17,6 @@ class P_MA_API ASplineSector : public AActor
 	GENERATED_BODY()
 	
 protected:
-	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:

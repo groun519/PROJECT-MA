@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,9 +7,6 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class UMAAbilitySystemComponent : public UAbilitySystemComponent
 {
@@ -22,11 +17,12 @@ public:
 	void InitializeBaseAttributes();
 	void ServerSideInit();
 	void ApplyFullStatEffect();
-	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const { return Abilities; };
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 
 	UPROPERTY(Transient)
 	FGameplayTagContainer AppliedBaseTags;
+	
 private:
 	void ApplyInitialEffects();
 	void GiveInitialAbilities();

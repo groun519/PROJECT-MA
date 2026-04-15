@@ -1,17 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Player/MAPlayerController.h"
+
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
-#include "Widget/System/SystemMenuWidget.h"
-#include "Widget/SkillBookWidget.h"
-#include "Player/MAPlayerCharacter.h"
-#include "Inventory/MAFieldItem.h"
 #include "Inventory/InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
@@ -31,19 +25,13 @@ void AMAPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController())
+	if (!IsLocalController()) return;
+	
+	if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
 	{
-		if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
-		{
-			GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
-			HandleSectorStateChanged(GS->GetMASectorState());
-		}
-	}
-
-	if (!IsLocalController())
-	{
-		return;
-	}
+		GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
+		HandleSectorStateChanged(GS->GetMASectorState());
+	}	
 
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 	{
@@ -90,12 +78,9 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		SpawnGameplayWidget();
 	}
 
-
-	/** 아래는 별로 코드입니다 **/
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Default;
 	CurrentMouseCursor = EMouseCursor::Default;
-	/** 위에까지는 별로 코드입니다 **/
 
 	bEnableClickEvents = true;      
 	bEnableMouseOverEvents = true;
@@ -139,10 +124,8 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
 		}
 
-		if (!RegularCameraShake || !CriticalCameraShake)
-		{
-			return;
-		}
+		if (!RegularCameraShake || !CriticalCameraShake) return;
+		
 		if (!bIsPlayerHit)
 		{
 			TSubclassOf<UCameraShakeBase> ShakeToPlay = bIsCriticalHit ? CriticalCameraShake : RegularCameraShake;

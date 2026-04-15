@@ -1,22 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/GA_Combo.h"
+
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagsManager.h"
-#include "MASkillVFXSet.h"
-#include "Character/MACharacter.h"
 #include "GAS/MAAbilitySystemStatics.h"
 
 UGA_Combo::UGA_Combo()
 {
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
-	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAimingTag());
 	ActivationBlockedTags.AddTag(FGameplayTag::RequestGameplayTag("State.Debuff"));
 }
 

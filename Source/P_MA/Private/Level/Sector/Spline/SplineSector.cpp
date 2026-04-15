@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "SplineSector.h"
+
 #include "Components/SplineComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -50,11 +49,6 @@ ASplineSector::ASplineSector()
     PCGComponent->bParseActorComponents = true;
     PCGComponent->SetIsPartitioned(false);
     PCGComponent->GenerationTrigger = EPCGComponentGenerationTrigger::GenerateOnDemand;
-}
-
-void ASplineSector::BeginPlay()
-{
-    Super::BeginPlay();
 }
 
 void ASplineSector::UpdatePCGComponent()
@@ -108,8 +102,6 @@ void ASplineSector::OnConstruction(const FTransform& Transform)
 
     if (bRandomAtSpawn) SetRandomSeed();
 }
-
-
 
 void ASplineSector::SetSectorSeed(int32 InSeed)
 {

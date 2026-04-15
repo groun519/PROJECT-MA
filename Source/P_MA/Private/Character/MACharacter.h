@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -43,6 +41,7 @@ public:
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 	UMAImpulseComponent* GetImpulseComponent() const { return ImpulseComponent; }
+	UMAStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
@@ -50,7 +49,6 @@ public:
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void RefreshMaxWalkSpeed();
 	void StopMovementForBlock();
@@ -74,18 +72,10 @@ private:
 	class UWidgetComponent* OverHeadWidgetComponent;
 
 	void ConfigureOverHeadStatusWidget();
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	float HeadStatGaugeVisibilityCheckUpdateGap = 1.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	float HeadStatGaugeVisibilityRangeSquared = 1000000.f;
-
-	FTimerHandle HeadStatGaugeVisibilityUpdateTimerHandle;
-
-	void UpdateHeadGaugeVisibility();
+	class UMAOverHeadStatsGauge* EnsureOverHeadStatusWidgetConfigured();
 
 	void SetStatusGaugeEnabled(bool bIsEnabled);
+	bool bStatusGaugeEnabled = true;
 
 	/** Death and Respawn **/
 public:
@@ -95,18 +85,8 @@ public:
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	float DeathMontageFinishTimeShift = -0.8f;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	UAnimMontage* DeathMontage;
 
-	FTimerHandle DeathMontageTimerHandle;
-
-	// void DeathMontageFinished();
-	// void SetRagdollEnabled(bool bIsEnabled);
-	
-	void PlayDeathAnimation();
-	
 	void StartDeathSequence();
 	void Respawn();
 

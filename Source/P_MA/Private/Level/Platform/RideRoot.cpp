@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "RideRoot.h"
+
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SphereComponent.h"

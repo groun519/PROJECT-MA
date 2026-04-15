@@ -55,10 +55,7 @@ struct FSkillRuntimeContext
 	void SetPayload(const FGameplayTag& Key, UObject* Value);
 	bool TryGetPayload(const FGameplayTag& Key, UObject*& OutValue) const;
 
-	void ClearIgnoredActors()
-	{
-		IgnoredActors.Reset();
-	}
+	void ClearIgnoredActors() { IgnoredActors.Reset(); }
 
 	bool IsIgnoredActor(const AActor* Actor) const
 	{

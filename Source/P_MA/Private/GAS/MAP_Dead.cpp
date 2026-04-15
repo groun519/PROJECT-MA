@@ -1,12 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAP_Dead.h"
+
 #include "GAS/MAAbilitySystemStatics.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "GAS/MAAttributeSet.h"
-#include "GAS/MAPlayerAttributeSet.h"
 #include "Engine/OverlapResult.h"
 
 UGAP_Dead::UGAP_Dead()
@@ -27,10 +23,7 @@ void UGAP_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 	if (K2_HasAuthority())
 	{
 		AActor* Killer = TriggerEventData->ContextHandle.GetEffectCauser();
-		if (!Killer || !UMAAbilitySystemStatics::IsPlayer(Killer))
-		{
-			Killer = nullptr;
-		}
+		if (!Killer || !UMAAbilitySystemStatics::IsPlayer(Killer)) Killer = nullptr;
 
 		TArray<AActor*> RewardTargets = GetRewardTargets();
 		if (RewardTargets.Num() == 0 && !Killer)
@@ -89,14 +82,10 @@ TArray<AActor*> UGAP_Dead::GetRewardTargets() const
 		{
 			const IGenericTeamAgentInterface* OtherTeamInterface = Cast<IGenericTeamAgentInterface>(OverlapResult.GetActor());
 			if (!OtherTeamInterface || OtherTeamInterface->GetTeamAttitudeTowards(*AvatarActor) != ETeamAttitude::Hostile)
-			{
 				continue;
-			}
 			
 			if (!UMAAbilitySystemStatics::IsPlayer(OverlapResult.GetActor()))
-			{
 				continue;
-			}
 
 			OutActors.Add(OverlapResult.GetActor());
 		}

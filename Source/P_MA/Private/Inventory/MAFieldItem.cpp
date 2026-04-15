@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Inventory/MAFieldItem.h"
+
 #include "Net/UnrealNetwork.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"

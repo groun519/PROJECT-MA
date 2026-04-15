@@ -118,6 +118,18 @@ void UMAStatusEffectComponent::ApplyStatusEffectImpulse(const FStatusEffectRule&
 	}
 }
 
+FText UMAStatusEffectComponent::MakeStatusEffectDisplayLabel(const FGameplayTag& StatusEffectTag) const
+{
+	const FString TagString = StatusEffectTag.GetTagName().ToString();
+	FString LabelString;
+	if (!TagString.Split(TEXT("."), nullptr, &LabelString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+	{
+		LabelString = TagString;
+	}
+
+	return FText::FromString(LabelString);
+}
+
 void UMAStatusEffectComponent::BindToASC()
 {
 	if (!OwnerCharacter) return;
@@ -132,7 +144,7 @@ void UMAStatusEffectComponent::BindToASC()
 	for (const FStatusEffectRule& StatusEffectRule : StatusEffectRules)
 	{
 		if (!StatusEffectRule.IsValid()) continue;
-		OwnerASC->RegisterGameplayTagEvent(StatusEffectRule.CrowdControlTag).AddUObject(this, &UMAStatusEffectComponent::HandleCrowdControlChanged);
+		OwnerASC->RegisterGameplayTagEvent(StatusEffectRule.CrowdControlTag, EGameplayTagEventType::AnyCountChange).AddUObject(this, &UMAStatusEffectComponent::HandleCrowdControlChanged);
 	}
 
 	OwnerASC->OnActiveGameplayEffectAddedDelegateToSelf.AddUObject(this, &UMAStatusEffectComponent::HandleCrowdControlApplied);
@@ -186,6 +198,8 @@ void UMAStatusEffectComponent::HandleCrowdControlStarted(const FStatusEffectRule
 
 void UMAStatusEffectComponent::HandleCrowdControlEnded(const FStatusEffectRule& StatusEffectRule)
 {
+	RemoveStatusEffectDisplayState(StatusEffectRule.CrowdControlTag);
+
 	if (StatusEffectRule.bStopMontageOnEnd)
 	{
 		StopStatusEffectMontage(StatusEffectRule.CrowdControlTag);
@@ -215,6 +229,7 @@ void UMAStatusEffectComponent::HandleCrowdControlApplied(UAbilitySystemComponent
 
 	if (!OwnerCharacter || !OwnerASC) return;
 
+	UpdateStatusEffectDisplayState(Spec);
 	HandleAirborneCrowdControlApplied(Spec);
 	if (OwnerCharacter->HasAuthority()) HandleImpulseCrowdControlApplied(Spec);
 }
@@ -396,6 +411,75 @@ bool UMAStatusEffectComponent::GetStatusEffectAnimConfig(const FGameplayTag& Sta
 	return false;
 }
 
+void UMAStatusEffectComponent::UpdateStatusEffectDisplayState(const FGameplayEffectSpec& Spec)
+{
+	const float Duration = Spec.GetDuration();
+	if (Duration <= 0.f)
+	{
+		return;
+	}
+
+	const double WorldTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	const double EndTimeSeconds = WorldTimeSeconds + Duration;
+
+	for (const FStatusEffectRule& StatusEffectRule : StatusEffectRules)
+	{
+		if (!StatusEffectRule.IsValid() || !Spec.DynamicGrantedTags.HasTag(StatusEffectRule.CrowdControlTag))
+		{
+			continue;
+		}
+
+		FStatusEffectDisplayState& DisplayState = StatusEffectDisplayStates.FindOrAdd(StatusEffectRule.CrowdControlTag);
+		DisplayState.Label = MakeStatusEffectDisplayLabel(StatusEffectRule.CrowdControlTag);
+		DisplayState.Duration = Duration;
+		DisplayState.EndTimeSeconds = EndTimeSeconds;
+	}
+
+	OnStatusEffectDisplayChanged.Broadcast();
+}
+
+void UMAStatusEffectComponent::RemoveStatusEffectDisplayState(const FGameplayTag& StatusEffectTag)
+{
+	if (StatusEffectDisplayStates.Remove(StatusEffectTag) > 0)
+	{
+		OnStatusEffectDisplayChanged.Broadcast();
+	}
+}
+
+void UMAStatusEffectComponent::GetActiveStatusEffectDisplayEvents(TArray<FStatusEffectDisplayEvent>& OutEvents) const
+{
+	OutEvents.Reset();
+
+	const double WorldTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+
+	for (const FStatusEffectRule& StatusEffectRule : StatusEffectRules)
+	{
+		if (!ActiveCrowdControlTags.Contains(StatusEffectRule.CrowdControlTag))
+		{
+			continue;
+		}
+
+		const FStatusEffectDisplayState* DisplayState = StatusEffectDisplayStates.Find(StatusEffectRule.CrowdControlTag);
+		if (!DisplayState)
+		{
+			continue;
+		}
+
+		const float RemainingDuration = FMath::Max(static_cast<float>(DisplayState->EndTimeSeconds - WorldTimeSeconds), 0.f);
+		if (RemainingDuration <= 0.f || DisplayState->Duration <= 0.f)
+		{
+			continue;
+		}
+
+		FStatusEffectDisplayEvent& EventData = OutEvents.AddDefaulted_GetRef();
+		EventData.StatusEffectTag = StatusEffectRule.CrowdControlTag;
+		EventData.Label = DisplayState->Label;
+		EventData.Duration = DisplayState->Duration;
+		EventData.RemainingDuration = RemainingDuration;
+	}
+
+}
+
 void UMAStatusEffectComponent::ResetTransientStatusEffectState()
 {
 	StopAllStatusEffectMontages();
@@ -405,4 +489,6 @@ void UMAStatusEffectComponent::ResetTransientStatusEffectState()
 		ImpulseComponent->ResetImpulseState();
 	}
 	ActiveCrowdControlTags.Reset();
+	StatusEffectDisplayStates.Reset();
+	OnStatusEffectDisplayChanged.Broadcast();
 }

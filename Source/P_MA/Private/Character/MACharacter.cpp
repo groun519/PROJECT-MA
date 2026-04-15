@@ -1,23 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Character/MACharacter.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
-#include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/SphereComponent.h"
 #include "Character/MAImpulseComponent.h"
 #include "Character/MAStatusEffectComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
@@ -120,7 +114,9 @@ UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
                                                                  const FGameplayEventData& EventData)
 {
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
+	FGameplayEventData LocalEventData = EventData;
+	LocalEventData.EventTag = EventTag;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, LocalEventData);
 }
 
 bool AMACharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
@@ -134,13 +130,12 @@ void AMACharacter::BindGASChangeDelegates()
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
 
-void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
+void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
 {
 	if (NewCount != 0)
 	{
@@ -150,12 +145,6 @@ void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	{
 		Respawn();
 	}
-}
-
-void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
@@ -172,17 +161,24 @@ void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	RefreshMaxWalkSpeed();
 }
 
-void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
+void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& /*Data*/)
 {
 	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 {
-	GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
-	if (!bIsEnabled)
+	bStatusGaugeEnabled = bIsEnabled;
+
+	if (!OverHeadWidgetComponent) return;
+
+	OverHeadWidgetComponent->SetHiddenInGame(!bStatusGaugeEnabled);
+	if (bStatusGaugeEnabled)
 	{
-		OverHeadWidgetComponent->SetHiddenInGame(true);
+		if (UMAOverHeadStatsGauge* OverheadStatsGuage = EnsureOverHeadStatusWidgetConfigured())
+		{
+			OverheadStatsGuage->RefreshStatusEffectDisplay();
+		}
 	}
 }
 
@@ -208,12 +204,6 @@ void AMACharacter::RefreshMaxWalkSpeed()
 		return;
 	}
 
-	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetAimingTag()))
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed * 0.2f;
-		return;
-	}
-
 	MoveComp->MaxWalkSpeed = MoveSpeed;
 }
 
@@ -233,14 +223,6 @@ void AMACharacter::RespawnImmediately()
 	}
 }
 
-void AMACharacter::PlayDeathAnimation()
-{
-	if (DeathMontage)
-	{
-		float MontageDuration = PlayAnimMontage(DeathMontage);
-	}
-}
-
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
@@ -252,7 +234,7 @@ void AMACharacter::StartDeathSequence()
 		MAAbilitySystemComponent->CancelAllAbilities();
 	}
 	
-	PlayDeathAnimation();
+	if (DeathMontage) PlayAnimMontage(DeathMontage);
 	SetStatusGaugeEnabled(false);
 
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
@@ -326,40 +308,19 @@ void AMACharacter::ConfigureOverHeadStatusWidget()
 {
 	if (!OverHeadWidgetComponent) return;
 
-	if (IsLocallyControlledByPlayer())
-	{
-		OverHeadWidgetComponent->SetHiddenInGame(true);
-	}
-
-	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
-	if (OverheadStatsGuage)
-	{
-		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
-		if (!IsLocallyControlledByPlayer()) // 자기 자신이 아닐 때만 표시
-		{
-			OverHeadWidgetComponent->SetHiddenInGame(false);
-		}
-		GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
-		GetWorldTimerManager().SetTimer(HeadStatGaugeVisibilityUpdateTimerHandle, this, &AMACharacter::UpdateHeadGaugeVisibility, HeadStatGaugeVisibilityCheckUpdateGap, true);
-	}
+	OverHeadWidgetComponent->SetHiddenInGame(!bStatusGaugeEnabled);
+	EnsureOverHeadStatusWidgetConfigured();
 }
 
-void AMACharacter::UpdateHeadGaugeVisibility()
+UMAOverHeadStatsGauge* AMACharacter::EnsureOverHeadStatusWidgetConfigured()
 {
-	APawn* LocalPlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (LocalPlayerPawn)
-	{
-		// 자기 자신이면 항상 숨김
-		if (LocalPlayerPawn == this)
-		{
-			OverHeadWidgetComponent->SetHiddenInGame(true);
-			return;
-		}
+	if (!OverHeadWidgetComponent) return nullptr;
 
-		// 상대방일 경우 거리 기반 표시
-		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());
-		OverHeadWidgetComponent->SetHiddenInGame(DistSquared > HeadStatGaugeVisibilityRangeSquared);
-	}
+	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
+	if (!OverheadStatsGuage) return nullptr;
+
+	OverheadStatsGuage->InitializeFromCharacter(this);
+	return OverheadStatsGuage;
 }
 
 void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
@@ -370,8 +331,6 @@ void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamD
 		LoadoutComponent->SetMaterialParams(BodyData, EyeData);
 	}
 }
-
-
 
 /*************************************************************/
 /*								Skill						 */

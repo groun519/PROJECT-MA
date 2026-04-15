@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -49,15 +47,13 @@ class P_MA_API AWaveManager : public AActor
 {
 	GENERATED_BODY()
 
-public:
-	AWaveManager();
-
 protected:
 	virtual void BeginPlay() override;
 	void OnHandleSectorStateChanged(EMASectorState NewState);
 
-	/** Wave **/
 public:
+	AWaveManager();
+	
 	UPROPERTY(EditAnywhere, Category = "Wave")
 	ABattleSpaceSpline* SpawnSpline = nullptr;
 	

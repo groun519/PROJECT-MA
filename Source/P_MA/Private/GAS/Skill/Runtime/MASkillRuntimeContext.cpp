@@ -1,6 +1,5 @@
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 
-#include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -11,7 +10,6 @@
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameplayEffect.h"
-#include "GenericTeamAgentInterface.h"
 
 void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 {

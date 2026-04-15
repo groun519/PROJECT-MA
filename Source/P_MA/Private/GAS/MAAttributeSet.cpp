@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAAttributeSet.h"
+
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
 #include "MAGameplayAbilityTypes.h"
@@ -92,7 +90,6 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 	}
 }
 
-
 DEFINE_REPNOTIFY(Health)
 DEFINE_REPNOTIFY(MaxHealth)
 DEFINE_REPNOTIFY(Attack)
@@ -105,4 +102,3 @@ DEFINE_REPNOTIFY(Fury)
 DEFINE_REPNOTIFY(MaxFury)
 DEFINE_REPNOTIFY(CriticalChance)
 DEFINE_REPNOTIFY(CriticalDamage)
-

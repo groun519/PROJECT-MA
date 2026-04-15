@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -68,8 +66,6 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaTime) override;
 
-protected:
-public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void SetReady(bool bNewReady);
 

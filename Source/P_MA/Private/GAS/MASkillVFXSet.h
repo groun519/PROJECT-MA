@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -68,9 +66,7 @@ struct F_ElementInfoRow : public FTableRowBase
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Element")
 	TSubclassOf<UGameplayEffect> ElementEffect;
 };
-/**
- * 
- */
+
 UCLASS()
 class UMASkillVFXSet : public UDataAsset
 {

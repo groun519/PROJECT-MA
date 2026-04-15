@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,7 +12,6 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 {
 	GENERATED_BODY()
 
-public:
 	bool IsCriticalHit() const {return bIsCriticalHit;}
 	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
 	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
@@ -29,6 +26,7 @@ public:
 		return NewContext;
 	}
 	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess) override;
+
 protected:
 	UPROPERTY()
 	bool bIsCriticalHit = false;
@@ -67,7 +65,6 @@ struct FGenericDamageEffectDef
 {
 	GENERATED_BODY()
 
-public:
 	FGenericDamageEffectDef();
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UGameplayEffect> DamageEffect;

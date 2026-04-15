@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,7 +7,7 @@
 #include "GAS/Projectile/MAAbilityRangeActor.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "Inventory/MAItemTypes.h"
-#include "StructUtils/Public/InstancedStruct.h"
+#include "InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
 class UMAProjectileSkinData;

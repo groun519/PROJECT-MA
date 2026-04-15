@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Level/Environment/EnvironmentManager.h"
+
 #include "AI/Data/MonstersByEnvironmentData.h"
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"

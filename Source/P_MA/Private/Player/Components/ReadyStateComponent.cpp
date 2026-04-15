@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "ReadyStateComponent.h"
+
 #include "Player/MAPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -14,7 +12,6 @@ UReadyStateComponent::UReadyStateComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
-
 }
 
 void UReadyStateComponent::ReadyAndMoveIn(FVector InDir, float MovingUnit)

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -18,15 +16,15 @@ class P_MA_API UMAPlayerCharacterMovementComponent : public UCharacterMovementCo
 {
 	GENERATED_BODY()
 
+protected:
+	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
+	
 public:
 	void SetRideMovementEnabled(bool bEnabled);
 	bool IsRideMovementActive() const;
 
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
-
-protected:
-	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
 
 private:
 	void PhysRide(float DeltaTime, int32 Iterations);

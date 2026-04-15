@@ -59,12 +59,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
 
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RotationLockTag;
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RushingTag;
-
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
 
@@ -155,6 +149,7 @@ public:
 	void UpdateRotationByReadyRide(float DeltaTime);
 	void TrySendRotationToServer(const FVector& LookDirection);
 	bool IsRotationBlocked() const;
+	bool IsInputBlocked() const;
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SetRotation(FVector LookDirection);
@@ -198,7 +193,7 @@ public:
 	float DeadColorSaturationScale = 0.25f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<class UNiagaraSystem> RespawnVFX = nullptr;
+	TObjectPtr<UNiagaraSystem> RespawnVFX = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;

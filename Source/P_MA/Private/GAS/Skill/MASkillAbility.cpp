@@ -13,25 +13,6 @@
 #include "GAS/Skill/Event/MASkillEventSource.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
 
-namespace
-{
-	constexpr float PreparedPreviewPlayRate = KINDA_SMALL_NUMBER;
-
-	template <typename TaskType>
-	void EndAbilityTasksAndReset(TArray<TObjectPtr<TaskType>>& Tasks)
-	{
-		for (TaskType* Task : Tasks)
-		{
-			if (Task)
-			{
-				Task->EndTask();
-			}
-		}
-
-		Tasks.Reset();
-	}
-}
-
 UMASkillAbility::UMASkillAbility()
 {
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
@@ -45,14 +26,13 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (!SkillDefinition) { K2_EndAbility(); return; }
-
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
 	RegisterFlowParts();
-	StartCurrentFlow();
 	RegisterEventSources();
+	StartCurrentFlow();
 	RefreshEventBindings();
 	RegisterCancelTriggers();
 
@@ -64,7 +44,7 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 {
 	UnregisterFlowParts();
 	UnregisterEventSources();
-	EndAbilityTasksAndReset(EventTasks);
+	ClearEventTasks();
 	UnregisterCancelTriggers();
 	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo()))
 	{
@@ -141,7 +121,7 @@ bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
 	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
 	if (CurrentFlowPart && CurrentFlowPart->ResolveFlowMontage()) return false;
 
-	const int32 NextFlowIndex = CurrentFlowIndex + 1;
+	const int32 NextFlowIndex = CurrentFlowPart ? CurrentFlowPart->GetNextMontageFlowIndex() : INDEX_NONE;
 	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex)) return false;
 
 	UMASkillFlowPart* NextFlowPart = RuntimeFlowParts[NextFlowIndex];
@@ -150,7 +130,7 @@ bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
 	if (!ActorInfo || !HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || !AnimInstance || !NextFlowMontage) return false;
 
-	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), PreparedPreviewPlayRate) <= 0.f) return false;
+	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), KINDA_SMALL_NUMBER) <= 0.f) return false;
 
 	BindPreparedMontageDelegates(NextFlowMontage);
 	PreparedMontage = NextFlowMontage;
@@ -232,9 +212,23 @@ void UMASkillAbility::RegisterFlowParts()
 		RuntimeFlowParts.Add(RuntimeFlowPart);
 	}
 
+	InitializeFlowParts();
 	CurrentFlowIndex = RuntimeFlowParts.IsEmpty() ? INDEX_NONE : 0;
 	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
 	PreparedFlowIndex = INDEX_NONE;
+}
+
+void UMASkillAbility::InitializeFlowParts()
+{
+	for (int32 FlowIndex = 0; FlowIndex < RuntimeFlowParts.Num(); ++FlowIndex)
+	{
+		UMASkillFlowPart* RuntimeFlowPart = RuntimeFlowParts[FlowIndex];
+		if (!RuntimeFlowPart) continue;
+
+		const int32 NextFlowIndex = RuntimeFlowParts.IsValidIndex(FlowIndex + 1) ? FlowIndex + 1 : INDEX_NONE;
+		const int32 NextMontageFlowIndex = ResolveNextMontageFlowIndex(FlowIndex);
+		RuntimeFlowPart->InitializeFlow(this, FlowIndex, NextFlowIndex, NextMontageFlowIndex);
+	}
 }
 
 void UMASkillAbility::UnregisterFlowParts()
@@ -287,7 +281,7 @@ bool UMASkillAbility::AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime)
 	StopCurrentFlowMontage(CurrentFlowMontageBlendOutTime);
 	ClearPreparedMontage();
 
-	const int32 NextFlowIndex = CurrentFlowIndex + 1;
+	const int32 NextFlowIndex = CurrentFlowPart ? CurrentFlowPart->GetNextFlowIndex() : INDEX_NONE;
 	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex))
 	{
 		CurrentFlowIndex = INDEX_NONE;
@@ -300,6 +294,15 @@ bool UMASkillAbility::AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime)
 	StartCurrentFlow();
 	RefreshEventBindings();
 	return true;
+}
+
+void UMASkillAbility::ClearEventTasks()
+{
+	for (UAbilityTask_WaitGameplayEvent* Task : EventTasks)
+	{
+		if (Task) Task->EndTask();
+	}
+	EventTasks.Reset();
 }
 
 void UMASkillAbility::ClearCurrentMontageTask()
@@ -354,7 +357,7 @@ void UMASkillAbility::ClearPreparedMontage()
 
 void UMASkillAbility::RefreshEventBindings()
 {
-	EndAbilityTasksAndReset(EventTasks);
+	ClearEventTasks();
 	TSet<FGameplayTag> RequiredTags = RuntimeContext.ResolveRequiredEventTags();
 	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
 	{
@@ -378,6 +381,12 @@ void UMASkillAbility::HandleCurrentFlowMontageCancelled()
 void UMASkillAbility::HandleCurrentFlowMontageCompleted()
 {
 	CurrentMontageTask = nullptr;
+
+	if (const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	{
+		if (!CurrentFlowPart->ShouldAutoAdvanceOnMontageCompleted()) return;
+	}
+
 	if (!AdvanceToNextFlow())
 	{
 		K2_EndAbility();
@@ -456,6 +465,20 @@ void UMASkillAbility::HandlePreparedMontageEnded(UAnimMontage* Montage, bool bIn
 	}
 
 	HandleCurrentFlowMontageCompleted();
+}
+
+int32 UMASkillAbility::ResolveNextMontageFlowIndex(int32 CurrentIndex) const
+{
+	for (int32 FlowIndex = CurrentIndex + 1; FlowIndex < RuntimeFlowParts.Num(); ++FlowIndex)
+	{
+		const UMASkillFlowPart* RuntimeFlowPart = RuntimeFlowParts[FlowIndex];
+		if (RuntimeFlowPart && RuntimeFlowPart->ResolveFlowMontage())
+		{
+			return FlowIndex;
+		}
+	}
+
+	return INDEX_NONE;
 }
 
 void UMASkillAbility::RegisterCancelTriggers()

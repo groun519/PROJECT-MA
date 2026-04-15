@@ -26,6 +26,24 @@ struct FStatusEffectAnimConfig
 };
 
 USTRUCT(BlueprintType)
+struct FStatusEffectDisplayEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTag StatusEffectTag;
+
+	UPROPERTY(BlueprintReadOnly)
+	FText Label;
+
+	UPROPERTY(BlueprintReadOnly)
+	float Duration = 0.f;
+
+	UPROPERTY(BlueprintReadOnly)
+	float RemainingDuration = 0.f;
+};
+
+USTRUCT(BlueprintType)
 struct FStatusEffectRule
 {
 	GENERATED_BODY()
