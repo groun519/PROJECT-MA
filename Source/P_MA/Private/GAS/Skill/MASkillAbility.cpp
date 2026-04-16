@@ -15,6 +15,9 @@
 
 UMASkillAbility::UMASkillAbility()
 {
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetAirborneStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetGrabStatTag());
@@ -128,7 +131,9 @@ bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
 	UAnimMontage* NextFlowMontage = NextFlowPart ? NextFlowPart->ResolveFlowMontage() : nullptr;
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
-	if (!ActorInfo || !HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || !AnimInstance || !NextFlowMontage) return false;
+	const bool bCanPlayMontageLocally = ActorInfo
+		&& (HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || ActorInfo->IsLocallyControlled());
+	if (!bCanPlayMontageLocally || !AnimInstance || !NextFlowMontage) return false;
 
 	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), KINDA_SMALL_NUMBER) <= 0.f) return false;
 
@@ -258,7 +263,9 @@ void UMASkillAbility::StartCurrentFlow()
 
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	UAnimMontage* FlowMontage = CurrentFlowPart->ResolveFlowMontage();
-	if (!ActorInfo || !HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || !FlowMontage) return;
+	const bool bCanPlayMontageLocally = ActorInfo
+		&& (HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || ActorInfo->IsLocallyControlled());
+	if (!bCanPlayMontageLocally || !FlowMontage) return;
 
 	CurrentMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, FlowMontage, DesiredMontagePlayRate);
 	if (!CurrentMontageTask) return;

@@ -29,7 +29,6 @@ public:
 	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
-	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	void SetRuntimePayload(const FGameplayTag& Key, float Value) { RuntimeContext.SetPayload(Key, Value); }
 	void SetRuntimePayload(const FGameplayTag& Key, const FVector& Value) { RuntimeContext.SetPayload(Key, Value); }
 	void SetRuntimePayload(const FGameplayTag& Key, UObject* Value) { RuntimeContext.SetPayload(Key, Value); }
