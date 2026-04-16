@@ -1,35 +1,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Skill/Input/MASkillFlowPart.h"
-#include "TimerManager.h"
+#include "GAS/Skill/Input/MASkillFlowPart_Timed.h"
 #include "MASkillFlowPart_Cast.generated.h"
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
-class P_MA_API UMASkillFlowPart_Cast : public UMASkillFlowPart
+class P_MA_API UMASkillFlowPart_Cast : public UMASkillFlowPart_Timed
 {
 	GENERATED_BODY()
 
 public:
-	virtual void StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode) override;
-	virtual void StopFlow() override;
-	virtual bool ShouldAutoAdvanceOnMontageCompleted() const override;
+	UMASkillFlowPart_Cast();
 
 private:
-	UFUNCTION()
-	void HandleCastDurationElapsed();
-
-	void StartCastDurationTimer();
-	void StopCastDurationTimer();
+	virtual float GetFlowDuration() const override { return CastDuration; }
+	virtual void OnTimedFlowStarted(UMASkillAbility*, EMASkillFlowStartMode) override;
+	virtual void OnTimedFlowStopped() override;
 	void ApplyInputBlockTag();
 	void RemoveInputBlockTag();
-	void ActivateNextFlow();
 
 	UPROPERTY(EditDefaultsOnly, Category="Cast", meta=(ClampMin="0.0"))
 	float CastDuration = 0.f;
 
 	UPROPERTY(Transient)
 	bool bAppliedInputBlockTag = false;
-
-	FTimerHandle CastDurationTimerHandle;
 };

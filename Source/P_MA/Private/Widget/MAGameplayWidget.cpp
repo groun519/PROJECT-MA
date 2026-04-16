@@ -1,11 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Widget/MAGameplayWidget.h"
-#include "Widget/MAPassiveSlotWidget.h"
-#include "GAS/MAAbilitySystemComponent.h"
-#include "Components/HorizontalBox.h"
-#include "Components/HorizontalBoxSlot.h"
+
 #include "Components/Button.h"
 #include "Widget/MAAbilityListView.h"
 #include "Widget/MAValueGauge.h"
@@ -31,11 +25,6 @@ void UMAGameplayWidget::NativeConstruct()
     {
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
     }
-}
-
-void UMAGameplayWidget::NativeDestruct()
-{
-    Super::NativeDestruct();
 }
 
 void UMAGameplayWidget::ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities)
@@ -131,10 +120,7 @@ void UMAGameplayWidget::ToggleSkillBook()
 
 void UMAGameplayWidget::SetLoopReadyVisible(bool bVisible)
 {
-	if (!LoopReadyWidget)
-	{
-		return;
-	}
+	if (!LoopReadyWidget) return;
 
 	const ESlateVisibility TargetVis = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	LoopReadyWidget->SetVisibility(TargetVis);
@@ -148,9 +134,7 @@ void UMAGameplayWidget::SetLoopReadyVisible(bool bVisible)
 
 void UMAGameplayWidget::RefreshLoopReady()
 {
-	if (!LoopReadyWidget)
-	{
-		return;
-	}
+	if (!LoopReadyWidget) return;
+    
 	LoopReadyWidget->RefreshFromGameState();
 }

@@ -3,14 +3,9 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "Widget/Loop/LoopPlayerStatusWidget.h"
 #include "MAGameplayWidget.generated.h"
 
-class UMASkillSlotWidget;
-class UMAPassiveSlotWidget;
-class UHorizontalBox;
 class UMAValueGauge;
-class UMAMobilityChargeWidget;
 class ULoopReadyWidget;
 class UShopWidget; 
 class USkillBookWidget; 
@@ -22,11 +17,9 @@ class UMAGameplayWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	virtual void NativeDestruct() override;
-	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
+	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& Abilities);
 
-	// 💡 Getter 함수가 이제 'ActiveSkillBookWidget'을 반환하도록 수정
-	class USkillBookWidget* GetSkillBookWidget() const { return ActiveSkillBookWidget; }
+	USkillBookWidget* GetSkillBookWidget() const { return ActiveSkillBookWidget; }
 	
 	void ToggleShop();
 	void ToggleSkillBook();
@@ -41,10 +34,7 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	class UMAAbilityListView* AbilityListView;
-	
-	UPROPERTY(meta = (BindWidget))
-	UMAMobilityChargeWidget* ChargeBar;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Shop UI")
 	TSubclassOf<class UShopWidget> ShopWidgetClass;
 

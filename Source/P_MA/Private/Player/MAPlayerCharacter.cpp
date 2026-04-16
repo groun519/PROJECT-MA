@@ -1,4 +1,5 @@
 #include "MAPlayerCharacter.h"
+
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
@@ -466,7 +467,8 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 	if (bEnabled)
 	{
 		EnableInput(PlayerController);
-	}else
+	}
+	else
 	{
 		DisableInput(PlayerController);
 	}
@@ -494,10 +496,7 @@ void AMAPlayerCharacter::InitializeMinimapCapture()
 	MinimapCapture->bCaptureOnMovement = false;
 	MinimapCaptureAccumulatedTime = 0.f;
 
-	if (bEnableCapture)
-	{
-		MinimapCapture->CaptureScene();
-	}
+	if (bEnableCapture) MinimapCapture->CaptureScene();
 }
 
 void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
@@ -523,12 +522,9 @@ void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 
 void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 {
-	if (CurrentInteractComp.Get() != Comp)
-		return;
+	if (CurrentInteractComp.Get() != Comp) return;
 
-	if (Comp)
-		Comp->SetActive(false);
-	
+	if (Comp) Comp->SetActive(false);
 	CurrentInteractComp = nullptr;
 }
 
@@ -637,8 +633,7 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC || !WeaponData || !WeaponData->AttackAbility)
-		return;
+	if (!ASC || !WeaponData || !WeaponData->AttackAbility) return;
 
 	if (CurrentBasicAttackHandle.IsValid())
 	{

@@ -77,19 +77,6 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 		MAPlayerCharacter->ClientSideInit();
 		SpawnGameplayWidget();
 	}
-
-	bShowMouseCursor = true;
-	DefaultMouseCursor = EMouseCursor::Default;
-	CurrentMouseCursor = EMouseCursor::Default;
-
-	bEnableClickEvents = true;      
-	bEnableMouseOverEvents = true;
-
-	// 마우스 삭제떄문에 일단 추가해봄 테스트
-	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); 
-	InputMode.SetHideCursorDuringCapture(false);
-	SetInputMode(InputMode);
 }
 
 void AMAPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)

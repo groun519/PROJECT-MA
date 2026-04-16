@@ -4,52 +4,20 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-void UMASkillFlowPart_Cast::StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode)
+UMASkillFlowPart_Cast::UMASkillFlowPart_Cast()
 {
-	Super::StartFlow(SkillAbility, StartMode);
+	FlowProgressSettings.bShowProgress = true;
+	FlowProgressSettings.Label = FText::FromString(TEXT("Cast"));
+}
+
+void UMASkillFlowPart_Cast::OnTimedFlowStarted(UMASkillAbility*, EMASkillFlowStartMode)
+{
 	ApplyInputBlockTag();
-	StartCastDurationTimer();
 }
 
-void UMASkillFlowPart_Cast::StopFlow()
+void UMASkillFlowPart_Cast::OnTimedFlowStopped()
 {
-	StopCastDurationTimer();
 	RemoveInputBlockTag();
-	Super::StopFlow();
-}
-
-bool UMASkillFlowPart_Cast::ShouldAutoAdvanceOnMontageCompleted() const
-{
-	return CastDuration <= 0.f;
-}
-
-void UMASkillFlowPart_Cast::HandleCastDurationElapsed()
-{
-	StopCastDurationTimer();
-	ActivateNextFlow();
-}
-
-void UMASkillFlowPart_Cast::StartCastDurationTimer()
-{
-	if (CastDuration <= 0.f) return;
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			CastDurationTimerHandle,
-			this,
-			&UMASkillFlowPart_Cast::HandleCastDurationElapsed,
-			CastDuration,
-			false);
-	}
-}
-
-void UMASkillFlowPart_Cast::StopCastDurationTimer()
-{
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(CastDurationTimerHandle);
-	}
 }
 
 void UMASkillFlowPart_Cast::ApplyInputBlockTag()
@@ -74,15 +42,4 @@ void UMASkillFlowPart_Cast::RemoveInputBlockTag()
 
 	ASC->RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetInputBlockTag());
 	bAppliedInputBlockTag = false;
-}
-
-void UMASkillFlowPart_Cast::ActivateNextFlow()
-{
-	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
-	if (!SkillAbility) return;
-
-	if (!SkillAbility->ActivatePreparedNextFlow())
-	{
-		SkillAbility->CompleteCurrentFlow();
-	}
 }

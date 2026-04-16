@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -21,13 +19,6 @@ class USkeletalMeshComponent;
 class AMAPlayerState;
 class UPlayerCameraManagerComponent;
 
-// 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMAChargeAbilityUpdate, float, ChargePercentage);
-
-/**
- * 
- */
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
 {
@@ -227,17 +218,6 @@ public:
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 	
-	/** Skill **/
-	// Charge스킬을 위한 코드
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityStarted;
-
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityUpdate OnChargeAbilityUpdate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
-	// 여기까지
 
 	void SetCurrentVFXColor(FLinearColor NewColor) {CurrentVFXColor = NewColor;}
 	FLinearColor GetCurrentVFXColor() const {return CurrentVFXColor;}
