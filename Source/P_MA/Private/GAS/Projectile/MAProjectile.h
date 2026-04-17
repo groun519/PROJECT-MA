@@ -39,8 +39,9 @@ struct P_MA_API FMAProjectileElementalSettings
 {
 	GENERATED_BODY()
 
-	FGameplayTag ElementalTag = FGameplayTag();
+	FGameplayTag ElementalTag;
 	FLinearColor ElementalColor = FLinearColor::White;
+	FGameplayTag HitGameplayCueTag;
 };
 
 USTRUCT()
@@ -80,12 +81,16 @@ public:
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovement;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UNiagaraComponent> Niagara;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
+	TObjectPtr<UNiagaraComponent> TrailNiagara;
 
 	UPROPERTY()
 	FOnProjectileHitSignature OnProjectileHit;
 
 	void InitializeProjectile(const FMAProjectileParams& InProjectileParams);
-	void SendLocalGameplayCue(const FHitResult& HitResult);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
+	TObjectPtr<UNiagaraSystem> Rep_TrailVFX = nullptr;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
 	FLinearColor Rep_ElementalColor = FLinearColor::White;
@@ -95,16 +100,16 @@ public:
 
 private:
 	FMAProjectileParams ProjectileParams;
+	bool bPendingDestroy = false;
 
 	void ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC);
 	void ApplyProjectileVisuals();
+	void BeginPendingDestroy();
 	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const;
 	bool CanDamageActor(AActor* OtherActor) const;
 	void CheckAndHandleNearTargetDestroy();
+	void ExecuteHitGameplayCues(const FHitResult& HitResult);
+	void SendLocalGameplayCue(const FGameplayTag& GameplayCueTag, const FHitResult& HitResult);
 
-	UPROPERTY(EditDefaultsOnly, Category="Cue Tag", meta=(Categories="GameplayCue"))
-	FGameplayTag HitGameplayCueTag;
-
-	UPROPERTY()
-	TArray<AActor*> HitActors;
+	TSet<TWeakObjectPtr<AActor>> HitActors;
 };

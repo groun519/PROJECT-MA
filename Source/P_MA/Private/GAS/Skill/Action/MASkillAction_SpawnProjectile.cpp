@@ -10,7 +10,6 @@
 
 void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 {
-	(void)OwnerAbility;
 	(void)Payload;
 
 	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
@@ -48,15 +47,19 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, FSki
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();
 
-	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable())
+	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
+		ElementalDataTable && ProjectileParams.ElementalSettings.ElementalTag.IsValid())
 	{
-		TArray<FMAElementDataRow*> ElementRows;
-		ElementalDataTable->GetAllRows(TEXT("SkillProjectileElementalLookup"), ElementRows);
-		for (const FMAElementDataRow* ElementRow : ElementRows)
+		FString ElementalRowNameString = ProjectileParams.ElementalSettings.ElementalTag.GetTagName().ToString();
+		ElementalRowNameString.Split(TEXT("."), nullptr, &ElementalRowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+
+		if (const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(
+			FName(*ElementalRowNameString),
+			TEXT("SkillProjectileElementalLookup")))
 		{
-			if (!ElementRow || ElementRow->ElementTag != ProjectileParams.ElementalSettings.ElementalTag) continue;
 			ProjectileParams.ElementalSettings.ElementalColor = ElementRow->ElementColor;
-			break;
+			ProjectileParams.ElementalSettings.HitGameplayCueTag = ElementRow->HitGameplayCueTag;
+			ProjectileParams.TrailVFX = ElementRow->TrailVFX;
 		}
 	}
 

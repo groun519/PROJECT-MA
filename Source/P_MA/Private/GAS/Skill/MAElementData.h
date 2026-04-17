@@ -20,4 +20,7 @@ struct P_MA_API FMAElementDataRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element")
 	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element", meta=(Categories="GameplayCue"))
+	FGameplayTag HitGameplayCueTag;
 };

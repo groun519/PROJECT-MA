@@ -31,6 +31,9 @@ AMAProjectile::AMAProjectile()
 	Niagara = CreateDefaultSubobject<UNiagaraComponent>("Niagara");
 	Niagara->SetupAttachment(SphereComp);
 
+	TrailNiagara = CreateDefaultSubobject<UNiagaraComponent>("TrailNiagara");
+	TrailNiagara->SetupAttachment(SphereComp);
+
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovementComponent");
 	ProjectileMovement->UpdatedComponent = SphereComp;
 	ProjectileMovement->InitialSpeed = 1000.f;
@@ -61,8 +64,10 @@ void AMAProjectile::BeginPlay()
 void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (bPendingDestroy) return;
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())	return;
-	if (HitActors.Contains(OtherActor)) return;
+	const TWeakObjectPtr<AActor> HitActor = OtherActor;
+	if (HitActors.Contains(HitActor)) return;
 	if (!CanDamageActor(OtherActor)) return;
 	if (ProjectileParams.TargetingSettings.bHitOnlyDamageTarget)
 	{
@@ -78,11 +83,10 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 	{
 		ApplyEffectSpecsToTarget(TargetASC);
 	}
-	HitActors.Add(OtherActor);
+	HitActors.Add(HitActor);
 	OnProjectileHit.Broadcast(OtherActor);
 
-	
-	if (HitGameplayCueTag.IsValid())
+	if (ProjectileParams.ElementalSettings.HitGameplayCueTag.IsValid())
 	{
 		FHitResult FinalHit = SweepResult;
 		if (!FinalHit.bBlockingHit)
@@ -103,25 +107,29 @@ void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 			FinalHit.ImpactPoint = ImpactPoint;
 			FinalHit.ImpactNormal = ImpactNormal;
 		}
-		SendLocalGameplayCue(FinalHit);
+
+		ExecuteHitGameplayCues(FinalHit);
 	}
 	
 	const FMAProjectilePenetratingSettings& PenetratingSettings = ProjectileParams.PenetratingSettings;
 	if (!PenetratingSettings.bIsPenetrating
 		|| (PenetratingSettings.PenetratingCount > 0 && HitActors.Num() > PenetratingSettings.PenetratingCount))
 	{
-		Destroy();
+		BeginPendingDestroy();
 	}
 }
 
 void AMAProjectile::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMAProjectile, Rep_TrailVFX);
 	DOREPLIFETIME(AMAProjectile, Rep_ElementalColor);
 }
 
-void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
+void AMAProjectile::SendLocalGameplayCue(const FGameplayTag& GameplayCueTag, const FHitResult& HitResult)
 {
+	if (!GameplayCueTag.IsValid()) return;
+
 	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetInstigator());
 	if (!SourceASC) return;
 
@@ -130,7 +138,13 @@ void AMAProjectile::SendLocalGameplayCue(const FHitResult& HitResult)
 	CueParams.Normal = HitResult.ImpactNormal;
 	CueParams.RawMagnitude = 1.0f;
 
-	SourceASC->ExecuteGameplayCue(HitGameplayCueTag, CueParams);
+	SourceASC->ExecuteGameplayCue(GameplayCueTag, CueParams);
+}
+
+void AMAProjectile::ExecuteHitGameplayCues(const FHitResult& HitResult)
+{
+	if (ProjectileParams.ElementalSettings.HitGameplayCueTag.IsValid())
+		SendLocalGameplayCue(ProjectileParams.ElementalSettings.HitGameplayCueTag, HitResult);
 }
 
 void AMAProjectile::OnRep_ProjectileVisuals()
@@ -141,6 +155,7 @@ void AMAProjectile::OnRep_ProjectileVisuals()
 void AMAProjectile::InitializeProjectile(const FMAProjectileParams& InProjectileParams)
 {
 	ProjectileParams = InProjectileParams;
+	Rep_TrailVFX = ProjectileParams.TrailVFX;
 	Rep_ElementalColor = ProjectileParams.ElementalSettings.ElementalColor;
 	ApplyProjectileVisuals();
 	SetActorTickEnabled(
@@ -184,10 +199,52 @@ void AMAProjectile::ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC)
 
 void AMAProjectile::ApplyProjectileVisuals()
 {
-	if (!Niagara) return;
+	const float SphereRadius = SphereComp ? SphereComp->GetScaledSphereRadius() : 0.f;
 
+	if (Niagara)
+	{
+		Niagara->SetVariableLinearColor(TEXT("User.BaseColor"), Rep_ElementalColor);
+		Niagara->SetVariableFloat(TEXT("User.Radius"), SphereRadius);
+	}
 
-	Niagara->SetVariableLinearColor(TEXT("User.BaseColor"), Rep_ElementalColor);
+	if (TrailNiagara)
+	{
+		if (TrailNiagara->GetAsset() != Rep_TrailVFX)
+		{
+			TrailNiagara->SetAsset(Rep_TrailVFX);
+			TrailNiagara->ResetSystem();
+		}
+
+		TrailNiagara->SetVariableFloat(TEXT("User.Radius"), SphereRadius);
+	}
+}
+
+void AMAProjectile::BeginPendingDestroy()
+{
+	if (bPendingDestroy) return;
+
+	bPendingDestroy = true;
+
+	if (Niagara)
+	{
+		Niagara->Deactivate();
+		Niagara->SetVisibility(false, true);
+	}
+
+	if (SphereComp)
+	{
+		SphereComp->SetGenerateOverlapEvents(false);
+		SphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->StopMovementImmediately();
+		ProjectileMovement->Deactivate();
+	}
+
+	SetActorTickEnabled(false);
+	SetLifeSpan(0.5f);
 }
 
 FVector AMAProjectile::ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const
@@ -223,7 +280,7 @@ void AMAProjectile::CheckAndHandleNearTargetDestroy()
 	}
 	else
 	{
-		if (HitActors.Contains(ProjectileParams.TargetingSettings.DamageTarget.Get()))
+		if (HitActors.Contains(ProjectileParams.TargetingSettings.DamageTarget))
 		{
 			SetActorTickEnabled(false);
 			return;
@@ -247,7 +304,7 @@ void AMAProjectile::CheckAndHandleNearTargetDestroy()
 
 	if (bShouldDestroy)
 	{
-		if (HitGameplayCueTag.IsValid()) SendLocalGameplayCue(CueHitResult);
-		Destroy();
+		ExecuteHitGameplayCues(CueHitResult);
+		BeginPendingDestroy();
 	}
 }
