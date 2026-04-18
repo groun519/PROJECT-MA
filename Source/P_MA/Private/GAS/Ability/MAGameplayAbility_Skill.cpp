@@ -6,23 +6,17 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Character/MACharacter.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MASkillVFXSet.h"
 #include "GAS/Modules/MASkillModule.h"
 #include "GAS/Modules/SkillModule_Combo.h"
 #include "GAS/Modules/SkillModule_Elemental.h"
 #include "GAS/Modules/SkillModule_Utility.h"
-#include "GAS/Projectile/MAProjectile.h"
-#include "GAS/Projectile/MAProjectileSkinData.h"
 #include "GAS/Setting/MASkillSubsystem.h"
-#include "Player/MAPlayerCharacter.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetSkillAttackTag());
-	VFXRootTag = FGameplayTag::RequestGameplayTag("Event.VFX");
 	IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
@@ -54,35 +48,8 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 		}
 	}
 
-	if (AMAPlayerCharacter* PlayerChar = Cast<AMAPlayerCharacter>(GetAvatarActorFromActorInfo()))
-	{
-		FLinearColor ElementColor = GetElementalData().EffectColor;
-		PlayerChar->SetCurrentVFXColor(ElementColor);
-		PlayerChar->SetCurrentElementTag(GetElementalData().ElementalTag);
-
-		float FinalTargetLength = 0.f;
-		if (CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
-		{
-			if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
-			{
-				FinalTargetLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
-			}
-		}
-		PlayerChar->SetCurrentVFXLength(FinalTargetLength);
-
-		bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
-		bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
-		PlayerChar->SetAllowVFX(bHasMeleeTrait || bHasTargetingTrait);
-	}
-	
 	IgnoreTargets.Empty();
 	ChargeRatio = 1.f;
-
-	/*
-	WaitVFXEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, VFXRootTag, nullptr, false,false);
-	WaitVFXEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::HandleVFXSpawnEvent);
-	WaitVFXEventTask->ReadyForActivation();
-	*/
 
 	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,IgnoreClearTag);
 	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
@@ -100,11 +67,6 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 
 void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicateEndAbility, bool bWasCancelled)
 {
-	/*
-	if (WaitVFXEventTask)
-	{
-		WaitVFXEventTask->EndTask();
-	}*/
 	if (WaitClearEventTask)
 	{
 		WaitClearEventTask->EndTask();
@@ -517,68 +479,6 @@ void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)
 {
 	IgnoreTargets.Empty();
 }
-
-/*
-void UMAGameplayAbility_Skill::HandleVFXSpawnEvent(FGameplayEventData Payload)
-{
-	if (!HasAuthority(&CurrentActivationInfo))
-		return;
-	if (!CachedSkillData.VFXDataSet)
-		return;
-
-	bool bHasMeleeTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee"));
-	bool bHasTargetingTrait = CachedSkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting"));
-	if (!bHasMeleeTrait && !bHasTargetingTrait)
-		return;
-	
-	const F_SkillVFX_Info* VFXInfo = CachedSkillData.VFXDataSet->VFXDataMap.Find(Payload.EventTag);
-	if (!VFXInfo || !VFXInfo->DefaultVFX)
-		return;
-
-	FVector FinalScale = VFXInfo->Scale;
-	if (bHasTargetingTrait)
-	{
-		if (const FActionConfig_Targeting* TargetConfig = CachedSkillData.ActionData.GetPtr<FActionConfig_Targeting>())
-		{
-			float CurrentLength = FMath::Lerp(TargetConfig->MinDistance, TargetConfig->MaxDistance, ChargeRatio);
-			float VFXLength = VFXInfo->BaseVFXLength;
-			
-			if (VFXLength > 0.f)
-			{
-				float ScaleMultiplier = CurrentLength/ VFXLength;
-				FinalScale.X = VFXInfo->Scale.X * ScaleMultiplier;
-			}
-		}
-	}
-	
-	FLinearColor SpawnColor = FLinearColor::White;
-	bool bApplyColor = false;
-	if (VFXInfo->bUseElementColor)
-	{
-		SpawnColor = CachedElementalData.EffectColor;
-		bApplyColor = true;
-	}
-	AMACharacter* Character = Cast<AMACharacter>(GetAvatarActorFromActorInfo());
-	if (!Character)
-		return;
-	USkeletalMeshComponent* MeshComp = Character->GetMesh();
-	if (!MeshComp)
-		return;
-
-	if (VFXInfo->bSpawnInWorld)
-	{
-		FTransform SocketTransform = (VFXInfo->SocketName != NAME_None)? MeshComp->GetSocketTransform(VFXInfo->SocketName) : MeshComp->GetComponentTransform();
-		FTransform OffsetTransform(VFXInfo->RotationOffset, VFXInfo->LocationOffset,FinalScale);
-		FTransform WorldSPawnTransform = OffsetTransform * SocketTransform;
-
-		Character->Multicast_PlayNiagara(VFXInfo->DefaultVFX, WorldSPawnTransform, bApplyColor, SpawnColor);
-	}
-	else
-	{
-		Character->Multicast_PlayNiagaraAttached(VFXInfo->DefaultVFX,VFXInfo->SocketName,VFXInfo->LocationOffset,VFXInfo->RotationOffset,FinalScale,	VFXInfo->bAutoDestroy,bApplyColor, SpawnColor);
-	}
-}
-*/
 
 void UMAGameplayAbility_Skill::ApplyHitStop(AActor* TargetActor)
 {

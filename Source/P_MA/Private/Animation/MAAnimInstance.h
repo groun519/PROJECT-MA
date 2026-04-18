@@ -7,6 +7,8 @@
 #include "MAAnimInstance.generated.h"
 
 class UAnimSequence;
+class UAnimSequenceBase;
+class UMASkillAbility;
 
 /**
  * 
@@ -45,6 +47,9 @@ public:
 	FORCEINLINE UAnimSequence* GetCurrentRideSequence() const { return CurrentRideSequence; }
 
 	void SetCurrentRideSequence(UAnimSequence* InRideSequence) { CurrentRideSequence = InRideSequence; }
+	void RegisterAnimationOwner(const UAnimSequenceBase* Animation, UMASkillAbility* SkillAbility);
+	UMASkillAbility* FindAnimationOwner(const UAnimSequenceBase* Animation) const;
+	void UnregisterAnimationOwner(const UAnimSequenceBase* Animation, const UMASkillAbility* SkillAbility);
 	
 
 
@@ -84,4 +89,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimSequence> CurrentRideSequence = nullptr;
+
+	TMap<TObjectPtr<const UAnimSequenceBase>, TWeakObjectPtr<UMASkillAbility>> AnimationOwners;
 };

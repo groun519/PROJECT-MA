@@ -6,9 +6,9 @@
 #include "Engine/DataTable.h"
 #include "LoadoutWeaponData.generated.h"
 
-class UGameplayAbility;
 class USkeletalMesh;
 class UTexture2D;
+class UMASkillDefinition;
 
 USTRUCT(BlueprintType)
 struct FLoadoutWeaponDataRow : public FTableRowBase
@@ -25,5 +25,5 @@ struct FLoadoutWeaponDataRow : public FTableRowBase
 	FTransform WeaponOffset = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	TSubclassOf<UGameplayAbility> AttackAbility;
+	TSoftObjectPtr<UMASkillDefinition> AttackSkillDefinition;
 };

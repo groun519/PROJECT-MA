@@ -2,7 +2,9 @@
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
+#include "Animation/MAAnimInstance.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Character/MACharacter.h"
@@ -44,7 +46,8 @@ UMASkillAbility::UMASkillAbility()
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	if (!SkillDefinition) { K2_EndAbility(); return; }
+	CacheRuntimeSkillDefinition(Handle, ActorInfo);
+	if (!GetSkillDefinition()) { K2_EndAbility(); return; }
 
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
@@ -74,8 +77,14 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 	RuntimeContext.Reset();
+	RuntimeSkillDefinition = nullptr;
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+const UMASkillDefinition* UMASkillAbility::GetSkillDefinition() const
+{
+	return RuntimeSkillDefinition ? RuntimeSkillDefinition : SkillDefinition;
 }
 
 void UMASkillAbility::HandleSkillTagEvent(const FGameplayTag& EventTag)
@@ -108,7 +117,7 @@ void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 const FGameplayTag& UMASkillAbility::GetElementalTag() const
 {
 	static const FGameplayTag EmptyTag;
-	return SkillDefinition ? SkillDefinition->GetElementalTag() : EmptyTag;
+	return GetSkillDefinition() ? GetSkillDefinition()->GetElementalTag() : EmptyTag;
 }
 
 UMASkillFlowPart* UMASkillAbility::GetCurrentRuntimeFlowPart() const
@@ -158,6 +167,7 @@ bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
 
 	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), PreparedPreviewPlayRate) <= 0.f) return false;
 
+	RegisterAnimationOwner(NextFlowMontage);
 	BindPreparedMontageDelegates(NextFlowMontage);
 	PreparedMontage = NextFlowMontage;
 	PreparedFlowIndex = NextFlowIndex;
@@ -199,9 +209,10 @@ void UMASkillAbility::RegisterEventSources()
 {
 	UnregisterEventSources();
 
-	if (!SkillDefinition) return;
+	const UMASkillDefinition* ResolvedSkillDefinition = GetSkillDefinition();
+	if (!ResolvedSkillDefinition) return;
 
-	for (UMASkillEventSource* EventSource : SkillDefinition->GetEventSources())
+	for (UMASkillEventSource* EventSource : ResolvedSkillDefinition->GetEventSources())
 	{
 		if (!EventSource) continue;
 
@@ -227,9 +238,10 @@ void UMASkillAbility::UnregisterEventSources()
 void UMASkillAbility::RegisterFlowParts()
 {
 	UnregisterFlowParts();
-	if (!SkillDefinition) return;
+	const UMASkillDefinition* ResolvedSkillDefinition = GetSkillDefinition();
+	if (!ResolvedSkillDefinition) return;
 
-	for (UMASkillFlowPart* FlowPart : SkillDefinition->GetFlowParts())
+	for (UMASkillFlowPart* FlowPart : ResolvedSkillDefinition->GetFlowParts())
 	{
 		if (!FlowPart) continue;
 
@@ -278,6 +290,7 @@ void UMASkillAbility::StartCurrentFlow()
 	CurrentMontageTask->OnCancelled.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageCancelled);
 	CurrentMontageTask->OnCompleted.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageCompleted);
 	CurrentMontageTask->OnInterrupted.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageInterrupted);
+	RegisterAnimationOwner(FlowMontage);
 	CurrentMontageTask->ReadyForActivation();
 }
 
@@ -326,6 +339,8 @@ void UMASkillAbility::StopCurrentFlowMontage(float MontageBlendOutTime)
 	UAnimMontage* FlowMontage = CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr;
 	if (!AnimInstance || !FlowMontage) return;
 
+	UnregisterAnimationOwner(FlowMontage);
+
 	if (CurrentFlowStartMode == EMASkillFlowStartMode::Prepared)
 	{
 		ClearMontageDelegates(FlowMontage);
@@ -345,6 +360,7 @@ void UMASkillAbility::ClearPreparedMontage()
 		return;
 	}
 
+	UnregisterAnimationOwner(PreparedMontage);
 	ClearMontageDelegates(PreparedMontage);
 	if (UAnimInstance* AnimInstance = GetOwnerAnimInstance())
 	{
@@ -356,6 +372,26 @@ void UMASkillAbility::ClearPreparedMontage()
 
 	PreparedMontage = nullptr;
 	PreparedFlowIndex = INDEX_NONE;
+}
+
+void UMASkillAbility::RegisterAnimationOwner(UAnimSequenceBase* Animation)
+{
+	if (!Animation) return;
+
+	if (UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(GetOwnerAnimInstance()))
+	{
+		AnimInstance->RegisterAnimationOwner(Animation, this);
+	}
+}
+
+void UMASkillAbility::UnregisterAnimationOwner(UAnimSequenceBase* Animation)
+{
+	if (!Animation) return;
+
+	if (UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(GetOwnerAnimInstance()))
+	{
+		AnimInstance->UnregisterAnimationOwner(Animation, this);
+	}
 }
 
 void UMASkillAbility::RefreshEventBindings()
@@ -436,6 +472,7 @@ void UMASkillAbility::HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bo
 	ClearMontageDelegates(Montage);
 	if (bIsPreparedPreview)
 	{
+		UnregisterAnimationOwner(Montage);
 		PreparedMontage = nullptr;
 		PreparedFlowIndex = INDEX_NONE;
 	}
@@ -455,6 +492,7 @@ void UMASkillAbility::HandlePreparedMontageEnded(UAnimMontage* Montage, bool bIn
 	ClearMontageDelegates(Montage);
 	if (bIsPreparedPreview)
 	{
+		UnregisterAnimationOwner(Montage);
 		PreparedMontage = nullptr;
 		PreparedFlowIndex = INDEX_NONE;
 		K2_EndAbility();
@@ -506,4 +544,16 @@ void UMASkillAbility::HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewC
 	if (!IsActive()) return;
 
 	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
+}
+
+void UMASkillAbility::CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo)
+{
+	RuntimeSkillDefinition = nullptr;
+
+	if (!ActorInfo || !ActorInfo->AbilitySystemComponent.IsValid()) return;
+
+	const FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
+	if (!AbilitySpec) return;
+
+	RuntimeSkillDefinition = Cast<UMASkillDefinition>(AbilitySpec->SourceObject.Get());
 }

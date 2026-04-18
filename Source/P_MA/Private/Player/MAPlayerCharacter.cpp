@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MAPlayerCharacter.h"
-#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -12,6 +11,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAPlayerAttributeSet.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "Inventory/SkillBookComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -448,13 +449,6 @@ void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputAction
 	{
 		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
 	}
-	if (InputID == EMAAbilityInputID::Attack)
-	{
-		FGameplayTag BasicAttackTag = bPressed ? UMAAbilitySystemStatics::GetBasicAttackInputPressedTag() : UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag();
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, BasicAttackTag, FGameplayEventData());
-		Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
-	}
 }
 
 void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
@@ -606,7 +600,7 @@ void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (WeaponId.IsNone()) return;
+	const FLoadoutWeaponDataRow* WeaponDataRow = nullptr;
 
 	const UDataTable* ResolvedWeaponDataTable = nullptr;
 	if (LoadoutComponent)
@@ -617,36 +611,43 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		}
 	}
 
-	if (!ResolvedWeaponDataTable) return;
+	if (ResolvedWeaponDataTable && !WeaponId.IsNone())
+	{
+		WeaponDataRow = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	}
 
-	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
-	if (!Row) return;
+	if (HasAuthority())
+	{
+		UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
+		RefreshSlottedSkillAbility(EMAAbilityInputID::Attack, AttackSkillDefinition, WeaponAttackSkillHandle);
+	}
 
-	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
+	if (!WeaponDataRow) return;
+
+	USkeletalMesh* WeaponMesh = WeaponDataRow->WeaponMesh.LoadSynchronous();
 	if (WeaponMesh)
 	{
 		WeaponComponent->SetSkeletalMesh(WeaponMesh);
 	}
 
-	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
-	EquipWeaponFromData(Row);
+	WeaponComponent->SetRelativeTransform(WeaponDataRow->WeaponOffset);
 }
 
-void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)
+void AMAPlayerCharacter::RefreshSlottedSkillAbility(const EMAAbilityInputID InputID, UMASkillDefinition* SkillDefinition, FGameplayAbilitySpecHandle& AbilityHandle)
 {
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC || !WeaponData || !WeaponData->AttackAbility)
-		return;
+	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent();
+	if (!AbilitySystemComponent) return;
 
-	if (CurrentBasicAttackHandle.IsValid())
+	if (AbilityHandle.IsValid())
 	{
-		ASC->ClearAbility(CurrentBasicAttackHandle);
-		CurrentBasicAttackHandle = FGameplayAbilitySpecHandle();
+		AbilitySystemComponent->ClearAbility(AbilityHandle);
+		AbilityHandle = FGameplayAbilitySpecHandle();
 	}
 
-	int32 BasicAttackInputID = static_cast<int32>(EMAAbilityInputID::Attack);
-	FGameplayAbilitySpec Spec(WeaponData->AttackAbility, 1, BasicAttackInputID,this);
-	CurrentBasicAttackHandle = ASC->GiveAbility(Spec);
+	if (!SkillDefinition || !DefaultSkillAbilityClass) return;
+
+	const FGameplayAbilitySpec AbilitySpec(DefaultSkillAbilityClass, 1, static_cast<int32>(InputID), SkillDefinition);
+	AbilityHandle = AbilitySystemComponent->GiveAbility(AbilitySpec);
 }
 
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
@@ -776,9 +777,5 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXColor);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentElementTag);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXLength);
-	DOREPLIFETIME(AMAPlayerCharacter, bAllowVFX);
 }
 

@@ -29,20 +29,20 @@ private:
 	
 	// 타입
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
-	EVA_Shape Shape = EVA_Shape::Sphere;
+	EVA_Shape Shape = EVA_Shape::Circle;
 
 	/** Sphere **/
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle", EditConditionHides, ClampMin="0.0"))
 	float Radius = 50.f;
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle", EditConditionHides))
 	bool bUseSector = false;
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Sphere", EditConditionHides, ClampMin="0.0", ClampMax="360.0"))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle", EditConditionHides, ClampMin="0.0", ClampMax="360.0"))
 	float SectorAngle = 0.f;
 	
 	/** Box **/
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Rect", EditConditionHides, ClampMin="0.0"))
 	float Width = 50.f;
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Box", EditConditionHides, ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Rect", EditConditionHides, ClampMin="0.0"))
 	float Height = 50.f;
 	
 	// 어차피 Z축은 탑다운, 점프x 상황에서 필요없기에 고려x
@@ -68,8 +68,4 @@ private:
 
 	UPROPERTY(EditAnywhere, Category="Virtual Socket|Debug", meta=(ClampMin="0.1"))
 	float DebugThickness = 1.5f;
-
-	FVector MeshForward = FVector::ZeroVector;
-
-	void DebugShapeWithEditor(UWorld* World, EVA_Shape DebugShape, FVector WorldLoc, FQuat WorldRot);
 };

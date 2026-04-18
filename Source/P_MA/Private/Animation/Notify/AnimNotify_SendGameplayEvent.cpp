@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Animation/AnimNotify_SendGameplayEvent.h"
+#include "Animation/Notify/AnimNotify_SendGameplayEvent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"

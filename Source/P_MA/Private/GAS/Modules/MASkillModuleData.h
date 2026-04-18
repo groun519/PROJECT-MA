@@ -14,7 +14,6 @@
 
 class UMAProjectileSkinData;
 class UNiagaraSystem;
-class UMASkillVFXSet;
 class UMAGameplayAbility_Skill;
 class UGameplayEffect;
 class UMASkillModule;
@@ -73,10 +72,6 @@ public:
 	/** 이 스킬의 쿨타임 태그(스킬마다 별도로 설정) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Cooldown"), Category="Stat")
 	FGameplayTag CooldownTag;
-	
-	/** 출력할 스킬 이펙트 - (공격 몽타주에서 공격 범위 지정하는 경우에 사용) */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX")
-	//TObjectPtr<UMASkillVFXSet> VFXDataSet;
 	
 	/** 스킬 사용 중 움직임이 가능한지 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Option")

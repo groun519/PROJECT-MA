@@ -10,8 +10,8 @@ enum class EVA_Shape : uint8
 {
 	None,
 	Line,
-	Sphere,
-	Box,
+	Circle,
+	Rect,
 };
 
 class FDebugShapeHelper

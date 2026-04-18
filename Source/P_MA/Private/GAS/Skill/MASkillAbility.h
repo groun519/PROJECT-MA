@@ -10,6 +10,7 @@
 class UAbilityTask_WaitGameplayEvent;
 class UAbilityTask_PlayMontageAndWait;
 class UAnimMontage;
+class UAnimSequenceBase;
 class UDataTable;
 class UMASkillDefinition;
 class UMASkillEventSource;
@@ -27,9 +28,10 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	void HandleSkillTagEvent(const FGameplayTag& EventTag);
 
-	const UMASkillDefinition* GetSkillDefinition() const { return SkillDefinition; }
+	const UMASkillDefinition* GetSkillDefinition() const;
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
+	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
@@ -51,6 +53,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
 	TObjectPtr<UDataTable> ElementalDataTable;
 
+	UPROPERTY(EditDefaultsOnly, Category="Effect", meta=(RowType="/Script/P_MA.MAOverlapDecalDataRow"))
+	TObjectPtr<UDataTable> OverlapDecalDataTable;
+
 	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
 	FGameplayTagContainer CancelTriggerTags;
 
@@ -71,12 +76,18 @@ private:
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
 	void BindPreparedMontageDelegates(UAnimMontage* Montage);
 	void ClearMontageDelegates(UAnimMontage* Montage);
+	void RegisterAnimationOwner(UAnimSequenceBase* Animation);
+	void UnregisterAnimationOwner(UAnimSequenceBase* Animation);
 	void HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	void HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo);
 
 	/** RuntimeContext **/
 	UPROPERTY(Transient)
 	FSkillRuntimeContext RuntimeContext;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillDefinition> RuntimeSkillDefinition;
 
 	/** Flow Part **/
 	UPROPERTY(Transient)

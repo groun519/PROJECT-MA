@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Animation/AnimNotifyState_RotateToTarget.h"
+#include "Animation/Notify/AnimNotifyState_RotateToTarget.h"
 #include "Kismet/GameplayStatics.h"
 
 void UAnimNotifyState_RotateToTarget::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime)

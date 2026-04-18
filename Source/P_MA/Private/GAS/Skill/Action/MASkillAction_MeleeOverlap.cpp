@@ -5,7 +5,6 @@
 
 void UMASkillAction_MeleeOverlap::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload)
 {
-	(void)OwnerAbility;
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	const TArray<FHitResult> HitResults = RuntimeContext.GetHitResultsFromPayload(Payload, &DamageConfig);

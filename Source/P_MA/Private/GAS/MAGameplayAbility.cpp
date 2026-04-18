@@ -2,7 +2,6 @@
 
 
 #include "GAS/MAGameplayAbility.h"
-#include "Animation/AnimNotify_SendTracePoint.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -20,7 +19,6 @@
 UMAGameplayAbility::UMAGameplayAbility()
 {
 	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
-	BlockAbilitiesWithTag.AddTag(UMAAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 
 class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
@@ -78,7 +76,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	{
 		return {};
 	}
-	else if (TraceObjType == EVA_Shape::Sphere)
+	else if (TraceObjType == EVA_Shape::Circle)
 	{
 		if (!bUseSector) // 원
 		{
@@ -105,7 +103,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 			}
 		}
 	}
-	else if (TraceObjType == EVA_Shape::Box) // 사각형
+	else if (TraceObjType == EVA_Shape::Rect) // 사각형
 	{
 		FQuat WorldQuat = GetAvatarActorFromActorInfo()->GetActorRotation().Quaternion();
 		FQuat LocalQuat = BoxRot.Quaternion();
@@ -188,19 +186,19 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 	
 	// 2) Reuse the shared sweep helper with an overridden target team
 	TArray<FHitResult> OutHits;
-	if (VS->Shape == EVA_Shape::Sphere)
+	if (VS->Shape == EVA_Shape::Circle)
 	{
 		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, FVector(VS->SphereRadius,0,0),
 			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
-			OverrideTargetRelationMask, EVA_Shape::Sphere, VS->bDrawDebug, VS->bIgnoreOwner);
+			OverrideTargetRelationMask, EVA_Shape::Circle, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 	else // Box
 	{
 		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize,
 			VS->LocalRotation, false, 0,
-			OverrideTargetRelationMask, EVA_Shape::Box, VS->bDrawDebug, VS->bIgnoreOwner);
+			OverrideTargetRelationMask, EVA_Shape::Rect, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 
 	// 3) Execute gameplay cues for each resolved hit actor

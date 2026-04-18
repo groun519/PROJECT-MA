@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -20,6 +21,7 @@ class UReadyCheckWidgetComponent;
 class USkeletalMeshComponent;
 class AMAPlayerState;
 class UPlayerCameraManagerComponent;
+class UMASkillAbility;
 
 // 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
@@ -172,11 +174,8 @@ public:
 	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 	void HandleLoadoutMountChanged(FName MountId);
+	void RefreshSlottedSkillAbility(EMAAbilityInputID InputID, class UMASkillDefinition* SkillDefinition, FGameplayAbilitySpecHandle& AbilityHandle);
 
-	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle CurrentBasicAttackHandle;
-	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
-	
 	FDelegateHandle LoadoutChangedHandle;
 
 	UPROPERTY()
@@ -186,8 +185,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	TSubclassOf<UMASkillAbility> DefaultSkillAbilityClass;
+
 	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle CurrentAttackAbilityHandle;
+	FGameplayAbilitySpecHandle WeaponAttackSkillHandle;
 
 	/** Death and Respawn **/
 	virtual void OnDead() override;
@@ -244,28 +246,4 @@ public:
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
 
-	void SetCurrentVFXColor(FLinearColor NewColor) {CurrentVFXColor = NewColor;}
-	FLinearColor GetCurrentVFXColor() const {return CurrentVFXColor;}
-
-	void SetCurrentElementTag(FGameplayTag NewTag) {CurrentElementTag = NewTag;}
-	FGameplayTag GetCurrentElementTag() const {return CurrentElementTag;}
-
-	void SetCurrentVFXLength(float NewLength) {CurrentVFXLength = NewLength;}
-	float GetCurrentVFXLength() const {return CurrentVFXLength;}
-
-	void SetAllowVFX(bool bAllow) {bAllowVFX = bAllow;}
-	bool GetAllowVFX() const {return bAllowVFX;}
-	
-protected:
-	UPROPERTY(Transient, Replicated)
-	FLinearColor CurrentVFXColor = FLinearColor::White;
-	
-	UPROPERTY(Transient, Replicated)
-	FGameplayTag CurrentElementTag;
-	
-	UPROPERTY(Transient, Replicated)
-	float CurrentVFXLength = 0.f;
-	
-	UPROPERTY(Transient, Replicated)
-	bool bAllowVFX = true;
 };

@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Animation/AnimNotifyState_SendComboStartEnd.h"
+#include "Animation/Notify/AnimNotifyState_SendComboStartEnd.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 

@@ -2,6 +2,7 @@
 
 
 #include "Animation/MAAnimInstance.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Player/MAPlayerCharacter.h"
@@ -66,4 +67,29 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void UMAAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 
+}
+
+void UMAAnimInstance::RegisterAnimationOwner(const UAnimSequenceBase* Animation, UMASkillAbility* SkillAbility)
+{
+	if (!Animation || !SkillAbility) return;
+	AnimationOwners.FindOrAdd(Animation) = SkillAbility;
+}
+
+UMASkillAbility* UMAAnimInstance::FindAnimationOwner(const UAnimSequenceBase* Animation) const
+{
+	if (!Animation) return nullptr;
+
+	const TWeakObjectPtr<UMASkillAbility>* FoundOwner = AnimationOwners.Find(Animation);
+	return FoundOwner ? FoundOwner->Get() : nullptr;
+}
+
+void UMAAnimInstance::UnregisterAnimationOwner(const UAnimSequenceBase* Animation, const UMASkillAbility* SkillAbility)
+{
+	if (!Animation) return;
+
+	const TWeakObjectPtr<UMASkillAbility>* FoundOwner = AnimationOwners.Find(Animation);
+	if (!FoundOwner) return;
+	if (SkillAbility && FoundOwner->Get() != SkillAbility) return;
+
+	AnimationOwners.Remove(Animation);
 }

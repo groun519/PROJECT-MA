@@ -9,7 +9,7 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EVA_Shape Shape = EVA_Shape::Sphere;
+	EVA_Shape Shape = EVA_Shape::Circle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector LocalOffset = FVector::ZeroVector;
