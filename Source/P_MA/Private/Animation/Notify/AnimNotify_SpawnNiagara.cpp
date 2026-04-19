@@ -28,7 +28,7 @@ USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const 
 	return MeshComp;
 }
 
-	const UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
+	const UMASkillAbility* ResolveSpawnNiagaraAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 	{
 		if (!MeshComp || !Animation) return nullptr;
 
@@ -139,7 +139,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 
 	if (!SpawnedVFX || !bApplyElementalColor || ColorParamName == NAME_None) return;
 
-	const UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	const UMASkillAbility* SkillAbility = ResolveSpawnNiagaraAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
 	FLinearColor ElementalColor = FLinearColor::White;

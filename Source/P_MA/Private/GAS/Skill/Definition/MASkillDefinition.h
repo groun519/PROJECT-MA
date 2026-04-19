@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GAS/Skill/Event/MASkillGameplayEventPart.h"
+#include "GAS/Skill/Payload/MASkillPayloadEntry.h"
 #include "GameplayTagContainer.h"
 #include "MASkillDefinition.generated.h"
 
@@ -20,6 +21,7 @@ public:
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	const TArray<FMASkillGameplayEventPart>& GetEventParts() const { return EventParts; }
 	const TArray<TObjectPtr<UMASkillFlowPart>>& GetFlowParts() const { return FlowParts; }
+	const TArray<FMASkillPayloadEntry>& GetPayloads() const { return Payloads; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
@@ -36,4 +38,7 @@ private:
 	/** Event **/
 	UPROPERTY(EditDefaultsOnly, Category="Event")
 	TArray<FMASkillGameplayEventPart> EventParts;
+
+	UPROPERTY(EditDefaultsOnly, Category="Payload")
+	TArray<FMASkillPayloadEntry> Payloads;
 };

@@ -51,6 +51,9 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
+	ResetResolvedData();
+	ResolvePayloads();
+	ResolveEventActions();
 	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
 	RegisterFlowParts();
@@ -77,6 +80,7 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 	RuntimeContext.Reset();
+	ResetResolvedData();
 	RuntimeSkillDefinition = nullptr;
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -103,14 +107,12 @@ void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 		CurrentFlowPart->HandleRuntimeEvent(Payload);
 	}
 
-	RuntimeContext.RefreshStateFromEvent(Payload);
-
 	TArray<UMASkillAction*> ResolvedActions;
-	RuntimeContext.ResolveActionsForEvent(Payload, ResolvedActions);
+	ResolveActionsForEvent(Payload.EventTag, ResolvedActions);
 	for (UMASkillAction* Action : ResolvedActions)
 	{
 		if (!Action) continue;
-		Action->Execute(*this, RuntimeContext, Payload);
+		Action->Execute(*this, RuntimeContext, PayloadStore, Payload);
 	}
 }
 
@@ -384,6 +386,59 @@ void UMASkillAbility::RegisterAnimationOwner(UAnimSequenceBase* Animation)
 	}
 }
 
+void UMASkillAbility::ResolvePayloads()
+{
+	const UMASkillDefinition* SkillDef = GetSkillDefinition();
+	if (!SkillDef) return;
+
+	for (const FMASkillPayloadEntry& Payload : SkillDef->GetPayloads())
+	{
+		Payload.ApplyTo(PayloadStore);
+	}
+}
+
+void UMASkillAbility::ResolveEventActions()
+{
+	const UMASkillDefinition* SkillDef = GetSkillDefinition();
+	if (!SkillDef) return;
+
+	for (const FMASkillGameplayEventPart& EventPart : SkillDef->GetEventParts())
+	{
+		AddResolvedEventAction(EventPart.EventTag, EventPart.Action);
+	}
+}
+
+void UMASkillAbility::ResetResolvedData()
+{
+	PayloadStore.Reset();
+	ResolvedRequiredEventTags.Reset();
+	ResolvedActionsByEvent.Reset();
+}
+
+void UMASkillAbility::AddResolvedEventAction(const FGameplayTag& EventTag, UMASkillAction* Action)
+{
+	if (!EventTag.IsValid() || !Action) return;
+
+	ResolvedRequiredEventTags.Add(EventTag);
+	ResolvedActionsByEvent.FindOrAdd(EventTag).Add(Action);
+}
+
+void UMASkillAbility::ResolveActionsForEvent(const FGameplayTag& EventTag, TArray<UMASkillAction*>& OutActions) const
+{
+	OutActions.Reset();
+
+	if (const TArray<TObjectPtr<UMASkillAction>>* Actions = ResolvedActionsByEvent.Find(EventTag))
+	{
+		for (UMASkillAction* Action : *Actions)
+		{
+			if (Action)
+			{
+				OutActions.Add(Action);
+			}
+		}
+	}
+}
+
 void UMASkillAbility::UnregisterAnimationOwner(UAnimSequenceBase* Animation)
 {
 	if (!Animation) return;
@@ -397,7 +452,7 @@ void UMASkillAbility::UnregisterAnimationOwner(UAnimSequenceBase* Animation)
 void UMASkillAbility::RefreshEventBindings()
 {
 	EndAbilityTasksAndReset(EventTasks);
-	TSet<FGameplayTag> RequiredTags = RuntimeContext.ResolveRequiredEventTags();
+	TSet<FGameplayTag> RequiredTags = ResolvedRequiredEventTags;
 	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
 	{
 		CurrentFlowPart->CollectRequiredEventTags(RequiredTags);

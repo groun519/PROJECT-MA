@@ -3,6 +3,7 @@
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 
 namespace
 {
@@ -12,8 +13,10 @@ namespace
 	}
 }
 
-void UMASkillAction_Dash::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext&, const FGameplayEventData&)
+void UMASkillAction_Dash::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext&, FMASkillPayloadStore& PayloadStore, const FGameplayEventData&)
 {
+	(void)PayloadStore;
+
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();

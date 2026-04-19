@@ -10,5 +10,5 @@ class P_MA_API UMASkillAction_ClearIgnoredActors : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, const FGameplayEventData& Payload) override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore, const FGameplayEventData& Payload) override;
 };

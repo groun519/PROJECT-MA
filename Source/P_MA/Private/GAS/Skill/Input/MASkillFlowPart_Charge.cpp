@@ -91,7 +91,7 @@ void UMASkillFlowPart_Charge::CommitChargePayload() const
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
 	if (!SkillAbility) return;
 
-	SkillAbility->SetRuntimePayload(
+	SkillAbility->GetPayloadStore().SetScalar(
 		FGameplayTag::RequestGameplayTag(TEXT("Data.Skill.Payload.Scalar.ChargeRatio")),
 		ResolveChargeRatio());
 }

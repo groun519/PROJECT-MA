@@ -3,9 +3,12 @@
 #include "AbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 
-void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext&, const FGameplayEventData&)
+void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext&, FMASkillPayloadStore& PayloadStore, const FGameplayEventData&)
 {
+	(void)PayloadStore;
+
 	float AttackSpeed = 1.f;
 	if (UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo())
 	{

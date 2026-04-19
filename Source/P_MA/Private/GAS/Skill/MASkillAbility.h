@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Skill/Input/MASkillFlowPart.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
@@ -14,6 +15,7 @@ class UAnimSequenceBase;
 class UDataTable;
 class UMASkillDefinition;
 class UMASkillEventSource;
+class UMASkillAction;
 
 UCLASS()
 class P_MA_API UMASkillAbility : public UMAGameplayAbility
@@ -33,12 +35,11 @@ public:
 	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
 	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
 	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
+	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
+	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	void MultiplyFinalDamageMultiplier(float Multiplier) { RuntimeContext.MultiplyFinalDamageMultiplier(Multiplier); }
-	void SetRuntimePayload(const FGameplayTag& Key, float Value) { RuntimeContext.SetPayload(Key, Value); }
-	void SetRuntimePayload(const FGameplayTag& Key, const FVector& Value) { RuntimeContext.SetPayload(Key, Value); }
-	void SetRuntimePayload(const FGameplayTag& Key, UObject* Value) { RuntimeContext.SetPayload(Key, Value); }
 	void CompleteCurrentFlow(float MontageBlendOutTime = 0.f);
 	bool PrepareNextFlowMontage(float PreviewBlendInTime);
 	bool ActivatePreparedNextFlow();
@@ -78,6 +79,11 @@ private:
 	void ClearMontageDelegates(UAnimMontage* Montage);
 	void RegisterAnimationOwner(UAnimSequenceBase* Animation);
 	void UnregisterAnimationOwner(UAnimSequenceBase* Animation);
+	void ResolvePayloads();
+	void ResolveEventActions();
+	void ResetResolvedData();
+	void AddResolvedEventAction(const FGameplayTag& EventTag, UMASkillAction* Action);
+	void ResolveActionsForEvent(const FGameplayTag& EventTag, TArray<UMASkillAction*>& OutActions) const;
 	void HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	void HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo);
@@ -88,6 +94,13 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillDefinition> RuntimeSkillDefinition;
+
+	UPROPERTY(Transient)
+	FMASkillPayloadStore PayloadStore;
+
+	TSet<FGameplayTag> ResolvedRequiredEventTags;
+
+	TMap<FGameplayTag, TArray<TObjectPtr<UMASkillAction>>> ResolvedActionsByEvent;
 
 	/** Flow Part **/
 	UPROPERTY(Transient)

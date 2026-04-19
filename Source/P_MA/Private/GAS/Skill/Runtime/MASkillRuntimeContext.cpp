@@ -4,8 +4,6 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/Event/MASkillGameplayEventPart.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MAGameplayEffect_SkillDamage.h"
 #include "GameplayEffect.h"
@@ -15,7 +13,6 @@ void FSkillRuntimeContext::Initialize(UMASkillAbility* InOwnerAbility)
 {
 	OwnerAbility = InOwnerAbility;
 	ClearIgnoredActors();
-	ClearPayload();
 	ClearDamageConfig();
 }
 
@@ -23,7 +20,6 @@ void FSkillRuntimeContext::Reset()
 {
 	OwnerAbility = nullptr;
 	ClearIgnoredActors();
-	ClearPayload();
 	ClearDamageConfig();
 }
 
@@ -50,44 +46,11 @@ void FSkillRuntimeContext::AddTargetRelationModifier(const FMASkillTargetRelatio
 	AccumulatedTargetRelationModifiers.Add(TargetRelationModifier);
 }
 
-TSet<FGameplayTag> FSkillRuntimeContext::ResolveRequiredEventTags() const
-{
-	TSet<FGameplayTag> RequiredTags;
-
-	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
-	if (!SkillDefinition) return RequiredTags;
-
-	for (const FMASkillGameplayEventPart& EventPart : SkillDefinition->GetEventParts())
-	{
-		if (!EventPart.EventTag.IsValid() || !EventPart.Action) continue;
-		RequiredTags.Add(EventPart.EventTag);
-	}
-
-	// TODO: Merge additional required event tags from runtime modules here.
-	return RequiredTags;
-}
-
-void FSkillRuntimeContext::ResolveActionsForEvent(const FGameplayEventData& Payload, TArray<UMASkillAction*>& OutActions) const
-{
-	OutActions.Reset();
-
-	const UMASkillDefinition* SkillDefinition = OwnerAbility ? OwnerAbility->GetSkillDefinition() : nullptr;
-	if (!SkillDefinition) return;
-
-	for (const FMASkillGameplayEventPart& EventPart : SkillDefinition->GetEventParts())
-	{
-		if (EventPart.EventTag != Payload.EventTag || !EventPart.Action) continue;
-		OutActions.Add(EventPart.Action);
-	}
-
-	// TODO: Append runtime module action contributions for this event here.
-}
-
-TArray<FHitResult> FSkillRuntimeContext::GetHitResultsFromPayload(const FGameplayEventData& Payload, const FMASkillDamageConfig* DamageConfig) const
+TArray<FHitResult> FSkillRuntimeContext::GetHitResultsFromPayload(const FGameplayEventData& Payload, int32 TargetRelationMask) const
 {
 	if (!OwnerAbility) return TArray<FHitResult>();
 
-	return OwnerAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData, ResolveTargetRelationMask(DamageConfig));
+	return OwnerAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData, TargetRelationMask);
 }
 
 FVector FSkillRuntimeContext::GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const
@@ -99,11 +62,9 @@ FVector FSkillRuntimeContext::GetCrowdControlCenterPoint(const FGameplayEventDat
 	return FVector::ZeroVector;
 }
 
-int32 FSkillRuntimeContext::ResolveTargetRelationMask(const FMASkillDamageConfig* DamageConfig) const
+int32 FSkillRuntimeContext::ResolveTargetRelationMask(int32 BaseRelationMask) const
 {
-	int32 ResolvedRelationMask = DamageConfig
-		? DamageConfig->TargetRelationMask
-		: MATargetRelation::ToMask(EMATargetRelation::None);
+	int32 ResolvedRelationMask = BaseRelationMask;
 
 	for (const FMASkillTargetRelationModifier& TargetRelationModifier : AccumulatedTargetRelationModifiers)
 	{
@@ -113,12 +74,12 @@ int32 FSkillRuntimeContext::ResolveTargetRelationMask(const FMASkillDamageConfig
 	return ResolvedRelationMask;
 }
 
-FResolvedSkillHitEffects FSkillRuntimeContext::BuildResolvedHitEffects(const FMASkillDamageConfig* DamageConfig) const
+FResolvedSkillHitEffects FSkillRuntimeContext::BuildResolvedHitEffects(const FMASkillDamageConfig& BaseDamageConfig) const
 {
 	FResolvedSkillHitEffects ResolvedHitEffects;
-	const FMASkillDamageConfig ResolvedDamageConfig = BuildMergedDamageConfig(DamageConfig);
+	const FMASkillDamageConfig ResolvedDamageConfig = BuildMergedDamageConfig(BaseDamageConfig);
 
-	ResolvedHitEffects.TargetRelationMask = ResolveTargetRelationMask(DamageConfig);
+	ResolvedHitEffects.TargetRelationMask = ResolveTargetRelationMask(BaseDamageConfig.TargetRelationMask);
 	ResolvedHitEffects.DamageSpec = MakeDamageSpec(ResolvedDamageConfig);
 	if (OwnerAbility)
 	{
@@ -244,106 +205,10 @@ bool FSkillRuntimeContext::ShouldApplyResolvedCrowdControlEffect(
 	return true;
 }
 
-FMASkillDamageConfig FSkillRuntimeContext::BuildMergedDamageConfig(const FMASkillDamageConfig* DamageConfig) const
+FMASkillDamageConfig FSkillRuntimeContext::BuildMergedDamageConfig(const FMASkillDamageConfig& BaseDamageConfig) const
 {
-	// TODO: Merge future runtime module damage contributions here before action-local config is appended.
-	FMASkillDamageConfig Result = DamageConfig ? *DamageConfig : FMASkillDamageConfig();
+	FMASkillDamageConfig Result = BaseDamageConfig;
 	Result.Append(AccumulatedDamageConfig);
 	Result.FinalDamageMultiplier *= AccumulatedFinalDamageMultiplier;
 	return Result;
-}
-
-void FSkillRuntimeContext::AddPayload(const FGameplayTag& Tag)
-{
-	if (Tag.IsValid())
-	{
-		PayloadTags.AddTag(Tag);
-	}
-}
-
-bool FSkillRuntimeContext::HasPayload(const FGameplayTag& Tag) const
-{
-	if (!Tag.IsValid()) return false;
-
-	return PayloadTags.HasTagExact(Tag)
-		|| PayloadScalars.Contains(Tag)
-		|| PayloadVectors.Contains(Tag)
-		|| PayloadObjects.Contains(Tag);
-}
-
-void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, float Value)
-{
-	if (Key.IsValid())
-	{
-		PayloadScalars.FindOrAdd(Key) = Value;
-	}
-}
-
-bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, float& OutValue) const
-{
-	if (!Key.IsValid()) return false;
-
-	if (const float* Value = PayloadScalars.Find(Key))
-	{
-		OutValue = *Value;
-		return true;
-	}
-
-	return false;
-}
-
-void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, const FVector& Value)
-{
-	if (Key.IsValid())
-	{
-		PayloadVectors.FindOrAdd(Key) = Value;
-	}
-}
-
-bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, FVector& OutValue) const
-{
-	if (!Key.IsValid()) return false;
-
-	if (const FVector* Value = PayloadVectors.Find(Key))
-	{
-		OutValue = *Value;
-		return true;
-	}
-
-	return false;
-}
-
-void FSkillRuntimeContext::SetPayload(const FGameplayTag& Key, UObject* Value)
-{
-	if (Key.IsValid())
-	{
-		PayloadObjects.FindOrAdd(Key) = Value;
-	}
-}
-
-bool FSkillRuntimeContext::TryGetPayload(const FGameplayTag& Key, UObject*& OutValue) const
-{
-	if (!Key.IsValid()) return false;
-
-	if (const TObjectPtr<UObject>* Value = PayloadObjects.Find(Key))
-	{
-		OutValue = Value->Get();
-		return true;
-	}
-
-	return false;
-}
-
-void FSkillRuntimeContext::ClearPayload()
-{
-	PayloadTags.Reset();
-	PayloadScalars.Reset();
-	PayloadVectors.Reset();
-	PayloadObjects.Reset();
-}
-
-void FSkillRuntimeContext::RefreshStateFromEvent(const FGameplayEventData& Payload)
-{
-	(void)Payload;
-	// TODO: Apply additional definition-derived state refresh here before module contributions are merged.
 }

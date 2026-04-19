@@ -8,6 +8,7 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl_Airborne.h"
 #include "GAS/Skill/CrowdControl/MASkillStatusEffect_Attribute.h"
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
+#include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
 #include "GenericTeamAgentInterface.h"
 #include "MASkillDamageConfig.generated.h"
 
@@ -58,7 +59,7 @@ struct P_MA_API FMASkillTargetRelationModifier
 };
 
 USTRUCT(BlueprintType)
-struct P_MA_API FMASkillDamageConfig
+struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 {
 	GENERATED_BODY()
 
