@@ -15,6 +15,10 @@ class P_MA_API UMASkillEventSource : public UObject
 public:
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() { OwnerSkillAbility = nullptr; }
+	static void CreateRuntimeSources(UMASkillAbility* SkillAbility,
+		const TArray<TObjectPtr<UMASkillEventSource>>& SourceTemplates,
+		TArray<TObjectPtr<UMASkillEventSource>>& OutRuntimeSources);
+	static void StopRuntimeSources(TArray<TObjectPtr<UMASkillEventSource>>& RuntimeSources);
 
 	const FGameplayTag& GetEmittedTag() const { return EmittedTag; }
 

@@ -9,7 +9,6 @@
 
 class AActor;
 class UMASkillAbility;
-struct FGameplayEventData;
 
 USTRUCT()
 struct FResolvedSkillHitEffects
@@ -37,8 +36,6 @@ struct FSkillRuntimeContext
 	void AddDamageConfig(const FMASkillDamageConfig& DamageConfig);
 	void MultiplyFinalDamageMultiplier(float Multiplier);
 	void AddTargetRelationModifier(const FMASkillTargetRelationModifier& TargetRelationModifier);
-	TArray<FHitResult> GetHitResultsFromPayload(const FGameplayEventData& Payload, int32 TargetRelationMask) const;
-	FVector GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const;
 	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig& BaseDamageConfig) const;
 	void ApplyResolvedHitEffectsToHitResult(const FHitResult& HitResult, const FResolvedSkillHitEffects& ResolvedHitEffects, const FVector& CenterSourcePoint) const;
 

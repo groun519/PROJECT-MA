@@ -163,7 +163,6 @@ void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 
 void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& /*Data*/)
 {
-	(void)Data;
 	RefreshMaxWalkSpeed();
 }
 

@@ -16,4 +16,12 @@ struct P_MA_API FMASkillGameplayEventPart
 
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Action")
 	TObjectPtr<UMASkillAction> Action;
+
+	void ContributeTo(TSet<FGameplayTag>& RequiredEventTags, TMap<FGameplayTag, TArray<TObjectPtr<UMASkillAction>>>& ActionsByEvent) const
+	{
+		if (!EventTag.IsValid() || !Action) return;
+
+		RequiredEventTags.Add(EventTag);
+		ActionsByEvent.FindOrAdd(EventTag).Add(Action);
+	}
 };

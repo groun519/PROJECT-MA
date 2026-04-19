@@ -65,7 +65,6 @@ private:
 	void RegisterEventSources();
 	void UnregisterEventSources();
 	void RegisterFlowParts();
-	void InitializeFlowParts();
 	void UnregisterFlowParts();
 	void StartCurrentFlow();
 	bool AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime = 0.f);
@@ -81,15 +80,11 @@ private:
 	void ClearMontageDelegates(UAnimMontage* Montage);
 	void RegisterAnimationOwner(UAnimSequenceBase* Animation);
 	void UnregisterAnimationOwner(UAnimSequenceBase* Animation);
-	void ResolvePayloads();
-	void ResolveEventActions();
 	void ResetResolvedData();
-	void AddResolvedEventAction(const FGameplayTag& EventTag, UMASkillAction* Action);
 	void ResolveActionsForEvent(const FGameplayTag& EventTag, TArray<UMASkillAction*>& OutActions) const;
 	void HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	void HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo);
-	int32 ResolveNextMontageFlowIndex(int32 CurrentIndex) const;
 
 	/** RuntimeContext **/
 	UPROPERTY(Transient)

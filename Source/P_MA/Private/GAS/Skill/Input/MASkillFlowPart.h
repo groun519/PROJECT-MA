@@ -43,6 +43,11 @@ public:
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
 	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const {}
 	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) {}
+	static void CreateRuntimeParts(UMASkillAbility* SkillAbility,
+		const TArray<TObjectPtr<UMASkillFlowPart>>& FlowPartTemplates,
+		TArray<TObjectPtr<UMASkillFlowPart>>& OutRuntimeFlowParts);
+	static void CollectCurrentRequiredEventTags(const TArray<TObjectPtr<UMASkillFlowPart>>& RuntimeFlowParts,
+		int32 CurrentFlowIndex, TSet<FGameplayTag>& OutTags);
 
 protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }

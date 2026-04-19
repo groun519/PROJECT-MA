@@ -46,22 +46,6 @@ void FSkillRuntimeContext::AddTargetRelationModifier(const FMASkillTargetRelatio
 	AccumulatedTargetRelationModifiers.Add(TargetRelationModifier);
 }
 
-TArray<FHitResult> FSkillRuntimeContext::GetHitResultsFromPayload(const FGameplayEventData& Payload, int32 TargetRelationMask) const
-{
-	if (!OwnerAbility) return TArray<FHitResult>();
-
-	return OwnerAbility->GetHitResultFromVirtualSocketTargetData(Payload.TargetData, TargetRelationMask);
-}
-
-FVector FSkillRuntimeContext::GetCrowdControlCenterPoint(const FGameplayEventData& Payload) const
-{
-	if (Payload.TargetData.Num() > 0 && Payload.TargetData.Data[0].IsValid()) return Payload.TargetData.Data[0]->GetOrigin().GetTranslation();
-
-	if (const AActor* AvatarActor = OwnerAbility ? OwnerAbility->GetAvatarActorFromActorInfo() : nullptr) return AvatarActor->GetActorLocation();
-
-	return FVector::ZeroVector;
-}
-
 int32 FSkillRuntimeContext::ResolveTargetRelationMask(int32 BaseRelationMask) const
 {
 	int32 ResolvedRelationMask = BaseRelationMask;

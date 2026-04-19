@@ -5,7 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAction_MeleeOverlap.generated.h"
 
-UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
+UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced, DisplayName="Melee Overlap From Payload")
 class P_MA_API UMASkillAction_MeleeOverlap : public UMASkillAction
 {
 	GENERATED_BODY()

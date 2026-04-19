@@ -35,8 +35,8 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	ResetResolvedData();
-	ResolvePayloads();
-	ResolveEventActions();
+	GetSkillDefinition()->ApplyPayloadsTo(PayloadStore);
+	GetSkillDefinition()->CollectEventActions(ResolvedRequiredEventTags, ResolvedActionsByEvent);
 	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
 	RegisterFlowParts();
@@ -198,28 +198,12 @@ void UMASkillAbility::RegisterEventSources()
 
 	const UMASkillDefinition* ResolvedSkillDefinition = GetSkillDefinition();
 	if (!ResolvedSkillDefinition) return;
-
-	for (UMASkillEventSource* EventSource : ResolvedSkillDefinition->GetEventSources())
-	{
-		if (!EventSource) continue;
-
-		UMASkillEventSource* RuntimeEventSource = DuplicateObject<UMASkillEventSource>(EventSource, this);
-		if (!RuntimeEventSource) continue;
-
-		RuntimeEventSource->StartSource(this);
-		RuntimeEventSources.Add(RuntimeEventSource);
-	}
+	UMASkillEventSource::CreateRuntimeSources(this, ResolvedSkillDefinition->GetEventSources(), RuntimeEventSources);
 }
 
 void UMASkillAbility::UnregisterEventSources()
 {
-	for (UMASkillEventSource* RuntimeEventSource : RuntimeEventSources)
-	{
-		if (!RuntimeEventSource) continue;
-		RuntimeEventSource->StopSource();
-	}
-
-	RuntimeEventSources.Reset();
+	UMASkillEventSource::StopRuntimeSources(RuntimeEventSources);
 }
 
 void UMASkillAbility::RegisterFlowParts()
@@ -227,33 +211,10 @@ void UMASkillAbility::RegisterFlowParts()
 	UnregisterFlowParts();
 	const UMASkillDefinition* ResolvedSkillDefinition = GetSkillDefinition();
 	if (!ResolvedSkillDefinition) return;
-
-	for (UMASkillFlowPart* FlowPart : ResolvedSkillDefinition->GetFlowParts())
-	{
-		if (!FlowPart) continue;
-
-		UMASkillFlowPart* RuntimeFlowPart = DuplicateObject<UMASkillFlowPart>(FlowPart, this);
-		if (!RuntimeFlowPart) continue;
-		RuntimeFlowParts.Add(RuntimeFlowPart);
-	}
-
-	InitializeFlowParts();
+	UMASkillFlowPart::CreateRuntimeParts(this, ResolvedSkillDefinition->GetFlowParts(), RuntimeFlowParts);
 	CurrentFlowIndex = RuntimeFlowParts.IsEmpty() ? INDEX_NONE : 0;
 	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
 	PreparedFlowIndex = INDEX_NONE;
-}
-
-void UMASkillAbility::InitializeFlowParts()
-{
-	for (int32 FlowIndex = 0; FlowIndex < RuntimeFlowParts.Num(); ++FlowIndex)
-	{
-		UMASkillFlowPart* RuntimeFlowPart = RuntimeFlowParts[FlowIndex];
-		if (!RuntimeFlowPart) continue;
-
-		const int32 NextFlowIndex = RuntimeFlowParts.IsValidIndex(FlowIndex + 1) ? FlowIndex + 1 : INDEX_NONE;
-		const int32 NextMontageFlowIndex = ResolveNextMontageFlowIndex(FlowIndex);
-		RuntimeFlowPart->InitializeFlow(this, FlowIndex, NextFlowIndex, NextMontageFlowIndex);
-	}
 }
 
 void UMASkillAbility::UnregisterFlowParts()
@@ -396,41 +357,11 @@ void UMASkillAbility::RegisterAnimationOwner(UAnimSequenceBase* Animation)
 	}
 }
 
-void UMASkillAbility::ResolvePayloads()
-{
-	const UMASkillDefinition* SkillDef = GetSkillDefinition();
-	if (!SkillDef) return;
-
-	for (const FMASkillPayloadEntry& Payload : SkillDef->GetPayloads())
-	{
-		Payload.ApplyTo(PayloadStore);
-	}
-}
-
-void UMASkillAbility::ResolveEventActions()
-{
-	const UMASkillDefinition* SkillDef = GetSkillDefinition();
-	if (!SkillDef) return;
-
-	for (const FMASkillGameplayEventPart& EventPart : SkillDef->GetEventParts())
-	{
-		AddResolvedEventAction(EventPart.EventTag, EventPart.Action);
-	}
-}
-
 void UMASkillAbility::ResetResolvedData()
 {
 	PayloadStore.Reset();
 	ResolvedRequiredEventTags.Reset();
 	ResolvedActionsByEvent.Reset();
-}
-
-void UMASkillAbility::AddResolvedEventAction(const FGameplayTag& EventTag, UMASkillAction* Action)
-{
-	if (!EventTag.IsValid() || !Action) return;
-
-	ResolvedRequiredEventTags.Add(EventTag);
-	ResolvedActionsByEvent.FindOrAdd(EventTag).Add(Action);
 }
 
 void UMASkillAbility::ResolveActionsForEvent(const FGameplayTag& EventTag, TArray<UMASkillAction*>& OutActions) const
@@ -463,10 +394,7 @@ void UMASkillAbility::RefreshEventBindings()
 {
 	ClearEventTasks();
 	TSet<FGameplayTag> RequiredTags = ResolvedRequiredEventTags;
-	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
-	{
-		CurrentFlowPart->CollectRequiredEventTags(RequiredTags);
-	}
+	UMASkillFlowPart::CollectCurrentRequiredEventTags(RuntimeFlowParts, CurrentFlowIndex, RequiredTags);
 	for (const FGameplayTag& EventTag : RequiredTags)
 	{
 		UAbilityTask_WaitGameplayEvent* WaitGameplayEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, false);
@@ -571,20 +499,6 @@ void UMASkillAbility::HandlePreparedMontageEnded(UAnimMontage* Montage, bool bIn
 	}
 
 	HandleCurrentFlowMontageCompleted();
-}
-
-int32 UMASkillAbility::ResolveNextMontageFlowIndex(int32 CurrentIndex) const
-{
-	for (int32 FlowIndex = CurrentIndex + 1; FlowIndex < RuntimeFlowParts.Num(); ++FlowIndex)
-	{
-		const UMASkillFlowPart* RuntimeFlowPart = RuntimeFlowParts[FlowIndex];
-		if (RuntimeFlowPart && RuntimeFlowPart->ResolveFlowMontage())
-		{
-			return FlowIndex;
-		}
-	}
-
-	return INDEX_NONE;
 }
 
 void UMASkillAbility::RegisterCancelTriggers()

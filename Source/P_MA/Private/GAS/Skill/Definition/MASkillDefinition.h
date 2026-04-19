@@ -10,6 +10,8 @@
 class UMASkillEventSource;
 class UMASkillFlowPart;
 class UDataTable;
+struct FMASkillPayloadStore;
+class UMASkillAction;
 
 UCLASS(BlueprintType)
 class P_MA_API UMASkillDefinition : public UDataAsset
@@ -22,6 +24,22 @@ public:
 	const TArray<FMASkillGameplayEventPart>& GetEventParts() const { return EventParts; }
 	const TArray<TObjectPtr<UMASkillFlowPart>>& GetFlowParts() const { return FlowParts; }
 	const TArray<FMASkillPayloadEntry>& GetPayloads() const { return Payloads; }
+
+	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
+	{
+		for (const FMASkillPayloadEntry& PayloadEntry : Payloads)
+		{
+			PayloadEntry.ApplyTo(PayloadStore);
+		}
+	}
+
+	void CollectEventActions(TSet<FGameplayTag>& RequiredEventTags, TMap<FGameplayTag, TArray<TObjectPtr<UMASkillAction>>>& ActionsByEvent) const
+	{
+		for (const FMASkillGameplayEventPart& EventPart : EventParts)
+		{
+			EventPart.ContributeTo(RequiredEventTags, ActionsByEvent);
+		}
+	}
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
