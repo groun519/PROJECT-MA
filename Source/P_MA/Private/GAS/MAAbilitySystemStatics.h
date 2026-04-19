@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,7 +33,7 @@ public:
 	static FGameplayTag GetKnockbackStatTag();
 	
 	static FGameplayTag GetRotationLockTag();
-	static FGameplayTag GetRushingTag();
+	static FGameplayTag GetInputBlockTag();
 	static FGameplayTag GetMoveBlockTag();
 	static FGameplayTag GetAbilityBlockTag();
 	static FGameplayTag GetReactionSourceXTag();

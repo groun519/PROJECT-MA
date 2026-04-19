@@ -1,14 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
 #include "MAP_Dead.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class UGAP_Dead : public UMAGameplayAbility
 {

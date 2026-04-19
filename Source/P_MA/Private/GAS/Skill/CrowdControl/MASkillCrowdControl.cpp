@@ -1,5 +1,4 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
-
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/CrowdControl/MAGameplayEffect_CrowdControlDuration.h"

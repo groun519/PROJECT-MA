@@ -10,6 +10,8 @@ class AMACharacter;
 class UMAAbilitySystemComponent;
 class UMAImpulseComponent;
 
+DECLARE_MULTICAST_DELEGATE(FOnStatusEffectDisplayChanged);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class UMAStatusEffectComponent : public UActorComponent
 {
@@ -17,7 +19,9 @@ class UMAStatusEffectComponent : public UActorComponent
 
 public:
 	UMAStatusEffectComponent();
+	FOnStatusEffectDisplayChanged OnStatusEffectDisplayChanged;
 	bool GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const;
+	void GetActiveStatusEffectDisplayEvents(TArray<FStatusEffectDisplayEvent>& OutEvents) const;
 	void PlayReplicatedStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, const FVector& SourcePoint);
 	void ResetTransientStatusEffectState();
 
@@ -37,6 +41,9 @@ private:
 	void BeginAirborneVisual();
 	void EndAirborneVisual();
 	void UpdateAirborneVisual(float DeltaTime);
+	FText MakeStatusEffectDisplayLabel(const FGameplayTag& StatusEffectTag) const;
+	void UpdateStatusEffectDisplayState(const FGameplayEffectSpec& Spec);
+	void RemoveStatusEffectDisplayState(const FGameplayTag& StatusEffectTag);
 
 	/** Owner **/
 	UPROPERTY()
@@ -63,6 +70,15 @@ private:
 	TArray<FStatusEffectRule> StatusEffectRules;
 
 	TSet<FGameplayTag> ActiveCrowdControlTags;
+
+	struct FStatusEffectDisplayState
+	{
+		FText Label;
+		float Duration = 0.f;
+		double EndTimeSeconds = 0.0;
+	};
+
+	TMap<FGameplayTag, FStatusEffectDisplayState> StatusEffectDisplayStates;
 
 	/** Airborne Visual **/
 	UPROPERTY(EditDefaultsOnly, Category="StatusEffect|Airborne", meta=(ClampMin="0.0"))

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -36,8 +34,6 @@ public:
 	const FMaterialParamDataPair& GetMaterialParamValue() const { return MaterialParamValue; }
 	const FEyeShapeParamData& GetCurrentEyeShapeData() const { return CurrentEyeShapeData; }
 	const ULoadoutDataSet* GetLoadoutDataSet() const;
-
-	// TODO: Save/Load hooks for loadout data.
 
 private:
 	void RebuildDynamicMaterials();

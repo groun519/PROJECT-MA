@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "MAPlayerCharacter.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
@@ -93,7 +91,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
     if (MinimapSprite)
     {
         MinimapSprite->SetupAttachment(GetMesh());
-        // 네비게이션 경고해결
         MinimapSprite->SetCanEverAffectNavigation(false);
     }
 
@@ -132,8 +129,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
 	
 	/** Tag Init **/
-	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
 	
 	/** Ready State&Ride Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
@@ -180,18 +175,12 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 
 	UpdateRotationByReadyRide(DeltaTime);
 	TickMinimapCapture(DeltaTime);
-
-	// Skill-only movement path. This is unrelated to ready-ride movement sync,
-	// so ride fixes must not change behavior here.
-	if (!IsMovementBlocked() && GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
-	{
-		AddMovementInput(GetActorForwardVector(), 2.f);
-	}
 }
 
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
+	if (IsInputBlocked()) return;
 	if (!IsRotationBlocked())
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
@@ -225,7 +214,15 @@ bool AMAPlayerCharacter::IsRotationBlocked() const
 	if (IsDead()) return true;
 
 	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	return ASC && ASC->HasMatchingGameplayTag(RotationLockTag);
+	return ASC && ASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+}
+
+bool AMAPlayerCharacter::IsInputBlocked() const
+{
+	if (IsDead()) return true;
+
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC && ASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetInputBlockTag());
 }
 
 void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
@@ -312,6 +309,7 @@ void AMAPlayerCharacter::SetAttribute(const FString& SkillClassName, const FStri
 {
 	Server_SetAttribute(SkillClassName, AttributeName);
 }
+
 void AMAPlayerCharacter::Server_SetAttribute_Implementation(const FString& SkillClassName,
                                                                  const FString& AttributeName)
 {
@@ -413,7 +411,7 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
-	if (IsMovementBlocked() || IsDead())
+	if (IsInputBlocked() || IsMovementBlocked())
 	{
 		RideHorizontalInput = 0.f;
 		return;
@@ -431,6 +429,7 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 {
 	const bool bPressed = InputActionValue.Get<bool>();
 	if (!bPressed) return;
+	if (IsInputBlocked()) return;
 
 	if (UInteractComponent* Comp = CurrentInteractComp.Get())
 	{
@@ -441,6 +440,7 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
 {
 	bool bPressed = InputActionValue.Get<bool>();
+	if (IsInputBlocked() && bPressed) return;
 	if (bPressed)
 	{
 		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
@@ -459,7 +459,8 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 	if (bEnabled)
 	{
 		EnableInput(PlayerController);
-	}else
+	}
+	else
 	{
 		DisableInput(PlayerController);
 	}
@@ -467,6 +468,7 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
+	if (IsInputBlocked()) return;
 	if (IsRotationBlocked()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
@@ -486,10 +488,7 @@ void AMAPlayerCharacter::InitializeMinimapCapture()
 	MinimapCapture->bCaptureOnMovement = false;
 	MinimapCaptureAccumulatedTime = 0.f;
 
-	if (bEnableCapture)
-	{
-		MinimapCapture->CaptureScene();
-	}
+	if (bEnableCapture) MinimapCapture->CaptureScene();
 }
 
 void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
@@ -515,12 +514,9 @@ void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 
 void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 {
-	if (CurrentInteractComp.Get() != Comp)
-		return;
+	if (CurrentInteractComp.Get() != Comp) return;
 
-	if (Comp)
-		Comp->SetActive(false);
-	
+	if (Comp) Comp->SetActive(false);
 	CurrentInteractComp = nullptr;
 }
 
@@ -653,6 +649,8 @@ void AMAPlayerCharacter::RefreshSlottedSkillAbility(const EMAAbilityInputID Inpu
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 {
 	UAnimSequence* RiderSequence = nullptr;
+	USkeletalMesh* MountSkeletalMesh = nullptr;
+	TSubclassOf<UAnimInstance> MountAnimClass = nullptr;
 
 	if (!MountId.IsNone() && LoadoutComponent)
 	{
@@ -660,36 +658,22 @@ void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 		const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
 		if (MountDataTable)
 		{
-			const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount"));
-			if (Row)
+			if (const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount")))
 			{
-				MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
-				MountMesh->SetAnimInstanceClass(Row->MountAnimClass);
+				MountSkeletalMesh = Row->MountMesh.LoadSynchronous();
+				MountAnimClass = Row->MountAnimClass;
 				RiderSequence = Row->RiderPose.LoadSynchronous();
 			}
-			else
-			{
-				MountMesh->SetSkeletalMesh(nullptr);
-				MountMesh->SetAnimInstanceClass(nullptr);
-			}
-		}
-		else
-		{
-			MountMesh->SetSkeletalMesh(nullptr);
-			MountMesh->SetAnimInstanceClass(nullptr);
 		}
 	}
-	else
-	{
-		MountMesh->SetSkeletalMesh(nullptr);
-		MountMesh->SetAnimInstanceClass(nullptr);
-	}
+
+	MountMesh->SetSkeletalMesh(MountSkeletalMesh);
+	MountMesh->SetAnimInstanceClass(MountAnimClass);
 
 	if (UMAAnimInstance* MAAnim = Cast<UMAAnimInstance>(GetMesh() ? GetMesh()->GetAnimInstance() : nullptr))
 	{
 		MAAnim->SetCurrentRideSequence(RiderSequence);
 	}
-
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
@@ -770,6 +754,7 @@ void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
 {
+	if (IsInputBlocked()) return;
 	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
 	InventoryComponent->TryActivateItemInSlot(Value-1);
 }

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,7 +5,6 @@
 #include "DebugShapeHelper.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GenericTeamAgentInterface.h"
-#include "VirtualSocketTargetData.h"
 
 #include "MAGameplayAbility.generated.h"
 
@@ -20,9 +17,6 @@ enum class ETraceObjectType : uint8
 	Line
 };
 
-/**
- * 
- */
 UCLASS()
 class UMAGameplayAbility : public UGameplayAbility
 {
@@ -30,13 +24,13 @@ class UMAGameplayAbility : public UGameplayAbility
 public:
 	UMAGameplayAbility();
 	
-	class UAnimInstance* GetOwnerAnimInstance() const;
+	UAnimInstance* GetOwnerAnimInstance() const;
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle);
 	TArray<FHitResult> GetHitResultFromVirtualSocketTargetData(const FGameplayAbilityTargetDataHandle& Handle, int32 OverrideTargetRelationMask);
 	FGameplayEffectSpecHandle MakeDamageEffectSpec(
 		TSubclassOf<UGameplayEffect> GameplayEffect,
 		int32 Level = 1,
-		const struct FMADamageExecutionConfig* DamageConfig = nullptr);
+		const FMADamageExecutionConfig* DamageConfig = nullptr);
 	void ApplyGameplayEffectSpecToHitResultActor(
 		const FHitResult& HitResult,
 		const FGameplayEffectSpecHandle& EffectSpecHandle);
@@ -44,7 +38,7 @@ public:
 		const FHitResult& HitResult,
 		TSubclassOf<UGameplayEffect> GameplayEffect,
 		int Level = 1,
-		const struct FMADamageExecutionConfig* DamageConfig = nullptr);
+		const FMADamageExecutionConfig* DamageConfig = nullptr);
 protected:
 	TArray<FHitResult> GetHitResultFromSweepLocationTargetData(
 		const FGameplayAbilityTargetDataHandle& TargetDataHandle,
@@ -80,5 +74,5 @@ private:
 	//==============================================================//
 
 	UPROPERTY()
-	class ACharacter* AvatarCharacter;
+	ACharacter* AvatarCharacter;
 };

@@ -1,13 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystemInterface.h"
-#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayTagsManager.h"
-#include "MAAbilitySystemComponent.h"
 #include "MAGameplayAbilityTypes.h"
 #include "Ability/MAGameplayAbility_Skill.h"
 #include "Setting/MASkillSubsystem.h"
@@ -32,9 +26,9 @@ FGameplayTag UMAAbilitySystemStatics::GetRotationLockTag()
 	return FGameplayTag::RequestGameplayTag("State.RotationLock");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
+FGameplayTag UMAAbilitySystemStatics::GetInputBlockTag()
 {
-	return FGameplayTag::RequestGameplayTag("State.Rushing");
+	return FGameplayTag::RequestGameplayTag("State.InputBlocked");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -84,13 +82,13 @@ private:
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
 
 	UPROPERTY()
-	class UMAGameplayWidget* GameplayWidget;
+	UMAGameplayWidget* GameplayWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UInBattleStageWidget> InBattleStageWidgetClass;
 
 	UPROPERTY()
-	class UInBattleStageWidget* InBattleStageWidget;
+	UInBattleStageWidget* InBattleStageWidget;
 
 	FTimerHandle InBattleStageWidgetTimer;
 
@@ -101,13 +99,13 @@ private:
 	FGenericTeamId TeamID;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputMappingContext* UIInputMapping;
+	UInputMappingContext* UIInputMapping;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* ShopToggleInputAction;
+	UInputAction* ShopToggleInputAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* SkillBookToggleInputAction;
+	UInputAction* SkillBookToggleInputAction;
 
 	UFUNCTION()
 	void ToggleShop();
@@ -117,8 +115,8 @@ private:
 
 	/** Camera Shake **/
 	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<class UCameraShakeBase> RegularCameraShake;
+	TSubclassOf<UCameraShakeBase> RegularCameraShake;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<class UCameraShakeBase> CriticalCameraShake;
+	TSubclassOf<UCameraShakeBase> CriticalCameraShake;
 };

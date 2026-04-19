@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,18 +11,15 @@ GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
-/**
- * 
- */
 UCLASS()
 class UMAAttributeSet : public UAttributeSet
 {
 	GENERATED_BODY()
 
 public:
-	virtual void GetLifetimeReplicatedProps(TArray< class FLifetimeProperty >& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
-	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data) override;
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData &Data) override;
 	
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Health)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MaxHealth)
@@ -38,7 +33,6 @@ public:
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MaxFury)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, CriticalChance)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, CriticalDamage)
-
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Health)			FGameplayAttributeData Health;

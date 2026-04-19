@@ -42,10 +42,7 @@ struct FSkillRuntimeContext
 	FResolvedSkillHitEffects BuildResolvedHitEffects(const FMASkillDamageConfig& BaseDamageConfig) const;
 	void ApplyResolvedHitEffectsToHitResult(const FHitResult& HitResult, const FResolvedSkillHitEffects& ResolvedHitEffects, const FVector& CenterSourcePoint) const;
 
-	void ClearIgnoredActors()
-	{
-		IgnoredActors.Reset();
-	}
+	void ClearIgnoredActors() { IgnoredActors.Reset(); }
 
 	bool IsIgnoredActor(const AActor* Actor) const
 	{

@@ -1,11 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Inventory/InventoryItem.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAAttributeSet.h"
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 #include "GAS/Modules/MASkillModuleData.h"
 

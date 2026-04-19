@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "LobbyGameState.h"
 #include "LobbyAvatarSlot.h"
 #include "Player/MAPlayerState.h"
@@ -230,10 +228,7 @@ int32 ALobbyGameState::GetDesiredSlotCount() const
 
 void ALobbyGameState::EnsureSlotStorageSize(int32 DesiredCount)
 {
-	if (DesiredCount <= 0)
-	{
-		return;
-	}
+	if (DesiredCount <= 0) return;
 
 	if (AvatarSlots.Num() < DesiredCount)
 	{

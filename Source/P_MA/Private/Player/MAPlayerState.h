@@ -1,6 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
@@ -39,7 +37,6 @@ public:
 	void SetLobbySlotIndex(int32 Index);
 	int32 GetLobbySlotIndex() const { return LobbySlotIndex; }
 
-
 	FOnLoadoutChanged OnLoadoutChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -68,5 +65,4 @@ private:
 
 	UFUNCTION()
 	void OnRep_LobbySlotIndex();
-
 };

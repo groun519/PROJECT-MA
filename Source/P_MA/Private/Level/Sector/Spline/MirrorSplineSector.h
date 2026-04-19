@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,10 +12,10 @@ class P_MA_API AMirrorSplineSector : public ASplineSector
 {
 	GENERATED_BODY()
 
-public:
-	AMirrorSplineSector();
-
+protected:
 	virtual void BeginPlay() override;
+	
+public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetRandomSeed(int32 MaxValue = INT32_MAX) override;
 

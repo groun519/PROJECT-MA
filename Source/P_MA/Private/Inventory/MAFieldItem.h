@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -41,11 +39,11 @@ public:
 	FName ItemRowName;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MA|Item")
-	class UDataTable* ItemDataTable;
+	UDataTable* ItemDataTable;
 
 	void SetToolTipVisible(bool bVisible);
 
-	class UWidgetComponent* GetToolTipWidgetComp() const { return ToolTipWidgetComp; }
+	UWidgetComponent* GetToolTipWidgetComp() const { return ToolTipWidgetComp; }
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "MA|Component")
@@ -55,5 +53,5 @@ private:
 	UWidgetComponent* ToolTipWidgetComp;
 
 	UPROPERTY(VisibleAnywhere, Category = "MA|Component")
-	class UWidgetComponent* InteractWidgetComp;
+	UWidgetComponent* InteractWidgetComp;
 };

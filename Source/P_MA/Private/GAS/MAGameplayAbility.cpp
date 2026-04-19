@@ -4,10 +4,8 @@
 #include "GAS/MAGameplayAbility.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
-
 #include "DebugShapeHelper.h"
 #include "Engine/OverlapResult.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -19,9 +17,10 @@
 UMAGameplayAbility::UMAGameplayAbility()
 {
 	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetAbilityBlockTag());
+	ActivationBlockedTags.AddTag(UMAAbilitySystemStatics::GetInputBlockTag());
 }
 
-class UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
+UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 {
 	USkeletalMeshComponent* OwnerSkeletalMeshComp = GetOwningComponentFromActorInfo();
 	if (OwnerSkeletalMeshComp)

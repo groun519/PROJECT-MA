@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "MAPlayerState.h"
+
 #include "Net/UnrealNetwork.h"
 #include "Framework/MAGameInstance.h"
 
@@ -59,7 +58,6 @@ void AMAPlayerState::SetLobbySlotIndex(int32 Index)
 	LobbySlotIndex = Index;
 }
 
-
 void AMAPlayerState::OnRep_DefaultSkill()
 {
 }
@@ -80,7 +78,6 @@ void AMAPlayerState::OnRep_LoadingComplete()
 void AMAPlayerState::OnRep_LobbySlotIndex()
 {
 }
-
 
 void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {

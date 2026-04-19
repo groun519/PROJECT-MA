@@ -3,9 +3,14 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-void UMASkillFlowPart_Charge::StartFlow(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode)
+UMASkillFlowPart_Charge::UMASkillFlowPart_Charge()
 {
-	Super::StartFlow(SkillAbility, StartMode);
+	FlowProgressSettings.bShowProgress = true;
+	FlowProgressSettings.Label = FText::FromString(TEXT("Charge"));
+}
+
+void UMASkillFlowPart_Charge::OnTimedFlowStarted(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode)
+{
 	if (!SkillAbility) return;
 
 	ChargeStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : -1.f;
@@ -16,33 +21,21 @@ void UMASkillFlowPart_Charge::StartFlow(UMASkillAbility* SkillAbility, EMASkillF
 	}
 
 	ArmInputRelease();
-	StartChargeDurationTimer();
 }
 
-void UMASkillFlowPart_Charge::StopFlow()
+void UMASkillFlowPart_Charge::OnTimedFlowStopped()
 {
 	StopWaitingInputRelease();
-	StopChargeDurationTimer();
 	ChargeStartTime = -1.f;
-
-	Super::StopFlow();
 }
 
 void UMASkillFlowPart_Charge::HandleInputReleased(float /*TimeHeld*/)
 {
 	StopWaitingInputRelease();
-	StopChargeDurationTimer();
+	StopTimedFlow();
 	CommitChargePayload();
-
-	ActivateNextFlow();
-}
-
-void UMASkillFlowPart_Charge::HandleChargeDurationElapsed()
-{
-	StopWaitingInputRelease();
-	StopChargeDurationTimer();
-	CommitChargePayload();
-	ActivateNextFlow();
+	ChargeStartTime = -1.f;
+	AdvanceOrCompleteOwnerFlow();
 }
 
 void UMASkillFlowPart_Charge::ArmInputRelease()
@@ -63,27 +56,11 @@ void UMASkillFlowPart_Charge::StopWaitingInputRelease()
 	InputReleaseTask = nullptr;
 }
 
-void UMASkillFlowPart_Charge::StartChargeDurationTimer()
+void UMASkillFlowPart_Charge::OnTimedFlowElapsed()
 {
-	if (ChargeDuration <= 0.f) return;
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			ChargeDurationTimerHandle,
-			this,
-			&UMASkillFlowPart_Charge::HandleChargeDurationElapsed,
-			ChargeDuration,
-			false);
-	}
-}
-
-void UMASkillFlowPart_Charge::StopChargeDurationTimer()
-{
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(ChargeDurationTimerHandle);
-	}
+	StopWaitingInputRelease();
+	CommitChargePayload();
+	AdvanceOrCompleteOwnerFlow();
 }
 
 void UMASkillFlowPart_Charge::CommitChargePayload() const
@@ -94,17 +71,6 @@ void UMASkillFlowPart_Charge::CommitChargePayload() const
 	SkillAbility->GetPayloadStore().SetScalar(
 		FGameplayTag::RequestGameplayTag(TEXT("Data.Skill.Payload.Scalar.ChargeRatio")),
 		ResolveChargeRatio());
-}
-
-void UMASkillFlowPart_Charge::ActivateNextFlow()
-{
-	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
-	if (!SkillAbility) return;
-
-	if (!SkillAbility->ActivatePreparedNextFlow())
-	{
-		SkillAbility->CompleteCurrentFlow();
-	}
 }
 
 float UMASkillFlowPart_Charge::ResolveChargeRatio() const

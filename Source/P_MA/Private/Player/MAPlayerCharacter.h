@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -23,13 +21,6 @@ class AMAPlayerState;
 class UPlayerCameraManagerComponent;
 class UMASkillAbility;
 
-// 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMAChargeAbilityUpdate, float, ChargePercentage);
-
-/**
- * 
- */
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
 {
@@ -60,12 +51,6 @@ public:
 	void SetUtility(const FString& SkillClassName, const FString& UtilityName);
 	UFUNCTION(Server, Reliable)
 	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RotationLockTag;
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RushingTag;
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
@@ -157,6 +142,7 @@ public:
 	void UpdateRotationByReadyRide(float DeltaTime);
 	void TrySendRotationToServer(const FVector& LookDirection);
 	bool IsRotationBlocked() const;
+	bool IsInputBlocked() const;
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SetRotation(FVector LookDirection);
@@ -200,7 +186,7 @@ public:
 	float DeadColorSaturationScale = 0.25f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<class UNiagaraSystem> RespawnVFX = nullptr;
+	TObjectPtr<UNiagaraSystem> RespawnVFX = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
@@ -234,16 +220,5 @@ public:
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 	
-	/** Skill **/
-	// Charge스킬을 위한 코드
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityStarted;
-
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityUpdate OnChargeAbilityUpdate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
-	// 여기까지
 
 };

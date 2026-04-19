@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Player/Components/PlayerCameraManagerComponent.h"
+
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
@@ -40,10 +39,7 @@ void UPlayerCameraManagerComponent::TickComponent(float DeltaTime, ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!bTransitionActive || !CameraBoom)
-	{
-		return;
-	}
+	if (!bTransitionActive || !CameraBoom) return;
 
 	UpdateTransition(DeltaTime);
 }
@@ -54,37 +50,15 @@ void UPlayerCameraManagerComponent::Initialize(USpringArmComponent* InCameraBoom
 	Camera = InCamera;
 }
 
-void UPlayerCameraManagerComponent::CacheReadySettingsFromCurrent()
-{
-	if (!CameraBoom) return;
-
-	ReadySettings.TargetArmLength = CameraBoom->TargetArmLength;
-	ReadySettings.BoomPitch = CameraBoom->GetRelativeRotation().Pitch;
-	ReadySettings.TargetOffset = CameraBoom->TargetOffset;
-	bReadySettingsCached = true;
-}
-
-void UPlayerCameraManagerComponent::CacheNotReadySettingsFromCurrent()
-{
-	if (!CameraBoom) return;
-
-	NotReadySettings.TargetArmLength = CameraBoom->TargetArmLength;
-	NotReadySettings.BoomPitch = CameraBoom->GetRelativeRotation().Pitch;
-	NotReadySettings.TargetOffset = CameraBoom->TargetOffset;
-	bNotReadySettingsCached = true;
-}
-
 void UPlayerCameraManagerComponent::ApplyReadySettings()
 {
 	if (!CameraBoom) return;
-
 	StartTransition(ReadySettings);
 }
 
 void UPlayerCameraManagerComponent::ApplyNotReadySettings()
 {
 	if (!CameraBoom) return;
-
 	StartTransition(NotReadySettings);
 }
 

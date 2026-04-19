@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Player/Components/MAPlayerCharacterMovementComponent.h"
 
 #include "GameFramework/Character.h"
@@ -61,15 +59,8 @@ void UMAPlayerCharacterMovementComponent::PhysCustom(float DeltaTime, int32 Iter
 
 void UMAPlayerCharacterMovementComponent::PhysRide(float DeltaTime, int32 Iterations)
 {
-	if (DeltaTime < MIN_TICK_TIME)
-	{
-		return;
-	}
-
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return;
-	}
+	if (DeltaTime < MIN_TICK_TIME) return;
+	if (!CharacterOwner || !UpdatedComponent) return;
 
 	// Mounted simulated proxies should follow replicated base/root updates only.
 	// Running local ride physics here double-applies movement and causes remote drift.

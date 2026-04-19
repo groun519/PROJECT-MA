@@ -1,10 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
-#include "GameplayTagContainer.h"
 #include "MAItemTypes.generated.h"
 
 class UGameplayAbility;
@@ -26,15 +23,11 @@ enum class EMAItemType : uint8
 	Etc        UMETA(DisplayName = "Etc")
 };
 
-/**
- * 
- */
 USTRUCT(BlueprintType)
 struct FBaseItemData : public FTableRowBase
 {
 	GENERATED_BODY()
 
-public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Base")
 	EMAItemType ItemType = EMAItemType::None; 
 
@@ -51,9 +44,6 @@ public:
 	float Price = 0.0f;
 };
 
-/**
- * 
- */
 USTRUCT(BlueprintType)
 struct FConsumableItemData : public FBaseItemData
 {
@@ -73,14 +63,11 @@ public:
 	TArray<TSubclassOf<UGameplayEffect>> ConsumeEffects; 
 };
 
-/**
- * */
 USTRUCT(BlueprintType)
 struct FEquipmentItemData : public FBaseItemData
 {
 	GENERATED_BODY()
 
-public:
 	FEquipmentItemData()
 	{
 		ItemType = EMAItemType::Equipment;
@@ -91,15 +78,11 @@ public:
 	TArray<TSubclassOf<UGameplayEffect>> EquipEffects; 
 };
 
-/**
- * 
- */
 USTRUCT(BlueprintType)
 struct FSkillItemData : public FBaseItemData
 {
 	GENERATED_BODY()
 
-public:
 	FSkillItemData()
 	{
 		ItemType = EMAItemType::Skill;
@@ -110,5 +93,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill", meta=(MultiLine=true))
 	FText SkillDescription;
-	
 };

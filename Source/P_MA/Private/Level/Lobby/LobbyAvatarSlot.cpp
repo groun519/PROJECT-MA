@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "LobbyAvatarSlot.h"
+
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/WidgetComponent.h"
@@ -290,11 +289,8 @@ void ALobbyAvatarSlot::ApplyLoadoutWeaponId(FName WeaponId)
 		ResolvedWeaponDataTable = LoadoutDataSet->WeaponDataTable;
 	}
 
-	if (!ResolvedWeaponDataTable)
-	{
-		// Keep current preview mesh if no table is assigned.
-		return;
-	}
+	// Keep current preview mesh if no table is assigned.
+	if (!ResolvedWeaponDataTable) return;
 
 	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LobbyAvatarSlot"));
 	if (!Row)

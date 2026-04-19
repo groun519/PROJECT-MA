@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "SplineSectorManager.h"
+
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
@@ -86,11 +84,11 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 		CurSectorIndex = 0;
 		SetSectorsByState(NewState);
 		
-	if (CachedRideRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
-	{
-		USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
-		if (IsValid(CurSpline)) CachedRideRoot->SetCurSpline(CurSpline);
-	}
+		if (CachedRideRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
+		{
+			USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
+			if (IsValid(CurSpline)) CachedRideRoot->SetCurSpline(CurSpline);
+		}
 	}
 
 	// 스테이트 캐시
@@ -152,14 +150,9 @@ void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 Tot
 int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 {
 	int32 LastSectorIndex = CurSectors.Num() - 1;
-	if (InSectorIndex == LastSectorIndex)
-	{
-		return 0;
-	}
-	else
-	{
-		return InSectorIndex + 1;
-	}
+	if (InSectorIndex == LastSectorIndex) return 0;
+	
+	return InSectorIndex + 1;
 }
 
 EMASectorState ASplineSectorManager::GetMASectorState() const
