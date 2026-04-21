@@ -54,15 +54,9 @@ void UMASkillStep_Timed::OnTimedStepElapsed()
 
 void UMASkillStep_Timed::AdvanceOrCompleteOwnerStep()
 {
-	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
-	if (!SkillAbility)
+	if (!ActivatePreparedNextStepPreview())
 	{
-		return;
-	}
-
-	if (!SkillAbility->ActivatePreparedNextStep())
-	{
-		SkillAbility->CompleteCurrentStep();
+		CompleteOrEndOwnerStep();
 	}
 }
 

@@ -17,7 +17,7 @@ void UMASkillStep_Charge::OnTimedStepStarted(UMASkillAbility* SkillAbility, EMAS
 
 	if (StartMode == EMASkillStepStartMode::Fresh)
 	{
-		SkillAbility->PrepareNextStepMontage(ChargeDuration);
+		PrepareNextStepPreview(ChargeDuration);
 	}
 
 	ArmInputRelease();

@@ -26,7 +26,7 @@ public:
 	virtual void StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode) override;
 	virtual void StopStep() override;
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const override;
-	bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const;
+	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const override;
 
 protected:
 	virtual float GetStepDuration() const PURE_VIRTUAL(UMASkillStep_Timed::GetStepDuration, return 0.f;);

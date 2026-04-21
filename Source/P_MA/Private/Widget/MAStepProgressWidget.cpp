@@ -5,7 +5,6 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Step/MASkillStep_Timed.h"
 
 void UMAStepProgressWidget::NativeConstruct()
 {
@@ -53,13 +52,10 @@ void UMAStepProgressWidget::RefreshFromOwner()
 			UMASkillAbility* SkillAbility = Cast<UMASkillAbility>(AbilityInstance);
 			if (!SkillAbility) continue;
 
-			const UMASkillStep_Timed* TimedStep = Cast<UMASkillStep_Timed>(SkillAbility->GetCurrentRuntimeSkillStep());
-			if (!TimedStep) continue;
-
 			FText StepLabel;
 			float StepDuration = 0.f;
 			float StepRemainingDuration = 0.f;
-			if (TimedStep->GetStepProgressInfo(StepLabel, StepDuration, StepRemainingDuration))
+			if (SkillAbility->GetSkillProgressInfo(StepLabel, StepDuration, StepRemainingDuration))
 			{
 				SetStepProgress(StepLabel, StepDuration, StepRemainingDuration);
 				return;

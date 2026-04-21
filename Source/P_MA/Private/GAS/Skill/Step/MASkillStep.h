@@ -7,6 +7,9 @@
 
 class UAnimMontage;
 class UMASkillAbility;
+class UMASkillDefinition;
+class UAnimInstance;
+class UAbilityTask_PlayMontageAndWait;
 struct FGameplayEventData;
 
 UENUM()
@@ -31,26 +34,58 @@ public:
 	}
 
 	virtual void StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode);
+	void EnterStep(EMASkillStepStartMode StartMode)
+	{
+		StartStep(GetOwnerSkillAbility(), StartMode);
+		if (StartMode != EMASkillStepStartMode::Prepared)
+		{
+			StartCurrentStepMontage();
+		}
+	}
 
-	virtual void StopStep();
+	void StopActiveStep(float MontageBlendOutTime = 0.f)
+	{
+		StopStep();
+		ClearCurrentMontageTask();
+		StopCurrentStepMontage(MontageBlendOutTime);
+		ClearPreparedStepPreview();
+	}
+
+	void ApplyDesiredMontagePlayRate(float DesiredMontagePlayRate) const
+	{
+		UAnimInstance* AnimInstance = nullptr;
+		UAnimMontage* CurrentStepMontage = nullptr;
+		if (!TryResolveStepMontageContext(AnimInstance, CurrentStepMontage) || !AnimInstance->Montage_IsPlaying(CurrentStepMontage))
+		{
+			return;
+		}
+
+		AnimInstance->Montage_SetPlayRate(CurrentStepMontage, DesiredMontagePlayRate);
+	}
+
+	virtual void StopStep() {}
+	virtual void HandleStepMontageCancelled();
+	virtual void HandleStepMontageCompleted();
+	virtual void HandleStepMontageInterrupted() { HandleStepMontageCancelled(); }
 
 	virtual UAnimMontage* ResolveStepMontage() const { return StepMontage; }
 	virtual FName ResolveStepStartSectionName() const;
 	virtual FName ResolvePreparedStepStartSectionName() const;
-	int32 GetStepIndex() const { return StepIndex; }
-	int32 GetNextStepIndex() const { return NextStepIndex; }
-	int32 GetNextMontageStepIndex() const { return NextMontageStepIndex; }
+	bool PrepareNextStepPreview(float PreviewBlendInTime);
+	bool ActivatePreparedNextStepPreview();
+	void ClearPreparedStepPreview(float BlendOutTime = 0.f);
+	void ReleasePreparedCurrentStepState();
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
+	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const { return false; }
 	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const {}
 	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) {}
-	static void CreateRuntimeSteps(UMASkillAbility* SkillAbility,
-		const TArray<TObjectPtr<UMASkillStep>>& StepTemplates,
-		TArray<TObjectPtr<UMASkillStep>>& OutRuntimeSkillSteps);
-	static void CollectCurrentRequiredStepEventTags(const TArray<TObjectPtr<UMASkillStep>>& RuntimeSkillSteps,
-		int32 CurrentStepIndex, TSet<FGameplayTag>& OutTags);
 
 protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
+	UMASkillDefinition* GetOwnerSkillDefinition() const;
+	bool UsesStepSections() const { return !SequenceSectionNameBase.IsNone(); }
+	void CompleteOrEndOwnerStep(float MontageBlendOutTime = 0.f);
+	UAnimInstance* ResolveOwnerAnimInstance() const;
 
 	UPROPERTY(EditDefaultsOnly, Category="Step")
 	TObjectPtr<UAnimMontage> StepMontage;
@@ -77,6 +112,42 @@ protected:
 	UPROPERTY(Transient)
 	int32 RuntimeSequenceSectionIndex = 0;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> PreparedStepPreviewMontage;
+
+	UPROPERTY(Transient)
+	bool bPreparedStepPreviewActivated = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
+
+	int32 ResolveCurrentSequenceSectionIndex() const;
 	int32 ResolveNextSequenceSectionIndex() const;
 	FName MakeSequenceSectionName(int32 SectionIndex) const;
+	UMASkillStep* ResolveNextMontageRuntimeStep() const;
+	bool TransitionOwnerDefinitionStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime);
+	void StopCurrentOwnerDefinitionStep(float MontageBlendOutTime);
+	bool PrepareStepPreview(float PreviewBlendInTime);
+	bool ActivatePreparedStepPreview();
+	bool TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutStepMontage) const;
+	void StartCurrentStepMontage();
+	void ClearCurrentMontageTask();
+	void StopCurrentStepMontage(float MontageBlendOutTime = 0.f);
+	UAnimMontage* ReleasePreparedStepPreview(bool bKeepAnimationOwnerRegistration);
+	void FinalizePreparedStepPreview(UAnimMontage* Montage, bool bInterrupted);
+	void BindPreparedStepPreviewDelegates(UAnimMontage* Montage);
+	void ClearPreparedStepPreviewDelegates(UAnimMontage* Montage);
+	void ResetPreparedStepPreviewState();
+
+	UFUNCTION()
+	void HandleCurrentStepMontageCompletedTask();
+
+	UFUNCTION()
+	void HandleCurrentStepMontageFailedTask();
+
+	UFUNCTION()
+	void HandlePreparedStepPreviewBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void HandlePreparedStepPreviewEnded(UAnimMontage* Montage, bool bInterrupted);
 };
