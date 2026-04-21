@@ -10,7 +10,10 @@
 #include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
 #include "GenericTeamAgentInterface.h"
+#include "GameplayEffectTypes.h"
 #include "MASkillDamageConfig.generated.h"
+
+class UMASkillAbility;
 
 UENUM(BlueprintType)
 enum class EMASkillTargetRelationMergeOp : uint8
@@ -108,3 +111,23 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 		return Result;
 	}
 };
+
+USTRUCT()
+struct P_MA_API FResolvedSkillHitEffects
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	int32 TargetRelationMask = MATargetRelation::ToMask(EMATargetRelation::None);
+
+	UPROPERTY(Transient)
+	FGameplayEffectSpecHandle DamageSpec;
+
+	UPROPERTY(Transient)
+	TArray<FResolvedCrowdControlEffect> CrowdControlEffects;
+};
+
+namespace MASkillResolvedHitEffects
+{
+	P_MA_API FResolvedSkillHitEffects BuildResolvedHitEffects(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig);
+}

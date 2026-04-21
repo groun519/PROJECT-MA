@@ -28,7 +28,6 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	PayloadStore.Reset();
 	GetSkillDefinition()->ApplyPayloadsTo(PayloadStore);
-	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
 	RuntimeSkillDefinition->ActivateSkill(this);
 	RegisterCancelTriggers();
@@ -53,7 +52,6 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 
-	RuntimeContext.Reset();
 	PayloadStore.Reset();
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -62,13 +60,6 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 const UMASkillDefinition* UMASkillAbility::GetSkillDefinition() const
 {
 	return RuntimeSkillDefinition ? RuntimeSkillDefinition : SkillDefinition;
-}
-
-void UMASkillAbility::HandleSkillTagEvent(const FGameplayTag& EventTag)
-{
-	if (!RuntimeSkillDefinition) return;
-
-	RuntimeSkillDefinition->HandleSkillTagEvent(EventTag, RuntimeContext, PayloadStore);
 }
 
 const FGameplayTag& UMASkillAbility::GetElementalTag() const

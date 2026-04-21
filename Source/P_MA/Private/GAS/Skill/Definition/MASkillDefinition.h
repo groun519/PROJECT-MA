@@ -12,7 +12,6 @@ class UAbilityTask_WaitGameplayEvent;
 class UMASkillAbility;
 class UMASkillEventSource;
 struct FMASkillPayloadStore;
-struct FSkillRuntimeContext;
 class UMASkillAction;
 struct FGameplayEventData;
 
@@ -27,24 +26,16 @@ public:
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	void ActivateSkill(UMASkillAbility* SkillAbility);
 	void DeactivateSkill();
-	void HandleSkillTagEvent(const FGameplayTag& EventTag, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore);
-	void HandleSkillGameplayEvent(FGameplayEventData Payload, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore);
+	void HandleSkillGameplayEvent(FGameplayEventData Payload);
 	void ApplyDesiredMontagePlayRate(float DesiredMontagePlayRate) const;
 	bool GetSkillProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const;
+	void ResetActionRuntimeStates();
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
 	{
 		for (const FMASkillPayloadEntry& PayloadEntry : Payloads)
 		{
 			PayloadEntry.ApplyTo(PayloadStore);
-		}
-	}
-
-	void CollectEventActions(TSet<FGameplayTag>& RequiredEventTags, TMap<FGameplayTag, TArray<TObjectPtr<UMASkillAction>>>& ActionsByEvent) const
-	{
-		for (const FMASkillGameplayEventPart& EventPart : EventParts)
-		{
-			EventPart.ContributeTo(RequiredEventTags, ActionsByEvent);
 		}
 	}
 

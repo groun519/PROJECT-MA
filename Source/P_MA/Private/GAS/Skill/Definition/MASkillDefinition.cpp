@@ -67,16 +67,7 @@ void UMASkillDefinition::DeactivateSkill()
 	OwnerSkillAbility = nullptr;
 }
 
-void UMASkillDefinition::HandleSkillTagEvent(const FGameplayTag& EventTag, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore)
-{
-	if (!EventTag.IsValid()) return;
-
-	FGameplayEventData Payload;
-	Payload.EventTag = EventTag;
-	HandleSkillGameplayEvent(Payload, RuntimeContext, PayloadStore);
-}
-
-void UMASkillDefinition::HandleSkillGameplayEvent(FGameplayEventData Payload, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore)
+void UMASkillDefinition::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
 	if (UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
@@ -90,7 +81,7 @@ void UMASkillDefinition::HandleSkillGameplayEvent(FGameplayEventData Payload, FS
 		for (UMASkillAction* Action : *ResolvedActions)
 		{
 			if (!Action) continue;
-			Action->Execute(*OwnerSkillAbility, RuntimeContext, PayloadStore, Payload);
+			Action->Execute(*OwnerSkillAbility, Payload);
 		}
 	}
 }
@@ -113,6 +104,17 @@ bool UMASkillDefinition::GetSkillProgressInfo(FText& OutLabel, float& OutDuratio
 	return false;
 }
 
+void UMASkillDefinition::ResetActionRuntimeStates()
+{
+	for (const FMASkillGameplayEventPart& EventPart : EventParts)
+	{
+		if (EventPart.Action)
+		{
+			EventPart.Action->ResetRuntimeState();
+		}
+	}
+}
+
 void UMASkillDefinition::InitializeRuntimeState(UMASkillAbility* SkillAbility)
 {
 	if (!SkillAbility || bRuntimeInitialized) return;
@@ -127,7 +129,11 @@ void UMASkillDefinition::InitializeRuntimeState(UMASkillAbility* SkillAbility)
 		RuntimeStep->InitializeStep(SkillAbility, StepIndex, NextStepIndex, NextMontageStepIndex);
 	}
 
-	CollectEventActions(ResolvedRequiredEventTags, ResolvedActionsByEvent);
+	for (const FMASkillGameplayEventPart& EventPart : EventParts)
+	{
+		EventPart.ContributeTo(ResolvedRequiredEventTags, ResolvedActionsByEvent);
+	}
+
 	bRuntimeInitialized = true;
 }
 
@@ -198,5 +204,5 @@ void UMASkillDefinition::HandleBoundGameplayEvent(FGameplayEventData Payload)
 {
 	if (!OwnerSkillAbility) return;
 
-	HandleSkillGameplayEvent(Payload, OwnerSkillAbility->GetRuntimeContext(), OwnerSkillAbility->GetPayloadStore());
+	HandleSkillGameplayEvent(Payload);
 }

@@ -1,11 +1,10 @@
 #include "GAS/Skill/Action/MASkillAction_ClearIgnoredActors.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
-#include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 
-void UMASkillAction_ClearIgnoredActors::Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore, const FGameplayEventData& Payload)
+void UMASkillAction_ClearIgnoredActors::Execute(UMASkillAbility&, const FGameplayEventData&)
 {
-	(void)OwnerAbility;
-	(void)PayloadStore;
-	(void)Payload;
-	RuntimeContext.ClearIgnoredActors();
+	if (UMASkillDefinition* SkillDefinition = GetTypedOuter<UMASkillDefinition>())
+	{
+		SkillDefinition->ResetActionRuntimeStates();
+	}
 }

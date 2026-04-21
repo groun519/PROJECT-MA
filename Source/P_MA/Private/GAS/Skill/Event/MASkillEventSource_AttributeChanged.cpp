@@ -4,15 +4,12 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameplayTagsManager.h"
 
-namespace
+static FGameplayTag BuildAttributeChangedEventTag(const FGameplayAttribute& Attribute)
 {
-	FGameplayTag BuildAttributeChangedEventTag(const FGameplayAttribute& Attribute)
-	{
-		if (!Attribute.IsValid()) return FGameplayTag();
+	if (!Attribute.IsValid()) return FGameplayTag();
 
-		const FString TagString = FString::Printf(TEXT("Event.Attribute.%s.Changed"), *Attribute.GetName());
-		return UGameplayTagsManager::Get().RequestGameplayTag(FName(*TagString), false);
-	}
+	const FString TagString = FString::Printf(TEXT("Event.Attribute.%s.Changed"), *Attribute.GetName());
+	return UGameplayTagsManager::Get().RequestGameplayTag(FName(*TagString), false);
 }
 
 UMASkillEventSource_AttributeChanged::UMASkillEventSource_AttributeChanged()

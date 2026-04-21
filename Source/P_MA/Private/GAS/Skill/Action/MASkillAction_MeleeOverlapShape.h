@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAction_MeleeOverlapShape.generated.h"
 
+class AActor;
+
 USTRUCT(BlueprintType)
 struct FMASkillActionConfig_MeleeOverlapShape
 {
@@ -45,7 +47,8 @@ class P_MA_API UMASkillAction_MeleeOverlapShape : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, FSkillRuntimeContext& RuntimeContext, FMASkillPayloadStore& PayloadStore, const FGameplayEventData& Payload) override;
+	virtual void ResetRuntimeState() override { IgnoredActors.Reset(); }
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Action")
@@ -53,4 +56,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Damage"))
 	FGameplayTag DamagePayloadTag;
+
+	UPROPERTY(Transient)
+	TSet<TWeakObjectPtr<AActor>> IgnoredActors;
 };

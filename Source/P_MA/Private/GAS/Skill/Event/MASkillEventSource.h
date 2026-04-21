@@ -16,8 +16,6 @@ public:
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() { OwnerSkillAbility = nullptr; }
 
-	const FGameplayTag& GetEmittedTag() const { return EmittedTag; }
-
 protected:
 	void EmitEvent() const;
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }

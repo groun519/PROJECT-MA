@@ -8,7 +8,7 @@ struct FHitResult;
 struct FMASkillDamageConfig;
 struct FMASkillPayloadStore;
 struct FResolvedSkillHitEffects;
-struct FSkillRuntimeContext;
+class AActor;
 class UMASkillAbility;
 
 namespace MASkillActionMeleeOverlap
@@ -22,7 +22,8 @@ namespace MASkillActionMeleeOverlap
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload);
 	P_MA_API void ApplyHitResults(
-		FSkillRuntimeContext& RuntimeContext,
+		UMASkillAbility& OwnerAbility,
+		TSet<TWeakObjectPtr<AActor>>& IgnoredActors,
 		const TArray<FHitResult>& HitResults,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
 		const FVector& CrowdControlCenterPoint);

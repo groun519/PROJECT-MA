@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
-#include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
@@ -24,16 +23,11 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-	void HandleSkillTagEvent(const FGameplayTag& EventTag);
-
-	const UMASkillDefinition* GetSkillDefinition() const;
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
 	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
-	FSkillRuntimeContext& GetRuntimeContext() { return RuntimeContext; }
-	const FSkillRuntimeContext& GetRuntimeContext() const { return RuntimeContext; }
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	bool GetSkillProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const;
@@ -56,14 +50,11 @@ protected:
 	FGameplayTagContainer CancelTriggerTags;
 
 private:
+	const UMASkillDefinition* GetSkillDefinition() const;
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
 	void CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo);
-
-	/** RuntimeContext **/
-	UPROPERTY(Transient)
-	FSkillRuntimeContext RuntimeContext;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillDefinition> RuntimeSkillDefinition;

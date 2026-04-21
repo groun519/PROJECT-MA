@@ -74,7 +74,6 @@ public:
 	bool PrepareNextStepPreview(float PreviewBlendInTime);
 	bool ActivatePreparedNextStepPreview();
 	void ClearPreparedStepPreview(float BlendOutTime = 0.f);
-	void ReleasePreparedCurrentStepState();
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
 	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const { return false; }
 	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const {}
@@ -137,7 +136,6 @@ protected:
 	void FinalizePreparedStepPreview(UAnimMontage* Montage, bool bInterrupted);
 	void BindPreparedStepPreviewDelegates(UAnimMontage* Montage);
 	void ClearPreparedStepPreviewDelegates(UAnimMontage* Montage);
-	void ResetPreparedStepPreviewState();
 
 	UFUNCTION()
 	void HandleCurrentStepMontageCompletedTask();

@@ -139,11 +139,6 @@ void UMASkillStep::ClearPreparedStepPreview(float BlendOutTime)
 	}
 }
 
-void UMASkillStep::ReleasePreparedCurrentStepState()
-{
-	ReleasePreparedStepPreview(true);
-}
-
 int32 UMASkillStep::ResolveCurrentSequenceSectionIndex() const
 {
 	if (!UsesStepSections()) return 0;
@@ -284,7 +279,7 @@ void UMASkillStep::StopCurrentStepMontage(float MontageBlendOutTime)
 	if (UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
 		SkillDefinition && SkillDefinition->CurrentStepStartMode == EMASkillStepStartMode::Prepared)
 	{
-		ReleasePreparedCurrentStepState();
+		ReleasePreparedStepPreview(true);
 	}
 
 	if (UMAAnimInstance* MAAnimInstance = Cast<UMAAnimInstance>(AnimInstance))
@@ -312,7 +307,8 @@ UAnimMontage* UMASkillStep::ReleasePreparedStepPreview(bool bKeepAnimationOwnerR
 		}
 	}
 
-	ResetPreparedStepPreviewState();
+	PreparedStepPreviewMontage = nullptr;
+	bPreparedStepPreviewActivated = false;
 	return StepPreviewMontage;
 }
 
@@ -363,12 +359,6 @@ void UMASkillStep::ClearPreparedStepPreviewDelegates(UAnimMontage* Montage)
 
 	FOnMontageEnded EmptyEndedDelegate;
 	AnimInstance->Montage_SetEndDelegate(EmptyEndedDelegate, Montage);
-}
-
-void UMASkillStep::ResetPreparedStepPreviewState()
-{
-	PreparedStepPreviewMontage = nullptr;
-	bPreparedStepPreviewActivated = false;
 }
 
 void UMASkillStep::HandleCurrentStepMontageCompletedTask()
