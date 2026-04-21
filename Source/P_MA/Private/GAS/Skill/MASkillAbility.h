@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
-#include "GAS/Skill/Input/MASkillFlowPart.h"
+#include "GAS/Skill/Step/MASkillStep.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeContext.h"
 #include "GameplayTagContainer.h"
@@ -34,15 +34,15 @@ public:
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
 	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
-	UMASkillFlowPart* GetCurrentRuntimeFlowPart() const;
+	UMASkillStep* GetCurrentRuntimeSkillStep() const;
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	void MultiplyFinalDamageMultiplier(float Multiplier) { RuntimeContext.MultiplyFinalDamageMultiplier(Multiplier); }
-	void CompleteCurrentFlow(float MontageBlendOutTime = 0.f);
-	bool PrepareNextFlowMontage(float PreviewBlendInTime);
-	bool ActivatePreparedNextFlow();
+	void CompleteCurrentStep(float MontageBlendOutTime = 0.f);
+	bool PrepareNextStepMontage(float PreviewBlendInTime);
+	bool ActivatePreparedNextStep();
 
 protected:
 	/** Definition DataAsset **/
@@ -64,13 +64,14 @@ private:
 	/** Register **/
 	void RegisterEventSources();
 	void UnregisterEventSources();
-	void RegisterFlowParts();
-	void UnregisterFlowParts();
-	void StartCurrentFlow();
-	bool AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime = 0.f);
+	void RegisterSkillSteps();
+	void UnregisterSkillSteps();
+	void ResetStepExecutionState(float CurrentStepMontageBlendOutTime = 0.f);
+	void StartCurrentStep();
+	bool AdvanceToNextStep(float CurrentStepMontageBlendOutTime = 0.f);
 	void ClearEventTasks();
 	void ClearCurrentMontageTask();
-	void StopCurrentFlowMontage(float MontageBlendOutTime = 0.f);
+	void StopCurrentStepMontage(float MontageBlendOutTime = 0.f);
 	void ClearPreparedMontage();
 	void RefreshEventBindings();
 	void RegisterCancelTriggers();
@@ -100,18 +101,18 @@ private:
 
 	TMap<FGameplayTag, TArray<TObjectPtr<UMASkillAction>>> ResolvedActionsByEvent;
 
-	/** Flow Part **/
+	/** Step **/
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMASkillFlowPart>> RuntimeFlowParts;
+	TArray<TObjectPtr<UMASkillStep>> RuntimeSkillSteps;
 
 	UPROPERTY(Transient)
-	int32 CurrentFlowIndex = INDEX_NONE;
+	int32 CurrentStepIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
-	EMASkillFlowStartMode CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
+	EMASkillStepStartMode CurrentStepStartMode = EMASkillStepStartMode::Fresh;
 
 	UPROPERTY(Transient)
-	int32 PreparedFlowIndex = INDEX_NONE;
+	int32 PreparedStepIndex = INDEX_NONE;
 
 	/** Event Sources **/
 	UPROPERTY(Transient)
@@ -136,11 +137,11 @@ private:
 	void HandleSkillGameplayEvent(FGameplayEventData Payload);
 
 	UFUNCTION()
-	void HandleCurrentFlowMontageCancelled();
+	void HandleCurrentStepMontageCancelled();
 
 	UFUNCTION()
-	void HandleCurrentFlowMontageCompleted();
+	void HandleCurrentStepMontageCompleted();
 
 	UFUNCTION()
-	void HandleCurrentFlowMontageInterrupted();
+	void HandleCurrentStepMontageInterrupted();
 };

@@ -1,26 +1,26 @@
-﻿#include "GAS/Skill/Input/MASkillFlowPart_Cast.h"
+﻿#include "GAS/Skill/Step/MASkillStep_Cast.h"
 
 #include "AbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-UMASkillFlowPart_Cast::UMASkillFlowPart_Cast()
+UMASkillStep_Cast::UMASkillStep_Cast()
 {
-	FlowProgressSettings.bShowProgress = true;
-	FlowProgressSettings.Label = FText::FromString(TEXT("Cast"));
+	StepProgressSettings.bShowProgress = true;
+	StepProgressSettings.Label = FText::FromString(TEXT("Cast"));
 }
 
-void UMASkillFlowPart_Cast::OnTimedFlowStarted(UMASkillAbility*, EMASkillFlowStartMode)
+void UMASkillStep_Cast::OnTimedStepStarted(UMASkillAbility*, EMASkillStepStartMode)
 {
 	ApplyInputBlockTag();
 }
 
-void UMASkillFlowPart_Cast::OnTimedFlowStopped()
+void UMASkillStep_Cast::OnTimedStepStopped()
 {
 	RemoveInputBlockTag();
 }
 
-void UMASkillFlowPart_Cast::ApplyInputBlockTag()
+void UMASkillStep_Cast::ApplyInputBlockTag()
 {
 	if (bAppliedInputBlockTag) return;
 
@@ -32,7 +32,7 @@ void UMASkillFlowPart_Cast::ApplyInputBlockTag()
 	bAppliedInputBlockTag = true;
 }
 
-void UMASkillFlowPart_Cast::RemoveInputBlockTag()
+void UMASkillStep_Cast::RemoveInputBlockTag()
 {
 	if (!bAppliedInputBlockTag) return;
 

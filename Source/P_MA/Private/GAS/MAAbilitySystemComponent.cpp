@@ -58,6 +58,17 @@ void UMAAbilitySystemComponent::ApplyFullStatEffect()
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
 }
 
+void UMAAbilitySystemComponent::TryActivateAbilitiesByInputID(EMAAbilityInputID InputID)
+{
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if (AbilitySpec.InputID != static_cast<int32>(InputID)) continue;
+		if (AbilitySpec.IsActive()) continue;
+
+		TryActivateAbility(AbilitySpec.Handle);
+	}
+}
+
 void UMAAbilitySystemComponent::AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level)
 {
 	if (GetOwner() && GetOwner()->HasAuthority())

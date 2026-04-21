@@ -13,7 +13,7 @@
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/MASkillEventSource.h"
-#include "GAS/Skill/Input/MASkillFlowPart.h"
+#include "GAS/Skill/Step/MASkillStep.h"
 
 UMASkillAbility::UMASkillAbility()
 {
@@ -39,9 +39,9 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	GetSkillDefinition()->CollectEventActions(ResolvedRequiredEventTags, ResolvedActionsByEvent);
 	RuntimeContext.Initialize(this);
 	DesiredMontagePlayRate = 1.f;
-	RegisterFlowParts();
+	RegisterSkillSteps();
 	RegisterEventSources();
-	StartCurrentFlow();
+	StartCurrentStep();
 	RefreshEventBindings();
 	RegisterCancelTriggers();
 
@@ -51,7 +51,7 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	UnregisterFlowParts();
+	ResetStepExecutionState();
 	UnregisterEventSources();
 	ClearEventTasks();
 	UnregisterCancelTriggers();
@@ -85,9 +85,9 @@ void UMASkillAbility::HandleSkillTagEvent(const FGameplayTag& EventTag)
 
 void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
-	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	if (UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
-		CurrentFlowPart->HandleRuntimeEvent(Payload);
+		CurrentStep->HandleRuntimeEvent(Payload);
 	}
 
 	TArray<UMASkillAction*> ResolvedActions;
@@ -105,9 +105,9 @@ const FGameplayTag& UMASkillAbility::GetElementalTag() const
 	return GetSkillDefinition() ? GetSkillDefinition()->GetElementalTag() : EmptyTag;
 }
 
-UMASkillFlowPart* UMASkillAbility::GetCurrentRuntimeFlowPart() const
+UMASkillStep* UMASkillAbility::GetCurrentRuntimeSkillStep() const
 {
-	return RuntimeFlowParts.IsValidIndex(CurrentFlowIndex) ? RuntimeFlowParts[CurrentFlowIndex] : nullptr;
+	return RuntimeSkillSteps.IsValidIndex(CurrentStepIndex) ? RuntimeSkillSteps[CurrentStepIndex] : nullptr;
 }
 
 void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
@@ -115,60 +115,65 @@ void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
 	DesiredMontagePlayRate = FMath::Max(NewPlayRate, 0.f);
 
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	UAnimMontage* FlowMontage = CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr;
-	if (!AnimInstance || !FlowMontage) return;
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	UAnimMontage* StepMontage = CurrentStep ? CurrentStep->ResolveStepMontage() : nullptr;
+	if (!AnimInstance || !StepMontage) return;
 
-	if (AnimInstance->Montage_IsPlaying(FlowMontage))
+	if (AnimInstance->Montage_IsPlaying(StepMontage))
 	{
-		AnimInstance->Montage_SetPlayRate(FlowMontage, DesiredMontagePlayRate);
+		AnimInstance->Montage_SetPlayRate(StepMontage, DesiredMontagePlayRate);
 	}
 }
 
-void UMASkillAbility::CompleteCurrentFlow(float MontageBlendOutTime)
+void UMASkillAbility::CompleteCurrentStep(float MontageBlendOutTime)
 {
-	if (!AdvanceToNextFlow(MontageBlendOutTime))
+	if (!AdvanceToNextStep(MontageBlendOutTime))
 	{
 		K2_EndAbility();
 	}
 }
 
-bool UMASkillAbility::PrepareNextFlowMontage(float PreviewBlendInTime)
+bool UMASkillAbility::PrepareNextStepMontage(float PreviewBlendInTime)
 {
-	if (CurrentFlowStartMode != EMASkillFlowStartMode::Fresh) return false;
-	if (PreparedMontage || PreparedFlowIndex != INDEX_NONE) return false;
+	if (CurrentStepStartMode != EMASkillStepStartMode::Fresh) return false;
+	if (PreparedMontage || PreparedStepIndex != INDEX_NONE) return false;
 
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	if (CurrentFlowPart && CurrentFlowPart->ResolveFlowMontage()) return false;
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	if (CurrentStep && CurrentStep->ResolveStepMontage()) return false;
 
-	const int32 NextFlowIndex = CurrentFlowPart ? CurrentFlowPart->GetNextMontageFlowIndex() : INDEX_NONE;
-	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex)) return false;
+	const int32 NextStepIndex = CurrentStep ? CurrentStep->GetNextMontageStepIndex() : INDEX_NONE;
+	if (!RuntimeSkillSteps.IsValidIndex(NextStepIndex)) return false;
 
-	UMASkillFlowPart* NextFlowPart = RuntimeFlowParts[NextFlowIndex];
-	UAnimMontage* NextFlowMontage = NextFlowPart ? NextFlowPart->ResolveFlowMontage() : nullptr;
+	UMASkillStep* NextStep = RuntimeSkillSteps[NextStepIndex];
+	UAnimMontage* NextStepMontage = NextStep ? NextStep->ResolveStepMontage() : nullptr;
+	const FName StartSectionName = NextStep ? NextStep->ResolvePreparedStepStartSectionName() : NAME_None;
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
 	const bool bCanPlayMontageLocally = ActorInfo
 		&& (HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || ActorInfo->IsLocallyControlled());
-	if (!bCanPlayMontageLocally || !AnimInstance || !NextFlowMontage) return false;
+	if (!bCanPlayMontageLocally || !AnimInstance || !NextStepMontage) return false;
 
-	if (AnimInstance->Montage_PlayWithBlendSettings(NextFlowMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), KINDA_SMALL_NUMBER) <= 0.f) return false;
+	if (AnimInstance->Montage_PlayWithBlendSettings(NextStepMontage, FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)), KINDA_SMALL_NUMBER) <= 0.f) return false;
+	if (!StartSectionName.IsNone())
+	{
+		AnimInstance->Montage_JumpToSection(StartSectionName, NextStepMontage);
+	}
 
-	RegisterAnimationOwner(NextFlowMontage);
-	BindPreparedMontageDelegates(NextFlowMontage);
-	PreparedMontage = NextFlowMontage;
-	PreparedFlowIndex = NextFlowIndex;
+	RegisterAnimationOwner(NextStepMontage);
+	BindPreparedMontageDelegates(NextStepMontage);
+	PreparedMontage = NextStepMontage;
+	PreparedStepIndex = NextStepIndex;
 	return true;
 }
 
-bool UMASkillAbility::ActivatePreparedNextFlow()
+bool UMASkillAbility::ActivatePreparedNextStep()
 {
-	if (!RuntimeFlowParts.IsValidIndex(PreparedFlowIndex) || !PreparedMontage) return false;
+	if (!RuntimeSkillSteps.IsValidIndex(PreparedStepIndex) || !PreparedMontage) return false;
 
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	if (CurrentFlowPart)
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	if (CurrentStep)
 	{
-		CurrentFlowPart->StopFlow();
+		CurrentStep->StopStep();
 	}
 
 	if (UAnimInstance* AnimInstance = GetOwnerAnimInstance())
@@ -180,13 +185,13 @@ bool UMASkillAbility::ActivatePreparedNextFlow()
 		}
 	}
 
-	CurrentFlowIndex = PreparedFlowIndex;
-	PreparedFlowIndex = INDEX_NONE;
-	CurrentFlowStartMode = EMASkillFlowStartMode::Prepared;
+	CurrentStepIndex = PreparedStepIndex;
+	PreparedStepIndex = INDEX_NONE;
+	CurrentStepStartMode = EMASkillStepStartMode::Prepared;
 	CurrentMontageTask = nullptr;
 	PreparedMontage = nullptr;
 
-	StartCurrentFlow();
+	StartCurrentStep();
 	RefreshEventBindings();
 	SetDesiredMontagePlayRate(DesiredMontagePlayRate);
 	return true;
@@ -206,81 +211,101 @@ void UMASkillAbility::UnregisterEventSources()
 	UMASkillEventSource::StopRuntimeSources(RuntimeEventSources);
 }
 
-void UMASkillAbility::RegisterFlowParts()
+void UMASkillAbility::RegisterSkillSteps()
 {
-	UnregisterFlowParts();
 	const UMASkillDefinition* ResolvedSkillDefinition = GetSkillDefinition();
-	if (!ResolvedSkillDefinition) return;
-	UMASkillFlowPart::CreateRuntimeParts(this, ResolvedSkillDefinition->GetFlowParts(), RuntimeFlowParts);
-	CurrentFlowIndex = RuntimeFlowParts.IsEmpty() ? INDEX_NONE : 0;
-	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
-	PreparedFlowIndex = INDEX_NONE;
+	if (!ResolvedSkillDefinition)
+	{
+		ResetStepExecutionState();
+		return;
+	}
+
+	if (RuntimeSkillSteps.IsEmpty())
+	{
+		UMASkillStep::CreateRuntimeSteps(this, ResolvedSkillDefinition->GetSkillSteps(), RuntimeSkillSteps);
+	}
+
+	CurrentStepIndex = RuntimeSkillSteps.IsEmpty() ? INDEX_NONE : 0;
+	CurrentStepStartMode = EMASkillStepStartMode::Fresh;
+	PreparedStepIndex = INDEX_NONE;
 }
 
-void UMASkillAbility::UnregisterFlowParts()
+void UMASkillAbility::UnregisterSkillSteps()
 {
-	if (UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	ResetStepExecutionState();
+	RuntimeSkillSteps.Reset();
+}
+
+void UMASkillAbility::ResetStepExecutionState(float CurrentStepMontageBlendOutTime)
+{
+	if (UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
-		CurrentFlowPart->StopFlow();
+		CurrentStep->StopStep();
 	}
 
 	ClearCurrentMontageTask();
-	StopCurrentFlowMontage();
+	StopCurrentStepMontage(CurrentStepMontageBlendOutTime);
 	ClearPreparedMontage();
-	RuntimeFlowParts.Reset();
-	CurrentFlowIndex = INDEX_NONE;
-	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
-	PreparedFlowIndex = INDEX_NONE;
+	CurrentStepIndex = INDEX_NONE;
+	CurrentStepStartMode = EMASkillStepStartMode::Fresh;
+	PreparedStepIndex = INDEX_NONE;
 }
 
-void UMASkillAbility::StartCurrentFlow()
+void UMASkillAbility::StartCurrentStep()
 {
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	if (!CurrentFlowPart) return;
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	if (!CurrentStep) return;
 
-	const EMASkillFlowStartMode FlowStartMode = CurrentFlowStartMode;
-	CurrentFlowPart->StartFlow(this, FlowStartMode);
-	if (FlowStartMode == EMASkillFlowStartMode::Prepared) return;
+	const EMASkillStepStartMode StepStartMode = CurrentStepStartMode;
+	CurrentStep->StartStep(this, StepStartMode);
+	if (StepStartMode == EMASkillStepStartMode::Prepared) return;
 
 	const FGameplayAbilityActorInfo* ActorInfo = CurrentActorInfo;
-	UAnimMontage* FlowMontage = CurrentFlowPart->ResolveFlowMontage();
+	UAnimMontage* StepMontage = CurrentStep->ResolveStepMontage();
+	const FName StartSectionName = CurrentStep->ResolveStepStartSectionName();
 	const bool bCanPlayMontageLocally = ActorInfo
 		&& (HasAuthorityOrPredictionKey(ActorInfo, &CurrentActivationInfo) || ActorInfo->IsLocallyControlled());
-	if (!bCanPlayMontageLocally || !FlowMontage) return;
+	if (!bCanPlayMontageLocally || !StepMontage) return;
 
-	CurrentMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, FlowMontage, DesiredMontagePlayRate);
+	CurrentMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+		this,
+		NAME_None,
+		StepMontage,
+		DesiredMontagePlayRate,
+		StartSectionName);
 	if (!CurrentMontageTask) return;
 
-	CurrentMontageTask->OnCancelled.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageCancelled);
-	CurrentMontageTask->OnCompleted.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageCompleted);
-	CurrentMontageTask->OnInterrupted.AddDynamic(this, &UMASkillAbility::HandleCurrentFlowMontageInterrupted);
-	RegisterAnimationOwner(FlowMontage);
+	CurrentMontageTask->OnBlendOut.AddDynamic(this, &UMASkillAbility::HandleCurrentStepMontageCompleted);
+	CurrentMontageTask->OnCancelled.AddDynamic(this, &UMASkillAbility::HandleCurrentStepMontageCancelled);
+	CurrentMontageTask->OnCompleted.AddDynamic(this, &UMASkillAbility::HandleCurrentStepMontageCompleted);
+	CurrentMontageTask->OnInterrupted.AddDynamic(this, &UMASkillAbility::HandleCurrentStepMontageInterrupted);
+	RegisterAnimationOwner(StepMontage);
 	CurrentMontageTask->ReadyForActivation();
 }
 
-bool UMASkillAbility::AdvanceToNextFlow(float CurrentFlowMontageBlendOutTime)
+bool UMASkillAbility::AdvanceToNextStep(float CurrentStepMontageBlendOutTime)
 {
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	if (CurrentFlowPart)
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	if (CurrentStep)
 	{
-		CurrentFlowPart->StopFlow();
+		CurrentStep->StopStep();
 	}
 
 	ClearCurrentMontageTask();
-	StopCurrentFlowMontage(CurrentFlowMontageBlendOutTime);
+	StopCurrentStepMontage(CurrentStepMontageBlendOutTime);
 	ClearPreparedMontage();
 
-	const int32 NextFlowIndex = CurrentFlowPart ? CurrentFlowPart->GetNextFlowIndex() : INDEX_NONE;
-	if (!RuntimeFlowParts.IsValidIndex(NextFlowIndex))
+	const int32 NextStepIndex = CurrentStep ? CurrentStep->GetNextStepIndex() : INDEX_NONE;
+	if (!RuntimeSkillSteps.IsValidIndex(NextStepIndex))
 	{
-		CurrentFlowIndex = INDEX_NONE;
+		CurrentStepIndex = INDEX_NONE;
 		return false;
 	}
 
-	CurrentFlowIndex = NextFlowIndex;
-	CurrentFlowStartMode = EMASkillFlowStartMode::Fresh;
-	PreparedFlowIndex = INDEX_NONE;
-	StartCurrentFlow();
+	CurrentStepIndex = NextStepIndex;
+	CurrentStepStartMode = EMASkillStepStartMode::Fresh;
+	PreparedStepIndex = INDEX_NONE;
+	StartCurrentStep();
 	RefreshEventBindings();
 	return true;
 }
@@ -298,6 +323,7 @@ void UMASkillAbility::ClearCurrentMontageTask()
 {
 	if (!CurrentMontageTask) return;
 
+	CurrentMontageTask->OnBlendOut.Clear();
 	CurrentMontageTask->OnCancelled.Clear();
 	CurrentMontageTask->OnCompleted.Clear();
 	CurrentMontageTask->OnInterrupted.Clear();
@@ -305,23 +331,23 @@ void UMASkillAbility::ClearCurrentMontageTask()
 	CurrentMontageTask = nullptr;
 }
 
-void UMASkillAbility::StopCurrentFlowMontage(float MontageBlendOutTime)
+void UMASkillAbility::StopCurrentStepMontage(float MontageBlendOutTime)
 {
 	UAnimInstance* AnimInstance = GetOwnerAnimInstance();
-	UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	UAnimMontage* FlowMontage = CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr;
-	if (!AnimInstance || !FlowMontage) return;
+	UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	UAnimMontage* StepMontage = CurrentStep ? CurrentStep->ResolveStepMontage() : nullptr;
+	if (!AnimInstance || !StepMontage) return;
 
-	UnregisterAnimationOwner(FlowMontage);
+	UnregisterAnimationOwner(StepMontage);
 
-	if (CurrentFlowStartMode == EMASkillFlowStartMode::Prepared)
+	if (CurrentStepStartMode == EMASkillStepStartMode::Prepared)
 	{
-		ClearMontageDelegates(FlowMontage);
+		ClearMontageDelegates(StepMontage);
 	}
 
-	if (AnimInstance->Montage_IsPlaying(FlowMontage))
+	if (AnimInstance->Montage_IsPlaying(StepMontage))
 	{
-		AnimInstance->Montage_Stop(MontageBlendOutTime, FlowMontage);
+		AnimInstance->Montage_Stop(MontageBlendOutTime, StepMontage);
 	}
 }
 
@@ -329,7 +355,7 @@ void UMASkillAbility::ClearPreparedMontage()
 {
 	if (!PreparedMontage)
 	{
-		PreparedFlowIndex = INDEX_NONE;
+		PreparedStepIndex = INDEX_NONE;
 		return;
 	}
 
@@ -344,7 +370,7 @@ void UMASkillAbility::ClearPreparedMontage()
 	}
 
 	PreparedMontage = nullptr;
-	PreparedFlowIndex = INDEX_NONE;
+	PreparedStepIndex = INDEX_NONE;
 }
 
 void UMASkillAbility::RegisterAnimationOwner(UAnimSequenceBase* Animation)
@@ -394,7 +420,7 @@ void UMASkillAbility::RefreshEventBindings()
 {
 	ClearEventTasks();
 	TSet<FGameplayTag> RequiredTags = ResolvedRequiredEventTags;
-	UMASkillFlowPart::CollectCurrentRequiredEventTags(RuntimeFlowParts, CurrentFlowIndex, RequiredTags);
+	UMASkillStep::CollectCurrentRequiredStepEventTags(RuntimeSkillSteps, CurrentStepIndex, RequiredTags);
 	for (const FGameplayTag& EventTag : RequiredTags)
 	{
 		UAbilityTask_WaitGameplayEvent* WaitGameplayEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, false);
@@ -404,28 +430,28 @@ void UMASkillAbility::RefreshEventBindings()
 	}
 }
 
-void UMASkillAbility::HandleCurrentFlowMontageCancelled()
+void UMASkillAbility::HandleCurrentStepMontageCancelled()
 {
 	CurrentMontageTask = nullptr;
 	K2_EndAbility();
 }
 
-void UMASkillAbility::HandleCurrentFlowMontageCompleted()
+void UMASkillAbility::HandleCurrentStepMontageCompleted()
 {
 	CurrentMontageTask = nullptr;
 
-	if (const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart())
+	if (const UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
-		if (!CurrentFlowPart->ShouldAutoAdvanceOnMontageCompleted()) return;
+		if (!CurrentStep->ShouldAutoAdvanceOnMontageCompleted()) return;
 	}
 
-	if (!AdvanceToNextFlow())
+	if (!AdvanceToNextStep())
 	{
 		K2_EndAbility();
 	}
 }
 
-void UMASkillAbility::HandleCurrentFlowMontageInterrupted()
+void UMASkillAbility::HandleCurrentStepMontageInterrupted()
 {
 	CurrentMontageTask = nullptr;
 	K2_EndAbility();
@@ -462,43 +488,43 @@ void UMASkillAbility::HandlePreparedMontageBlendingOut(UAnimMontage* Montage, bo
 	if (!bInterrupted) return;
 	if (!Montage) return;
 
-	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedFlowIndex != INDEX_NONE;
-	const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	const bool bIsPreparedCurrentFlow = CurrentFlowStartMode == EMASkillFlowStartMode::Prepared
-		&& Montage == (CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr);
-	if (!bIsPreparedPreview && !bIsPreparedCurrentFlow) return;
+	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedStepIndex != INDEX_NONE;
+	const UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	const bool bIsPreparedCurrentStep = CurrentStepStartMode == EMASkillStepStartMode::Prepared
+		&& Montage == (CurrentStep ? CurrentStep->ResolveStepMontage() : nullptr);
+	if (!bIsPreparedPreview && !bIsPreparedCurrentStep) return;
 
 	ClearMontageDelegates(Montage);
 	if (bIsPreparedPreview)
 	{
 		UnregisterAnimationOwner(Montage);
 		PreparedMontage = nullptr;
-		PreparedFlowIndex = INDEX_NONE;
+		PreparedStepIndex = INDEX_NONE;
 	}
-	HandleCurrentFlowMontageInterrupted();
+	HandleCurrentStepMontageInterrupted();
 }
 
 void UMASkillAbility::HandlePreparedMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (!Montage || bInterrupted) return;
 
-	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedFlowIndex != INDEX_NONE;
-	const UMASkillFlowPart* CurrentFlowPart = GetCurrentRuntimeFlowPart();
-	const bool bIsPreparedCurrentFlow = CurrentFlowStartMode == EMASkillFlowStartMode::Prepared
-		&& Montage == (CurrentFlowPart ? CurrentFlowPart->ResolveFlowMontage() : nullptr);
-	if (!bIsPreparedPreview && !bIsPreparedCurrentFlow) return;
+	const bool bIsPreparedPreview = Montage == PreparedMontage && PreparedStepIndex != INDEX_NONE;
+	const UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep();
+	const bool bIsPreparedCurrentStep = CurrentStepStartMode == EMASkillStepStartMode::Prepared
+		&& Montage == (CurrentStep ? CurrentStep->ResolveStepMontage() : nullptr);
+	if (!bIsPreparedPreview && !bIsPreparedCurrentStep) return;
 
 	ClearMontageDelegates(Montage);
 	if (bIsPreparedPreview)
 	{
 		UnregisterAnimationOwner(Montage);
 		PreparedMontage = nullptr;
-		PreparedFlowIndex = INDEX_NONE;
+		PreparedStepIndex = INDEX_NONE;
 		K2_EndAbility();
 		return;
 	}
 
-	HandleCurrentFlowMontageCompleted();
+	HandleCurrentStepMontageCompleted();
 }
 
 void UMASkillAbility::RegisterCancelTriggers()

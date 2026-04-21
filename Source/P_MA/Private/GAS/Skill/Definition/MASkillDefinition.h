@@ -8,7 +8,7 @@
 #include "MASkillDefinition.generated.h"
 
 class UMASkillEventSource;
-class UMASkillFlowPart;
+class UMASkillStep;
 class UDataTable;
 struct FMASkillPayloadStore;
 class UMASkillAction;
@@ -22,7 +22,7 @@ public:
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	const TArray<FMASkillGameplayEventPart>& GetEventParts() const { return EventParts; }
-	const TArray<TObjectPtr<UMASkillFlowPart>>& GetFlowParts() const { return FlowParts; }
+	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillPayloadEntry>& GetPayloads() const { return Payloads; }
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
@@ -45,9 +45,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;
 
-	/** Preferred flow pipeline. Each flow owns its own montage and runtime logic. **/
-	UPROPERTY(EditDefaultsOnly, Instanced, Category="Flow")
-	TArray<TObjectPtr<UMASkillFlowPart>> FlowParts;
+	/** Preferred step pipeline. Each step owns its own montage and runtime logic. **/
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="Step")
+	TArray<TObjectPtr<UMASkillStep>> SkillSteps;
 
 	/** Event Source **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Event")

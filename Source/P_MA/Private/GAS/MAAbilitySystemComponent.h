@@ -17,6 +17,7 @@ public:
 	void InitializeBaseAttributes();
 	void ServerSideInit();
 	void ApplyFullStatEffect();
+	void TryActivateAbilitiesByInputID(EMAAbilityInputID InputID);
 	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const { return Abilities; };
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 

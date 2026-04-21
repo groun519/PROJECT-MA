@@ -1,45 +1,45 @@
-#include "Widget/MAFlowProgressWidget.h"
+#include "Widget/MAStepProgressWidget.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Input/MASkillFlowPart_Timed.h"
+#include "GAS/Skill/Step/MASkillStep_Timed.h"
 
-void UMAFlowProgressWidget::NativeConstruct()
+void UMAStepProgressWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	ClearFlowProgress();
+	ClearStepProgress();
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
-void UMAFlowProgressWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+void UMAStepProgressWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	RefreshFromOwner();
 }
 
-void UMAFlowProgressWidget::SetFlowProgress(const FText& InLabel, float InDuration, float InRemainingDuration)
+void UMAStepProgressWidget::SetStepProgress(const FText& InLabel, float InDuration, float InRemainingDuration)
 {
 	LabelText->SetText(InLabel);
 	DurationProgressBar->SetPercent(InDuration > 0.f ? FMath::Clamp(InRemainingDuration / InDuration, 0.f, 1.f) : 0.f);
 	SetRenderOpacity(1.f);
 }
 
-void UMAFlowProgressWidget::ClearFlowProgress()
+void UMAStepProgressWidget::ClearStepProgress()
 {
 	LabelText->SetText(FText::GetEmpty());
 	DurationProgressBar->SetPercent(0.f);
 	SetRenderOpacity(0.f);
 }
 
-void UMAFlowProgressWidget::RefreshFromOwner()
+void UMAStepProgressWidget::RefreshFromOwner()
 {
 	UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
 	if (!OwnerAbilitySystemComponent)
 	{
-		ClearFlowProgress();
+		ClearStepProgress();
 		return;
 	}
 
@@ -53,19 +53,19 @@ void UMAFlowProgressWidget::RefreshFromOwner()
 			UMASkillAbility* SkillAbility = Cast<UMASkillAbility>(AbilityInstance);
 			if (!SkillAbility) continue;
 
-			const UMASkillFlowPart_Timed* TimedFlowPart = Cast<UMASkillFlowPart_Timed>(SkillAbility->GetCurrentRuntimeFlowPart());
-			if (!TimedFlowPart) continue;
+			const UMASkillStep_Timed* TimedStep = Cast<UMASkillStep_Timed>(SkillAbility->GetCurrentRuntimeSkillStep());
+			if (!TimedStep) continue;
 
-			FText FlowLabel;
-			float FlowDuration = 0.f;
-			float FlowRemainingDuration = 0.f;
-			if (TimedFlowPart->GetFlowProgressInfo(FlowLabel, FlowDuration, FlowRemainingDuration))
+			FText StepLabel;
+			float StepDuration = 0.f;
+			float StepRemainingDuration = 0.f;
+			if (TimedStep->GetStepProgressInfo(StepLabel, StepDuration, StepRemainingDuration))
 			{
-				SetFlowProgress(FlowLabel, FlowDuration, FlowRemainingDuration);
+				SetStepProgress(StepLabel, StepDuration, StepRemainingDuration);
 				return;
 			}
 		}
 	}
 
-	ClearFlowProgress();
+	ClearStepProgress();
 }

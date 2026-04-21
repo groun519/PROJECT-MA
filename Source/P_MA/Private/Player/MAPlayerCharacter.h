@@ -133,7 +133,11 @@ private:
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
-	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
+	void HandleAbilityInputStarted(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
+	void HandleAbilityInputReleased(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
+	void TickHeldAbilityInputs();
+	void SetAbilityInputHeld(EMAAbilityInputID InputID, bool bHeld);
+	void TryActivateHeldAbilityInput(EMAAbilityInputID InputID);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -216,6 +220,8 @@ public:
 	/** SkillBook **/
 	UPROPERTY(VisibleAnywhere, Category = "Skill")
 	class USkillBookComponent* SkillBookComponent;
+
+	TSet<EMAAbilityInputID> HeldAbilityInputIDs;
 public:
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }

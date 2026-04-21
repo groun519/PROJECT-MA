@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
@@ -175,6 +176,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 
 	UpdateRotationByReadyRide(DeltaTime);
 	TickMinimapCapture(DeltaTime);
+	TickHeldAbilityInputs();
 }
 
 /** Player Rotate **/
@@ -297,9 +299,9 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		
 		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
 		{
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInputStarted, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
 		}
 		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
@@ -437,17 +439,49 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	}
 }
 
-void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
+void AMAPlayerCharacter::HandleAbilityInputStarted(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
 {
-	bool bPressed = InputActionValue.Get<bool>();
-	if (IsInputBlocked() && bPressed) return;
-	if (bPressed)
+	if (!InputActionValue.Get<bool>()) return;
+	if (IsInputBlocked()) return;
+
+	SetAbilityInputHeld(InputID, true);
+	TryActivateHeldAbilityInput(InputID);
+}
+
+void AMAPlayerCharacter::HandleAbilityInputReleased(const FInputActionValue& /*InputActionValue*/, EMAAbilityInputID InputID)
+{
+	SetAbilityInputHeld(InputID, false);
+}
+
+void AMAPlayerCharacter::TickHeldAbilityInputs()
+{
+	if (IsInputBlocked()) return;
+
+	for (const EMAAbilityInputID InputID : HeldAbilityInputIDs)
 	{
 		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
+		TryActivateHeldAbilityInput(InputID);
 	}
-	else
+}
+
+void AMAPlayerCharacter::SetAbilityInputHeld(EMAAbilityInputID InputID, bool bHeld)
+{
+	if (bHeld)
 	{
-		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+		HeldAbilityInputIDs.Add(InputID);
+		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
+		return;
+	}
+
+	HeldAbilityInputIDs.Remove(InputID);
+	GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+}
+
+void AMAPlayerCharacter::TryActivateHeldAbilityInput(EMAAbilityInputID InputID)
+{
+	if (UMAAbilitySystemComponent* AbilitySystemComponent = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent()))
+	{
+		AbilitySystemComponent->TryActivateAbilitiesByInputID(InputID);
 	}
 }
 

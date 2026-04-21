@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "StructUtils/Public/InstancedStruct.h"
+#include "InstancedStruct.h"
 #include "GAS/Skill/Payload/MASkillPayloadValueType.h"
 #include "MASkillPayloadEntry.generated.h"
 

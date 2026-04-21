@@ -1,54 +1,54 @@
-#include "GAS/Skill/Input/MASkillFlowPart_Charge.h"
+#include "GAS/Skill/Step/MASkillStep_Charge.h"
 
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-UMASkillFlowPart_Charge::UMASkillFlowPart_Charge()
+UMASkillStep_Charge::UMASkillStep_Charge()
 {
-	FlowProgressSettings.bShowProgress = true;
-	FlowProgressSettings.Label = FText::FromString(TEXT("Charge"));
+	StepProgressSettings.bShowProgress = true;
+	StepProgressSettings.Label = FText::FromString(TEXT("Charge"));
 }
 
-void UMASkillFlowPart_Charge::OnTimedFlowStarted(UMASkillAbility* SkillAbility, EMASkillFlowStartMode StartMode)
+void UMASkillStep_Charge::OnTimedStepStarted(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode)
 {
 	if (!SkillAbility) return;
 
 	ChargeStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : -1.f;
 
-	if (StartMode == EMASkillFlowStartMode::Fresh)
+	if (StartMode == EMASkillStepStartMode::Fresh)
 	{
-		SkillAbility->PrepareNextFlowMontage(ChargeDuration);
+		SkillAbility->PrepareNextStepMontage(ChargeDuration);
 	}
 
 	ArmInputRelease();
 }
 
-void UMASkillFlowPart_Charge::OnTimedFlowStopped()
+void UMASkillStep_Charge::OnTimedStepStopped()
 {
 	StopWaitingInputRelease();
 	ChargeStartTime = -1.f;
 }
 
-void UMASkillFlowPart_Charge::HandleInputReleased(float /*TimeHeld*/)
+void UMASkillStep_Charge::HandleInputReleased(float /*TimeHeld*/)
 {
 	StopWaitingInputRelease();
-	StopTimedFlow();
+	StopTimedStep();
 	CommitChargePayload();
 	ChargeStartTime = -1.f;
-	AdvanceOrCompleteOwnerFlow();
+	AdvanceOrCompleteOwnerStep();
 }
 
-void UMASkillFlowPart_Charge::ArmInputRelease()
+void UMASkillStep_Charge::ArmInputRelease()
 {
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
 	if (!SkillAbility) return;
 
 	InputReleaseTask = UAbilityTask_WaitInputRelease::WaitInputRelease(SkillAbility, false);
-	InputReleaseTask->OnRelease.AddDynamic(this, &UMASkillFlowPart_Charge::HandleInputReleased);
+	InputReleaseTask->OnRelease.AddDynamic(this, &UMASkillStep_Charge::HandleInputReleased);
 	InputReleaseTask->ReadyForActivation();
 }
 
-void UMASkillFlowPart_Charge::StopWaitingInputRelease()
+void UMASkillStep_Charge::StopWaitingInputRelease()
 {
 	if (!InputReleaseTask) return;
 
@@ -56,14 +56,14 @@ void UMASkillFlowPart_Charge::StopWaitingInputRelease()
 	InputReleaseTask = nullptr;
 }
 
-void UMASkillFlowPart_Charge::OnTimedFlowElapsed()
+void UMASkillStep_Charge::OnTimedStepElapsed()
 {
 	StopWaitingInputRelease();
 	CommitChargePayload();
-	AdvanceOrCompleteOwnerFlow();
+	AdvanceOrCompleteOwnerStep();
 }
 
-void UMASkillFlowPart_Charge::CommitChargePayload() const
+void UMASkillStep_Charge::CommitChargePayload() const
 {
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
 	if (!SkillAbility) return;
@@ -73,7 +73,7 @@ void UMASkillFlowPart_Charge::CommitChargePayload() const
 		ResolveChargeRatio());
 }
 
-float UMASkillFlowPart_Charge::ResolveChargeRatio() const
+float UMASkillStep_Charge::ResolveChargeRatio() const
 {
 	if (ChargeDuration <= 0.f) return 1.f;
 	if (ChargeStartTime < 0.f) return 0.f;
