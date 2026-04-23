@@ -107,9 +107,7 @@ static TArray<FHitResult> ResolveShapeHitResults(
 	{
 		AActor* HitActor = OverlapResult.GetActor();
 		if (!HitActor || SeenActors.Contains(HitActor))
-		{
 			continue;
-		}
 
 		if (bUseSectorFilter)
 		{
@@ -150,5 +148,5 @@ void UMASkillAction_MeleeOverlapShape::Execute(UMASkillAbility& OwnerAbility, co
 
 	FVector CenterPoint = FVector::ZeroVector;
 	const TArray<FHitResult> HitResults = ResolveShapeHitResults(OwnerAbility, Config, ResolvedHitEffects.TargetRelationMask, CenterPoint);
-	MASkillActionMeleeOverlap::ApplyHitResults(OwnerAbility, IgnoredActors, HitResults, ResolvedHitEffects, CenterPoint);
+	MASkillActionMeleeOverlap::ApplyHitResults(OwnerAbility, HitResults, ResolvedHitEffects, CenterPoint);
 }

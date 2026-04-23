@@ -130,7 +130,6 @@ namespace MASkillActionMeleeOverlap
 
 	void ApplyHitResults(
 		UMASkillAbility& OwnerAbility,
-		TSet<TWeakObjectPtr<AActor>>& IgnoredActors,
 		const TArray<FHitResult>& HitResults,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
 		const FVector& CrowdControlCenterPoint)
@@ -139,10 +138,8 @@ namespace MASkillActionMeleeOverlap
 		for (const FHitResult& HitResult : HitResults)
 		{
 			AActor* HitActor = HitResult.GetActor();
-			if (!HitActor || HitActors.Contains(HitActor) || IgnoredActors.Contains(HitActor))
-			{
+			if (!HitActor || HitActors.Contains(HitActor))
 				continue;
-			}
 
 			if (ResolvedHitEffects.DamageSpec.IsValid())
 			{
@@ -162,7 +159,6 @@ namespace MASkillActionMeleeOverlap
 			}
 
 			HitActors.Add(HitActor);
-			IgnoredActors.Add(HitActor);
 		}
 	}
 }

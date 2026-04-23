@@ -7,7 +7,7 @@
 
 class UAnimMontage;
 class UMASkillAbility;
-class UMASkillDefinition;
+class UMASkillStepManager;
 class UAnimInstance;
 class UAbilityTask_PlayMontageAndWait;
 struct FGameplayEventData;
@@ -56,9 +56,7 @@ public:
 		UAnimInstance* AnimInstance = nullptr;
 		UAnimMontage* CurrentStepMontage = nullptr;
 		if (!TryResolveStepMontageContext(AnimInstance, CurrentStepMontage) || !AnimInstance->Montage_IsPlaying(CurrentStepMontage))
-		{
 			return;
-		}
 
 		AnimInstance->Montage_SetPlayRate(CurrentStepMontage, DesiredMontagePlayRate);
 	}
@@ -76,14 +74,13 @@ public:
 	void ClearPreparedStepPreview(float BlendOutTime = 0.f);
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
 	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const { return false; }
-	virtual void CollectRequiredEventTags(TSet<FGameplayTag>& OutTags) const {}
 	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) {}
 
 protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
-	UMASkillDefinition* GetOwnerSkillDefinition() const;
+	UMASkillStepManager* GetOwnerStepManager() const;
+	void RequestAdvanceOrEnd(float MontageBlendOutTime = 0.f);
 	bool UsesStepSections() const { return !SequenceSectionNameBase.IsNone(); }
-	void CompleteOrEndOwnerStep(float MontageBlendOutTime = 0.f);
 	UAnimInstance* ResolveOwnerAnimInstance() const;
 
 	UPROPERTY(EditDefaultsOnly, Category="Step")
@@ -124,8 +121,6 @@ protected:
 	int32 ResolveNextSequenceSectionIndex() const;
 	FName MakeSequenceSectionName(int32 SectionIndex) const;
 	UMASkillStep* ResolveNextMontageRuntimeStep() const;
-	bool TransitionOwnerDefinitionStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime);
-	void StopCurrentOwnerDefinitionStep(float MontageBlendOutTime);
 	bool PrepareStepPreview(float PreviewBlendInTime);
 	bool ActivatePreparedStepPreview();
 	bool TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutStepMontage) const;

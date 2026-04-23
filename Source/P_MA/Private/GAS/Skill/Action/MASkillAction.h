@@ -13,7 +13,6 @@ class P_MA_API UMASkillAction : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void ResetRuntimeState() {}
 	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload)
 		PURE_VIRTUAL(UMASkillAction::Execute, );
 };

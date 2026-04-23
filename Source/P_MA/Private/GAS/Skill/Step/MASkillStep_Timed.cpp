@@ -56,7 +56,7 @@ void UMASkillStep_Timed::AdvanceOrCompleteOwnerStep()
 {
 	if (!ActivatePreparedNextStepPreview())
 	{
-		CompleteOrEndOwnerStep();
+	RequestAdvanceOrEnd();
 	}
 }
 

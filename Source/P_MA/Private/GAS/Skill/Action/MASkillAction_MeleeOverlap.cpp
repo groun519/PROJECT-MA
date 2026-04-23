@@ -13,5 +13,5 @@ void UMASkillAction_MeleeOverlap::Execute(UMASkillAbility& OwnerAbility, const F
 	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillResolvedHitEffects::BuildResolvedHitEffects(OwnerAbility, DamageConfig);
 	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromPayload(OwnerAbility, Payload, ResolvedHitEffects.TargetRelationMask);
 	const FVector CrowdControlCenterPoint = MASkillActionMeleeOverlap::ResolveCrowdControlCenterPoint(OwnerAbility, Payload);
-	MASkillActionMeleeOverlap::ApplyHitResults(OwnerAbility, IgnoredActors, HitResults, ResolvedHitEffects, CrowdControlCenterPoint);
+	MASkillActionMeleeOverlap::ApplyHitResults(OwnerAbility, HitResults, ResolvedHitEffects, CrowdControlCenterPoint);
 }

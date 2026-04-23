@@ -5,8 +5,8 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Step/MASkillStepManager.h"
 
 void UMASkillStep::StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode /*StartMode*/)
 {
@@ -20,9 +20,9 @@ void UMASkillStep::HandleStepMontageCancelled()
 {
 	CurrentMontageTask = nullptr;
 
-	if (UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition())
+	if (UMASkillAbility* SkillAbility = GetOwnerSkillAbility())
 	{
-		SkillDefinition->EndOwningSkillAbility();
+		SkillAbility->EndSkill();
 	}
 }
 
@@ -31,7 +31,7 @@ void UMASkillStep::HandleStepMontageCompleted()
 	CurrentMontageTask = nullptr;
 	if (!ShouldAutoAdvanceOnMontageCompleted()) return;
 
-	CompleteOrEndOwnerStep();
+	RequestAdvanceOrEnd();
 }
 
 FName UMASkillStep::ResolveStepStartSectionName() const
@@ -96,11 +96,11 @@ bool UMASkillStep::ActivatePreparedStepPreview()
 	if (!PreparedStepPreviewMontage) return false;
 
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
-	UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
+	UMASkillStepManager* StepManager = GetOwnerStepManager();
 	UAnimMontage* PreparedMontage = PreparedStepPreviewMontage;
-	if (!SkillAbility || !SkillDefinition || !PreparedMontage) return false;
+	if (!SkillAbility || !StepManager || !PreparedMontage) return false;
 
-	if (UMASkillStep* CurrentStep = SkillDefinition->GetCurrentRuntimeSkillStep())
+	if (UMASkillStep* CurrentStep = StepManager->GetCurrentRuntimeSkillStep())
 	{
 		CurrentStep->StopStep();
 	}
@@ -114,8 +114,8 @@ bool UMASkillStep::ActivatePreparedStepPreview()
 		}
 	}
 
-	if (!TransitionOwnerDefinitionStep(StepIndex, EMASkillStepStartMode::Prepared, 0.f)) return false;
-	SkillAbility->SetDesiredMontagePlayRate(SkillAbility->GetDesiredMontagePlayRate());
+	if (!StepManager->TransitionToStep(StepIndex, EMASkillStepStartMode::Prepared, 0.f)) return false;
+	StepManager->ApplyDesiredMontagePlayRate();
 
 	bPreparedStepPreviewActivated = true;
 	return true;
@@ -171,26 +171,18 @@ FName UMASkillStep::MakeSequenceSectionName(int32 SectionIndex) const
 	return FName(*FString::Printf(TEXT("%s%d"), *SequenceSectionNameBase.ToString(), SectionIndex));
 }
 
-UMASkillDefinition* UMASkillStep::GetOwnerSkillDefinition() const
+UMASkillStepManager* UMASkillStep::GetOwnerStepManager() const
 {
-	return GetTypedOuter<UMASkillDefinition>();
+	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
+	return SkillAbility ? SkillAbility->GetStepManager() : nullptr;
 }
 
-void UMASkillStep::CompleteOrEndOwnerStep(float MontageBlendOutTime)
+void UMASkillStep::RequestAdvanceOrEnd(float MontageBlendOutTime)
 {
-	UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
-	if (!SkillDefinition) return;
-
-	const int32 NextRuntimeStepIndex = NextStepIndex;
-	if (!SkillDefinition->GetRuntimeSkillStep(NextRuntimeStepIndex))
+	if (UMASkillStepManager* StepManager = GetOwnerStepManager())
 	{
-		StopCurrentOwnerDefinitionStep(MontageBlendOutTime);
-		SkillDefinition->CurrentStepIndex = INDEX_NONE;
-		SkillDefinition->EndOwningSkillAbility();
-		return;
+		StepManager->AdvanceOrEnd(NextStepIndex, MontageBlendOutTime);
 	}
-
-	TransitionOwnerDefinitionStep(NextRuntimeStepIndex, EMASkillStepStartMode::Fresh, MontageBlendOutTime);
 }
 
 UAnimInstance* UMASkillStep::ResolveOwnerAnimInstance() const
@@ -202,34 +194,12 @@ UAnimInstance* UMASkillStep::ResolveOwnerAnimInstance() const
 
 UMASkillStep* UMASkillStep::ResolveNextMontageRuntimeStep() const
 {
-	UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
-	return SkillDefinition ? SkillDefinition->GetRuntimeSkillStep(NextMontageStepIndex) : nullptr;
-}
-
-bool UMASkillStep::TransitionOwnerDefinitionStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime)
-{
-	UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
-	if (!SkillDefinition || !SkillDefinition->GetRuntimeSkillStep(TargetStepIndex)) return false;
-
-	StopCurrentOwnerDefinitionStep(MontageBlendOutTime);
-	SkillDefinition->CurrentStepIndex = TargetStepIndex;
-	SkillDefinition->CurrentStepStartMode = StartMode;
-	SkillDefinition->EnterCurrentStep();
-	SkillDefinition->RebindEventTasks();
-	return true;
-}
-
-void UMASkillStep::StopCurrentOwnerDefinitionStep(float MontageBlendOutTime)
-{
-	if (UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition())
+	if (UMASkillStepManager* StepManager = GetOwnerStepManager())
 	{
-		if (UMASkillStep* CurrentStep = SkillDefinition->GetCurrentRuntimeSkillStep())
-		{
-			CurrentStep->StopActiveStep(MontageBlendOutTime);
-		}
-
-		SkillDefinition->ClearPreparedStepPreviews();
+		return StepManager->GetRuntimeSkillStep(NextMontageStepIndex);
 	}
+
+	return nullptr;
 }
 
 void UMASkillStep::StartCurrentStepMontage()
@@ -243,7 +213,7 @@ void UMASkillStep::StartCurrentStepMontage()
 		SkillAbility,
 		NAME_None,
 		CurrentStepMontage,
-		SkillAbility->GetDesiredMontagePlayRate(),
+		GetOwnerStepManager() ? GetOwnerStepManager()->GetDesiredMontagePlayRate() : 1.f,
 		ResolveStepStartSectionName());
 	if (!CurrentMontageTask) return;
 
@@ -276,8 +246,8 @@ void UMASkillStep::StopCurrentStepMontage(float MontageBlendOutTime)
 	UAnimMontage* CurrentStepMontage = nullptr;
 	if (!TryResolveStepMontageContext(AnimInstance, CurrentStepMontage)) return;
 
-	if (UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
-		SkillDefinition && SkillDefinition->CurrentStepStartMode == EMASkillStepStartMode::Prepared)
+	if (UMASkillStepManager* StepManager = GetOwnerStepManager();
+		StepManager && StepManager->IsCurrentStepPrepared())
 	{
 		ReleasePreparedStepPreview(true);
 	}
@@ -316,7 +286,6 @@ void UMASkillStep::FinalizePreparedStepPreview(UAnimMontage* Montage, bool bInte
 {
 	if (!Montage || Montage != PreparedStepPreviewMontage) return;
 
-	UMASkillDefinition* SkillDefinition = GetOwnerSkillDefinition();
 	const bool bWasPreparedCurrentStep = bPreparedStepPreviewActivated;
 	ReleasePreparedStepPreview(bWasPreparedCurrentStep);
 
@@ -328,7 +297,10 @@ void UMASkillStep::FinalizePreparedStepPreview(UAnimMontage* Montage, bool bInte
 
 	if (!bWasPreparedCurrentStep)
 	{
-		if (SkillDefinition) SkillDefinition->EndOwningSkillAbility();
+		if (UMASkillAbility* SkillAbility = GetOwnerSkillAbility())
+		{
+			SkillAbility->EndSkill();
+		}
 		return;
 	}
 

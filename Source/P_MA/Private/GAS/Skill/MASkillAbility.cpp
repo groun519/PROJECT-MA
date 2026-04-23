@@ -1,11 +1,16 @@
 #include "GAS/Skill/MASkillAbility.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Event/MASkillGameplayEventPart.h"
+#include "GAS/Skill/Event/MASkillEventSource.h"
+#include "GAS/Skill/Step/MASkillStepManager.h"
 
 UMASkillAbility::UMASkillAbility()
 {
@@ -19,17 +24,57 @@ UMASkillAbility::UMASkillAbility()
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetKnockbackStatTag());
 }
 
+void UMASkillAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
+{
+	Super::OnGiveAbility(ActorInfo, Spec);
+
+	UMASkillDefinition* SourceSkillDefinition = Cast<UMASkillDefinition>(Spec.SourceObject.Get());
+	if (!SourceSkillDefinition) SourceSkillDefinition = SkillDefinition;
+	UpdateCurrentSkillDefinition(SourceSkillDefinition);
+}
+
+void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
+{
+	Super::OnRemoveAbility(ActorInfo, Spec);
+	UpdateCurrentSkillDefinition(nullptr);
+}
+
+void UMASkillAbility::UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition)
+{
+	// 런타임 데피니션 수정 불가. 나중에 가능하게 되면, 차라리 액티베이션 종료 후 반영하도록 바인딩 하면 될 듯.
+	if (!ensureMsgf(!IsActive(), TEXT("UpdateCurrentSkillDefinition must not run while the skill is active."))) return;
+
+	UnbindGameplayEvents();
+	if (CurrentSkillDefinition)
+	{
+		for (UMASkillEventSource* RuntimeEventSource : CurrentSkillDefinition->GetEventSources())
+		{
+			if (!RuntimeEventSource) continue;
+			RuntimeEventSource->DeinitializeRuntime();
+		}
+	}
+	if (StepManager) StepManager->ResetRuntimeState();
+
+	CurrentSkillDefinition = SourceSkillDefinition
+		? DuplicateObject<UMASkillDefinition>(SourceSkillDefinition, this)
+		: nullptr;
+
+	if (!CurrentSkillDefinition) return;
+	EnsureStepManager();
+	StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
+	EnsureEventSources();
+}
+
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	CacheRuntimeSkillDefinition(Handle, ActorInfo);
-	if (!GetSkillDefinition()) { K2_EndAbility(); return; }
+	if (!CurrentSkillDefinition) { K2_EndAbility(); return; }
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	PayloadStore.Reset();
-	GetSkillDefinition()->ApplyPayloadsTo(PayloadStore);
-	DesiredMontagePlayRate = 1.f;
-	RuntimeSkillDefinition->ActivateSkill(this);
+	CurrentSkillDefinition->ApplyPayloadsTo(PayloadStore);
+	BindGameplayEvents();
+	SkillActivatedDelegate.Broadcast();
 	RegisterCancelTriggers();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
@@ -38,10 +83,8 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	if (RuntimeSkillDefinition)
-	{
-		RuntimeSkillDefinition->DeactivateSkill();
-	}
+	SkillDeactivatedDelegate.Broadcast();
+	UnbindGameplayEvents();
 
 	UnregisterCancelTriggers();
 	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo()))
@@ -57,31 +100,25 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-const UMASkillDefinition* UMASkillAbility::GetSkillDefinition() const
-{
-	return RuntimeSkillDefinition ? RuntimeSkillDefinition : SkillDefinition;
-}
-
 const FGameplayTag& UMASkillAbility::GetElementalTag() const
 {
 	static const FGameplayTag EmptyTag;
-	return GetSkillDefinition() ? GetSkillDefinition()->GetElementalTag() : EmptyTag;
+	if (!CurrentSkillDefinition) return EmptyTag;
+	return CurrentSkillDefinition->GetElementalTag();
 }
 
-void UMASkillAbility::SetDesiredMontagePlayRate(float NewPlayRate)
+void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
 {
-	DesiredMontagePlayRate = FMath::Max(NewPlayRate, 0.f);
+	if (StepManager) StepManager->HandleRuntimeEvent(Payload);
+	if (!CurrentSkillDefinition || !Payload.EventTag.IsValid()) return;
 
-	if (RuntimeSkillDefinition)
+	for (const FMASkillGameplayEventPart& EventPart : CurrentSkillDefinition->GetEventParts())
 	{
-		RuntimeSkillDefinition->ApplyDesiredMontagePlayRate(DesiredMontagePlayRate);
-	}
-}
+		if (EventPart.EventTag != Payload.EventTag || !EventPart.Action)
+			continue;
 
-bool UMASkillAbility::GetSkillProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const
-{
-	const UMASkillDefinition* RuntimeDefinition = GetSkillDefinition();
-	return RuntimeDefinition && RuntimeDefinition->GetSkillProgressInfo(OutLabel, OutDuration, OutRemainingDuration);
+		EventPart.Action->Execute(*this, Payload);
+	}
 }
 
 bool UMASkillAbility::CanPlaySkillMontageLocally() const
@@ -134,23 +171,64 @@ void UMASkillAbility::HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewC
 	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 }
 
-void UMASkillAbility::CacheRuntimeSkillDefinition(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo)
+void UMASkillAbility::BindGameplayEvents()
 {
-	if (RuntimeSkillDefinition) return;
+	if (!CurrentSkillDefinition || !EventTasks.IsEmpty()) return;
 
-	const UMASkillDefinition* ResolvedSkillDefinition = SkillDefinition;
-	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	TSet<FGameplayTag> RequiredEventTags;
+	for (const FMASkillGameplayEventPart& EventPart : CurrentSkillDefinition->GetEventParts())
 	{
-		const FGameplayAbilitySpec* AbilitySpec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
-		if (AbilitySpec)
-		{
-			if (const UMASkillDefinition* SourceDefinition = Cast<UMASkillDefinition>(AbilitySpec->SourceObject.Get()))
-			{
-				ResolvedSkillDefinition = SourceDefinition;
-			}
-		}
+		if (!EventPart.EventTag.IsValid() || !EventPart.Action)
+			continue;
+
+		RequiredEventTags.Add(EventPart.EventTag);
 	}
 
-	if (!ResolvedSkillDefinition) return;
-	RuntimeSkillDefinition = DuplicateObject<UMASkillDefinition>(const_cast<UMASkillDefinition*>(ResolvedSkillDefinition), this);
+	for (const FGameplayTag& EventTag : RequiredEventTags)
+	{
+		if (!EventTag.IsValid()) continue;
+
+		UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, false);
+		if (!EventTask) continue;
+
+		EventTask->EventReceived.AddDynamic(this, &UMASkillAbility::HandleSkillGameplayEvent);
+		EventTask->ReadyForActivation();
+		EventTasks.Add(EventTask);
+	}
+}
+
+void UMASkillAbility::UnbindGameplayEvents()
+{
+	for (UAbilityTask_WaitGameplayEvent* EventTask : EventTasks)
+	{
+		if (!EventTask) continue;
+
+		EventTask->EventReceived.Clear();
+		EventTask->EndTask();
+	}
+
+	EventTasks.Reset();
+}
+
+void UMASkillAbility::EnsureStepManager()
+{
+	if (!CurrentSkillDefinition) return;
+
+	if (!StepManager)
+	{
+		StepManager = NewObject<UMASkillStepManager>(this);
+		StepManager->Initialize(this);
+	}
+}
+
+void UMASkillAbility::EnsureEventSources()
+{
+	if (!CurrentSkillDefinition) return;
+
+	for (UMASkillEventSource* RuntimeEventSource : CurrentSkillDefinition->GetEventSources())
+	{
+		if (!RuntimeEventSource) continue;
+
+		RuntimeEventSource->InitializeRuntime(this);
+	}
 }

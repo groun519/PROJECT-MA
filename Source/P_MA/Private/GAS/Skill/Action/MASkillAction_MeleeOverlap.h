@@ -5,21 +5,15 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAction_MeleeOverlap.generated.h"
 
-class AActor;
-
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced, DisplayName="Melee Overlap From Payload")
 class P_MA_API UMASkillAction_MeleeOverlap : public UMASkillAction
 {
 	GENERATED_BODY()
 
 public:
-	virtual void ResetRuntimeState() override { IgnoredActors.Reset(); }
 	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Damage"))
 	FGameplayTag DamagePayloadTag;
-
-	UPROPERTY(Transient)
-	TSet<TWeakObjectPtr<AActor>> IgnoredActors;
 };
