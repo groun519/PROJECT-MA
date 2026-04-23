@@ -63,6 +63,7 @@ namespace MATracePointNotify
 		float SectorAngle,
 		float Width,
 		float Height,
+		float Length,
 		bool bIgnoreOwner,
 		bool bDrawDebug,
 		const FGameplayTagContainer& TriggerGameplayCueTags,
@@ -73,12 +74,16 @@ namespace MATracePointNotify
 		OutData.TargetData.Add(LocationInfo);
 		OutData.Instigator = Owner;
 
+		if (Shape == EVA_Shape::Line || Shape == EVA_Shape::None) return;
+
 		auto* VirtualSocketData = new FGameplayAbilityTargetData_VirtualSocket();
 		VirtualSocketData->Shape = Shape;
 		VirtualSocketData->LocalOffset = FVector(LocalOffset.X, LocalOffset.Y, 0.f);
 		VirtualSocketData->LocalRotation = LocalRotation;
 		VirtualSocketData->SphereRadius = Radius;
-		VirtualSocketData->BoxHalfSize = FVector(Height, Width, 100.f);
+		VirtualSocketData->BoxHalfSize =
+			Shape == EVA_Shape::Rect ? FVector(Height, Width, 100.f)
+			: FVector::ZeroVector;
 		VirtualSocketData->bUseSector = bUseSector;
 		VirtualSocketData->SectorAngle = SectorAngle;
 		VirtualSocketData->bIgnoreOwner = bIgnoreOwner;
@@ -107,6 +112,7 @@ namespace MATracePointNotify
 		float SectorAngle,
 		float Width,
 		float Height,
+		float Length,
 		const FColor& DebugColor,
 		float DebugThickness)
 	{
@@ -138,6 +144,19 @@ namespace MATracePointNotify
 				WorldLocation,
 				Height,
 				Width,
+				MeshForward,
+				DebugColor,
+				DebugThickness);
+			return;
+		}
+
+		if (Shape == EVA_Shape::Line)
+		{
+			FDebugShapeHelper::DrawDebugRect(
+				World,
+				WorldLocation,
+				Length * 0.5f,
+				Radius,
 				MeshForward,
 				DebugColor,
 				DebugThickness);

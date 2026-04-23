@@ -11,27 +11,79 @@
 #include "GAS/Skill/MAOverlapDecalData.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-namespace
+const UMASkillAbility* UAnimNotifyState_SendTracePointPreview::ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 {
-	const UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
-	{
-		if (!MeshComp || !Animation) return nullptr;
+	if (!MeshComp || !Animation) return nullptr;
 
-		const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
-		return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
+	const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
+	return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
+}
+
+FName UAnimNotifyState_SendTracePointPreview::ResolveElementRowName(const FGameplayTag& ElementalTag)
+{
+	if (!ElementalTag.IsValid()) return NAME_None;
+
+	FString RowNameString = ElementalTag.GetTagName().ToString();
+	if (!RowNameString.Split(TEXT("."), nullptr, &RowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+	{
+		return NAME_None;
 	}
 
-	FName ResolveElementRowName(const FGameplayTag& ElementalTag)
+	return FName(*RowNameString);
+}
+
+bool UAnimNotifyState_SendTracePointPreview::ResolvePreviewWorldSpace(USkeletalMeshComponent* MeshComp, FVector& OutWorldLocation, FVector& OutShapeForward, FRotator& OutDecalRotation) const
+{
+	FQuat WorldRotation = FQuat::Identity;
+	FVector MeshForward = FVector::ZeroVector;
+	if (!MATracePointNotify::ResolveWorldSpace(MeshComp, LocalOffset, LocalRotation, OutWorldLocation, WorldRotation, MeshForward)) return false;
+
+	OutShapeForward = Shape == EVA_Shape::Line ? WorldRotation.GetAxisY().GetSafeNormal2D() : MeshForward;
+	if (Shape == EVA_Shape::Line)
 	{
-		if (!ElementalTag.IsValid()) return NAME_None;
+		OutWorldLocation += OutShapeForward * (Length * 0.5f);
+		OutDecalRotation = FRotator(-90.f, OutShapeForward.Rotation().Yaw + 90.f, 0.f);
+		return true;
+	}
 
-		FString RowNameString = ElementalTag.GetTagName().ToString();
-		if (!RowNameString.Split(TEXT("."), nullptr, &RowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
-		{
-			return NAME_None;
-		}
+	OutDecalRotation = FRotator(-90.f, WorldRotation.Rotator().Yaw + 90.f, 0.f);
+	return true;
+}
 
-		return FName(*RowNameString);
+FName UAnimNotifyState_SendTracePointPreview::GetPreviewDecalRowName() const
+{
+	return Shape == EVA_Shape::Circle ? FName(TEXT("Circle"))
+		: Shape == EVA_Shape::Rect ? FName(TEXT("Rect"))
+		: Shape == EVA_Shape::Line ? FName(TEXT("Line"))
+		: NAME_None;
+}
+
+FVector UAnimNotifyState_SendTracePointPreview::GetPreviewDecalSize() const
+{
+	return Shape == EVA_Shape::Circle ? FVector(10.f, Radius, Radius)
+		: Shape == EVA_Shape::Rect ? FVector(10.f, Width, Height)
+		: Shape == EVA_Shape::Line ? FVector(10.f, Length * 0.5f, Radius)
+		: FVector::ZeroVector;
+}
+
+void UAnimNotifyState_SendTracePointPreview::ConfigurePreviewDecalMaterial(UMaterialInstanceDynamic* DecalMID, const FLinearColor& ElementColor) const
+{
+	if (!DecalMID) return;
+
+	DecalMID->SetVectorParameterValue(TEXT("BaseColor"), ElementColor);
+	if (Shape == EVA_Shape::Circle)
+	{
+		const bool bSector = bUseSector && SectorAngle > 0.f && SectorAngle < 360.f;
+		const float SectorHalfAngle = SectorAngle * 0.5f;
+		DecalMID->SetScalarParameterValue(TEXT("_BaseAngle"), bSector ? -SectorHalfAngle : 0.f);
+		DecalMID->SetScalarParameterValue(TEXT("_EndAngle"), bSector ? SectorHalfAngle : 360.f);
+		return;
+	}
+
+	if (Shape == EVA_Shape::Rect || Shape == EVA_Shape::Line)
+	{
+		DecalMID->SetScalarParameterValue(TEXT("_Width"), 1.f);
+		DecalMID->SetScalarParameterValue(TEXT("_Height"), 1.f);
 	}
 }
 
@@ -45,21 +97,14 @@ void UAnimNotifyState_SendTracePointPreview::NotifyBegin(USkeletalMeshComponent*
 	if (!World) return;
 
 	FVector WorldLocation = FVector::ZeroVector;
-	FQuat WorldRotation = FQuat::Identity;
-	FVector MeshForward = FVector::ZeroVector;
-	if (!MATracePointNotify::ResolveWorldSpace(MeshComp, LocalOffset, LocalRotation, WorldLocation, WorldRotation, MeshForward))
-	{
-		return;
-	}
+	FVector ShapeForward = FVector::ZeroVector;
+	FRotator DecalRotation = FRotator::ZeroRotator;
+	if (!ResolvePreviewWorldSpace(MeshComp, WorldLocation, ShapeForward, DecalRotation)) return;
 
-	MATracePointNotify::DrawDebugShape(World, Shape, WorldLocation, MeshForward, Radius, bUseSector, SectorAngle, Width, Height, DebugColor, DebugThickness);
+	MATracePointNotify::DrawDebugShape(World, Shape, WorldLocation, ShapeForward, Radius, bUseSector, SectorAngle, Width, Height, Length, DebugColor, DebugThickness);
 
-	if (World->GetNetMode() == NM_DedicatedServer || MATracePointNotify::IsEditorPreviewWorldNoPIE(World))
-	{
-		return;
-	}
-
-	SpawnPreviewDecal(MeshComp, Animation, WorldLocation, WorldRotation);
+	if (World->GetNetMode() == NM_DedicatedServer || MATracePointNotify::IsEditorPreviewWorldNoPIE(World)) return;
+	SpawnPreviewDecal(MeshComp, Animation, WorldLocation, DecalRotation);
 }
 
 void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -74,15 +119,12 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 	if (!World || MATracePointNotify::IsEditorPreviewWorldNoPIE(World)) return;
 
 	FVector WorldLocation = FVector::ZeroVector;
-	FVector UnusedMeshForward = FVector::ZeroVector;
-	if (!MATracePointNotify::ResolveWorldSpace(MeshComp, LocalOffset, LocalRotation, WorldLocation, UnusedMeshForward))
-	{
-		return;
-	}
+	FVector ShapeForward = FVector::ZeroVector;
+	FRotator DecalRotation = FRotator::ZeroRotator;
+	if (!ResolvePreviewWorldSpace(MeshComp, WorldLocation, ShapeForward, DecalRotation)) return;
 
 	AActor* Owner = MeshComp->GetOwner();
 	if (!Owner) return;
-
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
 
 	FGameplayEventData Data;
@@ -97,12 +139,29 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 		SectorAngle,
 		Width,
 		Height,
+		Length,
 		bIgnoreOwner,
 		bDrawDebug,
 		TriggerGameplayCueTags,
 		WorldLocation);
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+}
+
+void UAnimNotifyState_SendTracePointPreview::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+	float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
+{
+	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime, EventReference);
+	if (!MeshComp) return;
+
+	UWorld* World = MeshComp->GetWorld();
+	if (!World || MATracePointNotify::IsEditorPreviewWorldNoPIE(World)) return;
+
+	FVector WorldLocation = FVector::ZeroVector;
+	FVector ShapeForward = FVector::ZeroVector;
+	FRotator DecalRotation = FRotator::ZeroRotator;
+	if (!ResolvePreviewWorldSpace(MeshComp, WorldLocation, ShapeForward, DecalRotation)) return;
+	UpdatePreviewDecalTransform(MeshComp, WorldLocation, DecalRotation);
 }
 
 FString UAnimNotifyState_SendTracePointPreview::GetNotifyName_Implementation() const
@@ -124,7 +183,7 @@ void UAnimNotifyState_SendTracePointPreview::DestroyPreviewDecal(USkeletalMeshCo
 }
 
 void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation,
-	const FVector& WorldLocation, const FQuat& WorldRotation)
+	const FVector& WorldLocation, const FRotator& DecalRotation)
 {
 	DestroyPreviewDecal(MeshComp);
 	if (!MeshComp) return;
@@ -135,10 +194,7 @@ void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComp
 	const UDataTable* OverlapDecalDataTable = SkillAbility->GetOverlapDecalDataTable();
 	if (!OverlapDecalDataTable) return;
 
-	const FName DecalRowName =
-		Shape == EVA_Shape::Circle ? FName(TEXT("Circle"))
-		: Shape == EVA_Shape::Rect ? FName(TEXT("Rect"))
-		: NAME_None;
+	const FName DecalRowName = GetPreviewDecalRowName();
 	if (DecalRowName == NAME_None) return;
 
 	const FMAOverlapDecalDataRow* DecalRow = OverlapDecalDataTable->FindRow<FMAOverlapDecalDataRow>(DecalRowName, TEXT("AnimNotifyState_SendTracePointPreview"));
@@ -157,54 +213,29 @@ void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComp
 		}
 	}
 
-	const bool bSector = Shape == EVA_Shape::Circle && bUseSector && SectorAngle > 0.f && SectorAngle < 360.f;
-	const float SectorHalfAngle = SectorAngle * 0.5f;
-	const FRotator DecalRotation(-90.f, WorldRotation.Rotator().Yaw + 90.f, 0.f);
-	const FVector DecalSize =
-		Shape == EVA_Shape::Circle ? FVector(10.f, Radius, Radius)
-		: Shape == EVA_Shape::Rect ? FVector(10.f, Width, Height)
-		: FVector::ZeroVector;
+	const FVector DecalSize = GetPreviewDecalSize();
 	if (DecalSize.IsNearlyZero()) return;
 
 	UWorld* World = MeshComp->GetWorld();
 	if (!World) return;
 
-	UDecalComponent* DecalComponent = nullptr;
-	if (bSpawnInWorld)
-	{
-		DecalComponent = UGameplayStatics::SpawnDecalAtLocation(
-			World,
-			DecalRow->DecalMaterial,
-			DecalSize,
-			WorldLocation,
-			DecalRotation,
-			0.f);
-	}
-	else
-	{
-		const FName AttachPointName = MeshComp->GetNumBones() > 0 ? MeshComp->GetBoneName(0) : NAME_None;
-		const FVector RelativeLocation(LocalOffset.X, LocalOffset.Y, 0.f);
-		const FRotator RelativeRotation(-90.f, LocalRotation.Yaw + 90.f, 0.f);
-
-		DecalComponent = UGameplayStatics::SpawnDecalAttached(
-			DecalRow->DecalMaterial,
-			DecalSize,
-			MeshComp,
-			AttachPointName,
-			RelativeLocation,
-			RelativeRotation,
-			EAttachLocation::KeepRelativeOffset,
-			0.f);
-	}
-
+	UDecalComponent* DecalComponent = bSpawnInWorld
+		? UGameplayStatics::SpawnDecalAtLocation(World, DecalRow->DecalMaterial, DecalSize, WorldLocation, DecalRotation, 0.f)
+		: UGameplayStatics::SpawnDecalAttached(DecalRow->DecalMaterial, DecalSize, MeshComp, NAME_None, WorldLocation, DecalRotation, EAttachLocation::KeepWorldPosition, 0.f);
 	if (!DecalComponent) return;
 
-	if (UMaterialInstanceDynamic* DecalMID = DecalComponent->CreateDynamicMaterialInstance())
-	{
-		DecalMID->SetVectorParameterValue(TEXT("BaseColor"), ElementColor);
-		DecalMID->SetScalarParameterValue(TEXT("_BaseAngle"), bSector ? -SectorHalfAngle : 0.f);
-		DecalMID->SetScalarParameterValue(TEXT("_EndAngle"), bSector ? SectorHalfAngle : 360.f);
-	}
-
+	ConfigurePreviewDecalMaterial(DecalComponent->CreateDynamicMaterialInstance(), ElementColor);
 	ActiveDecals.Add(MeshComp, DecalComponent);
+	UpdatePreviewDecalTransform(MeshComp, WorldLocation, DecalRotation);
+}
+
+void UAnimNotifyState_SendTracePointPreview::UpdatePreviewDecalTransform(USkeletalMeshComponent* MeshComp, const FVector& WorldLocation, const FRotator& DecalRotation)
+{
+	TWeakObjectPtr<UDecalComponent>* FoundDecal = ActiveDecals.Find(MeshComp);
+	if (!FoundDecal) return;
+
+	UDecalComponent* DecalComponent = FoundDecal->Get();
+	if (!DecalComponent) return;
+
+	DecalComponent->SetWorldLocationAndRotation(WorldLocation, DecalRotation);
 }

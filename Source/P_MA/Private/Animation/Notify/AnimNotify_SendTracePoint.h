@@ -32,7 +32,7 @@ private:
 	EVA_Shape Shape = EVA_Shape::Circle;
 
 	/** Sphere **/
-	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle", EditConditionHides, ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle || Shape==EVA_Shape::Line", EditConditionHides, ClampMin="0.0"))
 	float Radius = 50.f;
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Circle", EditConditionHides))
 	bool bUseSector = false;
@@ -44,6 +44,9 @@ private:
 	float Width = 50.f;
 	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Rect", EditConditionHides, ClampMin="0.0"))
 	float Height = 50.f;
+
+	UPROPERTY(EditAnywhere, Category="Virtual Socket", meta=(EditCondition="Shape==EVA_Shape::Line", EditConditionHides, ClampMin="0.0"))
+	float Length = 100.f;
 	
 	// 어차피 Z축은 탑다운, 점프x 상황에서 필요없기에 고려x
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")

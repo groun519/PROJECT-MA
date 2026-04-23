@@ -192,7 +192,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
 			OverrideTargetRelationMask, EVA_Shape::Circle, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
-	else // Box
+	else if (VS->Shape == EVA_Shape::Rect)
 	{
 		OutHits = GetHitResultFromSweepLocationTargetData(
 			LocHandle, VS->BoxHalfSize,

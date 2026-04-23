@@ -38,6 +38,7 @@ namespace MATracePointNotify
 		float SectorAngle,
 		float Width,
 		float Height,
+		float Length,
 		bool bIgnoreOwner,
 		bool bDrawDebug,
 		const FGameplayTagContainer& TriggerGameplayCueTags,
@@ -53,6 +54,7 @@ namespace MATracePointNotify
 		float SectorAngle,
 		float Width,
 		float Height,
+		float Length,
 		const FColor& DebugColor,
 		float DebugThickness);
 

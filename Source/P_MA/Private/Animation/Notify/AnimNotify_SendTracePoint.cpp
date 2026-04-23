@@ -13,13 +13,17 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	if (!World) return;
 
 	FVector WorldLocation = FVector::ZeroVector;
+	FQuat WorldRotation = FQuat::Identity;
 	FVector MeshForward = FVector::ZeroVector;
-	if (!MATracePointNotify::ResolveWorldSpace(MeshComp, LocalOffset, LocalRotation, WorldLocation, MeshForward))
+	if (!MATracePointNotify::ResolveWorldSpace(MeshComp, LocalOffset, LocalRotation, WorldLocation, WorldRotation, MeshForward))
 	{
 		return;
 	}
 
-	MATracePointNotify::DrawDebugShape(World, Shape, WorldLocation, MeshForward, Radius, bUseSector, SectorAngle, Width, Height, DebugColor, DebugThickness);
+	const FVector ShapeForward = Shape == EVA_Shape::Line ? WorldRotation.GetAxisY().GetSafeNormal2D() : MeshForward;
+	const FVector ShapeWorldLocation = Shape == EVA_Shape::Line ? WorldLocation + ShapeForward * (Length * 0.5f) : WorldLocation;
+
+	MATracePointNotify::DrawDebugShape(World, Shape, ShapeWorldLocation, ShapeForward, Radius, bUseSector, SectorAngle, Width, Height, Length, DebugColor, DebugThickness);
 
 	AActor* Owner = MeshComp->GetOwner();
 	if (!Owner) return;
@@ -38,10 +42,11 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		SectorAngle,
 		Width,
 		Height,
+		Length,
 		bIgnoreOwner,
 		bDrawDebug,
 		TriggerGameplayCueTags,
-		WorldLocation);
+		ShapeWorldLocation);
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
 }
