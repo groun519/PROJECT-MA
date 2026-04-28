@@ -1,6 +1,7 @@
 #include "GAS/Skill/Step/MASkillStep_Timed.h"
 
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Step/MASkillStepManager.h"
 
 void UMASkillStep_Timed::StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode)
 {
@@ -54,9 +55,15 @@ void UMASkillStep_Timed::OnTimedStepElapsed()
 
 void UMASkillStep_Timed::AdvanceOrCompleteOwnerStep()
 {
-	if (!ActivatePreparedNextStepPreview())
+	bool bActivatedPreparedNextStepPreview = false;
+	if (UMASkillStepManager* StepManager = GetOwnerStepManager())
 	{
-	RequestAdvanceOrEnd();
+		bActivatedPreparedNextStepPreview = StepManager->TryTransitionToPreparedStep(NextMontageStepIndex);
+	}
+
+	if (!bActivatedPreparedNextStepPreview)
+	{
+		RequestAdvanceOrEnd();
 	}
 }
 

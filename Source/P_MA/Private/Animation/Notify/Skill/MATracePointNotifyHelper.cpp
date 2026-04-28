@@ -1,4 +1,4 @@
-#include "Animation/Notify/MATracePointNotifyHelper.h"
+#include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
 
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -164,3 +164,4 @@ namespace MATracePointNotify
 #endif
 	}
 }
+

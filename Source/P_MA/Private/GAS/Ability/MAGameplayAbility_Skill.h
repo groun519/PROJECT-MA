@@ -8,7 +8,6 @@
 #include "GAS/Modules/MASkillModuleData.h"
 #include "MAGameplayAbility_Skill.generated.h"
 
-class UMASkillModule;
 /**
  * 
  */
@@ -25,10 +24,6 @@ public:
 	TSubclassOf<UGameplayEffect> GetBaseCooldownEffect() const;
 	
 	const FSkillData& GetSkillData() const {return CachedSkillData;}
-	const FModuleBehaviorData& GetBehaviorData() const {return CachedBehaviorData;}
-	const FModuleElementalData& GetElementalData() const {return CachedElementalData;}
-	const FModuleUtilityData& GetUtilityData() const {return CachedUtilityData;}
-	const FModuleBehaviorData& GetComboData() const {return CachedComboData;}
 	
 	UFUNCTION()
 	float GetTotalAnimSpeed() const;
@@ -45,17 +40,7 @@ protected:
 	TSubclassOf<UGameplayEffect> GetBaseDamageEffect() const;
 	
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMASkillModule>> ActiveModules;
-	UPROPERTY(Transient)
 	FSkillData CachedSkillData;
-	UPROPERTY(Transient)
-	FModuleBehaviorData CachedBehaviorData;
-	UPROPERTY(Transient)
-	FModuleElementalData CachedElementalData;
-	UPROPERTY(Transient)
-	FModuleUtilityData CachedUtilityData;
-	UPROPERTY(Transient)
-	FModuleBehaviorData CachedComboData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Config")
 	FName SkillID;
@@ -79,9 +64,7 @@ protected:
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);
 	void Montage_SetSection(FName SectionName);
-	
-	bool TryActivateComboModule();
-	
+
 	UPROPERTY()
 	TArray<AActor*> IgnoreTargets;
 

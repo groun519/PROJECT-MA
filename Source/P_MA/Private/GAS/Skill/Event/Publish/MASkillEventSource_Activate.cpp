@@ -1,4 +1,4 @@
-#include "GAS/Skill/Event/MASkillEventSource_Activate.h"
+#include "GAS/Skill/Event/Publish/MASkillEventSource_Activate.h"
 
 void UMASkillEventSource_Activate::StartSource(UMASkillAbility* SkillAbility)
 {

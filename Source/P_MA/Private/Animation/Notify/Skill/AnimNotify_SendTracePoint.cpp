@@ -1,7 +1,19 @@
-#include "Animation/Notify/AnimNotify_SendTracePoint.h"
+#include "Animation/Notify/Skill/AnimNotify_SendTracePoint.h"
 
-#include "Animation/Notify/MATracePointNotifyHelper.h"
-#include "AbilitySystemBlueprintLibrary.h"
+#include "Animation/MAAnimInstance.h"
+#include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
+#include "GAS/Skill/MASkillAbility.h"
+
+namespace
+{
+	UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
+	{
+		if (!MeshComp || !Animation) return nullptr;
+
+		const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
+		return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
+	}
+}
 
 void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
@@ -22,15 +34,17 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 
 	const FVector ShapeForward = Shape == EVA_Shape::Line ? WorldRotation.GetAxisY().GetSafeNormal2D() : MeshForward;
 	const FVector ShapeWorldLocation = Shape == EVA_Shape::Line ? WorldLocation + ShapeForward * (Length * 0.5f) : WorldLocation;
-
-	MATracePointNotify::DrawDebugShape(World, Shape, ShapeWorldLocation, ShapeForward, Radius, bUseSector, SectorAngle, Width, Height, Length, DebugColor, DebugThickness);
+	
+	MATracePointNotify::DrawDebugShape(World, Shape, WorldLocation, MeshForward, Radius, bUseSector, SectorAngle, Width, Height, DebugColor, DebugThickness);
+	if (World->IsPreviewWorld() || MATracePointNotify::IsEditorPreviewWorldNoPIE(World)) return;
 
 	AActor* Owner = MeshComp->GetOwner();
 	if (!Owner) return;
-
-	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
+	UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	if (!SkillAbility) return;
 
 	FGameplayEventData Data;
+	Data.EventTag = EventTag;
 	MATracePointNotify::AppendTargetData(
 		Data,
 		Owner,
@@ -48,5 +62,5 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		TriggerGameplayCueTags,
 		ShapeWorldLocation);
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());
 }

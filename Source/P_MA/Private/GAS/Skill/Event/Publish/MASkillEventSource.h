@@ -6,6 +6,7 @@
 #include "MASkillEventSource.generated.h"
 
 class UMASkillAbility;
+class UMASkillRuntimeScope;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillEventSource : public UObject
@@ -17,6 +18,8 @@ public:
 	void DeinitializeRuntime();
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() {}
+	void SetRuntimeScope(UMASkillRuntimeScope* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
+	UMASkillRuntimeScope* GetRuntimeScope() const { return RuntimeScope; }
 
 protected:
 	void EmitEvent() const;
@@ -32,4 +35,8 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerSkillAbility;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillRuntimeScope> RuntimeScope = nullptr;
 };
+

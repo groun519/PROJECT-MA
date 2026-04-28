@@ -11,7 +11,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Inventory/SkillBookComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -646,10 +646,13 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		WeaponDataRow = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
 	}
 
-	if (HasAuthority())
+	if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
 	{
 		UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
-		RefreshSlottedSkillAbility(EMAAbilityInputID::Attack, AttackSkillDefinition, WeaponAttackSkillHandle);
+		if (!bHasSeededAttackSkillDefinition && AttackSkillDefinition)
+		{
+			bHasSeededAttackSkillDefinition = SkillManager->AddDefinition(EMAAbilityInputID::Attack, AttackSkillDefinition);
+		}
 	}
 
 	if (!WeaponDataRow) return;
@@ -661,23 +664,6 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	}
 
 	WeaponComponent->SetRelativeTransform(WeaponDataRow->WeaponOffset);
-}
-
-void AMAPlayerCharacter::RefreshSlottedSkillAbility(const EMAAbilityInputID InputID, UMASkillDefinition* SkillDefinition, FGameplayAbilitySpecHandle& AbilityHandle)
-{
-	UAbilitySystemComponent* AbilitySystemComponent = GetAbilitySystemComponent();
-	if (!AbilitySystemComponent) return;
-
-	if (AbilityHandle.IsValid())
-	{
-		AbilitySystemComponent->ClearAbility(AbilityHandle);
-		AbilityHandle = FGameplayAbilitySpecHandle();
-	}
-
-	if (!SkillDefinition || !DefaultSkillAbilityClass) return;
-
-	const FGameplayAbilitySpec AbilitySpec(DefaultSkillAbilityClass, 1, static_cast<int32>(InputID), SkillDefinition);
-	AbilityHandle = AbilitySystemComponent->GiveAbility(AbilitySpec);
 }
 
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)

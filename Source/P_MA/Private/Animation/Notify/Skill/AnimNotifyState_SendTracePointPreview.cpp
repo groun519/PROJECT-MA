@@ -1,8 +1,7 @@
-#include "Animation/Notify/AnimNotifyState_SendTracePointPreview.h"
+#include "Animation/Notify/Skill/AnimNotifyState_SendTracePointPreview.h"
 
 #include "Animation/MAAnimInstance.h"
-#include "Animation/Notify/MATracePointNotifyHelper.h"
-#include "AbilitySystemBlueprintLibrary.h"
+#include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
 #include "Components/DecalComponent.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -125,9 +124,11 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 
 	AActor* Owner = MeshComp->GetOwner();
 	if (!Owner) return;
-	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
+	UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	if (!SkillAbility) return;
 
 	FGameplayEventData Data;
+	Data.EventTag = EventTag;
 	MATracePointNotify::AppendTargetData(
 		Data,
 		Owner,
@@ -145,7 +146,7 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 		TriggerGameplayCueTags,
 		WorldLocation);
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, EventTag, Data);
+	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());
 }
 
 void UAnimNotifyState_SendTracePointPreview::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,

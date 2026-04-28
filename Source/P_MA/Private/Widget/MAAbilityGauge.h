@@ -38,13 +38,6 @@ public:
 
 protected:
     virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
-
-    void HandleComboStartEvent(const struct FGameplayEventData* Payload);
-    void HandleComboEndEvent(const struct FGameplayEventData* Payload);
-    void HandleComboIconReadyEvent(const struct FGameplayEventData* Payload);
-
-    void UpdateComboWait();
-    void ComboWaitFinished();
     
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
@@ -116,12 +109,4 @@ private:
     float CurrentDisplayMaxCooldown = -1.f;
     void UpdateMaxCooldownText();
 
-    FDelegateHandle ComboStartHandle;
-    FDelegateHandle ComboEndHandle;
-    FDelegateHandle ComboIconReadyHandle;
-    
-    FTimerHandle ComboWaitTimerHandle;
-    float CachedComboWaitDuration = 0.f;
-    float CachedComboWaitTimeRemaining = 0.f;
-    bool bIsComboWaiting = false;
 };

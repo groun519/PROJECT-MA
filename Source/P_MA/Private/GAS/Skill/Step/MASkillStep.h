@@ -10,6 +10,7 @@ class UMASkillAbility;
 class UMASkillStepManager;
 class UAnimInstance;
 class UAbilityTask_PlayMontageAndWait;
+class UMASkillRuntimeScope;
 struct FGameplayEventData;
 
 UENUM()
@@ -25,13 +26,21 @@ class P_MA_API UMASkillStep : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void InitializeStep(UMASkillAbility* SkillAbility, int32 InStepIndex, int32 InNextStepIndex, int32 InNextMontageStepIndex)
+	virtual void InitializeStep(
+		UMASkillAbility* SkillAbility,
+		int32 InStepIndex,
+		int32 InNextStepIndex,
+		int32 InNextMontageStepIndex,
+		int32 InInitialSequenceSectionIndex = 0)
 	{
 		OwnerSkillAbility = SkillAbility;
 		StepIndex = InStepIndex;
 		NextStepIndex = InNextStepIndex;
 		NextMontageStepIndex = InNextMontageStepIndex;
+		RuntimeSequenceSectionIndex = FMath::Max(InInitialSequenceSectionIndex, 0);
 	}
+	void SetRuntimeScope(UMASkillRuntimeScope* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
+	UMASkillRuntimeScope* GetRuntimeScope() const { return RuntimeScope; }
 
 	virtual void StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode);
 	void EnterStep(EMASkillStepStartMode StartMode)
@@ -69,8 +78,11 @@ public:
 	virtual UAnimMontage* ResolveStepMontage() const { return StepMontage; }
 	virtual FName ResolveStepStartSectionName() const;
 	virtual FName ResolvePreparedStepStartSectionName() const;
+	bool UsesSequenceSections() const { return !SequenceSectionNameBase.IsNone(); }
+	FName GetSequenceSectionNameBase() const { return SequenceSectionNameBase; }
 	bool PrepareNextStepPreview(float PreviewBlendInTime);
-	bool ActivatePreparedNextStepPreview();
+	bool HasPreparedStepPreview() const { return PreparedStepPreviewMontage != nullptr; }
+	bool PromotePreparedStepPreviewToActive();
 	void ClearPreparedStepPreview(float BlendOutTime = 0.f);
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
 	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const { return false; }
@@ -80,7 +92,6 @@ protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
 	UMASkillStepManager* GetOwnerStepManager() const;
 	void RequestAdvanceOrEnd(float MontageBlendOutTime = 0.f);
-	bool UsesStepSections() const { return !SequenceSectionNameBase.IsNone(); }
 	UAnimInstance* ResolveOwnerAnimInstance() const;
 
 	UPROPERTY(EditDefaultsOnly, Category="Step")
@@ -117,12 +128,14 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillRuntimeScope> RuntimeScope = nullptr;
+
 	int32 ResolveCurrentSequenceSectionIndex() const;
 	int32 ResolveNextSequenceSectionIndex() const;
 	FName MakeSequenceSectionName(int32 SectionIndex) const;
 	UMASkillStep* ResolveNextMontageRuntimeStep() const;
 	bool PrepareStepPreview(float PreviewBlendInTime);
-	bool ActivatePreparedStepPreview();
 	bool TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutStepMontage) const;
 	void StartCurrentStepMontage();
 	void ClearCurrentMontageTask();

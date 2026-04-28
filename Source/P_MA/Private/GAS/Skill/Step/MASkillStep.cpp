@@ -11,7 +11,7 @@
 void UMASkillStep::StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode /*StartMode*/)
 {
 	OwnerSkillAbility = SkillAbility;
-	if (!UsesStepSections()) return;
+	if (!UsesSequenceSections()) return;
 
 	RuntimeSequenceSectionIndex = ResolveNextSequenceSectionIndex();
 }
@@ -91,19 +91,12 @@ bool UMASkillStep::PrepareNextStepPreview(float PreviewBlendInTime)
 	return NextStep ? NextStep->PrepareStepPreview(PreviewBlendInTime) : false;
 }
 
-bool UMASkillStep::ActivatePreparedStepPreview()
+bool UMASkillStep::PromotePreparedStepPreviewToActive()
 {
 	if (!PreparedStepPreviewMontage) return false;
 
-	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
-	UMASkillStepManager* StepManager = GetOwnerStepManager();
 	UAnimMontage* PreparedMontage = PreparedStepPreviewMontage;
-	if (!SkillAbility || !StepManager || !PreparedMontage) return false;
-
-	if (UMASkillStep* CurrentStep = StepManager->GetCurrentRuntimeSkillStep())
-	{
-		CurrentStep->StopStep();
-	}
+	if (!PreparedMontage) return false;
 
 	if (UAnimInstance* AnimInstance = ResolveOwnerAnimInstance())
 	{
@@ -114,17 +107,8 @@ bool UMASkillStep::ActivatePreparedStepPreview()
 		}
 	}
 
-	if (!StepManager->TransitionToStep(StepIndex, EMASkillStepStartMode::Prepared, 0.f)) return false;
-	StepManager->ApplyDesiredMontagePlayRate();
-
 	bPreparedStepPreviewActivated = true;
 	return true;
-}
-
-bool UMASkillStep::ActivatePreparedNextStepPreview()
-{
-	UMASkillStep* NextStep = ResolveNextMontageRuntimeStep();
-	return NextStep ? NextStep->ActivatePreparedStepPreview() : false;
 }
 
 void UMASkillStep::ClearPreparedStepPreview(float BlendOutTime)
@@ -141,7 +125,7 @@ void UMASkillStep::ClearPreparedStepPreview(float BlendOutTime)
 
 int32 UMASkillStep::ResolveCurrentSequenceSectionIndex() const
 {
-	if (!UsesStepSections()) return 0;
+	if (!UsesSequenceSections()) return 0;
 
 	int32 ResolvedSectionIndex = FMath::Max(RuntimeSequenceSectionIndex, 1);
 	if (MaxSequenceSectionCount > 0)
@@ -154,7 +138,7 @@ int32 UMASkillStep::ResolveCurrentSequenceSectionIndex() const
 
 int32 UMASkillStep::ResolveNextSequenceSectionIndex() const
 {
-	if (!UsesStepSections()) return 0;
+	if (!UsesSequenceSections()) return 0;
 
 	if (MaxSequenceSectionCount > 0)
 	{
