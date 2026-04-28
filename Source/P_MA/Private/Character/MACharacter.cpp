@@ -12,6 +12,7 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Widget/MAOverHeadStatsGauge.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
@@ -41,6 +42,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
+	SkillManagerComponent = CreateDefaultSubobject<UMASkillManagerComponent>("SkillManagerComponent");
 
 	BindGASChangeDelegates();
 
@@ -51,6 +53,10 @@ void AMACharacter::ServerSideInit()
 {
 	MAAbilitySystemComponent->InitAbilityActorInfo(this, this);
 	MAAbilitySystemComponent->ServerSideInit();
+	if (SkillManagerComponent)
+	{
+		SkillManagerComponent->InitializeGrantedAbilities();
+	}
 }
 
 void AMACharacter::ClientSideInit()

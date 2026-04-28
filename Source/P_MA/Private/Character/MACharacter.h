@@ -15,6 +15,7 @@
 class UNiagaraSystem;
 class UMAImpulseComponent;
 class UMAStatusEffectComponent;
+class UMASkillManagerComponent;
 
 UCLASS()
 class AMACharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
@@ -42,6 +43,7 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 	UMAImpulseComponent* GetImpulseComponent() const { return ImpulseComponent; }
 	UMAStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+	UMASkillManagerComponent* GetSkillManagerComponent() const { return SkillManagerComponent; }
 	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
@@ -118,6 +120,9 @@ private:
 protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
 	class ULoadoutComponent* LoadoutComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
+	TObjectPtr<UMASkillManagerComponent> SkillManagerComponent;
 
 public:
 	UFUNCTION(Server, Reliable)

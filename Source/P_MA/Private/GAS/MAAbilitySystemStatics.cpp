@@ -363,11 +363,6 @@ float UMAAbilitySystemStatics::GetExpectedCooldownDuration(const UGameplayAbilit
 			if (FetchedSkillData)
 			{
 				FinalCooldown = FetchedSkillData->BaseCooldown;
-
-				if (const FModuleUtilityData* UtilityRow = SkillSys->GetUtilityData(FetchedSkillData->DefaultUtilityTag))
-				{
-					FinalCooldown *= UtilityRow->CooldownMultiplier;
-				}
 			}
 		}
 	}

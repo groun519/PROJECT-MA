@@ -1,4 +1,4 @@
-#include "GAS/Skill/Event/MASkillEventSource_AttributeChanged.h"
+#include "GAS/Skill/Event/Publish/MASkillEventSource_AttributeChanged.h"
 
 #include "AbilitySystemComponent.h"
 #include "GAS/Skill/MASkillAbility.h"

@@ -8,10 +8,6 @@
 #include "Character/MACharacter.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Modules/MASkillModule.h"
-#include "GAS/Modules/SkillModule_Combo.h"
-#include "GAS/Modules/SkillModule_Elemental.h"
-#include "GAS/Modules/SkillModule_Utility.h"
 #include "GAS/Setting/MASkillSubsystem.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
@@ -55,13 +51,6 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
 	WaitClearEventTask->ReadyForActivation();
 	
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->OnAbilityActivated();
-		}
-	}
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
@@ -71,14 +60,6 @@ void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handl
 	{
 		WaitClearEventTask->EndTask();
 	}
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->OnAbilityEnded(bWasCancelled);
-		}
-	}
-
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
 		if (!CachedSkillData.bCanMove)
@@ -110,14 +91,6 @@ void UMAGameplayAbility_Skill::ApplyCooldown(const FGameplayAbilitySpecHandle Ha
 	if (CachedSkillData.CooldownTag.IsValid())
 	{
 		SpecHandle.Data->DynamicGrantedTags.AddTag(CachedSkillData.CooldownTag);
-	}
-
-	for (const auto& Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->ModifyCooldownSpec(SpecHandle);
-		}
 	}
 
 	float FinalDuration = SpecHandle.Data->GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Cooldown.Duration"), false, 0.f);
@@ -173,13 +146,6 @@ FGameplayEffectSpecHandle UMAGameplayAbility_Skill::MakeSkillDamageSpec(float Be
 
 	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier"), BehaviorMultiplier);
 
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->ModifyDamageSpec(SpecHandle);
-		}
-	}
 	return SpecHandle;
 }
 
@@ -192,16 +158,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 	if (!MainSpecHandle.IsValid())
 		return;
 	
-	// 추가 상태이상 부여
-	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
-		}
-	}
-
 	for (const FHitResult& Hit : HitResults)
 	{
 		AActor* HitActor = Hit.GetActor();
@@ -216,17 +172,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToHitResults(const TArray<FHitResult>&
 
 			ApplyHitStop(HitActor);
 		}
-		for (const auto& AddSpec : AdditionalSpecs)
-		{
-			if (AddSpec.IsValid())
-			{
-				FGameplayEffectContextHandle AddContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
-				AddContext.AddHitResult(Hit);
-				AddSpec.Data->SetContext(AddContext);
-				
-				ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
-			}
-		}
 	}
 }
 
@@ -239,15 +184,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 	if (!MainSpecHandle.IsValid())
 		return;
 
-	TArray<FGameplayEffectSpecHandle> AdditionalSpecs;
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			Module->CreateAdditionalEffectSpecs(AdditionalSpecs);
-		}
-	}
-	
 	TArray<AActor*> TargetActors = UAbilitySystemBlueprintLibrary::GetActorsFromTargetData(TargetData,0);
 	for (AActor* HitActor : TargetActors)
 	{
@@ -259,16 +195,6 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 			
 			ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), MainSpecHandle, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
 			IgnoreTargets.Add(HitActor);
-			
-			for (const auto& AddSpec : AdditionalSpecs)
-			{
-				if (AddSpec.IsValid())
-				{
-					FGameplayEffectContextHandle AddContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
-					AddSpec.Data->SetContext(AddContext);
-					ApplyGameplayEffectSpecToTarget(GetCurrentAbilitySpecHandle(),GetCurrentActorInfo(),GetCurrentActivationInfo(), AddSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(HitActor));
-				}
-			}
 		}
 	}
 }
@@ -363,68 +289,6 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 		return false;
 
 	CachedSkillData = *SkillRow;
-	ActiveModules.Empty();
-
-	const FModuleBehaviorData* BehaviorRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultBehaviorTag);
-	if (BehaviorRow && BehaviorRow->ModuleClass)
-	{
-		//스킬 특성에 맞는 모듈을 장착했는지 || 만족하는 태그를 모두 소유했는지 확인
-		bool bIsCompatible = BehaviorRow->RequiredTraits.IsEmpty() || CachedSkillData.SkillTraits.HasAll(BehaviorRow->RequiredTraits);
-
-		if (bIsCompatible)
-		{
-			CachedBehaviorData = *BehaviorRow;
-			UMASkillModule* NewModule = NewObject<UMASkillModule>(this, BehaviorRow->ModuleClass);
-			if (NewModule)
-			{
-				NewModule->InitializeModule(this);
-				NewModule->ApplyModuleToSkillData(CachedSkillData, *BehaviorRow);
-				ActiveModules.Add(NewModule);
-			}
-		}
-		//TODO -> 아예 모듈 장착을 못하도록 했으면 좋겠음
-	}
-
-	const FModuleElementalData* ElementalRow = SkillSys->GetElementalData(CachedSkillData.DefaultElementalTag);
-	if (ElementalRow)
-	{
-		CachedElementalData = *ElementalRow;
-		USkillModule_Elemental* NewModule = NewObject<USkillModule_Elemental>(this, USkillModule_Elemental::StaticClass());
-		if (NewModule)
-		{
-			NewModule->InitializeModule(this);
-			ActiveModules.Add(NewModule);
-		}
-	}
-
-	const FModuleUtilityData* UtilityRow = SkillSys->GetUtilityData(CachedSkillData.DefaultUtilityTag);
-	if (UtilityRow)
-	{
-		CachedUtilityData = *UtilityRow;
-		USkillModule_Utility* NewModule = NewObject<USkillModule_Utility>(this, USkillModule_Utility::StaticClass());
-		if (NewModule)
-		{
-			NewModule->InitializeModule(this);
-			ActiveModules.Add(NewModule);
-		}
-	}
-
-	if (CachedSkillData.DefaultComboTag.IsValid())
-	{
-		const FModuleBehaviorData* ComboRow = SkillSys->GetBehaviorData(CachedSkillData.DefaultComboTag);
-		if (ComboRow && ComboRow->ModuleClass)
-		{
-			CachedComboData = *ComboRow;
-			UMASkillModule* NewModule = NewObject<UMASkillModule>(this, ComboRow->ModuleClass);
-			if (NewModule)
-			{
-				NewModule->InitializeModule(this);
-				NewModule->ApplyModuleToSkillData(CachedSkillData, *ComboRow);
-				ActiveModules.Add(NewModule);
-			}
-		}
-	}
-	
 	return true;
 }
 
@@ -434,15 +298,7 @@ bool UMAGameplayAbility_Skill::LoadSkillData()
 /********************************************************************************************/
 float UMAGameplayAbility_Skill::GetTotalAnimSpeed() const
 {
-	float TotalSpeed = 1.f;
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (Module)
-		{
-			TotalSpeed *= Module->GetAnimSpeedMultiplier();
-		}
-	}
-	return TotalSpeed;
+	return 1.f;
 }
 
 void UMAGameplayAbility_Skill::Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate)
@@ -461,18 +317,6 @@ void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
 	{
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
-}
-
-bool UMAGameplayAbility_Skill::TryActivateComboModule()
-{
-	for (UMASkillModule* Module : ActiveModules)
-	{
-		if (USkillModule_Combo* ComboModule = Cast<USkillModule_Combo>(Module))
-		{
-			return ComboModule->TryActivateCombo();
-		}
-	}
-	return false;
 }
 
 void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayAbilitySpecHandle.h"
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -19,7 +18,6 @@ class UReadyCheckWidgetComponent;
 class USkeletalMeshComponent;
 class AMAPlayerState;
 class UPlayerCameraManagerComponent;
-class UMASkillAbility;
 
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
@@ -164,22 +162,17 @@ public:
 	void HandleLoadoutEyeShapeChanged(FName EyeShapeId);
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 	void HandleLoadoutMountChanged(FName MountId);
-	void RefreshSlottedSkillAbility(EMAAbilityInputID InputID, class UMASkillDefinition* SkillDefinition, FGameplayAbilitySpecHandle& AbilityHandle);
 
 	FDelegateHandle LoadoutChangedHandle;
 
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
 
+	bool bHasSeededAttackSkillDefinition = false;
+
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, Category="Skill")
-	TSubclassOf<UMASkillAbility> DefaultSkillAbilityClass;
-
-	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle WeaponAttackSkillHandle;
 
 	/** Death and Respawn **/
 	virtual void OnDead() override;

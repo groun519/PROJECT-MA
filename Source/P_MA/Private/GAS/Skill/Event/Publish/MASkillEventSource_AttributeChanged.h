@@ -2,7 +2,7 @@
 
 #include "AttributeSet.h"
 #include "CoreMinimal.h"
-#include "GAS/Skill/Event/MASkillEventSource.h"
+#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
 #include "MASkillEventSource_AttributeChanged.generated.h"
 
 struct FOnAttributeChangeData;

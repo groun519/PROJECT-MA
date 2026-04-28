@@ -1,4 +1,4 @@
-#include "GAS/Skill/Event/MASkillEventSource.h"
+#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -29,7 +29,7 @@ void UMASkillEventSource::EmitEvent() const
 
 	FGameplayEventData Payload;
 	Payload.EventTag = EmittedTag;
-	OwnerSkillAbility->HandleSkillGameplayEvent(Payload);
+	OwnerSkillAbility->SendSkillGameplayEvent(Payload, RuntimeScope);
 }
 
 void UMASkillEventSource::HandleSkillActivated()
@@ -41,3 +41,4 @@ void UMASkillEventSource::HandleSkillDeactivated()
 {
 	StopSource();
 }
+

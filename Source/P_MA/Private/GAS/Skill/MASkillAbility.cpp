@@ -2,14 +2,18 @@
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/Event/MASkillGameplayEventPart.h"
-#include "GAS/Skill/Event/MASkillEventSource.h"
+#include "GAS/Skill/Event/Binding/MASkillGameplayEventBinding.h"
+#include "GAS/Skill/Event/Publish/MASkillGameplayEventScope.h"
+#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
+#include "GAS/Skill/Event/Runtime/MASkillRuntimeScope.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
 UMASkillAbility::UMASkillAbility()
@@ -28,22 +32,48 @@ void UMASkillAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, 
 {
 	Super::OnGiveAbility(ActorInfo, Spec);
 
-	UMASkillDefinition* SourceSkillDefinition = Cast<UMASkillDefinition>(Spec.SourceObject.Get());
-	if (!SourceSkillDefinition) SourceSkillDefinition = SkillDefinition;
-	UpdateCurrentSkillDefinition(SourceSkillDefinition);
+	UpdateCurrentSkillDefinition(Cast<UMASkillDefinition>(Spec.SourceObject.Get()));
+
+	if (const AMACharacter* OwnerCharacter = Cast<AMACharacter>(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr))
+	{
+		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
+		{
+			SkillManager->RegisterAbilityHandle(static_cast<EMAAbilityInputID>(Spec.InputID), Spec.Handle, GetClass());
+		}
+	}
 }
 
 void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
 {
 	Super::OnRemoveAbility(ActorInfo, Spec);
+
+	if (const AMACharacter* OwnerCharacter = Cast<AMACharacter>(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr))
+	{
+		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
+		{
+			SkillManager->UnregisterAbilityHandle(static_cast<EMAAbilityInputID>(Spec.InputID), Spec.Handle);
+		}
+	}
+
 	UpdateCurrentSkillDefinition(nullptr);
 }
 
 void UMASkillAbility::UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition)
 {
-	// 런타임 데피니션 수정 불가. 나중에 가능하게 되면, 차라리 액티베이션 종료 후 반영하도록 바인딩 하면 될 듯.
-	if (!ensureMsgf(!IsActive(), TEXT("UpdateCurrentSkillDefinition must not run while the skill is active."))) return;
+	if (IsActive())
+	{
+		PendingSkillDefinition = SourceSkillDefinition;
+		bHasPendingSkillDefinitionUpdate = true;
+		return;
+	}
 
+	PendingSkillDefinition = nullptr;
+	bHasPendingSkillDefinitionUpdate = false;
+	ApplyCurrentSkillDefinition(SourceSkillDefinition);
+}
+
+void UMASkillAbility::ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition)
+{
 	UnbindGameplayEvents();
 	if (CurrentSkillDefinition)
 	{
@@ -55,9 +85,15 @@ void UMASkillAbility::UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSki
 	}
 	if (StepManager) StepManager->ResetRuntimeState();
 
-	CurrentSkillDefinition = SourceSkillDefinition
-		? DuplicateObject<UMASkillDefinition>(SourceSkillDefinition, this)
-		: nullptr;
+	if (!SourceSkillDefinition)
+	{
+		CurrentSkillDefinition = nullptr;
+		return;
+	}
+
+	CurrentSkillDefinition = SourceSkillDefinition->IsRuntimeAssembledDefinition()
+		? SourceSkillDefinition
+		: DuplicateObject<UMASkillDefinition>(SourceSkillDefinition, this);
 
 	if (!CurrentSkillDefinition) return;
 	EnsureStepManager();
@@ -73,11 +109,15 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	PayloadStore.Reset();
 	CurrentSkillDefinition->ApplyPayloadsTo(PayloadStore);
+	if (StepManager)
+	{
+		StepManager->SetDesiredMontagePlayRate(1.f);
+	}
 	BindGameplayEvents();
-	SkillActivatedDelegate.Broadcast();
 	RegisterCancelTriggers();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	SkillActivatedDelegate.Broadcast();
 }
 
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -96,6 +136,13 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	}
 
 	PayloadStore.Reset();
+	if (bHasPendingSkillDefinitionUpdate)
+	{
+		UMASkillDefinition* NextSkillDefinition = PendingSkillDefinition;
+		PendingSkillDefinition = nullptr;
+		bHasPendingSkillDefinitionUpdate = false;
+		ApplyCurrentSkillDefinition(NextSkillDefinition);
+	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
@@ -103,22 +150,53 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 const FGameplayTag& UMASkillAbility::GetElementalTag() const
 {
 	static const FGameplayTag EmptyTag;
+	static const FGameplayTag DefaultElementalTag = FGameplayTag::RequestGameplayTag(TEXT("Elemental.Default"));
 	if (!CurrentSkillDefinition) return EmptyTag;
-	return CurrentSkillDefinition->GetElementalTag();
+
+	const FGameplayTag& CurrentElementalTag = CurrentSkillDefinition->GetElementalTag();
+	return CurrentElementalTag.IsValid()
+		? CurrentElementalTag
+		: DefaultElementalTag;
 }
 
-void UMASkillAbility::HandleSkillGameplayEvent(FGameplayEventData Payload)
+void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 {
+	const UMASkillRuntimeScope* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
+
 	if (StepManager) StepManager->HandleRuntimeEvent(Payload);
 	if (!CurrentSkillDefinition || !Payload.EventTag.IsValid()) return;
 
-	for (const FMASkillGameplayEventPart& EventPart : CurrentSkillDefinition->GetEventParts())
+	for (const FMASkillGameplayEventBinding& EventBinding : CurrentSkillDefinition->GetEventBindings())
 	{
-		if (EventPart.EventTag != Payload.EventTag || !EventPart.Action)
+		if (EventBinding.EventTag != Payload.EventTag || !EventBinding.Action)
 			continue;
+		if (EventBinding.bUseLocalBinding)
+		{
+			if (!EventBinding.RuntimeScope || EventBinding.RuntimeScope != RuntimeScope)
+			{
+				continue;
+			}
+		}
 
-		EventPart.Action->Execute(*this, Payload);
+		EventBinding.Action->Execute(*this, Payload);
 	}
+}
+
+void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillRuntimeScope* RuntimeScope)
+{
+	AActor* TargetActor = GetAvatarActorFromActorInfo();
+	if (!TargetActor || !Payload.EventTag.IsValid()) return;
+
+	FGameplayEventData EventPayload = Payload;
+	MASkillGameplayEventScope::InjectRuntimeScope(EventPayload, RuntimeScope);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventPayload.EventTag, EventPayload);
+}
+
+UMASkillRuntimeScope* UMASkillAbility::GetCurrentRuntimeScope() const
+{
+	return StepManager
+		? StepManager->GetCurrentRuntimeScope()
+		: nullptr;
 }
 
 bool UMASkillAbility::CanPlaySkillMontageLocally() const
@@ -176,22 +254,22 @@ void UMASkillAbility::BindGameplayEvents()
 	if (!CurrentSkillDefinition || !EventTasks.IsEmpty()) return;
 
 	TSet<FGameplayTag> RequiredEventTags;
-	for (const FMASkillGameplayEventPart& EventPart : CurrentSkillDefinition->GetEventParts())
+	for (const FMASkillGameplayEventBinding& EventBinding : CurrentSkillDefinition->GetEventBindings())
 	{
-		if (!EventPart.EventTag.IsValid() || !EventPart.Action)
+		if (!EventBinding.EventTag.IsValid() || !EventBinding.Action)
 			continue;
 
-		RequiredEventTags.Add(EventPart.EventTag);
+		RequiredEventTags.Add(EventBinding.EventTag);
 	}
 
 	for (const FGameplayTag& EventTag : RequiredEventTags)
 	{
 		if (!EventTag.IsValid()) continue;
 
-		UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, false);
+		UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, EventTag, nullptr, false, true);
 		if (!EventTask) continue;
 
-		EventTask->EventReceived.AddDynamic(this, &UMASkillAbility::HandleSkillGameplayEvent);
+		EventTask->EventReceived.AddDynamic(this, &UMASkillAbility::HandleExternalGameplayEvent);
 		EventTask->ReadyForActivation();
 		EventTasks.Add(EventTask);
 	}

@@ -17,6 +17,7 @@ void UMASkillStepManager::Initialize(UMASkillAbility* SkillAbility)
 void UMASkillStepManager::UpdateSteps(const TArray<TObjectPtr<UMASkillStep>>& InRuntimeSteps)
 {
 	RuntimeSteps = &InRuntimeSteps;
+	TMap<FString, int32> SequenceSectionOffsets;
 
 	for (int32 StepIndex = 0; StepIndex < InRuntimeSteps.Num(); ++StepIndex)
 	{
@@ -34,7 +35,24 @@ void UMASkillStepManager::UpdateSteps(const TArray<TObjectPtr<UMASkillStep>>& In
 			break;
 		}
 
-		RuntimeStep->InitializeStep(OwnerSkillAbility, StepIndex, NextStepIndex, NextMontageStepIndex);
+		int32 InitialSequenceSectionIndex = 0;
+		if (RuntimeStep->UsesSequenceSections())
+		{
+			const FString SequenceSectionKey = FString::Printf(
+				TEXT("%s|%s"),
+				*GetPathNameSafe(RuntimeStep->ResolveStepMontage()),
+				*RuntimeStep->GetSequenceSectionNameBase().ToString());
+
+			InitialSequenceSectionIndex = SequenceSectionOffsets.FindRef(SequenceSectionKey);
+			SequenceSectionOffsets.Add(SequenceSectionKey, InitialSequenceSectionIndex + 1);
+		}
+
+		RuntimeStep->InitializeStep(
+			OwnerSkillAbility,
+			StepIndex,
+			NextStepIndex,
+			NextMontageStepIndex,
+			InitialSequenceSectionIndex);
 	}
 }
 
@@ -48,7 +66,6 @@ void UMASkillStepManager::ResetRuntimeState()
 
 void UMASkillStepManager::HandleSkillActivated()
 {
-	DesiredMontagePlayRate = 1.f;
 	if (SetActiveStep(0, EMASkillStepStartMode::Fresh))
 	{
 		if (UMASkillStep* FirstStep = GetCurrentRuntimeSkillStep())
@@ -96,6 +113,26 @@ bool UMASkillStepManager::TransitionToStep(int32 TargetStepIndex, EMASkillStepSt
 	{
 		CurrentStep->EnterStep(CurrentStepStartMode);
 	}
+	return true;
+}
+
+bool UMASkillStepManager::TryTransitionToPreparedStep(int32 TargetStepIndex)
+{
+	UMASkillStep* TargetStep = GetRuntimeSkillStep(TargetStepIndex);
+	if (!TargetStep || !TargetStep->HasPreparedStepPreview()) return false;
+
+	StopActiveStep(0.f);
+	ClearPreparedStepPreviews(TargetStepIndex);
+
+	if (!TargetStep->PromotePreparedStepPreviewToActive()) return false;
+
+	SetActiveStep(TargetStepIndex, EMASkillStepStartMode::Prepared);
+	if (UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
+	{
+		CurrentStep->EnterStep(CurrentStepStartMode);
+	}
+
+	ApplyDesiredMontagePlayRate();
 	return true;
 }
 
@@ -157,13 +194,26 @@ void UMASkillStepManager::StopActiveStep(float MontageBlendOutTime)
 	}
 }
 
-void UMASkillStepManager::ClearPreparedStepPreviews() const
+void UMASkillStepManager::ClearPreparedStepPreviews(int32 ExceptStepIndex) const
 {
 	if (!RuntimeSteps) return;
 
-	for (UMASkillStep* RuntimeSkillStep : *RuntimeSteps)
+	for (int32 StepIndex = 0; StepIndex < RuntimeSteps->Num(); ++StepIndex)
 	{
+		if (StepIndex == ExceptStepIndex) continue;
+
+		UMASkillStep* RuntimeSkillStep = (*RuntimeSteps)[StepIndex];
 		if (!RuntimeSkillStep) continue;
 		RuntimeSkillStep->ClearPreparedStepPreview();
 	}
+}
+
+UMASkillRuntimeScope* UMASkillStepManager::GetCurrentRuntimeScope() const
+{
+	if (const UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
+	{
+		return CurrentStep->GetRuntimeScope();
+	}
+
+	return nullptr;
 }

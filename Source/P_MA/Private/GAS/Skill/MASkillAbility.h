@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameplayTagContainer.h"
@@ -10,6 +11,7 @@ class UDataTable;
 class UAbilityTask_WaitGameplayEvent;
 class UMASkillDefinition;
 class UMASkillEventSource;
+class UMASkillRuntimeScope;
 class UMASkillStepManager;
 struct FGameplayEventData;
 
@@ -34,21 +36,18 @@ public:
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
 	UFUNCTION()
-	void HandleSkillGameplayEvent(FGameplayEventData Payload);
+	void HandleExternalGameplayEvent(FGameplayEventData Payload);
+	void SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillRuntimeScope* RuntimeScope = nullptr);
 	const UMASkillDefinition* GetCurrentSkillDefinition() const { return CurrentSkillDefinition; }
 	void UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition);
 	UMASkillStepManager* GetStepManager() const { return StepManager; }
+	UMASkillRuntimeScope* GetCurrentRuntimeScope() const;
 	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }
 	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
 	void EndSkill() { K2_EndAbility(); }
 	bool CanPlaySkillMontageLocally() const;
 
 protected:
-	/** Definition DataAsset **/
-	// TODO: Temporary editor-assigned test input. Remove after the merged current-definition pipeline fully replaces direct DA assignment.
-	UPROPERTY(EditDefaultsOnly, Category="Definition")
-	TObjectPtr<UMASkillDefinition> SkillDefinition;
-
 	// TODO: Move this kind of shared lookup data into a common subsystem once the
 	// skill runtime starts depending on more global registries than elemental data.
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
@@ -62,6 +61,7 @@ protected:
 	FGameplayTagContainer CancelTriggerTags;
 
 private:
+	void ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition);
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
@@ -72,6 +72,11 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillDefinition> CurrentSkillDefinition;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillDefinition> PendingSkillDefinition;
+
+	bool bHasPendingSkillDefinitionUpdate = false;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> EventTasks;

@@ -6,6 +6,7 @@
 #include "MASkillStepManager.generated.h"
 
 class UMASkillAbility;
+class UMASkillRuntimeScope;
 struct FGameplayEventData;
 
 UCLASS()
@@ -22,6 +23,7 @@ public:
 	UMASkillStep* GetCurrentRuntimeSkillStep() const { return GetRuntimeSkillStep(CurrentStepIndex); }
 	bool SetActiveStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode);
 	bool TransitionToStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime);
+	bool TryTransitionToPreparedStep(int32 TargetStepIndex);
 	void AdvanceOrEnd(int32 NextStepIndex, float MontageBlendOutTime);
 	void HandleRuntimeEvent(const FGameplayEventData& Payload) const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
@@ -29,8 +31,9 @@ public:
 	void ApplyDesiredMontagePlayRate() const;
 	bool GetSkillProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const;
 	void StopActiveStep(float MontageBlendOutTime = 0.f);
-	void ClearPreparedStepPreviews() const;
+	void ClearPreparedStepPreviews(int32 ExceptStepIndex = INDEX_NONE) const;
 	bool IsCurrentStepPrepared() const { return CurrentStepStartMode == EMASkillStepStartMode::Prepared; }
+	UMASkillRuntimeScope* GetCurrentRuntimeScope() const;
 
 private:
 	void HandleSkillActivated();
