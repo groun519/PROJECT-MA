@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
-#include "MASkillCrowdControlTypes.generated.h"
+#include "MASkillStatusEffectTypes.generated.h"
 
 UENUM(BlueprintType)
-enum class EMASkillCrowdControlSourceType : uint8
+enum class EMASkillStatusEffectSourceType : uint8
 {
 	Instigator,
 	Center
@@ -20,26 +20,26 @@ enum class EMASkillStatusEffectStrengthPolicy : uint8
 };
 
 USTRUCT(BlueprintType)
-struct P_MA_API FMASkillCrowdControlGrantedStateRule
+struct P_MA_API FMASkillStatusEffectGrantedStateRule
 {
 	GENERATED_BODY()
 
-	FMASkillCrowdControlGrantedStateRule() = default;
+	FMASkillStatusEffectGrantedStateRule() = default;
 
-	FMASkillCrowdControlGrantedStateRule(bool bInBlockMove, bool bInLockRotation, bool bInBlockAbility)
+	FMASkillStatusEffectGrantedStateRule(bool bInBlockMove, bool bInLockRotation, bool bInBlockAbility)
 		: bBlockMove(bInBlockMove)
 		, bLockRotation(bInLockRotation)
 		, bBlockAbility(bInBlockAbility)
 	{
 	}
 
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	UPROPERTY(EditDefaultsOnly, Category="StatusEffect")
 	bool bBlockMove = false;
 
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	UPROPERTY(EditDefaultsOnly, Category="StatusEffect")
 	bool bLockRotation = false;
 
-	UPROPERTY(EditDefaultsOnly, Category="CrowdControl")
+	UPROPERTY(EditDefaultsOnly, Category="StatusEffect")
 	bool bBlockAbility = false;
 
 	bool HasAny() const
@@ -49,12 +49,12 @@ struct P_MA_API FMASkillCrowdControlGrantedStateRule
 };
 
 USTRUCT()
-struct P_MA_API FMASkillCrowdControlPolicy
+struct P_MA_API FMASkillStatusEffectPolicy
 {
 	GENERATED_BODY()
 
 	UPROPERTY(Transient)
-	FGameplayTag CrowdControlTag;
+	FGameplayTag StatusEffectTag;
 
 	UPROPERTY(Transient)
 	FGameplayTagContainer GrantedStateTags;
@@ -66,16 +66,16 @@ struct P_MA_API FMASkillCrowdControlPolicy
 	float Duration = 0.f;
 
 	UPROPERTY(Transient)
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+	EMASkillStatusEffectSourceType SourceType = EMASkillStatusEffectSourceType::Instigator;
 
 	bool IsValid() const
 	{
-		return CrowdControlTag.IsValid() && Duration > 0.f;
+		return StatusEffectTag.IsValid() && Duration > 0.f;
 	}
 };
 
 USTRUCT()
-struct P_MA_API FResolvedCrowdControlEffect
+struct P_MA_API FResolvedStatusEffect
 {
 	GENERATED_BODY()
 
@@ -83,7 +83,7 @@ struct P_MA_API FResolvedCrowdControlEffect
 	FGameplayEffectSpecHandle SpecHandle;
 
 	UPROPERTY(Transient)
-	EMASkillCrowdControlSourceType SourceType = EMASkillCrowdControlSourceType::Instigator;
+	EMASkillStatusEffectSourceType SourceType = EMASkillStatusEffectSourceType::Instigator;
 
 	UPROPERTY(Transient)
 	EMASkillStatusEffectStrengthPolicy StrengthPolicy = EMASkillStatusEffectStrengthPolicy::None;

@@ -23,7 +23,8 @@ void UMAStepProgressWidget::NativeTick(const FGeometry& MyGeometry, float InDelt
 void UMAStepProgressWidget::SetStepProgress(const FText& InLabel, float InDuration, float InRemainingDuration)
 {
 	LabelText->SetText(InLabel);
-	DurationProgressBar->SetPercent(InDuration > 0.f ? FMath::Clamp(InRemainingDuration / InDuration, 0.f, 1.f) : 0.f);
+	const float ElapsedDuration = FMath::Max(InDuration - InRemainingDuration, 0.f);
+	DurationProgressBar->SetPercent(InDuration > 0.f ? FMath::Clamp(ElapsedDuration / InDuration, 0.f, 1.f) : 0.f);
 	SetRenderOpacity(1.f);
 }
 

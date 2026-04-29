@@ -24,7 +24,6 @@ void UMASkillManagerComponent::InitializeGrantedAbilities()
 {
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor || !OwnerActor->HasAuthority()) return;
-	if (!SkillAbilityClass) return;
 
 	const IAbilitySystemInterface* AbilitySystemOwner = Cast<IAbilitySystemInterface>(OwnerActor);
 	if (!AbilitySystemOwner) return;
@@ -40,7 +39,7 @@ void UMASkillManagerComponent::InitializeGrantedAbilities()
 		for (const FGameplayAbilitySpec& AbilitySpec : AbilitySystemComponent->GetActivatableAbilities())
 		{
 			if (AbilitySpec.InputID != static_cast<int32>(InputID)) continue;
-			if (!AbilitySpec.Ability || AbilitySpec.Ability->GetClass() != SkillAbilityClass) continue;
+			if (!AbilitySpec.Ability || AbilitySpec.Ability->GetClass() != UMASkillAbility::StaticClass()) continue;
 
 			ExistingHandle = AbilitySpec.Handle;
 			break;
@@ -48,11 +47,11 @@ void UMASkillManagerComponent::InitializeGrantedAbilities()
 
 		if (ExistingHandle.IsValid())
 		{
-			RegisterAbilityHandle(InputID, ExistingHandle, SkillAbilityClass);
+			RegisterAbilityHandle(InputID, ExistingHandle, UMASkillAbility::StaticClass());
 			continue;
 		}
 
-		const FGameplayAbilitySpec AbilitySpec(SkillAbilityClass, 1, static_cast<int32>(InputID), GetAssembledDefinition(InputID));
+		const FGameplayAbilitySpec AbilitySpec(UMASkillAbility::StaticClass(), 1, static_cast<int32>(InputID), GetAssembledDefinition(InputID));
 		AbilitySystemComponent->GiveAbility(AbilitySpec);
 	}
 }
@@ -174,7 +173,7 @@ bool UMASkillManagerComponent::RebuildSkill(EMAAbilityInputID InputID)
 
 void UMASkillManagerComponent::RegisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass)
 {
-	if (!SkillAbilityClass || AbilityClass != SkillAbilityClass) return;
+	if (AbilityClass != UMASkillAbility::StaticClass()) return;
 
 	FMASkillDefinitionStack& SkillStack = FindOrAddStack(InputID);
 	SkillStack.AbilityHandle = AbilityHandle;

@@ -8,6 +8,7 @@
 
 class UMASkillAbility;
 class UMASkillDefinition;
+class UMASkillGenericDataAsset;
 
 USTRUCT(BlueprintType)
 struct FMASkillDefinitionStack
@@ -78,6 +79,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Skill")
 	UMASkillDefinition* GetAssembledDefinition(EMAAbilityInputID InputID) const;
+	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const { return GenericSkillDataAsset; }
 
 	bool RebuildSkill(EMAAbilityInputID InputID);
 	void RegisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
@@ -106,9 +108,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TArray<FMASkillSlotStack> SkillSlotStacks;
 
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	TObjectPtr<UMASkillGenericDataAsset> GenericSkillDataAsset;
+
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotStacks)
 	TArray<FMASkillSlotStack> ReplicatedSkillSlotStacks;
-
-	UPROPERTY(EditDefaultsOnly, Category="Skill")
-	TSubclassOf<UMASkillAbility> SkillAbilityClass;
 };

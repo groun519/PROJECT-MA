@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffectTypes.h"
 #include "GameplayEffectTypes.h"
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
@@ -48,7 +48,7 @@ struct P_MA_API FMAProjectileParams
 	GENERATED_BODY()
 
 	FGameplayEffectSpecHandle DamageSpecHandle;
-	TArray<FResolvedCrowdControlEffect> CrowdControlEffects;
+	TArray<FResolvedStatusEffect> StatusEffects;
 	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
 	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
 
@@ -103,7 +103,7 @@ private:
 	void ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC);
 	void ApplyProjectileVisuals();
 	void BeginPendingDestroy();
-	FVector ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const;
+	FVector ResolveStatusEffectSourcePoint(EMASkillStatusEffectSourceType SourceType) const;
 	bool CanDamageActor(AActor* OtherActor) const;
 	void CheckAndHandleNearTargetDestroy();
 	void ExecuteHitGameplayCues(const FHitResult& HitResult);

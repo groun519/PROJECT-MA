@@ -1,19 +1,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 #include "MASkillStatusEffect_Attribute.generated.h"
 
 class UMAGameplayEffect_StatusEffectAttribute;
 
 UCLASS(BlueprintType, DisplayName="SE Attribute")
-class P_MA_API UMASkillStatusEffect_Attribute : public UMASkillCrowdControl
+class P_MA_API UMASkillStatusEffect_Attribute : public UMASkillStatusEffect
 {
 	GENERATED_BODY()
 
 public:
 	UMASkillStatusEffect_Attribute() = default;
-	virtual bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const override;
+	virtual bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="StatusEffect", meta=(ClampMin="0.0"))
@@ -28,7 +28,7 @@ protected:
 	virtual void PrepareEffectTemplate() const {}
 	virtual EMASkillStatusEffectStrengthPolicy GetStrengthPolicy() const { return EMASkillStatusEffectStrengthPolicy::None; }
 	virtual float GetStrengthMagnitude() const { return 0.f; }
-	virtual bool ResolvePolicy(FMASkillCrowdControlPolicy& OutPolicy) const override;
+	virtual bool ResolvePolicy(FMASkillStatusEffectPolicy& OutPolicy) const override;
 };
 
 UCLASS(BlueprintType, DisplayName="SE Slow", HideCategories="Internal")

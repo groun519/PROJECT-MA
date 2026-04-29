@@ -1,9 +1,9 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Abilities/GameplayAbility.h"
-#include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "MAGameplayAbilityTypes.h"
 #include "Ability/MAGameplayAbility_Skill.h"
+#include "Player/MAPlayerCharacter.h"
 #include "Setting/MASkillSubsystem.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
@@ -64,11 +64,6 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
 FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetPlayerRoleTag()
-{
-	return FGameplayTag::RequestGameplayTag("role.Player");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
@@ -239,16 +234,7 @@ FGameplayTag UMAAbilitySystemStatics::GetAnyReactionStateTag()
 
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
 {
-	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);
-	if (ActorISA)
-	{
-		UAbilitySystemComponent* ActorASC = ActorISA->GetAbilitySystemComponent();
-		if (ActorASC)
-		{
-			return ActorASC->HasMatchingGameplayTag(GetPlayerRoleTag());
-		}
-	}
-	return false;
+	return ActorToCheck && ActorToCheck->IsA<AMAPlayerCharacter>();
 }
 
 float UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)

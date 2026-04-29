@@ -43,7 +43,6 @@ public:
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
 
-	static FGameplayTag GetPlayerRoleTag();
 	static FGameplayTag GetGoldAttributeTag();
 
 	static FGameplayTag GetMeleeActionTag();

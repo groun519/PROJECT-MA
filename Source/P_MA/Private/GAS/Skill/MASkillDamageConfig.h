@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl_State.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl_Impulse.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl_Airborne.h"
-#include "GAS/Skill/CrowdControl/MASkillStatusEffect_Attribute.h"
-#include "GAS/Skill/CrowdControl/MASkillCrowdControlTypes.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_State.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Impulse.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Airborne.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Attribute.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffectTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameplayEffectTypes.h"
@@ -78,15 +78,15 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	UPROPERTY(EditDefaultsOnly, Category="Targeting", meta=(Bitmask, BitmaskEnum="/Script/P_MA.EMATargetRelation"))
 	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
 
-	UPROPERTY(EditDefaultsOnly, Instanced, Category="CrowdControl")
-	TArray<TObjectPtr<UMASkillCrowdControl>> CrowdControls;
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="StatusEffect")
+	TArray<TObjectPtr<UMASkillStatusEffect>> StatusEffects;
 
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
 		FinalDamageMultiplier *= Other.FinalDamageMultiplier;
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
-		CrowdControls.Append(Other.CrowdControls);
+		StatusEffects.Append(Other.StatusEffects);
 	}
 
 	bool HasValues() const
@@ -99,7 +99,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
 		}
 
-		return CrowdControls.Num() > 0;
+		return StatusEffects.Num() > 0;
 	}
 
 	FMADamageExecutionConfig ToExecutionConfig() const
@@ -124,7 +124,7 @@ struct P_MA_API FResolvedSkillHitEffects
 	FGameplayEffectSpecHandle DamageSpec;
 
 	UPROPERTY(Transient)
-	TArray<FResolvedCrowdControlEffect> CrowdControlEffects;
+	TArray<FResolvedStatusEffect> StatusEffects;
 };
 
 namespace MASkillResolvedHitEffects

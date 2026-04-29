@@ -44,7 +44,7 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, cons
 	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillResolvedHitEffects::BuildResolvedHitEffects(OwnerAbility, DamageConfig);
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.DamageSpecHandle = ResolvedHitEffects.DamageSpec;
-	ProjectileParams.CrowdControlEffects = ResolvedHitEffects.CrowdControlEffects;
+	ProjectileParams.StatusEffects = ResolvedHitEffects.StatusEffects;
 	ProjectileParams.TargetRelationMask = ResolvedHitEffects.TargetRelationMask;
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();

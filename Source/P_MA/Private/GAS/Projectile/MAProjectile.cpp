@@ -185,15 +185,15 @@ void AMAProjectile::ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC)
 		TargetASC->ApplyGameplayEffectSpecToSelf(*ProjectileParams.DamageSpecHandle.Data.Get());
 	}
 
-	for (const FResolvedCrowdControlEffect& CrowdControlEffect : ProjectileParams.CrowdControlEffects)
+	for (const FResolvedStatusEffect& StatusEffect : ProjectileParams.StatusEffects)
 	{
-		if (!CrowdControlEffect.SpecHandle.IsValid()) continue;
+		if (!StatusEffect.SpecHandle.IsValid()) continue;
 
-		FGameplayEffectSpecHandle CrowdControlSpecHandle = CrowdControlEffect.SpecHandle;
+		FGameplayEffectSpecHandle StatusEffectSpecHandle = StatusEffect.SpecHandle;
 		UMAAbilitySystemStatics::SetReactionSourcePoint(
-			CrowdControlSpecHandle,
-			ResolveCrowdControlSourcePoint(CrowdControlEffect.SourceType));
-		TargetASC->ApplyGameplayEffectSpecToSelf(*CrowdControlSpecHandle.Data.Get());
+			StatusEffectSpecHandle,
+			ResolveStatusEffectSourcePoint(StatusEffect.SourceType));
+		TargetASC->ApplyGameplayEffectSpecToSelf(*StatusEffectSpecHandle.Data.Get());
 	}
 }
 
@@ -247,13 +247,13 @@ void AMAProjectile::BeginPendingDestroy()
 	SetLifeSpan(0.5f);
 }
 
-FVector AMAProjectile::ResolveCrowdControlSourcePoint(EMASkillCrowdControlSourceType SourceType) const
+FVector AMAProjectile::ResolveStatusEffectSourcePoint(EMASkillStatusEffectSourceType SourceType) const
 {
 	switch (SourceType)
 	{
-	case EMASkillCrowdControlSourceType::Center:
+	case EMASkillStatusEffectSourceType::Center:
 		return GetActorLocation();
-	case EMASkillCrowdControlSourceType::Instigator:
+	case EMASkillStatusEffectSourceType::Instigator:
 	default:
 		if (const AActor* InstigatorActor = GetInstigator())
 		{

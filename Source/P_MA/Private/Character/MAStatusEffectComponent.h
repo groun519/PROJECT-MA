@@ -34,8 +34,8 @@ private:
 	const FStatusEffectRule* FindStatusEffectRule(const FGameplayTag& StatusEffectTag) const;
 	UMAImpulseComponent* GetImpulseComponent() const;
 	void ApplyStatusEffectImpulse(const FStatusEffectRule& StatusEffectRule, float Magnitude, const FVector& SourcePoint);
-	void HandleCrowdControlStarted(const FStatusEffectRule& StatusEffectRule);
-	void HandleCrowdControlEnded(const FStatusEffectRule& StatusEffectRule);
+	void HandleStatusEffectStarted(const FStatusEffectRule& StatusEffectRule);
+	void HandleStatusEffectEnded(const FStatusEffectRule& StatusEffectRule);
 	void StopStatusEffectMontage(const FGameplayTag& StatusEffectTag);
 	void StopAllStatusEffectMontages();
 	void BeginAirborneVisual();
@@ -55,13 +55,13 @@ private:
 	/** Bind **/
 	void BindToASC();
 
-	/** CrowdControl Changed **/
-	void HandleCrowdControlChanged(FGameplayTag Tag, int32 NewCount);
+	/** StatusEffect Changed **/
+	void HandleStatusEffectChanged(FGameplayTag Tag, int32 NewCount);
 
-	/** CrowdControl Applied **/
-	void HandleCrowdControlApplied(UAbilitySystemComponent* SourceASC, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle ActiveHandle);
-	void HandleAirborneCrowdControlApplied(const FGameplayEffectSpec& Spec);
-	void HandleImpulseCrowdControlApplied(const FGameplayEffectSpec& Spec);
+	/** StatusEffect Applied **/
+	void HandleStatusEffectApplied(UAbilitySystemComponent* SourceASC, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle ActiveHandle);
+	void HandleAirborneStatusEffectApplied(const FGameplayEffectSpec& Spec);
+	void HandleImpulseStatusEffectApplied(const FGameplayEffectSpec& Spec);
 
 	UPROPERTY(EditDefaultsOnly, Category="StatusEffect", meta=(Categories="State,Effect"))
 	TMap<FGameplayTag, FStatusEffectAnimConfig> StatusEffectAnimMap;
@@ -69,7 +69,7 @@ private:
 	UPROPERTY(Transient)
 	TArray<FStatusEffectRule> StatusEffectRules;
 
-	TSet<FGameplayTag> ActiveCrowdControlTags;
+	TSet<FGameplayTag> ActiveStatusEffectTags;
 
 	struct FStatusEffectDisplayState
 	{

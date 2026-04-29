@@ -22,7 +22,7 @@ public:
 	virtual FString GetNotifyName_Implementation() const override;
 
 private:
-	static const UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation);
+	static UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation);
 	static FName ResolveElementRowName(const FGameplayTag& ElementalTag);
 
 	UPROPERTY(EditAnywhere, Category="Gameplay Ability")

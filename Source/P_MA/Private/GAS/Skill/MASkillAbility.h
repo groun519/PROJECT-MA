@@ -11,6 +11,7 @@ class UDataTable;
 class UAbilityTask_WaitGameplayEvent;
 class UMASkillDefinition;
 class UMASkillEventSource;
+class UMASkillGenericDataAsset;
 class UMASkillRuntimeScope;
 class UMASkillStepManager;
 struct FGameplayEventData;
@@ -31,8 +32,8 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	const FGameplayTag& GetElementalTag() const;
-	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
-	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
+	const UDataTable* GetElementalDataTable() const;
+	const UDataTable* GetOverlapDecalDataTable() const;
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
 	UFUNCTION()
@@ -48,19 +49,12 @@ public:
 	bool CanPlaySkillMontageLocally() const;
 
 protected:
-	// TODO: Move this kind of shared lookup data into a common subsystem once the
-	// skill runtime starts depending on more global registries than elemental data.
-	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
-	TObjectPtr<UDataTable> ElementalDataTable;
-
-	UPROPERTY(EditDefaultsOnly, Category="Effect", meta=(RowType="/Script/P_MA.MAOverlapDecalDataRow"))
-	TObjectPtr<UDataTable> OverlapDecalDataTable;
-
 	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
 	// TODO: Move cancel trigger registration to UMAGameplayAbility after the remaining legacy skill-specific paths are removed.
 	FGameplayTagContainer CancelTriggerTags;
 
 private:
+	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
 	void ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition);
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();

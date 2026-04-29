@@ -1,6 +1,6 @@
 #include "GAS/Skill/MASkillDamageConfig.h"
 
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 #include "GAS/Skill/MAGameplayEffect_SkillDamage.h"
 #include "GAS/Skill/MASkillAbility.h"
 
@@ -17,10 +17,10 @@ namespace MASkillResolvedHitEffects
 			1,
 			ExecutionConfig.HasValues() ? &ExecutionConfig : nullptr);
 
-		for (const TObjectPtr<UMASkillCrowdControl>& CrowdControl : DamageConfig.CrowdControls)
+		for (const TObjectPtr<UMASkillStatusEffect>& StatusEffect : DamageConfig.StatusEffects)
 		{
-			if (!CrowdControl) continue;
-			CrowdControl->BuildResolvedEffect(OwnerAbility, ResolvedHitEffects.CrowdControlEffects);
+			if (!StatusEffect) continue;
+			StatusEffect->BuildResolvedEffect(OwnerAbility, ResolvedHitEffects.StatusEffects);
 		}
 
 		return ResolvedHitEffects;

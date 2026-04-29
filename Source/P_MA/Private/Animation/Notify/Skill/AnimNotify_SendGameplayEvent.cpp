@@ -8,7 +8,7 @@
 
 namespace
 {
-	UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
+	UMASkillAbility* ResolveGameplayEventOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 	{
 		if (!MeshComp || !Animation) return nullptr;
 
@@ -27,7 +27,7 @@ void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAn
 	UWorld* World = MeshComp->GetWorld();
 	if (!World || World->IsPreviewWorld()) return;
 
-	if (UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation))
+	if (UMASkillAbility* SkillAbility = ResolveGameplayEventOwnerSkillAbility(MeshComp, Animation))
 	{
 		FGameplayEventData Data;
 		Data.EventTag = MontageEventTag;

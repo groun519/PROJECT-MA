@@ -13,33 +13,33 @@ namespace MASkillActionMeleeOverlap
 {
 	namespace
 	{
-		FVector ResolveCrowdControlSourcePoint(
+		FVector ResolveStatusEffectSourcePoint(
 			UMASkillAbility& OwnerAbility,
-			EMASkillCrowdControlSourceType SourceType,
+			EMASkillStatusEffectSourceType SourceType,
 			const FVector& CenterSourcePoint)
 		{
 			switch (SourceType)
 			{
-			case EMASkillCrowdControlSourceType::Center:
+			case EMASkillStatusEffectSourceType::Center:
 				return CenterSourcePoint;
-			case EMASkillCrowdControlSourceType::Instigator:
+			case EMASkillStatusEffectSourceType::Instigator:
 			default:
 				if (const AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo()) return AvatarActor->GetActorLocation();
 				return CenterSourcePoint;
 			}
 		}
 
-		bool ShouldApplyResolvedCrowdControlEffect(
+		bool ShouldApplyResolvedStatusEffect(
 			AActor* TargetActor,
-			const FResolvedCrowdControlEffect& CrowdControlEffect)
+			const FResolvedStatusEffect& StatusEffect)
 		{
-			if (CrowdControlEffect.StrengthPolicy == EMASkillStatusEffectStrengthPolicy::None) return true;
-			if (!TargetActor || !CrowdControlEffect.SpecHandle.IsValid() || !CrowdControlEffect.SpecHandle.Data.IsValid()) return true;
+			if (StatusEffect.StrengthPolicy == EMASkillStatusEffectStrengthPolicy::None) return true;
+			if (!TargetActor || !StatusEffect.SpecHandle.IsValid() || !StatusEffect.SpecHandle.Data.IsValid()) return true;
 
 			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 			if (!TargetASC) return true;
 
-			const UGameplayEffect* EffectDefinition = CrowdControlEffect.SpecHandle.Data->Def.Get();
+			const UGameplayEffect* EffectDefinition = StatusEffect.SpecHandle.Data->Def.Get();
 			if (!EffectDefinition) return true;
 
 			const UClass* EffectDefinitionClass = EffectDefinition->GetClass();
@@ -62,20 +62,20 @@ namespace MASkillActionMeleeOverlap
 				const float ExistingStrengthMagnitude = ActiveEffect->Spec.GetSetByCallerMagnitude(
 					FGameplayTag::RequestGameplayTag(TEXT("Data.StatusEffect.StrengthMagnitude")),
 					false,
-					CrowdControlEffect.StrengthMagnitude);
+					StatusEffect.StrengthMagnitude);
 
-				switch (CrowdControlEffect.StrengthPolicy)
+				switch (StatusEffect.StrengthPolicy)
 				{
 				case EMASkillStatusEffectStrengthPolicy::LargerMagnitudeStronger:
-					if (ExistingStrengthMagnitude > CrowdControlEffect.StrengthMagnitude
-						&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, CrowdControlEffect.StrengthMagnitude))
+					if (ExistingStrengthMagnitude > StatusEffect.StrengthMagnitude
+						&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, StatusEffect.StrengthMagnitude))
 					{
 						bApplyIncomingEffect = false;
 					}
 					break;
 				case EMASkillStatusEffectStrengthPolicy::SmallerMagnitudeStronger:
-					if (ExistingStrengthMagnitude < CrowdControlEffect.StrengthMagnitude
-						&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, CrowdControlEffect.StrengthMagnitude))
+					if (ExistingStrengthMagnitude < StatusEffect.StrengthMagnitude
+						&& !FMath::IsNearlyEqual(ExistingStrengthMagnitude, StatusEffect.StrengthMagnitude))
 					{
 						bApplyIncomingEffect = false;
 					}
@@ -111,7 +111,7 @@ namespace MASkillActionMeleeOverlap
 		return OwnerAbility.GetHitResultFromVirtualSocketTargetData(Payload.TargetData, TargetRelationMask);
 	}
 
-	FVector ResolveCrowdControlCenterPoint(
+	FVector ResolveStatusEffectCenterPoint(
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload)
 	{
@@ -132,7 +132,7 @@ namespace MASkillActionMeleeOverlap
 		UMASkillAbility& OwnerAbility,
 		const TArray<FHitResult>& HitResults,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
-		const FVector& CrowdControlCenterPoint)
+		const FVector& StatusEffectCenterPoint)
 	{
 		TSet<AActor*> HitActors;
 		for (const FHitResult& HitResult : HitResults)
@@ -146,16 +146,16 @@ namespace MASkillActionMeleeOverlap
 				OwnerAbility.ApplyGameplayEffectSpecToHitResultActor(HitResult, ResolvedHitEffects.DamageSpec);
 			}
 
-			for (const FResolvedCrowdControlEffect& CrowdControlEffect : ResolvedHitEffects.CrowdControlEffects)
+			for (const FResolvedStatusEffect& StatusEffect : ResolvedHitEffects.StatusEffects)
 			{
-				if (!CrowdControlEffect.SpecHandle.IsValid()) continue;
-				if (!ShouldApplyResolvedCrowdControlEffect(HitActor, CrowdControlEffect)) continue;
+				if (!StatusEffect.SpecHandle.IsValid()) continue;
+				if (!ShouldApplyResolvedStatusEffect(HitActor, StatusEffect)) continue;
 
-				FGameplayEffectSpecHandle CrowdControlSpecHandle = CrowdControlEffect.SpecHandle;
+				FGameplayEffectSpecHandle StatusEffectSpecHandle = StatusEffect.SpecHandle;
 				UMAAbilitySystemStatics::SetReactionSourcePoint(
-					CrowdControlSpecHandle,
-					ResolveCrowdControlSourcePoint(OwnerAbility, CrowdControlEffect.SourceType, CrowdControlCenterPoint));
-				OwnerAbility.ApplyGameplayEffectSpecToHitResultActor(HitResult, CrowdControlSpecHandle);
+					StatusEffectSpecHandle,
+					ResolveStatusEffectSourcePoint(OwnerAbility, StatusEffect.SourceType, StatusEffectCenterPoint));
+				OwnerAbility.ApplyGameplayEffectSpecToHitResultActor(HitResult, StatusEffectSpecHandle);
 			}
 
 			HitActors.Add(HitActor);

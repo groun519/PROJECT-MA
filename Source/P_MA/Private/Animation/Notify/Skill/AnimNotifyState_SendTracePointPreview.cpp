@@ -10,7 +10,7 @@
 #include "GAS/Skill/MAOverlapDecalData.h"
 #include "GAS/Skill/MASkillAbility.h"
 
-const UMASkillAbility* UAnimNotifyState_SendTracePointPreview::ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
+UMASkillAbility* UAnimNotifyState_SendTracePointPreview::ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 {
 	if (!MeshComp || !Animation) return nullptr;
 

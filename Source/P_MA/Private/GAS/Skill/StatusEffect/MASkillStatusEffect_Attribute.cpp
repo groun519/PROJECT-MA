@@ -1,6 +1,6 @@
-#include "GAS/Skill/CrowdControl/MASkillStatusEffect_Attribute.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Attribute.h"
 
-#include "GAS/Skill/CrowdControl/MAGameplayEffect_StatusEffectAttribute.h"
+#include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectAttribute.h"
 
 namespace
 {
@@ -10,7 +10,7 @@ FGameplayTag GetStatusEffectStrengthMagnitudeTag()
 }
 }
 
-bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const
+bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const
 {
 	if (Duration <= 0.f || !EffectTemplate) return false;
 	PrepareEffectTemplate();
@@ -28,7 +28,7 @@ bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(UMASkillAbility& SkillA
 	}
 	ApplyCustomPayload(SpecHandle);
 
-	FResolvedCrowdControlEffect ResolvedEffect;
+	FResolvedStatusEffect ResolvedEffect;
 	ResolvedEffect.SpecHandle = SpecHandle;
 	ResolvedEffect.StrengthPolicy = StrengthPolicy;
 	ResolvedEffect.StrengthMagnitude = StrengthMagnitude;
@@ -36,7 +36,7 @@ bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(UMASkillAbility& SkillA
 	return true;
 }
 
-bool UMASkillStatusEffect_Attribute::ResolvePolicy(FMASkillCrowdControlPolicy& OutPolicy) const
+bool UMASkillStatusEffect_Attribute::ResolvePolicy(FMASkillStatusEffectPolicy& OutPolicy) const
 {
 	(void)OutPolicy;
 	return false;

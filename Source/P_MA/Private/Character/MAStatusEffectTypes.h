@@ -49,7 +49,7 @@ struct FStatusEffectRule
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, meta=(Categories="State,Effect"))
-	FGameplayTag CrowdControlTag;
+	FGameplayTag StatusEffectTag;
 
 	UPROPERTY(EditDefaultsOnly)
 	EStatusEffectImpulseMode ImpulseMode = EStatusEffectImpulseMode::None;
@@ -65,7 +65,7 @@ struct FStatusEffectRule
 
 	bool IsValid() const
 	{
-		return CrowdControlTag.IsValid();
+		return StatusEffectTag.IsValid();
 	}
 
 	bool HasImpulseEffect() const

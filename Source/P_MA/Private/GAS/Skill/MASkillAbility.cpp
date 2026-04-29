@@ -13,6 +13,7 @@
 #include "GAS/Skill/Event/Publish/MASkillGameplayEventScope.h"
 #include "GAS/Skill/Event/Publish/MASkillEventSource.h"
 #include "GAS/Skill/Event/Runtime/MASkillRuntimeScope.h"
+#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
@@ -20,6 +21,10 @@ UMASkillAbility::UMASkillAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
+	const FGameplayTag SkillTag = FGameplayTag::RequestGameplayTag(TEXT("Skill"));
+	AbilityTags.AddTag(SkillTag);
+	BlockAbilitiesWithTag.AddTag(SkillTag);
 
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetAirborneStatTag());
@@ -157,6 +162,27 @@ const FGameplayTag& UMASkillAbility::GetElementalTag() const
 	return CurrentElementalTag.IsValid()
 		? CurrentElementalTag
 		: DefaultElementalTag;
+}
+
+const UDataTable* UMASkillAbility::GetElementalDataTable() const
+{
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = GetGenericSkillDataAsset();
+	return GenericSkillDataAsset ? GenericSkillDataAsset->GetElementalDataTable() : nullptr;
+}
+
+const UDataTable* UMASkillAbility::GetOverlapDecalDataTable() const
+{
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = GetGenericSkillDataAsset();
+	return GenericSkillDataAsset ? GenericSkillDataAsset->GetOverlapDecalDataTable() : nullptr;
+}
+
+const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() const
+{
+	const AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo());
+	if (!OwnerCharacter) return nullptr;
+
+	const UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent();
+	return SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
 }
 
 void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)

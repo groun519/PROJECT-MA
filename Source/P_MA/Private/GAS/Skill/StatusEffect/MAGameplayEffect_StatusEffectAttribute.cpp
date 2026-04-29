@@ -1,4 +1,4 @@
-#include "GAS/Skill/CrowdControl/MAGameplayEffect_StatusEffectAttribute.h"
+#include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectAttribute.h"
 
 #include "GAS/MAAttributeSet.h"
 

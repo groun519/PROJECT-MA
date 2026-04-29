@@ -1,18 +1,18 @@
-#include "GAS/Skill/CrowdControl/MASkillCrowdControl.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Skill/CrowdControl/MAGameplayEffect_CrowdControlDuration.h"
+#include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
 #include "GAS/Skill/MASkillAbility.h"
 
 namespace
 {
-const UGameplayEffect* GetDurationCrowdControlGameplayEffectTemplate()
+const UGameplayEffect* GetDurationStatusEffectGameplayEffectTemplate()
 {
-	return GetDefault<UMAGameplayEffect_CrowdControlDuration>();
+	return GetDefault<UMAGameplayEffect_StatusEffectDuration>();
 }
 }
 
-FGameplayEffectSpecHandle UMASkillCrowdControl::MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
+FGameplayEffectSpecHandle UMASkillStatusEffect::MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
 {
 	if (!EffectDefinition) return FGameplayEffectSpecHandle();
 
@@ -33,33 +33,33 @@ FGameplayEffectSpecHandle UMASkillCrowdControl::MakeGameplayEffectSpec(UMASkillA
 	return SpecHandle;
 }
 
-bool UMASkillCrowdControl::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedCrowdControlEffect>& OutEffects) const
+bool UMASkillStatusEffect::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const
 {
-	FMASkillCrowdControlPolicy Policy;
+	FMASkillStatusEffectPolicy Policy;
 	if (!ResolvePolicy(Policy) || !Policy.IsValid()) return false;
 
-	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(SkillAbility, GetDurationCrowdControlGameplayEffectTemplate(), 1.f);
+	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(SkillAbility, GetDurationStatusEffectGameplayEffectTemplate(), 1.f);
 	if (!SpecHandle.IsValid()) return false;
 
 	SpecHandle.Data->DynamicGrantedTags.AppendTags(Policy.GrantedStateTags);
-	SpecHandle.Data->DynamicGrantedTags.AddTag(Policy.CrowdControlTag);
+	SpecHandle.Data->DynamicGrantedTags.AddTag(Policy.StatusEffectTag);
 	SpecHandle.Data->SetDuration(Policy.Duration, true);
 
 	if (!FMath::IsNearlyZero(Policy.Magnitude))
 	{
-		SpecHandle.Data->SetSetByCallerMagnitude(Policy.CrowdControlTag, Policy.Magnitude);
+		SpecHandle.Data->SetSetByCallerMagnitude(Policy.StatusEffectTag, Policy.Magnitude);
 	}
 
 	ApplyCustomPayload(SpecHandle);
 
-	FResolvedCrowdControlEffect ResolvedCrowdControlEffect;
-	ResolvedCrowdControlEffect.SpecHandle = SpecHandle;
-	ResolvedCrowdControlEffect.SourceType = Policy.SourceType;
-	OutEffects.Add(ResolvedCrowdControlEffect);
+	FResolvedStatusEffect ResolvedStatusEffect;
+	ResolvedStatusEffect.SpecHandle = SpecHandle;
+	ResolvedStatusEffect.SourceType = Policy.SourceType;
+	OutEffects.Add(ResolvedStatusEffect);
 	return true;
 }
 
-void UMASkillCrowdControl::AppendGrantedStateTags(const FMASkillCrowdControlGrantedStateRule& Rule, FGameplayTagContainer& GrantedTags)
+void UMASkillStatusEffect::AppendGrantedStateTags(const FMASkillStatusEffectGrantedStateRule& Rule, FGameplayTagContainer& GrantedTags)
 {
 	if (Rule.bBlockMove)
 	{

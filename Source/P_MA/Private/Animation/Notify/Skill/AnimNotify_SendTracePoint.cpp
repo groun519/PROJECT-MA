@@ -6,7 +6,7 @@
 
 namespace
 {
-	UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
+	UMASkillAbility* ResolveTracePointOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 	{
 		if (!MeshComp || !Animation) return nullptr;
 
@@ -34,13 +34,13 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 
 	const FVector ShapeForward = Shape == EVA_Shape::Line ? WorldRotation.GetAxisY().GetSafeNormal2D() : MeshForward;
 	const FVector ShapeWorldLocation = Shape == EVA_Shape::Line ? WorldLocation + ShapeForward * (Length * 0.5f) : WorldLocation;
-	
-	MATracePointNotify::DrawDebugShape(World, Shape, WorldLocation, MeshForward, Radius, bUseSector, SectorAngle, Width, Height, DebugColor, DebugThickness);
+
+	MATracePointNotify::DrawDebugShape(World, Shape, ShapeWorldLocation, ShapeForward, Radius, bUseSector, SectorAngle, Width, Height, Length, DebugColor, DebugThickness);
 	if (World->IsPreviewWorld() || MATracePointNotify::IsEditorPreviewWorldNoPIE(World)) return;
 
 	AActor* Owner = MeshComp->GetOwner();
 	if (!Owner) return;
-	UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	UMASkillAbility* SkillAbility = ResolveTracePointOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
 	FGameplayEventData Data;

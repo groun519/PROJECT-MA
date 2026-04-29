@@ -17,12 +17,12 @@ namespace MASkillActionMeleeOverlap
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload,
 		int32 TargetRelationMask);
-	P_MA_API FVector ResolveCrowdControlCenterPoint(
+	P_MA_API FVector ResolveStatusEffectCenterPoint(
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload);
 	P_MA_API void ApplyHitResults(
 		UMASkillAbility& OwnerAbility,
 		const TArray<FHitResult>& HitResults,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
-		const FVector& CrowdControlCenterPoint);
+		const FVector& StatusEffectCenterPoint);
 }
