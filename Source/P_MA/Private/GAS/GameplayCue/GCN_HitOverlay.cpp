@@ -22,7 +22,7 @@ void AGCN_HitOverlay::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Typ
 	USkeletalMeshComponent* MeshComp = ResolveTargetMesh(MyTarget);
 	if (!MeshComp) return;
 
-	StartOrRestartFade(MeshComp);
+	StartOrRestartFade(MeshComp, ResolveOverlayColor(Parameters));
 }
 
 void AGCN_HitOverlay::Tick(float DeltaSeconds)
@@ -68,7 +68,49 @@ void AGCN_HitOverlay::Tick(float DeltaSeconds)
 	}
 }
 
-void AGCN_HitOverlay::StartOrRestartFade(USkeletalMeshComponent* MeshComp)
+FGameplayTag AGCN_HitOverlay::ResolveRequestedCueTag(const FGameplayCueParameters& Parameters) const
+{
+	if (Parameters.OriginalTag.IsValid())
+	{
+		return Parameters.OriginalTag;
+	}
+
+	const FGameplayTag OverlayRootTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Hit.Overlay"));
+	for (const FGameplayTag& SourceTag : Parameters.AggregatedSourceTags)
+	{
+		if (SourceTag.MatchesTag(OverlayRootTag))
+		{
+			return SourceTag;
+		}
+	}
+
+	return Parameters.MatchedTagName;
+}
+
+FLinearColor AGCN_HitOverlay::ResolveOverlayColor(const FGameplayCueParameters& Parameters) const
+{
+	const FGameplayTag RequestedCueTag = ResolveRequestedCueTag(Parameters);
+	if (!RequestedCueTag.IsValid())
+	{
+		return DefaultOverlayColor;
+	}
+
+	FString ColorName;
+	if (!RequestedCueTag.GetTagName().ToString().Split(TEXT("."), nullptr, &ColorName, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+	{
+		return DefaultOverlayColor;
+	}
+
+	if (ColorName.Equals(TEXT("Red"), ESearchCase::IgnoreCase)) return FLinearColor::Red;
+	if (ColorName.Equals(TEXT("White"), ESearchCase::IgnoreCase)) return FLinearColor::White;
+	if (ColorName.Equals(TEXT("Blue"), ESearchCase::IgnoreCase)) return FLinearColor::Blue;
+	if (ColorName.Equals(TEXT("Green"), ESearchCase::IgnoreCase)) return FLinearColor::Green;
+	if (ColorName.Equals(TEXT("Cyan"), ESearchCase::IgnoreCase)) return FLinearColor(0.f, 1.f, 1.f);
+
+	return DefaultOverlayColor;
+}
+
+void AGCN_HitOverlay::StartOrRestartFade(USkeletalMeshComponent* MeshComp, const FLinearColor& OverlayColor)
 {
 	if (!MeshComp || !OverlayMaterial) return;
 
@@ -76,6 +118,7 @@ void AGCN_HitOverlay::StartOrRestartFade(USkeletalMeshComponent* MeshComp)
 	if (!OverlayMID) return;
 
 	OverlayMID->SetScalarParameterValue(OpacityParamName, 1.f);
+	OverlayMID->SetVectorParameterValue(ColorParamName, OverlayColor);
 	MeshComp->SetOverlayMaterial(OverlayMID);
 
 	const int32 ExistingIndex = FindFadeIndex(MeshComp);

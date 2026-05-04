@@ -1,4 +1,4 @@
-#include "GAS/ExecCalc_DamageByAttribute.h"
+#include "GAS/Skill/Damage/ExecCalc_DamageByAttribute.h"
 
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAAttributeSet.h"

@@ -10,19 +10,18 @@ struct FMASkillPayloadStore;
 struct FResolvedSkillHitEffects;
 class UMASkillAbility;
 
-namespace MASkillActionMeleeOverlap
+class P_MA_API MASkillActionMeleeOverlap final
 {
-	P_MA_API FMASkillDamageConfig ResolveDamageConfig(const FMASkillPayloadStore& PayloadStore, const FGameplayTag& DamagePayloadTag);
-	P_MA_API TArray<FHitResult> ResolveHitResultsFromPayload(
+public:
+	static FMASkillDamageConfig ResolveDamageConfig(const FMASkillPayloadStore& PayloadStore, const FGameplayTag& DamagePayloadTag);
+	static TArray<FHitResult> ResolveHitResultsFromPayload(
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload,
 		int32 TargetRelationMask);
-	P_MA_API FVector ResolveStatusEffectCenterPoint(
+	static FVector ResolveStatusEffectCenterPoint(
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& Payload);
-	P_MA_API void ApplyHitResults(
-		UMASkillAbility& OwnerAbility,
-		const TArray<FHitResult>& HitResults,
-		const FResolvedSkillHitEffects& ResolvedHitEffects,
-		const FVector& StatusEffectCenterPoint);
-}
+
+private:
+	MASkillActionMeleeOverlap() = delete;
+};

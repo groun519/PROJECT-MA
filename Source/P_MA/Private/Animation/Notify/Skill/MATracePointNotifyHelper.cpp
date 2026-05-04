@@ -66,7 +66,6 @@ namespace MATracePointNotify
 		float Length,
 		bool bIgnoreOwner,
 		bool bDrawDebug,
-		const FGameplayTagContainer& TriggerGameplayCueTags,
 		const FVector& WorldLocation)
 	{
 		auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
@@ -88,7 +87,6 @@ namespace MATracePointNotify
 		VirtualSocketData->SectorAngle = SectorAngle;
 		VirtualSocketData->bIgnoreOwner = bIgnoreOwner;
 		VirtualSocketData->bDrawDebug = bDrawDebug;
-		VirtualSocketData->TriggerGameplayCueTags = TriggerGameplayCueTags;
 		OutData.TargetData.Add(VirtualSocketData);
 	}
 

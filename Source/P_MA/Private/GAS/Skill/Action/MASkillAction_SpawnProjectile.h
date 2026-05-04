@@ -3,10 +3,10 @@
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
+#include "GAS/Projectile/MAProjectile.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAction_SpawnProjectile.generated.h"
 
-class AMAProjectile;
 class UGameplayEffect;
 
 USTRUCT(BlueprintType)
@@ -22,6 +22,9 @@ struct FMASkillActionConfig_SpawnProjectile
 
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	bool bIsPenetrating = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	FMAProjectileContinuousHitSettings ContinuousHitSettings;
 };
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)

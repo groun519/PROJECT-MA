@@ -35,9 +35,6 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bDrawDebug = false;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGameplayTagContainer TriggerGameplayCueTags = FGameplayTagContainer();
 
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
@@ -55,10 +52,6 @@ struct P_MA_API FGameplayAbilityTargetData_VirtualSocket : public FGameplayAbili
 		Ar << SectorAngle;
 		Ar << bIgnoreOwner;
 		Ar << bDrawDebug;
-		for (FGameplayTag CueTag : TriggerGameplayCueTags)
-		{
-			Ar << CueTag;
-		}
 		
 		bOutSuccess = true;
 		return true;

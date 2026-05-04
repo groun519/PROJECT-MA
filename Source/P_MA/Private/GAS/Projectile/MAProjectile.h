@@ -2,8 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/StatusEffect/MASkillStatusEffectTypes.h"
-#include "GameplayEffectTypes.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
@@ -11,6 +10,7 @@ class UNiagaraSystem;
 class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
+class UAbilitySystemComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
 
@@ -39,7 +39,27 @@ struct P_MA_API FMAProjectileElementalSettings
 
 	FGameplayTag ElementalTag;
 	FLinearColor ElementalColor = FLinearColor::White;
-	FGameplayTag HitGameplayCueTag;
+};
+
+USTRUCT(BlueprintType)
+struct P_MA_API FMAProjectileContinuousHitSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit")
+	bool bEnabled = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.01", UIMin="0.01"))
+	float TickInterval = 0.08f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.0", UIMin="0.0"))
+	float MinSweepDistance = 10.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1.0", UIMin="1.0"))
+	float MaxSweepSegmentLength = 150.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1", UIMin="1"))
+	int32 MaxSweepSubsteps = 8;
 };
 
 USTRUCT()
@@ -47,15 +67,14 @@ struct P_MA_API FMAProjectileParams
 {
 	GENERATED_BODY()
 
-	FGameplayEffectSpecHandle DamageSpecHandle;
-	TArray<FResolvedStatusEffect> StatusEffects;
-	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
+	FResolvedSkillHitEffects ResolvedHitEffects;
 	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
 
 	/** Settings **/
 	FMAProjectileTargetingSettings TargetingSettings;
 	FMAProjectilePenetratingSettings PenetratingSettings;
 	FMAProjectileElementalSettings ElementalSettings;
+	FMAProjectileContinuousHitSettings ContinuousHitSettings;
 };
 
 UCLASS()
@@ -99,15 +118,17 @@ public:
 private:
 	FMAProjectileParams ProjectileParams;
 	bool bPendingDestroy = false;
+	FVector PreviousHitCheckLocation = FVector::ZeroVector;
 
-	void ApplyEffectSpecsToTarget(UAbilitySystemComponent* TargetASC);
+	FHitResult BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const;
+	FHitResult BuildHitResultFromActor(AActor* HitActor) const;
+	void ApplyResolvedHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
 	void ApplyProjectileVisuals();
 	void BeginPendingDestroy();
-	FVector ResolveStatusEffectSourcePoint(EMASkillStatusEffectSourceType SourceType) const;
 	bool CanDamageActor(AActor* OtherActor) const;
-	void CheckAndHandleNearTargetDestroy();
-	void ExecuteHitGameplayCues(const FHitResult& HitResult);
-	void SendLocalGameplayCue(const FGameplayTag& GameplayCueTag, const FHitResult& HitResult);
+	bool TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult);
+	void CheckContinuousHit();
+	void CheckAndHandleNearTargetHit();
 
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 };

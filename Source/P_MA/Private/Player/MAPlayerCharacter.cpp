@@ -34,7 +34,6 @@
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
-#include "Net/UnrealNetwork.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))

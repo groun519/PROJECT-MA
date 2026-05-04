@@ -59,9 +59,6 @@ private:
 	FRotator LocalRotation = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, Category="Gameplay Ability")
-	FGameplayTagContainer TriggerGameplayCueTags;
-
-	UPROPERTY(EditAnywhere, Category="Gameplay Ability")
 	bool bIgnoreOwner = true;
 
 	UPROPERTY(EditAnywhere, Category="Gameplay Ability")

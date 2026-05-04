@@ -55,10 +55,6 @@ private:
 	UPROPERTY(EditAnywhere, Category="Virtual Socket")
 	FRotator LocalRotation	= FRotator::ZeroRotator;
 
-	// Others
-	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
-	FGameplayTagContainer TriggerGameplayCueTags;
-	
 	UPROPERTY(EditAnywhere, Category = "Gameplay Ability")
 	bool bIgnoreOwner = true;
 	

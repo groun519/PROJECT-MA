@@ -5,9 +5,12 @@
 
 class UMASkillRuntimeScope;
 
-namespace MASkillGameplayEventScope
+class MASkillGameplayEventScope final
 {
-	void InjectRuntimeScope(FGameplayEventData& Payload, UMASkillRuntimeScope* InRuntimeScope);
-	const UMASkillRuntimeScope* ExtractRuntimeScope(const FGameplayEventData& Payload);
-}
+public:
+	static void InjectRuntimeScope(FGameplayEventData& Payload, UMASkillRuntimeScope* InRuntimeScope);
+	static const UMASkillRuntimeScope* ExtractRuntimeScope(const FGameplayEventData& Payload);
 
+private:
+	MASkillGameplayEventScope() = delete;
+};

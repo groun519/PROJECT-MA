@@ -6,7 +6,9 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/MASkillDamageConfig.h"
+#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GenericTeamAgentInterface.h"
 #include "P_MA/P_MA.h"
 
@@ -144,9 +146,9 @@ void UMASkillAction_MeleeOverlapShape::Execute(UMASkillAbility& OwnerAbility, co
 
 	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetPayloadStore();
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
-	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillResolvedHitEffects::BuildResolvedHitEffects(OwnerAbility, DamageConfig);
+	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig);
 
 	FVector CenterPoint = FVector::ZeroVector;
 	const TArray<FHitResult> HitResults = ResolveShapeHitResults(OwnerAbility, Config, ResolvedHitEffects.TargetRelationMask, CenterPoint);
-	MASkillActionMeleeOverlap::ApplyHitResults(OwnerAbility, HitResults, ResolvedHitEffects, CenterPoint);
+	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, HitResults, ResolvedHitEffects, CenterPoint);
 }

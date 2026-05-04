@@ -143,7 +143,6 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 		Length,
 		bIgnoreOwner,
 		bDrawDebug,
-		TriggerGameplayCueTags,
 		WorldLocation);
 
 	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());

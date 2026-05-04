@@ -348,36 +348,7 @@ void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTra
 	}
 }
 
-void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* NS, FName SocketName, FVector LocOffset,
-	FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor, FLinearColor EffectColor)
-{
-	if (GetNetMode() == NM_DedicatedServer)
-            return;
-	
-	USkeletalMeshComponent* MeshComp = GetMesh();
-	if (!MeshComp) return;
-
-	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			NS,GetMesh(),SocketName,LocOffset,RotOffset,
-			Scale,EAttachLocation::KeepRelativeOffset,bAutoDestroy, 
-			ENCPoolMethod::None,true);
-	if (SpawnedVFX && bApplyColor)
-	{
-		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
-	}
-}
-
-void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage, FName SectionName)
-{
-	if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
-	{
-		if (Montage && AnimInst->Montage_IsPlaying(Montage))
-		{
-			AnimInst->Montage_JumpToSection(SectionName, Montage);
-		}
-	}
-}
-
+/** Status Effect **/
 void AMACharacter::Multicast_PlayStatusEffectImpulse_Implementation(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint)
 {
 	if (HasAuthority()) return;

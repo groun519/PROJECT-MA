@@ -1,6 +1,6 @@
-#include "GAS/Skill/MAGameplayEffect_SkillDamage.h"
+#include "GAS/Skill/Damage/MAGameplayEffect_SkillDamage.h"
 
-#include "GAS/ExecCalc_DamageByAttribute.h"
+#include "GAS/Skill/Damage/ExecCalc_DamageByAttribute.h"
 
 UMAGameplayEffect_SkillDamage::UMAGameplayEffect_SkillDamage()
 {

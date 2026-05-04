@@ -5,7 +5,6 @@
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Inventory/SkillBookComponent.h"
-#include "Loadout/Data/LoadoutWeaponData.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;

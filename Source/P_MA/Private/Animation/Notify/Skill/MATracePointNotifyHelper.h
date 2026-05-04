@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
-#include "GameplayTagContainer.h"
 #include "DebugShapeHelper.h"
 
 class AActor;
@@ -41,7 +40,6 @@ namespace MATracePointNotify
 		float Length,
 		bool bIgnoreOwner,
 		bool bDrawDebug,
-		const FGameplayTagContainer& TriggerGameplayCueTags,
 		const FVector& WorldLocation);
 
 	void DrawDebugShape(

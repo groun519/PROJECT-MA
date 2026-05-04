@@ -28,6 +28,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
 	FName OpacityParamName = TEXT("Opacity");
 
+	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
+	FName ColorParamName = TEXT("BaseColor");
+
+	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
+	FLinearColor DefaultOverlayColor = FLinearColor::White;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay", meta = (ClampMin = "0.01"))
 	float FadeDuration = 0.08f;
 
@@ -39,7 +45,9 @@ private:
 		float Elapsed = 0.f;
 	};
 
-	void StartOrRestartFade(USkeletalMeshComponent* MeshComp);
+	FGameplayTag ResolveRequestedCueTag(const FGameplayCueParameters& Parameters) const;
+	FLinearColor ResolveOverlayColor(const FGameplayCueParameters& Parameters) const;
+	void StartOrRestartFade(USkeletalMeshComponent* MeshComp, const FLinearColor& OverlayColor);
 	int32 FindFadeIndex(const USkeletalMeshComponent* MeshComp) const;
 	USkeletalMeshComponent* ResolveTargetMesh(AActor* TargetActor) const;
 

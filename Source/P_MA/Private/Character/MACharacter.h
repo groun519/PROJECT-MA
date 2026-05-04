@@ -135,11 +135,6 @@ public:
 	//월드에 VFX 출력
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
-	//소켓에 VFX 부착
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagaraAttached(UNiagaraSystem* NS, FName SocketName, FVector LocOffset, FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_JumpToSection(UAnimMontage* Montage, FName SectionName);
 	UFUNCTION(NetMulticast, Reliable)
 	// Kept on AMACharacter because the actor already owns the replication entrypoint.
 	// If status-effect impulse RPCs grow, move this multicast into UMAStatusEffectComponent.

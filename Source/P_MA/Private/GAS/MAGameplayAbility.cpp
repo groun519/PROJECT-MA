@@ -200,26 +200,6 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
 			OverrideTargetRelationMask, EVA_Shape::Rect, VS->bDrawDebug, VS->bIgnoreOwner);
 	}
 
-	// 3) Execute gameplay cues for each resolved hit actor
-	for (FHitResult& Result : OutHits)
-	{
-		AActor* HitActor = Result.GetActor();
-		if (!HitActor) continue;
-
-		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
-		if (!TargetASC) continue;
-
-		FGameplayCueParameters CueParam;
-		CueParam.Location = Result.ImpactPoint;
-		CueParam.Normal = Result.ImpactNormal;
-		CueParam.Instigator = GetAvatarActorFromActorInfo();
-		CueParam.EffectCauser = GetAvatarActorFromActorInfo();
-		for (const FGameplayTag& GameplayCueTag : VS->TriggerGameplayCueTags)
-		{
-			TargetASC->ExecuteGameplayCue(GameplayCueTag, CueParam);
-		}
-	}
-
 	return OutHits;
 }
 

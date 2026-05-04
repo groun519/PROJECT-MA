@@ -5,7 +5,8 @@
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MAElementData.h"
-#include "GAS/Skill/MASkillDamageConfig.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GameFramework/Pawn.h"
 
 void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&)
@@ -41,13 +42,12 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, cons
 	FMASkillDamageConfig DamageConfig;
 	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
 
-	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillResolvedHitEffects::BuildResolvedHitEffects(OwnerAbility, DamageConfig);
+	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig);
 	FMAProjectileParams ProjectileParams;
-	ProjectileParams.DamageSpecHandle = ResolvedHitEffects.DamageSpec;
-	ProjectileParams.StatusEffects = ResolvedHitEffects.StatusEffects;
-	ProjectileParams.TargetRelationMask = ResolvedHitEffects.TargetRelationMask;
+	ProjectileParams.ResolvedHitEffects = ResolvedHitEffects;
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();
+	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 
 	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
 		ElementalDataTable && ProjectileParams.ElementalSettings.ElementalTag.IsValid())
@@ -60,7 +60,6 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, cons
 			TEXT("SkillProjectileElementalLookup")))
 		{
 			ProjectileParams.ElementalSettings.ElementalColor = ElementRow->ElementColor;
-			ProjectileParams.ElementalSettings.HitGameplayCueTag = ElementRow->HitGameplayCueTag;
 			ProjectileParams.TrailVFX = ElementRow->TrailVFX;
 		}
 	}

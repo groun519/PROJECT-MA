@@ -1,6 +1,6 @@
-#include "GAS/Skill/MAGameplayEffect_SkillDamageOverTime.h"
+#include "GAS/Skill/Damage/MAGameplayEffect_SkillDamageOverTime.h"
 
-#include "GAS/ExecCalc_DamageByAttribute.h"
+#include "GAS/Skill/Damage/ExecCalc_DamageByAttribute.h"
 
 UMAGameplayEffect_SkillDamageOverTime::UMAGameplayEffect_SkillDamageOverTime()
 {

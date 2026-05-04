@@ -3,15 +3,10 @@
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
-#include "GAS/Skill/StatusEffect/MASkillStatusEffect_State.h"
-#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Impulse.h"
-#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Airborne.h"
-#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Attribute.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffectTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
-#include "GenericTeamAgentInterface.h"
 #include "GameplayEffectTypes.h"
-#include "MASkillDamageConfig.generated.h"
+#include "MASkillDamageTypes.generated.h"
 
 class UMASkillAbility;
 
@@ -106,6 +101,9 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="StatusEffect")
 	TArray<TObjectPtr<UMASkillStatusEffect>> StatusEffects;
 
+	UPROPERTY(EditDefaultsOnly, Category="GameplayCue", meta=(Categories="GameplayCue.Hit"))
+	FGameplayTagContainer TargetGameplayCueTags;
+
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
@@ -117,6 +115,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 			DamageOverTime = Other.DamageOverTime;
 		}
 		StatusEffects.Append(Other.StatusEffects);
+		TargetGameplayCueTags.AppendTags(Other.TargetGameplayCueTags);
 	}
 
 	bool HasValues() const
@@ -129,7 +128,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
 		}
 
-		return StatusEffects.Num() > 0;
+		return StatusEffects.Num() > 0 || !TargetGameplayCueTags.IsEmpty();
 	}
 
 	FMADamageExecutionConfig ToExecutionConfig() const
@@ -155,9 +154,7 @@ struct P_MA_API FResolvedSkillHitEffects
 
 	UPROPERTY(Transient)
 	TArray<FResolvedStatusEffect> StatusEffects;
-};
 
-namespace MASkillResolvedHitEffects
-{
-	P_MA_API FResolvedSkillHitEffects BuildResolvedHitEffects(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig);
-}
+	UPROPERTY(Transient)
+	FGameplayTagContainer TargetGameplayCueTags;
+};
