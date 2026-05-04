@@ -6,7 +6,9 @@
 #include "MASkillEventSource.generated.h"
 
 class UMASkillAbility;
+class UMASkillPayloadWriter;
 class UMASkillRuntimeScope;
+struct FGameplayEventData;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillEventSource : public UObject
@@ -23,6 +25,7 @@ public:
 
 protected:
 	void EmitEvent() const;
+	void EmitEvent(const FGameplayEventData& Payload) const;
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
 
 private:
@@ -32,6 +35,9 @@ private:
 protected:
 	UPROPERTY(VisibleDefaultsOnly, Category="Event")
 	FGameplayTag EmittedTag;
+
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="Payload", meta=(DisplayName="Pre-Emit Payload Writers"))
+	TArray<TObjectPtr<UMASkillPayloadWriter>> PreEmitPayloadWriters;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillAbility> OwnerSkillAbility;

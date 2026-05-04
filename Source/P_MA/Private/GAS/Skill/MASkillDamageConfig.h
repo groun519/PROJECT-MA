@@ -16,6 +16,13 @@
 class UMASkillAbility;
 
 UENUM(BlueprintType)
+enum class EMASkillDamageApplicationMode : uint8
+{
+	Instant,
+	DamageOverTime
+};
+
+UENUM(BlueprintType)
 enum class EMASkillTargetRelationMergeOp : uint8
 {
 	None,
@@ -62,6 +69,18 @@ struct P_MA_API FMASkillTargetRelationModifier
 };
 
 USTRUCT(BlueprintType)
+struct P_MA_API FMASkillDamageOverTimeConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|DoT", meta=(ClampMin="0.01"))
+	float Duration = 3.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|DoT", meta=(ClampMin="1"))
+	int32 TickCount = 3;
+};
+
+USTRUCT(BlueprintType)
 struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 {
 	GENERATED_BODY()
@@ -75,6 +94,12 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
 
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	EMASkillDamageApplicationMode ApplicationMode = EMASkillDamageApplicationMode::Instant;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|DoT", meta=(EditCondition="ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime", EditConditionHides))
+	FMASkillDamageOverTimeConfig DamageOverTime;
+
 	UPROPERTY(EditDefaultsOnly, Category="Targeting", meta=(Bitmask, BitmaskEnum="/Script/P_MA.EMATargetRelation"))
 	int32 TargetRelationMask = MATargetRelation::GetDefaultMask();
 
@@ -86,6 +111,11 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 		BaseDamage += Other.BaseDamage;
 		FinalDamageMultiplier *= Other.FinalDamageMultiplier;
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
+		if (Other.ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime)
+		{
+			ApplicationMode = Other.ApplicationMode;
+			DamageOverTime = Other.DamageOverTime;
+		}
 		StatusEffects.Append(Other.StatusEffects);
 	}
 

@@ -110,17 +110,6 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 		{
 			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
 		}
-
-		if (!RegularCameraShake || !CriticalCameraShake) return;
-		
-		if (!bIsPlayerHit)
-		{
-			TSubclassOf<UCameraShakeBase> ShakeToPlay = bIsCriticalHit ? CriticalCameraShake : RegularCameraShake;
-			if (ShakeToPlay)
-			{
-				ClientStartCameraShake(ShakeToPlay);
-			}
-		}
 	}
 }
 

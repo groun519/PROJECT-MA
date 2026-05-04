@@ -2,6 +2,7 @@
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Payload/MASkillPayloadWriter.h"
 
 void UMASkillEventSource::InitializeRuntime(UMASkillAbility* SkillAbility)
 {
@@ -25,11 +26,26 @@ void UMASkillEventSource::DeinitializeRuntime()
 
 void UMASkillEventSource::EmitEvent() const
 {
+	FGameplayEventData Payload;
+	EmitEvent(Payload);
+}
+
+void UMASkillEventSource::EmitEvent(const FGameplayEventData& Payload) const
+{
 	if (!OwnerSkillAbility || !EmittedTag.IsValid()) return;
 
-	FGameplayEventData Payload;
-	Payload.EventTag = EmittedTag;
-	OwnerSkillAbility->SendSkillGameplayEvent(Payload, RuntimeScope);
+	FGameplayEventData EventPayload = Payload;
+	EventPayload.EventTag = EmittedTag;
+
+	for (UMASkillPayloadWriter* PayloadWriter : PreEmitPayloadWriters)
+	{
+		if (PayloadWriter)
+		{
+			PayloadWriter->WritePayload(*OwnerSkillAbility, EventPayload);
+		}
+	}
+
+	OwnerSkillAbility->SendSkillGameplayEvent(EventPayload, RuntimeScope);
 }
 
 void UMASkillEventSource::HandleSkillActivated()

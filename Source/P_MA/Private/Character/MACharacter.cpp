@@ -143,14 +143,8 @@ void AMACharacter::BindGASChangeDelegates()
 
 void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
 {
-	if (NewCount != 0)
-	{
-		StartDeathSequence();
-	}
-	else
-	{
-		Respawn();
-	}
+	if (NewCount != 0) StartDeathSequence();
+	else Respawn();
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
@@ -159,9 +153,8 @@ void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 	if (NewCount != 0)
 	{
 		if (ImpulseComponent)
-		{
 			ImpulseComponent->CancelInterruptibleActionImpulses();
-		}
+
 		StopMovementForBlock();
 	}
 	RefreshMaxWalkSpeed();
@@ -237,13 +230,8 @@ void AMACharacter::RespawnImmediately()
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
-
 	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->CancelAllAbilities();
-	}
+	if (MAAbilitySystemComponent) MAAbilitySystemComponent->CancelAllAbilities();
 	
 	if (DeathMontage) PlayAnimMontage(DeathMontage);
 	SetStatusGaugeEnabled(false);

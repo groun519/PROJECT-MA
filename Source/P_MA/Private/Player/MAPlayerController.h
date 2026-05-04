@@ -112,11 +112,4 @@ private:
 	
 	UFUNCTION()
 	void ToggleSkillBook();
-
-	/** Camera Shake **/
-	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<UCameraShakeBase> RegularCameraShake;
-
-	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<UCameraShakeBase> CriticalCameraShake;
 };
