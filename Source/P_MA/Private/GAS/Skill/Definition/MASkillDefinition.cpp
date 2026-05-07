@@ -14,6 +14,7 @@ FGameplayTag GetDefaultElementalTag()
 
 void UMASkillDefinition::ResetAssemblyData()
 {
+	DisplayData = FMASkillDefinitionDisplayData();
 	ElementalTag = FGameplayTag();
 	SkillSteps.Reset();
 	EventSources.Reset();
@@ -26,7 +27,7 @@ void UMASkillDefinition::AppendFrom(const UMASkillDefinition& Other)
 {
 	UMASkillRuntimeScope* RuntimeScope = NewObject<UMASkillRuntimeScope>(this);
 
-	if (Other.ElementalTag.IsValid() && Other.ElementalTag != GetDefaultElementalTag())
+	if (!ElementalTag.IsValid() && Other.ElementalTag.IsValid() && Other.ElementalTag != GetDefaultElementalTag())
 	{
 		ElementalTag = Other.ElementalTag;
 	}

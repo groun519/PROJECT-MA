@@ -10,8 +10,57 @@
 
 class UMASkillEventSource;
 class UMASkillRuntimeScope;
+class UTexture2D;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
+
+USTRUCT(BlueprintType)
+struct FMASkillDefinitionIconData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
+	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
+	FLinearColor IconColor = FLinearColor::White;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
+	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
+	int32 Priority = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FMASkillDefinitionNameData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Name")
+	FText Keyword;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Name")
+	int32 Priority = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FMASkillDefinitionDisplayData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
+	FText DisplayName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(MultiLine=true))
+	FText Description;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
+	FMASkillDefinitionIconData IconData;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
+	FMASkillDefinitionNameData NameData;
+};
 
 UCLASS(BlueprintType)
 class P_MA_API UMASkillDefinition : public UDataAsset
@@ -19,6 +68,7 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
@@ -38,6 +88,9 @@ private:
 	void AppendFrom(const UMASkillDefinition& Other);
 
 	friend struct FMASkillAssembler;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(AllowPrivateAccess="true"))
+	FMASkillDefinitionDisplayData DisplayData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;

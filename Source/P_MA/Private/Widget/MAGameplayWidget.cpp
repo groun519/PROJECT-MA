@@ -5,10 +5,12 @@
 #include "Widget/MAValueGauge.h"
 #include "Widget/ShopWidget.h"
 #include "Widget/SkillBookWidget.h"
+#include "Widget/Skill/MASkillSlotWidget.h"
 #include "Widget/Loop/LoopReadyWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "GameFramework/PlayerController.h"
 
 void UMAGameplayWidget::NativeConstruct()
@@ -24,6 +26,17 @@ void UMAGameplayWidget::NativeConstruct()
     if (OwnerAbilitySystemComponent && HealthBar)
     {
         HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
+    }
+
+    if (SkillSlotWidget)
+    {
+        if (APawn* OwningPawn = GetOwningPlayerPawn())
+        {
+            if (UMASkillManagerComponent* SkillManager = OwningPawn->FindComponentByClass<UMASkillManagerComponent>())
+            {
+                SkillSlotWidget->InitializeSkillSlots(SkillManager);
+            }
+        }
     }
 }
 

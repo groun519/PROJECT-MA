@@ -10,6 +10,8 @@ class UMASkillAbility;
 class UMASkillDefinition;
 class UMASkillGenericDataAsset;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, EMAAbilityInputID);
+
 USTRUCT(BlueprintType)
 struct FMASkillDefinitionStack
 {
@@ -50,34 +52,28 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void InitializeGrantedAbilities();
 
-	UFUNCTION(BlueprintCallable, Category="Skill")
-	void ClearDefinitions(EMAAbilityInputID InputID);
+	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
-	UFUNCTION(BlueprintCallable, Category="Skill")
-	void SetSingleDefinition(EMAAbilityInputID InputID, UMASkillDefinition* Definition);
-
-	UFUNCTION(BlueprintCallable, Category="Skill")
 	void SetDefinitions(EMAAbilityInputID InputID, const TArray<UMASkillDefinition*>& Definitions);
 
-	UFUNCTION(BlueprintCallable, Category="Skill")
 	bool AddDefinition(EMAAbilityInputID InputID, UMASkillDefinition* Definition);
 
-	UFUNCTION(BlueprintCallable, Category="Skill")
-	bool InsertDefinition(EMAAbilityInputID InputID, int32 InsertIndex, UMASkillDefinition* Definition);
-
-	UFUNCTION(BlueprintCallable, Category="Skill")
+	// TODO: Wire this when module inventory/removal UI exists.
 	bool RemoveDefinitionAt(EMAAbilityInputID InputID, int32 RemoveIndex);
 
-	UFUNCTION(BlueprintCallable, Category="Skill")
-	bool MoveDefinition(EMAAbilityInputID InputID, int32 FromIndex, int32 ToIndex);
+	bool RequestSwapDefinitionSlotsBetween(
+		EMAAbilityInputID InputIDA,
+		int32 IndexA,
+		EMAAbilityInputID InputIDB,
+		int32 IndexB);
 
-	UFUNCTION(BlueprintPure, Category="Skill")
-	int32 GetDefinitionCount(EMAAbilityInputID InputID) const;
+	TArray<UMASkillDefinition*> GetDefinitions(EMAAbilityInputID InputID) const;
 
-	UFUNCTION(BlueprintPure, Category="Skill")
-	UMASkillDefinition* GetDefinitionAt(EMAAbilityInputID InputID, int32 Index) const;
+	TArray<EMAAbilityInputID> GetSkillSlotInputIDs() const
+	{
+		return GatherUniqueSkillSlotInputIDs();
+	}
 
-	UFUNCTION(BlueprintPure, Category="Skill")
 	UMASkillDefinition* GetAssembledDefinition(EMAAbilityInputID InputID) const;
 	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const { return GenericSkillDataAsset; }
 
@@ -86,13 +82,34 @@ public:
 	void UnregisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle);
 
 private:
+	static constexpr int32 SkillModuleSlotCount = 9;
+
 	FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID);
 	const FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID) const;
 	FMASkillDefinitionStack& FindOrAddStack(EMAAbilityInputID InputID);
 	FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID);
 	const FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID) const;
+	const TArray<TObjectPtr<UMASkillDefinition>>* FindSourceDefinitions(EMAAbilityInputID InputID) const;
+	bool IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const;
+	static bool IsValidDefinitionSlotIndex(int32 Index);
+	static void NormalizeDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
+	static void CopyDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Target, const TArray<UMASkillDefinition*>& Source);
+	static void CopyDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Target, const TArray<TObjectPtr<UMASkillDefinition>>& Source);
+	static bool HasAnyDefinition(const TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
 	TArray<EMAAbilityInputID> GatherUniqueSkillSlotInputIDs() const;
 	bool CanMutateSkillStacks() const;
+	bool SwapDefinitionSlotsBetween(
+		EMAAbilityInputID InputIDA,
+		int32 IndexA,
+		EMAAbilityInputID InputIDB,
+		int32 IndexB);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSwapDefinitionSlotsBetween(
+		EMAAbilityInputID InputIDA,
+		int32 IndexA,
+		EMAAbilityInputID InputIDB,
+		int32 IndexB);
 
 	UFUNCTION()
 	void OnRep_ReplicatedSkillSlotStacks();
@@ -105,6 +122,7 @@ private:
 	UPROPERTY(Transient)
 	TArray<FMASkillDefinitionStack> SkillStacks;
 
+	// TODO: This is an editor/test seed path. Replace with explicit runtime seeding from saved data/loadout before removing fallback reads.
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TArray<FMASkillSlotStack> SkillSlotStacks;
 

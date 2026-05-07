@@ -9,6 +9,7 @@ class UMAValueGauge;
 class ULoopReadyWidget;
 class UShopWidget; 
 class USkillBookWidget; 
+class UMASkillSlotWidget;
 
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
@@ -58,6 +59,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	ULoopReadyWidget* LoopReadyWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillSlotWidget> SkillSlotWidget;
 	
 	bool bLoopReadyInitialized = false;
 
