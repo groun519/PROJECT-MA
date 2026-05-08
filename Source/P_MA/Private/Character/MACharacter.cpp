@@ -368,19 +368,18 @@ void AMACharacter::ConfigureOverHeadStatusWidget()
 		return; 
 	}
 
-	if (IsLocallyControlledByPlayer())
-	{
-		OverHeadWidgetComponent->SetHiddenInGame(true);
-	}
+	// if (IsLocallyControlledByPlayer())
+	// {
+	// 	OverHeadWidgetComponent->SetHiddenInGame(true);
+	// }
 
 	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
 	if (OverheadStatsGuage)
 	{
 		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
-		if (!IsLocallyControlledByPlayer()) // 자기 자신이 아닐 때만 표시
-		{
-			OverHeadWidgetComponent->SetHiddenInGame(false);
-		}
+		
+		OverHeadWidgetComponent->SetHiddenInGame(false);
+	
 		GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
 		GetWorldTimerManager().SetTimer(HeadStatGaugeVisibilityUpdateTimerHandle, this, &AMACharacter::UpdateHeadGaugeVisibility, HeadStatGaugeVisibilityCheckUpdateGap, true);
 	}
@@ -392,11 +391,11 @@ void AMACharacter::UpdateHeadGaugeVisibility()
 	if (LocalPlayerPawn)
 	{
 		// 자기 자신이면 항상 숨김
-		if (LocalPlayerPawn == this)
-		{
-			OverHeadWidgetComponent->SetHiddenInGame(true);
-			return;
-		}
+		// if (LocalPlayerPawn == this)
+		// {
+		// 	OverHeadWidgetComponent->SetHiddenInGame(true);
+		// 	return;
+		// }
 
 		// 상대방일 경우 거리 기반 표시
 		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());

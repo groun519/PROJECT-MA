@@ -198,4 +198,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
 	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
 	// 여기까지
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* ChatInputAction;
+	
+	void HandleChatInput();
 };

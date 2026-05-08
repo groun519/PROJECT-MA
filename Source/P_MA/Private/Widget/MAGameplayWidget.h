@@ -37,6 +37,8 @@ public:
 	void SetLoopReadyVisible(bool bVisible);
 	void RefreshLoopReady();
 
+	class UChatWidget* GetChatWidget() const { return ChatWidget; }
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
@@ -75,6 +77,9 @@ protected:
 	ULoopReadyWidget* LoopReadyWidget;
 	
 	bool bLoopReadyInitialized = false;
+
+	UPROPERTY(meta = (BindWidget))
+	class UChatWidget* ChatWidget;
 private:
 	bool TryBindCoreHealthFromWorld();
 	void TryBindCoreHealthFromActor(ACore* CoreActor);

@@ -27,6 +27,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
+#include "Widget/MAGameplayWidget.h"
+#include "Widget/ChatWidget.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "P_MA/P_MA.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/LoadoutComponent.h"
@@ -238,6 +242,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+			EnhancedInputComp->BindAction(ChatInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleChatInput);
 		}
 		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
@@ -597,3 +602,19 @@ void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionVa
 	InventoryComponent->TryActivateItemInSlot(Value-1);
 }
 
+void AMAPlayerCharacter::HandleChatInput()
+{
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UMAGameplayWidget::StaticClass(), false);
+
+	if (FoundWidgets.Num() > 0)
+	{
+		if (UMAGameplayWidget* GameplayWidget = Cast<UMAGameplayWidget>(FoundWidgets[0]))
+		{
+			if (UChatWidget* Chat = GameplayWidget->GetChatWidget())
+			{
+				Chat->SetChatFocus(); 
+			}
+		}
+	}
+}

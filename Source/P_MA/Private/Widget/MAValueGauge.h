@@ -43,8 +43,17 @@ private:
 	bool bProgressBarVisible = true;
 
 	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
-	class UProgressBar* ProgressBar;
+	class UProgressBar* HealthBar;
 
 	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
 	class UTextBlock* ValueText;
+	
+	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
+	class UProgressBar* GhostProgressBar;
+
+	FTimerHandle GhostTimerHandle;
+	void UpdateGhostBar();
+
+	float TargetPercent = 1.0f;
+	float CurrentGhostPercent = 1.0f;
 };
