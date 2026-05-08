@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+
 #include "MAPlayerCharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -16,6 +17,7 @@
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
+#include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
@@ -24,6 +26,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
+#include "Widget/MAGameplayWidget.h"
+#include "Widget/ChatWidget.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
@@ -405,13 +411,13 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
-	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
 
 	AddMovementInput(GetMoveForwardDir() * InputVal.Y + GetMoveRightDir() * InputVal.X);
 }
+
 
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
@@ -781,3 +787,19 @@ void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME(AMAPlayerCharacter, bAllowVFX);
 }
 
+void AMAPlayerCharacter::HandleChatInput()
+{
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UMAGameplayWidget::StaticClass(), false);
+
+	if (FoundWidgets.Num() > 0)
+	{
+		if (UMAGameplayWidget* GameplayWidget = Cast<UMAGameplayWidget>(FoundWidgets[0]))
+		{
+			if (UChatWidget* Chat = GameplayWidget->GetChatWidget())
+			{
+				Chat->SetChatFocus(); 
+			}
+		}
+	}
+}

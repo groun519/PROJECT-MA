@@ -271,4 +271,9 @@ protected:
 	
 	UPROPERTY(Transient, Replicated)
 	bool bAllowVFX = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	class UInputAction* ChatInputAction;
+	
+	void HandleChatInput();
 };

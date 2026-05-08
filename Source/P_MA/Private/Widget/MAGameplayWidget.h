@@ -71,6 +71,17 @@ protected:
 	
 	bool bLoopReadyInitialized = false;
 
+	UPROPERTY(meta = (BindWidget))
+	class UChatWidget* ChatWidget;
+private:
+	bool TryBindCoreHealthFromWorld();
+	//void TryBindCoreHealthFromActor(ACore* CoreActor);
+	void HandleActorSpawned(AActor* SpawnedActor);
+
+	FDelegateHandle CoreSpawnedHandle;
+	bool bCoreHealthBound = false;
+
+
 	UFUNCTION()
 	void OnShopButtonClicked();
 };
