@@ -5,8 +5,12 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Widget/MADescriptionTooltipWidget.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
+
+const FName UMASkillModuleSocketWidget::HighlightAlphaParameterName(TEXT("HighlightAlpha"));
+const FName UMASkillModuleSocketWidget::IconScaleMultiplierParameterName(TEXT("IconScaleMultiplier"));
 
 void UMASkillModuleSocketWidget::InitializeSocket(
 	UMASkillManagerComponent* InSkillManager,
@@ -20,6 +24,11 @@ void UMASkillModuleSocketWidget::InitializeSocket(
 	SkillDefinition = InSkillDefinition;
 
 	if (!ModuleIconImage) return;
+
+	bIsHovered = false;
+	bIsDropTargetHighlighted = false;
+	RefreshHoverVisual();
+	RefreshTooltip();
 
 	const FMASkillDefinitionIconData* IconData = SkillDefinition ? &SkillDefinition->GetDisplayData().IconData : nullptr;
 	if (IconData && IconData->Icon)
@@ -36,6 +45,22 @@ void UMASkillModuleSocketWidget::InitializeSocket(
 	}
 
 	ModuleIconImage->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMASkillModuleSocketWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+
+	bIsHovered = true;
+	RefreshHoverVisual();
+}
+
+void UMASkillModuleSocketWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	bIsHovered = false;
+	RefreshHoverVisual();
+
+	Super::NativeOnMouseLeave(InMouseEvent);
 }
 
 FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -60,16 +85,18 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 
 	DragOperation->SourceInputID = InputID;
 	DragOperation->SourceModuleIndex = ModuleIndex;
-	DragOperation->IconTexture = SkillDefinition->GetDisplayData().IconData.Icon;
-	DragOperation->IconColor = SkillDefinition->GetDisplayData().IconData.IconColor;
 	DragOperation->Pivot = EDragPivot::CenterCenter;
+	bIsHovered = false;
+	RefreshHoverVisual();
+	SetDraggedSourceVisual(true);
 
-	if (DragVisualWidgetClass && DragOperation->IconTexture)
+	const FMASkillDefinitionIconData& IconData = SkillDefinition->GetDisplayData().IconData;
+	if (DragVisualWidgetClass && IconData.Icon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);
 		if (DragVisual)
 		{
-			DragVisual->SetIcon(DragOperation->IconTexture, DragOperation->IconColor);
+			DragVisual->SetIcon(IconData.Icon, IconData.IconColor);
 			DragOperation->DefaultDragVisual = DragVisual;
 		}
 	}
@@ -77,19 +104,107 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	OutOperation = DragOperation;
 }
 
+void UMASkillModuleSocketWidget::NativeOnDragCancelled(
+	const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	SetDraggedSourceVisual(false);
+	Super::NativeOnDragCancelled(InDragDropEvent, InOperation);
+}
+
+void UMASkillModuleSocketWidget::NativeOnDragEnter(
+	const FGeometry& InGeometry,
+	const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
+
+	if (Cast<UMASkillModuleDragDropOperation>(InOperation) && !IsSelfDragOperation(InOperation))
+	{
+		bIsDropTargetHighlighted = true;
+		RefreshHoverVisual();
+	}
+}
+
+void UMASkillModuleSocketWidget::NativeOnDragLeave(
+	const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	bIsDropTargetHighlighted = false;
+	RefreshHoverVisual();
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+}
+
 bool UMASkillModuleSocketWidget::NativeOnDrop(
 	const FGeometry& InGeometry,
 	const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
+	bIsDropTargetHighlighted = false;
+	RefreshHoverVisual();
+	SetDraggedSourceVisual(false);
+
 	UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(InOperation);
 	if (!SkillManager || !DragOperation) return false;
-	if (DragOperation->SourceInputID == InputID
-		&& DragOperation->SourceModuleIndex == ModuleIndex) return true;
+	if (IsSelfDragOperation(DragOperation)) return true;
 
 	return SkillManager->RequestSwapDefinitionSlotsBetween(
 		DragOperation->SourceInputID,
 		DragOperation->SourceModuleIndex,
 		InputID,
 		ModuleIndex);
+}
+
+void UMASkillModuleSocketWidget::NativeDestruct()
+{
+	bIsHovered = false;
+	bIsDropTargetHighlighted = false;
+	RefreshHoverVisual();
+	SetDraggedSourceVisual(false);
+	Super::NativeDestruct();
+}
+
+void UMASkillModuleSocketWidget::RefreshHoverVisual()
+{
+	if (!ModuleIconImage) return;
+
+	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
+	{
+		const bool bHighlighted = bIsHovered || bIsDropTargetHighlighted;
+		IconMaterial->SetScalarParameterValue(HighlightAlphaParameterName, bHighlighted ? DropHighlightAlpha : 0.f);
+		IconMaterial->SetScalarParameterValue(IconScaleMultiplierParameterName, bHighlighted ? HighlightedIconScaleMultiplier : NormalIconScaleMultiplier);
+	}
+}
+
+void UMASkillModuleSocketWidget::RefreshTooltip()
+{
+	if (!SkillDefinition || !TooltipWidgetClass)
+	{
+		SetToolTip(nullptr);
+		return;
+	}
+
+	UMADescriptionTooltipWidget* TooltipWidget = CreateWidget<UMADescriptionTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
+	if (!TooltipWidget)
+	{
+		SetToolTip(nullptr);
+		return;
+	}
+
+	const FMASkillDefinitionDisplayData& DisplayData = SkillDefinition->GetDisplayData();
+	TooltipWidget->SetDescription(DisplayData.DisplayName, DisplayData.Description);
+	SetToolTip(TooltipWidget);
+}
+
+void UMASkillModuleSocketWidget::SetDraggedSourceVisual(bool bDragged)
+{
+	SetRenderOpacity(bDragged ? DraggedSourceRenderOpacity : 1.f);
+}
+
+bool UMASkillModuleSocketWidget::IsSelfDragOperation(const UDragDropOperation* Operation) const
+{
+	const UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(Operation);
+	return DragOperation
+		&& DragOperation->SourceInputID == InputID
+		&& DragOperation->SourceModuleIndex == ModuleIndex;
 }

@@ -123,6 +123,11 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	SkillActivatedDelegate.Broadcast();
+
+	if (IsActive() && (!StepManager || !StepManager->GetCurrentRuntimeSkillStep()))
+	{
+		K2_EndAbility();
+	}
 }
 
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

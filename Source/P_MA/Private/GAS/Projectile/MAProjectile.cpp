@@ -330,7 +330,17 @@ void AMAProjectile::BeginPendingDestroy()
 	if (bPendingDestroy) return;
 
 	bPendingDestroy = true;
+	ApplyPendingDestroyVisuals();
 
+	if (HasAuthority())
+	{
+		MulticastBeginPendingDestroy();
+		SetLifeSpan(0.5f);
+	}
+}
+
+void AMAProjectile::ApplyPendingDestroyVisuals()
+{
 	if (Niagara)
 	{
 		Niagara->Deactivate();
@@ -350,7 +360,14 @@ void AMAProjectile::BeginPendingDestroy()
 	}
 
 	SetActorTickEnabled(false);
-	SetLifeSpan(0.5f);
+}
+
+void AMAProjectile::MulticastBeginPendingDestroy_Implementation()
+{
+	if (bPendingDestroy) return;
+
+	bPendingDestroy = true;
+	ApplyPendingDestroyVisuals();
 }
 
 /** Targeting Logics **/

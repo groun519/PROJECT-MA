@@ -125,6 +125,9 @@ private:
 	void ApplyResolvedHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
 	void ApplyProjectileVisuals();
 	void BeginPendingDestroy();
+	void ApplyPendingDestroyVisuals();
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastBeginPendingDestroy();
 	bool CanDamageActor(AActor* OtherActor) const;
 	bool TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult);
 	void CheckContinuousHit();

@@ -144,11 +144,6 @@ bool UMASkillManagerComponent::SwapDefinitionSlotsBetween(
 	NormalizeDefinitionSlots(SkillStackA->SourceDefinitions);
 	NormalizeDefinitionSlots(SkillStackB->SourceDefinitions);
 
-	if (SkillStackA->SourceDefinitions[IndexA] == SkillStackB->SourceDefinitions[IndexB])
-	{
-		return true;
-	}
-
 	Swap(SkillStackA->SourceDefinitions[IndexA], SkillStackB->SourceDefinitions[IndexB]);
 
 	if (InputIDA == InputIDB)

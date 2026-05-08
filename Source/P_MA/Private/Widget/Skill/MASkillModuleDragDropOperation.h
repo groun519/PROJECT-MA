@@ -5,8 +5,6 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MASkillModuleDragDropOperation.generated.h"
 
-class UTexture2D;
-
 UCLASS()
 class P_MA_API UMASkillModuleDragDropOperation : public UDragDropOperation
 {
@@ -18,10 +16,4 @@ public:
 
 	UPROPERTY(Transient)
 	int32 SourceModuleIndex = INDEX_NONE;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTexture2D> IconTexture = nullptr;
-
-	UPROPERTY(Transient)
-	FLinearColor IconColor = FLinearColor::White;
 };
