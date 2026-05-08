@@ -9,6 +9,7 @@ class UMASkillIconWidget;
 class UMASkillDefinition;
 class UMASkillManagerComponent;
 class UMASkillModuleSocketWidget;
+class AMAPlayerController;
 class UHorizontalBox;
 
 UCLASS()
@@ -35,6 +36,7 @@ protected:
 
 private:
 	void HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID);
+	void RefreshHotkeyText();
 
 	void RebuildModuleSockets(const TArray<UMASkillDefinition*>& InSkillDefinitions);
 
@@ -43,4 +45,6 @@ private:
 
 	UPROPERTY(Transient)
 	EMAAbilityInputID InputID = EMAAbilityInputID::None;
+
+	TWeakObjectPtr<AMAPlayerController> InputBindingsOwner;
 };

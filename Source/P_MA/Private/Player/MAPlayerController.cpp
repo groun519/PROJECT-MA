@@ -14,6 +14,7 @@
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
 #include "GAS/Passive/MADamageNumberActor.h"
+#include "Input/MAInputStatics.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
@@ -117,6 +118,11 @@ void AMAPlayerController::SpawnGameplayWidget()
 {
 	if (!IsLocalPlayerController()) return;
 
+	if (MAPlayerCharacter)
+	{
+		FMAInputStatics::RegisterInputMappingContextDefaults(this, MAPlayerCharacter->GetGameplayInputMappingContext());
+	}
+
 	GameplayWidget = CreateWidget<UMAGameplayWidget>(this, GameplayWidgetClass);
 	if (GameplayWidget)
 	{
@@ -146,6 +152,11 @@ void AMAPlayerController::SetupInputComponent()
 		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
 		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 	}
+}
+
+void AMAPlayerController::NotifyInputBindingsChanged()
+{
+	OnInputBindingsChanged.Broadcast();
 }
 
 void AMAPlayerController::ToggleShop()

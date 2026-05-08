@@ -13,12 +13,11 @@ enum class EChatType : uint8
 	Normal		UMETA(DisplayName = "Normal"), // 일반 채팅 
 	System		UMETA(DisplayName = "System")  // 시스템 공지
 };
-// UI 알림용 델리게이트 정의
+// 채팅UI 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FString&, SenderName, const FString&, Message, EChatType, ChatType);
+// 바인딩 변경 델리게이트
+DECLARE_MULTICAST_DELEGATE(FMAInputBindingsChangedSignature);
 
-/**
- * 
- */
 UCLASS()
 class AMAPlayerController : public AMAPlayerControllerBase, public IGenericTeamAgentInterface
 {
@@ -42,6 +41,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const override;
 	
 	virtual void SetupInputComponent() override;
+
+	FMAInputBindingsChangedSignature OnInputBindingsChanged;
+	void NotifyInputBindingsChanged();
 
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();

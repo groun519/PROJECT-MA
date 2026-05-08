@@ -8,6 +8,7 @@
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
+class UInputMappingContext;
 class UNiagaraComponent;
 class UAnimMontage;
 class UInteractComponent;
@@ -69,6 +70,10 @@ public:
 	
 	/** Cam **/
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
+
+	/** Input **/
+	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
+	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
 	
 private:
 	/** Ready State Component **/
@@ -114,10 +119,10 @@ private:
 	UInputAction* UseInventoryItemAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
+	TMap<EMAAbilityInputID, UInputAction*> GameplayAbilityInputActions;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputMappingContext* GameplayInputMappingContext;
+	UInputMappingContext* GameplayInputMappingContext;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float RotationInterpSpeed = 15.f;
@@ -191,10 +196,10 @@ public:
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	class USpringArmComponent* MinimapCameraBoom;
+	USpringArmComponent* MinimapCameraBoom;
 
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	class USceneCaptureComponent2D* MinimapCapture;
+	USceneCaptureComponent2D* MinimapCapture;
 
 	UPROPERTY(EditDefaultsOnly, Category="MinimapCamera", meta=(ClampMin="0.01"))
 	float MinimapCaptureInterval = 0.05f;
@@ -211,12 +216,8 @@ public:
 
 	/** SkillBook **/
 	UPROPERTY(VisibleAnywhere, Category = "Skill")
-	class USkillBookComponent* SkillBookComponent;
-
+	USkillBookComponent* SkillBookComponent;
 	TSet<EMAAbilityInputID> HeldAbilityInputIDs;
-public:
 	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
-	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
-	
-
+	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 };

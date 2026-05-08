@@ -2,6 +2,7 @@
 
 #include "Components/PanelWidget.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GameFramework/PlayerController.h"
 #include "Widget/Skill/MASkillSlotRowWidget.h"
 
 void UMASkillSlotWidget::InitializeSkillSlots(UMASkillManagerComponent* InSkillManager)
@@ -18,12 +19,15 @@ void UMASkillSlotWidget::RebuildSlotRows()
 	if (!SkillManager || !SlotRowWidgetClass) return;
 
 	const TArray<EMAAbilityInputID> InputIDs = SkillManager->GetSkillSlotInputIDs();
+	APlayerController* OwningPlayer = GetOwningPlayer();
 	for (const EMAAbilityInputID InputID : InputIDs)
 	{
-		UMASkillSlotRowWidget* RowWidget = CreateWidget<UMASkillSlotRowWidget>(this, SlotRowWidgetClass);
+		UMASkillSlotRowWidget* RowWidget = OwningPlayer
+			? CreateWidget<UMASkillSlotRowWidget>(OwningPlayer, SlotRowWidgetClass)
+			: CreateWidget<UMASkillSlotRowWidget>(this, SlotRowWidgetClass);
 		if (!RowWidget) continue;
 
-		RowWidget->InitializeSlot(SkillManager, InputID);
 		SlotRowsBox->AddChild(RowWidget);
+		RowWidget->InitializeSlot(SkillManager, InputID);
 	}
 }

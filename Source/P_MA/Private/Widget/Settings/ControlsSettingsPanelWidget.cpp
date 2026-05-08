@@ -5,8 +5,10 @@
 #include "Components/VerticalBox.h"
 #include "EnhancedActionKeyMapping.h"
 #include "EnhancedInputSubsystems.h"
+#include "Input/MAInputStatics.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
+#include "Player/MAPlayerController.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 #include "Widget/Settings/SettingsKeyBindingRowWidget.h"
@@ -32,11 +34,7 @@ namespace
 
 	FText GetBindingKeyText(const FKey& Key)
 	{
-		if (Key == EKeys::MiddleMouseButton) return FText::FromString(TEXT("MB3"));
-		if (Key == EKeys::ThumbMouseButton) return FText::FromString(TEXT("MB4"));
-		if (Key == EKeys::ThumbMouseButton2) return FText::FromString(TEXT("MB5"));
-
-		return Key.IsValid() ? Key.GetDisplayName(false) : FText::GetEmpty();
+		return Key.IsValid() ? FMAInputStatics::GetKeyDisplayText(Key) : FText::GetEmpty();
 	}
 
 	FText GetListeningKeyText()
@@ -99,15 +97,12 @@ TSubclassOf<USettingsKeyCaptureWidget> UControlsSettingsPanelWidget::GetEffectiv
 
 void UControlsSettingsPanelWidget::RegisterSourceContexts()
 {
-	UEnhancedInputUserSettings* UserSettings = GetEnhancedInputUserSettings();
-	if (!UserSettings) return;
-
 	const TArray<TObjectPtr<UInputMappingContext>>* EffectiveSourceContexts = GetEffectiveSourceContexts();
 	if (!EffectiveSourceContexts) return;
 
 	for (const UInputMappingContext* Context : *EffectiveSourceContexts)
 	{
-		if (Context) UserSettings->RegisterInputMappingContext(Context);
+		FMAInputStatics::RegisterInputMappingContextDefaults(GetOwningPlayer(), Context);
 	}
 }
 
@@ -355,6 +350,11 @@ void UControlsSettingsPanelWidget::ApplyAndSaveInputSettings(UEnhancedInputUserS
 {
 	UserSettings->ApplySettings();
 	UserSettings->AsyncSaveSettings();
+
+	if (AMAPlayerController* MAPlayerController = GetOwningPlayer<AMAPlayerController>())
+	{
+		MAPlayerController->NotifyInputBindingsChanged();
+	}
 }
 
 EPlayerMappableKeySlot UControlsSettingsPanelWidget::GetKeySlotByIndex(int32 SlotIndex)

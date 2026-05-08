@@ -279,6 +279,12 @@ void AMAPlayerCharacter::PawnClientRestart()
 	}
 }
 
+UInputAction* AMAPlayerCharacter::GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const
+{
+	if (UInputAction* const* FoundAction = GameplayAbilityInputActions.Find(InputID)) return *FoundAction;
+	return nullptr;
+}
+
 void AMAPlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
