@@ -1,26 +1,24 @@
-#include "Widget/Skill/MASkillIconWidget.h"
+#include "Widget/Skill/MASkillTooltipWidget.h"
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "Widget/Skill/MASkillTooltipWidget.h"
 
-void UMASkillIconWidget::SetHotkeyText(const FText& InText)
+void UMASkillTooltipWidget::SetSkillTooltip(const UMASkillDefinition* SkillDefinition, const FText& InCooldownText)
 {
-	if (!HotkeyText) return;
+	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
+		? SkillDefinition->GetDisplayData()
+		: FMASkillDefinitionDisplayData();
 
-	HotkeyText->SetText(InText);
-	HotkeyText->SetVisibility(InText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+	SetDescription(DisplayData.DisplayName, DisplayData.Description);
+	SetIconData(DisplayData.IconData);
+	SetCooldownText(InCooldownText);
 }
 
-void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefinition, FText InCooldownText)
+void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData)
 {
 	if (!SkillIconImage) return;
-
-	const FMASkillDefinitionIconData IconData = SkillDefinition
-		? SkillDefinition->GetDisplayData().IconData
-		: FMASkillDefinitionIconData();
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
 	{
@@ -61,25 +59,22 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 		SkillIconImage->SetBrush(FSlateBrush());
 	}
 
-	SkillIconImage->SetVisibility(ESlateVisibility::Visible);
-	RefreshTooltip(SkillDefinition, InCooldownText);
+	SkillIconImage->SetVisibility(IconData.Icon || IconData.SubIcon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 }
 
-void UMASkillIconWidget::RefreshTooltip(const UMASkillDefinition* SkillDefinition, const FText& InCooldownText)
+void UMASkillTooltipWidget::SetCooldownText(const FText& InCooldownText)
 {
-	if (!SkillDefinition || !TooltipWidgetClass)
-	{
-		SetToolTip(nullptr);
-		return;
-	}
+	const ESlateVisibility CooldownVisibility = InCooldownText.IsEmpty()
+		? ESlateVisibility::Collapsed
+		: ESlateVisibility::SelfHitTestInvisible;
 
-	UMASkillTooltipWidget* TooltipWidget = CreateWidget<UMASkillTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
-	if (!TooltipWidget)
+	if (CooldownText)
 	{
-		SetToolTip(nullptr);
-		return;
+		CooldownText->SetText(InCooldownText);
+		CooldownText->SetVisibility(CooldownVisibility);
 	}
-
-	TooltipWidget->SetSkillTooltip(SkillDefinition, InCooldownText);
-	SetToolTip(TooltipWidget);
+	if (CooldownIconImage)
+	{
+		CooldownIconImage->SetVisibility(CooldownVisibility);
+	}
 }

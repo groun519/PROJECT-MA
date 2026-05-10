@@ -23,6 +23,9 @@ struct FMASkillDefinitionIconData
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
+	TObjectPtr<UTexture2D> SubIcon = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
 	FLinearColor IconColor = FLinearColor::White;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")

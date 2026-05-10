@@ -57,7 +57,30 @@ void UMASkillSlotRowWidget::Refresh()
 		? SkillManager->GetDefinitions(InputID)
 		: TArray<UMASkillDefinition*>();
 
+	if (SkillIconWidget)
+	{
+		SkillIconWidget->SetSkillDefinition(SkillManager ? SkillManager->GetAssembledDefinition(InputID) : nullptr);
+	}
+
 	RebuildModuleSockets(Definitions);
+}
+
+void UMASkillSlotRowWidget::SetCollapsed(bool bCollapsed)
+{
+	if (bIsCollapsed == bCollapsed) return;
+
+	bIsCollapsed = bCollapsed;
+	if (!RowCollapse) return;
+
+	StopAnimation(RowCollapse);
+	if (bIsCollapsed)
+	{
+		PlayAnimationForward(RowCollapse);
+	}
+	else
+	{
+		PlayAnimationReverse(RowCollapse);
+	}
 }
 
 void UMASkillSlotRowWidget::HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID)

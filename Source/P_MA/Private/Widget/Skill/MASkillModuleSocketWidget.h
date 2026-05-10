@@ -9,7 +9,7 @@ class UImage;
 class UMASkillDefinition;
 class UMASkillManagerComponent;
 class UMASkillModuleDragVisualWidget;
-class UMADescriptionTooltipWidget;
+class UMASkillTooltipWidget;
 
 UCLASS()
 class P_MA_API UMASkillModuleSocketWidget : public UUserWidget
@@ -37,7 +37,7 @@ protected:
 	TSubclassOf<UMASkillModuleDragVisualWidget> DragVisualWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
-	TSubclassOf<UMADescriptionTooltipWidget> TooltipWidgetClass;
+	TSubclassOf<UMASkillTooltipWidget> TooltipWidgetClass;
 
 private:
 	static constexpr float DropHighlightAlpha = 0.15f;

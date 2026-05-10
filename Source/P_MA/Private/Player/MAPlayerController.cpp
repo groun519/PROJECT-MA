@@ -151,6 +151,7 @@ void AMAPlayerController::SetupInputComponent()
 	{
 		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
 		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
+		EnhancedInputComp->BindAction(SkillSlotToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillSlots);
 	}
 }
 
@@ -169,27 +170,19 @@ void AMAPlayerController::ToggleShop()
 
 void AMAPlayerController::ToggleSkillBook()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
-
 	if (!GameplayWidget)
 	{
-		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
 		return;
 	}
 	
-	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
-	
 	GameplayWidget->ToggleSkillBook();
-	
-	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
+}
+
+void AMAPlayerController::ToggleSkillSlots()
+{
+	if (GameplayWidget)
 	{
-		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
-		//FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
-		//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
-	}
-	else
-	{
-		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+		GameplayWidget->ToggleSkillSlotsCollapsed();
 	}
 }
 

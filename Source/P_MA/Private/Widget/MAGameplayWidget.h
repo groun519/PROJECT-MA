@@ -24,6 +24,7 @@ public:
 	
 	void ToggleShop();
 	void ToggleSkillBook();
+	void ToggleSkillSlotsCollapsed();
 
 	// Loop Ready UI
 	void SetLoopReadyVisible(bool bVisible);

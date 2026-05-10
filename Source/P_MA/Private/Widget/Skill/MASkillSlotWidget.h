@@ -15,6 +15,8 @@ class P_MA_API UMASkillSlotWidget : public UUserWidget
 
 public:
 	void InitializeSkillSlots(UMASkillManagerComponent* InSkillManager);
+	void ToggleRowsCollapsed();
+	void SetRowsCollapsed(bool bCollapsed);
 
 protected:
 	UPROPERTY(meta=(BindWidget))
@@ -28,4 +30,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;
+
+	bool bRowsCollapsed = false;
 };

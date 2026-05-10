@@ -11,6 +11,26 @@ void UMASkillSlotWidget::InitializeSkillSlots(UMASkillManagerComponent* InSkillM
 	RebuildSlotRows();
 }
 
+void UMASkillSlotWidget::ToggleRowsCollapsed()
+{
+	SetRowsCollapsed(!bRowsCollapsed);
+}
+
+void UMASkillSlotWidget::SetRowsCollapsed(bool bCollapsed)
+{
+	bRowsCollapsed = bCollapsed;
+
+	if (!SlotRowsBox) return;
+
+	for (UWidget* ChildWidget : SlotRowsBox->GetAllChildren())
+	{
+		if (UMASkillSlotRowWidget* RowWidget = Cast<UMASkillSlotRowWidget>(ChildWidget))
+		{
+			RowWidget->SetCollapsed(bRowsCollapsed);
+		}
+	}
+}
+
 void UMASkillSlotWidget::RebuildSlotRows()
 {
 	if (!SlotRowsBox) return;
@@ -29,5 +49,6 @@ void UMASkillSlotWidget::RebuildSlotRows()
 
 		SlotRowsBox->AddChild(RowWidget);
 		RowWidget->InitializeSlot(SkillManager, InputID);
+		RowWidget->SetCollapsed(bRowsCollapsed);
 	}
 }

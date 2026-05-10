@@ -11,6 +11,7 @@ class UMASkillManagerComponent;
 class UMASkillModuleSocketWidget;
 class AMAPlayerController;
 class UHorizontalBox;
+class UWidgetAnimation;
 
 UCLASS()
 class P_MA_API UMASkillSlotRowWidget : public UUserWidget
@@ -21,6 +22,7 @@ public:
 	void InitializeSlot(UMASkillManagerComponent* InSkillManager, EMAAbilityInputID InInputID);
 
 	void Refresh();
+	void SetCollapsed(bool bCollapsed);
 
 protected:
 	virtual void NativeDestruct() override;
@@ -34,6 +36,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TSubclassOf<UMASkillModuleSocketWidget> ModuleSocketWidgetClass;
 
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> RowCollapse;
+
 private:
 	void HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID);
 	void RefreshHotkeyText();
@@ -45,6 +50,8 @@ private:
 
 	UPROPERTY(Transient)
 	EMAAbilityInputID InputID = EMAAbilityInputID::None;
+
+	bool bIsCollapsed = false;
 
 	TWeakObjectPtr<AMAPlayerController> InputBindingsOwner;
 };

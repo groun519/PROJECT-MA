@@ -128,7 +128,15 @@ void UMAGameplayWidget::ToggleSkillBook()
                 PC->bShowMouseCursor = true;
             }
         }
-    }
+	}
+}
+
+void UMAGameplayWidget::ToggleSkillSlotsCollapsed()
+{
+	if (SkillSlotWidget)
+	{
+		SkillSlotWidget->ToggleRowsCollapsed();
+	}
 }
 
 void UMAGameplayWidget::SetLoopReadyVisible(bool bVisible)

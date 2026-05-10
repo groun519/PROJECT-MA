@@ -5,9 +5,9 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "Widget/MADescriptionTooltipWidget.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
+#include "Widget/Skill/MASkillTooltipWidget.h"
 
 const FName UMASkillModuleSocketWidget::HighlightAlphaParameterName(TEXT("HighlightAlpha"));
 const FName UMASkillModuleSocketWidget::IconScaleMultiplierParameterName(TEXT("IconScaleMultiplier"));
@@ -31,17 +31,43 @@ void UMASkillModuleSocketWidget::InitializeSocket(
 	RefreshTooltip();
 
 	const FMASkillDefinitionIconData* IconData = SkillDefinition ? &SkillDefinition->GetDisplayData().IconData : nullptr;
-	if (IconData && IconData->Icon)
+	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
-		if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
+		static const FName IconTextureParameterName(TEXT("IconTexture"));
+		static const FName SubIconTextureParameterName(TEXT("SubIconTexture"));
+		static const FName IconColorParameterName(TEXT("IconColor"));
+		static const FName InnerColorParameterName(TEXT("InnerColor"));
+		static const FName UseIconParameterName(TEXT("UseIcon"));
+		static const FName UseSubIconParameterName(TEXT("UseSubIcon"));
+
+		if (IconData && IconData->Icon)
 		{
-			static const FName IconTextureParameterName(TEXT("IconTexture"));
-			static const FName IconColorParameterName(TEXT("IconColor"));
-			static const FName InnerColorParameterName(TEXT("InnerColor"));
 			IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData->Icon);
-			IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData->IconColor);
-			IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData->InnerColor);
 		}
+		else
+		{
+			IconMaterial->SetTextureParameterValue(IconTextureParameterName, nullptr);
+		}
+		if (IconData && IconData->SubIcon)
+		{
+			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData->SubIcon);
+		}
+		else
+		{
+			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, nullptr);
+		}
+		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData ? IconData->IconColor : FLinearColor::White);
+		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
+		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData && IconData->Icon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, IconData && IconData->SubIcon ? 1.f : 0.f);
+	}
+	else if (IconData && IconData->Icon)
+	{
+		ModuleIconImage->SetBrushFromTexture(IconData->Icon);
+	}
+	else
+	{
+		ModuleIconImage->SetBrush(FSlateBrush());
 	}
 
 	ModuleIconImage->SetVisibility(ESlateVisibility::Visible);
@@ -184,15 +210,14 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	UMADescriptionTooltipWidget* TooltipWidget = CreateWidget<UMADescriptionTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
+	UMASkillTooltipWidget* TooltipWidget = CreateWidget<UMASkillTooltipWidget>(GetOwningPlayer(), TooltipWidgetClass);
 	if (!TooltipWidget)
 	{
 		SetToolTip(nullptr);
 		return;
 	}
 
-	const FMASkillDefinitionDisplayData& DisplayData = SkillDefinition->GetDisplayData();
-	TooltipWidget->SetDescription(DisplayData.DisplayName, DisplayData.Description);
+	TooltipWidget->SetSkillTooltip(SkillDefinition, FText());
 	SetToolTip(TooltipWidget);
 }
 
