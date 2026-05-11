@@ -4,8 +4,34 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "Widget/Settings/SettingsWidget.h"
 #include "Widget/System/SystemMenuWidget.h"
+
+AMAPlayerControllerBase::AMAPlayerControllerBase()
+{
+	CameraDirectorComponent = CreateDefaultSubobject<UMAPlayerCameraDirectorComponent>(TEXT("CameraDirectorComponent"));
+}
+
+void AMAPlayerControllerBase::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (CameraDirectorComponent)
+	{
+		CameraDirectorComponent->RefreshPawnCamera();
+	}
+}
+
+void AMAPlayerControllerBase::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+
+	if (CameraDirectorComponent)
+	{
+		CameraDirectorComponent->RefreshPawnCamera();
+	}
+}
 
 void AMAPlayerControllerBase::SetupInputComponent()
 {

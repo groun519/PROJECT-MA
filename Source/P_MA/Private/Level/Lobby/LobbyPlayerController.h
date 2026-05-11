@@ -64,7 +64,6 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void SetReady(bool bNewReady);
@@ -110,16 +109,12 @@ private:
 	void ExitLoadoutView();
 	void UpdateCameraTarget();
 	void ApplyCameraTransition(const FLoadoutCameraViewSettings& PrevViewSettings, const FLoadoutCameraViewSettings& NextViewSettings);
-	void ApplyFadeTransition(const FLoadoutCameraViewSettings& NextViewSettings);
-	void ApplyInterpTransition();
-	void ApplyInstantCameraTarget();
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
 	void ApplyPendingMountPreview();
 	void EnsurePendingLoadoutInitialized();
 	void CommitPendingLoadout();
 	void SetLocalSlotMountPreviewVisible(bool bVisible);
 	void SetLocalSlotWeaponPreviewVisible(bool bVisible);
-	void TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
@@ -131,8 +126,6 @@ private:
 	void ClientStartLoadingScreen();
 
 	FTimerHandle LobbyUiTimerHandle;
-	FTimerHandle CameraFadeTimerHandle;
-	FTimerHandle CameraFadeEndTimerHandle;
 	FTimerHandle WeaponPreviewTimerHandle;
 
 	/** Lobby Loadout Cam Views **/
@@ -163,9 +156,7 @@ private:
 	float TargetFov = 0.0f;
 	bool bInLoadoutView = false;
 	ELoadoutView CurrentLoadoutView = ELoadoutView::Body;
-	bool bUseCameraInterp = true;
 	FLoadoutCameraViewSettings ActiveViewSettings;
-	bool bIsCameraFading = false;
 
 	FLoadoutSelection PendingLoadout;
 	bool bHasPendingLoadout = false;

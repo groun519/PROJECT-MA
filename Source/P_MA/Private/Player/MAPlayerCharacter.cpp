@@ -20,7 +20,6 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
-#include "Player/Components/PlayerCameraManagerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/InteractComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -50,9 +49,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-
-	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
-	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
 
 	/** Controller Set **/
 	bUseControllerRotationYaw = false;

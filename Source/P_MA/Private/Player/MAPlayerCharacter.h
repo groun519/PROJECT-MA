@@ -12,12 +12,13 @@ class UInputMappingContext;
 class UNiagaraComponent;
 class UAnimMontage;
 class UInteractComponent;
+class UCameraComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
+class USpringArmComponent;
 class USkeletalMeshComponent;
 class AMAPlayerState;
-class UPlayerCameraManagerComponent;
 
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
@@ -69,6 +70,8 @@ public:
 	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
 	
 	/** Cam **/
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	UCameraComponent* GetPlayerCamera() const { return Cam; }
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 
 	/** Input **/
@@ -94,13 +97,10 @@ private:
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	class USpringArmComponent* CameraBoom;
+	USpringArmComponent* CameraBoom;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	class UCameraComponent* Cam;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	UPlayerCameraManagerComponent* PlayerCameraManagerComponent;
+	UCameraComponent* Cam;
 	
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;

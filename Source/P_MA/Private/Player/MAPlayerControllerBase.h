@@ -6,6 +6,7 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UMAPlayerCameraDirectorComponent;
 class USettingsWidget;
 class USystemMenuWidget;
 class UUserWidget;
@@ -18,7 +19,13 @@ class P_MA_API AMAPlayerControllerBase : public APlayerController
 	GENERATED_BODY()
 
 public:
+	AMAPlayerControllerBase();
+
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void SetupInputComponent() override;
+
+	UMAPlayerCameraDirectorComponent* GetCameraDirector() const { return CameraDirectorComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleSystemMenu();
@@ -41,6 +48,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SystemMenuToggleInputAction;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	TObjectPtr<UMAPlayerCameraDirectorComponent> CameraDirectorComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<USystemMenuWidget> SystemMenuWidgetClass;

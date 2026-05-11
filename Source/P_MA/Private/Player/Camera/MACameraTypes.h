@@ -1,0 +1,87 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "MACameraTypes.generated.h"
+
+class UCameraComponent;
+
+USTRUCT(BlueprintType)
+struct FMACameraViewTarget
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<AActor> CameraActor = nullptr;
+
+	UPROPERTY()
+	TObjectPtr<UCameraComponent> CameraComponent = nullptr;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	FTransform Transform;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float Fov = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FMACameraInterpMoveSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float CameraInterpSpeed = 5.f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float FovInterpSpeed = 5.f;
+};
+
+USTRUCT(BlueprintType)
+struct FMACameraFadeSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float FadeOutSeconds = 0.2f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float FadeInSeconds = 0.2f;
+};
+
+USTRUCT(BlueprintType)
+struct FMACameraTeleportSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	bool bUseFade = false;
+
+	UPROPERTY(EditAnywhere, Category="Camera", meta=(EditCondition="bUseFade", EditConditionHides))
+	FMACameraFadeSettings FadeSettings;
+};
+
+USTRUCT(BlueprintType)
+struct FMAPlayerCameraRigSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float TargetArmLength = 800.f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float BoomPitch = 0.f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	FVector TargetOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float TransitionDuration = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float TransitionEaseExponent = 2.0f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float BaseFOV = 90.f;
+
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float PulseFOVDelta = 0.f;
+};
