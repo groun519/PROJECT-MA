@@ -6,11 +6,13 @@
 #include "Widget/ShopWidget.h"
 #include "Widget/SkillBookWidget.h"
 #include "Widget/Skill/MASkillSlotWidget.h"
+#include "Widget/Skill/MASkillModuleInventoryWidget.h"
 #include "Widget/Loop/LoopReadyWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GameFramework/PlayerController.h"
 
 void UMAGameplayWidget::NativeConstruct()
@@ -36,6 +38,14 @@ void UMAGameplayWidget::NativeConstruct()
             {
                 SkillSlotWidget->InitializeSkillSlots(SkillManager);
             }
+        }
+    }
+
+    if (SkillModuleInventoryWidget)
+    {
+        if (APawn* OwningPawn = GetOwningPlayerPawn())
+        {
+            SkillModuleInventoryWidget->InitializeInventory(OwningPawn->FindComponentByClass<UMASkillModuleInventoryComponent>());
         }
     }
 }

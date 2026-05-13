@@ -4,6 +4,7 @@
 #include "Components/Image.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
@@ -13,24 +14,46 @@ const FName UMASkillModuleSocketWidget::HighlightAlphaParameterName(TEXT("Highli
 const FName UMASkillModuleSocketWidget::IconScaleMultiplierParameterName(TEXT("IconScaleMultiplier"));
 
 void UMASkillModuleSocketWidget::InitializeSocket(
-	UMASkillManagerComponent* InSkillManager,
-	EMAAbilityInputID InInputID,
-	int32 InModuleIndex,
-	UMASkillDefinition* InSkillDefinition)
+	UActorComponent* InSlotOwner,
+	const TArray<TObjectPtr<UMASkillDefinition>>* InSlotArray,
+	int32 InSlotIndex)
 {
-	SkillManager = InSkillManager;
-	InputID = InInputID;
-	ModuleIndex = InModuleIndex;
-	SkillDefinition = InSkillDefinition;
+	SlotOwner = InSlotOwner;
+	SlotArray = InSlotArray;
+	SlotIndex = InSlotIndex;
 
+	Refresh();
+}
+
+void UMASkillModuleSocketWidget::Refresh()
+{
 	if (!ModuleIconImage) return;
 
+	SetDraggedSourceVisual(false);
 	bIsHovered = false;
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();
-	RefreshTooltip();
 
-	const FMASkillDefinitionIconData* IconData = SkillDefinition ? &SkillDefinition->GetDisplayData().IconData : nullptr;
+	CachedDefinition = ResolveDefinition();
+	ApplyDefinitionVisual(CachedDefinition);
+	RefreshTooltip();
+}
+
+UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
+{
+	return IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
+}
+
+bool UMASkillModuleSocketWidget::IsValidSlot() const
+{
+	return SlotOwner.IsValid() && SlotArray && SlotArray->IsValidIndex(SlotIndex);
+}
+
+void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition* Definition)
+{
+	if (!ModuleIconImage) return;
+
+	const FMASkillDefinitionIconData* IconData = Definition ? &Definition->GetDisplayData().IconData : nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
 		static const FName IconTextureParameterName(TEXT("IconTexture"));
@@ -40,22 +63,8 @@ void UMASkillModuleSocketWidget::InitializeSocket(
 		static const FName UseIconParameterName(TEXT("UseIcon"));
 		static const FName UseSubIconParameterName(TEXT("UseSubIcon"));
 
-		if (IconData && IconData->Icon)
-		{
-			IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData->Icon);
-		}
-		else
-		{
-			IconMaterial->SetTextureParameterValue(IconTextureParameterName, nullptr);
-		}
-		if (IconData && IconData->SubIcon)
-		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData->SubIcon);
-		}
-		else
-		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, nullptr);
-		}
+		IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData ? IconData->Icon : nullptr);
+		IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData ? IconData->SubIcon : nullptr);
 		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData ? IconData->IconColor : FLinearColor::White);
 		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
 		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData && IconData->Icon ? 1.f : 0.f);
@@ -91,7 +100,7 @@ void UMASkillModuleSocketWidget::NativeOnMouseLeave(const FPointerEvent& InMouse
 
 FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (SkillDefinition && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	if (CachedDefinition && IsValidSlot() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -104,19 +113,21 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	if (!SkillDefinition || ModuleIndex == INDEX_NONE) return;
+	CachedDefinition = ResolveDefinition();
+	if (!CachedDefinition) return;
 
 	UMASkillModuleDragDropOperation* DragOperation = NewObject<UMASkillModuleDragDropOperation>();
 	if (!DragOperation) return;
 
-	DragOperation->SourceInputID = InputID;
-	DragOperation->SourceModuleIndex = ModuleIndex;
+	DragOperation->SourceOwner = SlotOwner;
+	DragOperation->SourceSlots = SlotArray;
+	DragOperation->SourceIndex = SlotIndex;
 	DragOperation->Pivot = EDragPivot::CenterCenter;
 	bIsHovered = false;
 	RefreshHoverVisual();
 	SetDraggedSourceVisual(true);
 
-	const FMASkillDefinitionIconData& IconData = SkillDefinition->GetDisplayData().IconData;
+	const FMASkillDefinitionIconData& IconData = CachedDefinition->GetDisplayData().IconData;
 	if (DragVisualWidgetClass && IconData.Icon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);
@@ -171,14 +182,13 @@ bool UMASkillModuleSocketWidget::NativeOnDrop(
 	SetDraggedSourceVisual(false);
 
 	UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(InOperation);
-	if (!SkillManager || !DragOperation) return false;
+	if (!DragOperation) return false;
 	if (IsSelfDragOperation(DragOperation)) return true;
 
-	return SkillManager->RequestSwapDefinitionSlotsBetween(
-		DragOperation->SourceInputID,
-		DragOperation->SourceModuleIndex,
-		InputID,
-		ModuleIndex);
+	return HandleDropFrom(
+		DragOperation->SourceOwner.Get(),
+		DragOperation->SourceSlots,
+		DragOperation->SourceIndex);
 }
 
 void UMASkillModuleSocketWidget::NativeDestruct()
@@ -204,7 +214,7 @@ void UMASkillModuleSocketWidget::RefreshHoverVisual()
 
 void UMASkillModuleSocketWidget::RefreshTooltip()
 {
-	if (!SkillDefinition || !TooltipWidgetClass)
+	if (!CachedDefinition || !TooltipWidgetClass)
 	{
 		SetToolTip(nullptr);
 		return;
@@ -217,7 +227,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(SkillDefinition, FText());
+	TooltipWidget->SetSkillTooltip(CachedDefinition, FText());
 	SetToolTip(TooltipWidget);
 }
 
@@ -226,10 +236,41 @@ void UMASkillModuleSocketWidget::SetDraggedSourceVisual(bool bDragged)
 	SetRenderOpacity(bDragged ? DraggedSourceRenderOpacity : 1.f);
 }
 
+bool UMASkillModuleSocketWidget::HandleDropFrom(
+	UActorComponent* SourceOwner,
+	const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+	int32 SourceIndex)
+{
+	if (!SourceOwner || !SourceSlots || SourceIndex == INDEX_NONE || !IsValidSlot()) return false;
+
+	if (UMASkillManagerComponent* SourceSkillManager = Cast<UMASkillManagerComponent>(SourceOwner))
+	{
+		return SourceSkillManager->RequestMoveDefinitionSlot(
+			SourceSlots,
+			SourceIndex,
+			SlotOwner.Get(),
+			SlotArray,
+			SlotIndex);
+	}
+
+	if (UMASkillModuleInventoryComponent* SourceInventory = Cast<UMASkillModuleInventoryComponent>(SourceOwner))
+	{
+		return SourceInventory->RequestMoveModuleSlot(
+			SourceSlots,
+			SourceIndex,
+			SlotOwner.Get(),
+			SlotArray,
+			SlotIndex);
+	}
+
+	return false;
+}
+
 bool UMASkillModuleSocketWidget::IsSelfDragOperation(const UDragDropOperation* Operation) const
 {
 	const UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(Operation);
 	return DragOperation
-		&& DragOperation->SourceInputID == InputID
-		&& DragOperation->SourceModuleIndex == ModuleIndex;
+		&& DragOperation->SourceOwner == SlotOwner
+		&& DragOperation->SourceSlots == SlotArray
+		&& DragOperation->SourceIndex == SlotIndex;
 }

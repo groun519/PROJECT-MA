@@ -2,12 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "MASkillModuleSocketWidget.generated.h"
 
+class UActorComponent;
 class UImage;
 class UMASkillDefinition;
-class UMASkillManagerComponent;
 class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
 
@@ -17,7 +16,11 @@ class P_MA_API UMASkillModuleSocketWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void InitializeSocket(UMASkillManagerComponent* InSkillManager, EMAAbilityInputID InInputID, int32 InModuleIndex, UMASkillDefinition* InSkillDefinition);
+	void InitializeSocket(
+		UActorComponent* InSlotOwner,
+		const TArray<TObjectPtr<UMASkillDefinition>>* InSlotArray,
+		int32 InSlotIndex);
+	void Refresh();
 
 protected:
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
@@ -47,22 +50,24 @@ private:
 	static const FName HighlightAlphaParameterName;
 	static const FName IconScaleMultiplierParameterName;
 
+	UMASkillDefinition* ResolveDefinition() const;
+	bool IsValidSlot() const;
+	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
 	void RefreshHoverVisual();
 	void RefreshTooltip();
 	void SetDraggedSourceVisual(bool bDragged);
+	bool HandleDropFrom(
+		UActorComponent* SourceOwner,
+		const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+		int32 SourceIndex);
 	bool IsSelfDragOperation(const UDragDropOperation* Operation) const;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;
+	TWeakObjectPtr<UActorComponent> SlotOwner;
+	const TArray<TObjectPtr<UMASkillDefinition>>* SlotArray = nullptr;
+	int32 SlotIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
-	EMAAbilityInputID InputID = EMAAbilityInputID::None;
-
-	UPROPERTY(Transient)
-	int32 ModuleIndex = INDEX_NONE;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> SkillDefinition = nullptr;
+	TObjectPtr<UMASkillDefinition> CachedDefinition = nullptr;
 
 	bool bIsHovered = false;
 	bool bIsDropTargetHighlighted = false;

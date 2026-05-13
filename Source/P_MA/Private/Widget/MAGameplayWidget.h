@@ -9,6 +9,7 @@ class UMAValueGauge;
 class ULoopReadyWidget;
 class UShopWidget; 
 class USkillBookWidget; 
+class UMASkillModuleInventoryWidget;
 class UMASkillSlotWidget;
 
 UCLASS()
@@ -63,6 +64,9 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UMASkillSlotWidget> SkillSlotWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillModuleInventoryWidget> SkillModuleInventoryWidget;
 	
 	bool bLoopReadyInitialized = false;
 

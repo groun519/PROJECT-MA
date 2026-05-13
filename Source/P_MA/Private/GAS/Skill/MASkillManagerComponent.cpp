@@ -5,6 +5,7 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 
 UMASkillManagerComponent::UMASkillManagerComponent()
@@ -56,13 +57,14 @@ void UMASkillManagerComponent::InitializeGrantedAbilities()
 	}
 }
 
-void UMASkillManagerComponent::SetDefinitions(EMAAbilityInputID InputID, const TArray<UMASkillDefinition*>& Definitions)
+void UMASkillManagerComponent::PrepareSkillSlotStacksForUI()
 {
-	if (!CanMutateSkillStacks()) return;
-
-	FMASkillDefinitionStack& SkillStack = FindOrAddStack(InputID);
-	CopyDefinitionSlots(SkillStack.SourceDefinitions, Definitions);
-	RebuildSkill(InputID);
+	const TArray<EMAAbilityInputID> InputIDs = GatherUniqueSkillSlotInputIDs();
+	SkillStacks.Reserve(InputIDs.Num());
+	for (const EMAAbilityInputID InputID : InputIDs)
+	{
+		FindOrAddStack(InputID);
+	}
 }
 
 bool UMASkillManagerComponent::AddDefinition(EMAAbilityInputID InputID, UMASkillDefinition* Definition)
@@ -83,19 +85,33 @@ bool UMASkillManagerComponent::AddDefinition(EMAAbilityInputID InputID, UMASkill
 	return RebuildSkill(InputID);
 }
 
-bool UMASkillManagerComponent::RemoveDefinitionAt(EMAAbilityInputID InputID, int32 RemoveIndex)
+bool UMASkillManagerComponent::ReplaceDefinitionAt(
+	EMAAbilityInputID InputID,
+	int32 DefinitionIndex,
+	UMASkillDefinition* NewDefinition,
+	UMASkillDefinition*& OutPreviousDefinition)
 {
+	OutPreviousDefinition = nullptr;
+
 	if (!CanMutateSkillStacks()) return false;
+	if (!IsConfiguredSkillSlotInputID(InputID)) return false;
+	if (!IsValidDefinitionSlotIndex(DefinitionIndex)) return false;
 
-	FMASkillDefinitionStack* SkillStack = FindStack(InputID);
-	if (!SkillStack) return false;
+	FMASkillDefinitionStack& SkillStack = FindOrAddStack(InputID);
+	NormalizeDefinitionSlots(SkillStack.SourceDefinitions);
 
-	NormalizeDefinitionSlots(SkillStack->SourceDefinitions);
-	if (!IsValidDefinitionSlotIndex(RemoveIndex)) return false;
-	if (!SkillStack->SourceDefinitions[RemoveIndex]) return true;
+	UMASkillDefinition* PreviousDefinition = SkillStack.SourceDefinitions[DefinitionIndex];
+	SkillStack.SourceDefinitions[DefinitionIndex] = NewDefinition;
 
-	SkillStack->SourceDefinitions[RemoveIndex] = nullptr;
-	return RebuildSkill(InputID);
+	if (!RebuildSkill(InputID))
+	{
+		SkillStack.SourceDefinitions[DefinitionIndex] = PreviousDefinition;
+		RebuildSkill(InputID);
+		return false;
+	}
+
+	OutPreviousDefinition = PreviousDefinition;
+	return true;
 }
 
 bool UMASkillManagerComponent::RequestSwapDefinitionSlotsBetween(
@@ -123,6 +139,39 @@ bool UMASkillManagerComponent::RequestSwapDefinitionSlotsBetween(
 	return true;
 }
 
+bool UMASkillManagerComponent::RequestMoveDefinitionSlot(
+	const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+	int32 SourceIndex,
+	UActorComponent* TargetOwner,
+	const TArray<TObjectPtr<UMASkillDefinition>>* TargetSlots,
+	int32 TargetIndex)
+{
+	EMAAbilityInputID SourceInputID = EMAAbilityInputID::None;
+	if (!FindInputIDForDefinitionSlots(SourceSlots, SourceInputID)) return false;
+	if (!SourceSlots->IsValidIndex(SourceIndex) || !(*SourceSlots)[SourceIndex]) return false;
+	if (!TargetOwner || !TargetSlots || TargetIndex == INDEX_NONE) return false;
+
+	if (UMASkillManagerComponent* TargetSkillManager = Cast<UMASkillManagerComponent>(TargetOwner))
+	{
+		if (TargetSkillManager != this) return false;
+
+		EMAAbilityInputID TargetInputID = EMAAbilityInputID::None;
+		if (!FindInputIDForDefinitionSlots(TargetSlots, TargetInputID)) return false;
+
+		return RequestSwapDefinitionSlotsBetween(SourceInputID, SourceIndex, TargetInputID, TargetIndex);
+	}
+
+	if (UMASkillModuleInventoryComponent* TargetInventory = Cast<UMASkillModuleInventoryComponent>(TargetOwner))
+	{
+		const TArray<TObjectPtr<UMASkillDefinition>>* InventorySlots = TargetInventory->GetModuleSlotsForUI();
+		if (TargetSlots != InventorySlots) return false;
+
+		return TargetInventory->RequestMoveSkillSlotToInventorySlot(SourceInputID, SourceIndex, TargetIndex);
+	}
+
+	return false;
+}
+
 bool UMASkillManagerComponent::SwapDefinitionSlotsBetween(
 	EMAAbilityInputID InputIDA,
 	int32 IndexA,
@@ -134,26 +183,41 @@ bool UMASkillManagerComponent::SwapDefinitionSlotsBetween(
 	if (!IsConfiguredSkillSlotInputID(InputIDA) || !IsConfiguredSkillSlotInputID(InputIDB)) return false;
 	if (InputIDA == InputIDB && IndexA == IndexB) return true;
 
-	FindOrAddStack(InputIDA);
-	FindOrAddStack(InputIDB);
+	FMASkillDefinitionStack& SkillStackA = FindOrAddStack(InputIDA);
+	FMASkillDefinitionStack& SkillStackB = FindOrAddStack(InputIDB);
 
-	FMASkillDefinitionStack* SkillStackA = FindStack(InputIDA);
-	FMASkillDefinitionStack* SkillStackB = FindStack(InputIDB);
-	if (!SkillStackA || !SkillStackB) return false;
+	NormalizeDefinitionSlots(SkillStackA.SourceDefinitions);
+	NormalizeDefinitionSlots(SkillStackB.SourceDefinitions);
 
-	NormalizeDefinitionSlots(SkillStackA->SourceDefinitions);
-	NormalizeDefinitionSlots(SkillStackB->SourceDefinitions);
-
-	Swap(SkillStackA->SourceDefinitions[IndexA], SkillStackB->SourceDefinitions[IndexB]);
+	TObjectPtr<UMASkillDefinition> PreviousDefinitionA = SkillStackA.SourceDefinitions[IndexA];
+	TObjectPtr<UMASkillDefinition> PreviousDefinitionB = SkillStackB.SourceDefinitions[IndexB];
+	Swap(SkillStackA.SourceDefinitions[IndexA], SkillStackB.SourceDefinitions[IndexB]);
 
 	if (InputIDA == InputIDB)
 	{
-		return RebuildSkill(InputIDA);
+		if (RebuildSkill(InputIDA))
+		{
+			return true;
+		}
+
+		SkillStackA.SourceDefinitions[IndexA] = PreviousDefinitionA;
+		SkillStackB.SourceDefinitions[IndexB] = PreviousDefinitionB;
+		RebuildSkill(InputIDA);
+		return false;
 	}
 
 	const bool bRebuiltA = RebuildSkill(InputIDA);
 	const bool bRebuiltB = RebuildSkill(InputIDB);
-	return bRebuiltA || bRebuiltB;
+	if (bRebuiltA && bRebuiltB)
+	{
+		return true;
+	}
+
+	SkillStackA.SourceDefinitions[IndexA] = PreviousDefinitionA;
+	SkillStackB.SourceDefinitions[IndexB] = PreviousDefinitionB;
+	RebuildSkill(InputIDA);
+	RebuildSkill(InputIDB);
+	return false;
 }
 
 void UMASkillManagerComponent::ServerSwapDefinitionSlotsBetween_Implementation(
@@ -165,21 +229,31 @@ void UMASkillManagerComponent::ServerSwapDefinitionSlotsBetween_Implementation(
 	SwapDefinitionSlotsBetween(InputIDA, IndexA, InputIDB, IndexB);
 }
 
-TArray<UMASkillDefinition*> UMASkillManagerComponent::GetDefinitions(EMAAbilityInputID InputID) const
+const TArray<TObjectPtr<UMASkillDefinition>>* UMASkillManagerComponent::GetDefinitionSlotsForUI(EMAAbilityInputID InputID)
 {
-	TArray<UMASkillDefinition*> Result;
+	if (!IsConfiguredSkillSlotInputID(InputID)) return nullptr;
 
-	const TArray<TObjectPtr<UMASkillDefinition>>* Definitions = FindSourceDefinitions(InputID);
-	if (!Definitions) return Result;
+	FMASkillDefinitionStack& SkillStack = FindOrAddStack(InputID);
+	NormalizeDefinitionSlots(SkillStack.SourceDefinitions);
+	return &SkillStack.SourceDefinitions;
+}
 
-	Result.SetNum(SkillModuleSlotCount);
-	const int32 CopyCount = FMath::Min(Definitions->Num(), SkillModuleSlotCount);
-	for (int32 Index = 0; Index < CopyCount; ++Index)
+bool UMASkillManagerComponent::FindInputIDForDefinitionSlots(
+	const TArray<TObjectPtr<UMASkillDefinition>>* DefinitionSlots,
+	EMAAbilityInputID& OutInputID) const
+{
+	OutInputID = EMAAbilityInputID::None;
+	if (!DefinitionSlots) return false;
+
+	for (const FMASkillDefinitionStack& SkillStack : SkillStacks)
 	{
-		Result[Index] = (*Definitions)[Index];
+		if (&SkillStack.SourceDefinitions != DefinitionSlots) continue;
+
+		OutInputID = SkillStack.InputID;
+		return OutInputID != EMAAbilityInputID::None;
 	}
 
-	return Result;
+	return false;
 }
 
 UMASkillDefinition* UMASkillManagerComponent::GetAssembledDefinition(EMAAbilityInputID InputID) const
@@ -249,6 +323,11 @@ FMASkillDefinitionStack& UMASkillManagerComponent::FindOrAddStack(EMAAbilityInpu
 		return *ExistingStack;
 	}
 
+	// UI socket widgets may keep direct pointers to SourceDefinitions arrays.
+	// Add all runtime stacks before binding UI, then mutate only array values while widgets are alive.
+	ensureMsgf(
+		!OnSkillSlotChanged.IsBound(),
+		TEXT("Do not add skill definition stacks while UI widgets may hold direct slot array pointers."));
 	FMASkillDefinitionStack& NewStack = SkillStacks.AddDefaulted_GetRef();
 	NewStack.InputID = InputID;
 	if (const FMASkillSlotStack* SkillSlotStack = FindSkillSlotStack(InputID))
@@ -278,23 +357,6 @@ const FMASkillSlotStack* UMASkillManagerComponent::FindSkillSlotStack(EMAAbility
 	});
 }
 
-const TArray<TObjectPtr<UMASkillDefinition>>* UMASkillManagerComponent::FindSourceDefinitions(EMAAbilityInputID InputID) const
-{
-	if (const FMASkillDefinitionStack* SkillStack = FindStack(InputID))
-	{
-		return &SkillStack->SourceDefinitions;
-	}
-
-	// TODO: Keep this only while SkillSlotStacks acts as an editor/test seed path.
-	// Runtime systems should seed SkillStacks explicitly, then reads can use SkillStacks only.
-	if (const FMASkillSlotStack* SkillSlotStack = FindSkillSlotStack(InputID))
-	{
-		return &SkillSlotStack->Definitions;
-	}
-
-	return nullptr;
-}
-
 bool UMASkillManagerComponent::IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const
 {
 	return InputID != EMAAbilityInputID::None && FindSkillSlotStack(InputID) != nullptr;
@@ -307,21 +369,13 @@ bool UMASkillManagerComponent::IsValidDefinitionSlotIndex(int32 Index)
 
 void UMASkillManagerComponent::NormalizeDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Definitions)
 {
-	Definitions.SetNum(SkillModuleSlotCount);
-}
-
-void UMASkillManagerComponent::CopyDefinitionSlots(
-	TArray<TObjectPtr<UMASkillDefinition>>& Target,
-	const TArray<UMASkillDefinition*>& Source)
-{
-	Target.Reset();
-	Target.SetNum(SkillModuleSlotCount);
-
-	const int32 CopyCount = FMath::Min(Source.Num(), SkillModuleSlotCount);
-	for (int32 Index = 0; Index < CopyCount; ++Index)
+	if (Definitions.Num() != 0 && Definitions.Num() != SkillModuleSlotCount)
 	{
-		Target[Index] = Source[Index];
+		ensureMsgf(
+			false,
+			TEXT("Do not resize skill definition slots while UI widgets may hold direct slot array pointers."));
 	}
+	Definitions.SetNum(SkillModuleSlotCount);
 }
 
 void UMASkillManagerComponent::CopyDefinitionSlots(

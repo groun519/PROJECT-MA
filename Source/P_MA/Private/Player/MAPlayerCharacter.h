@@ -16,6 +16,7 @@ class UCameraComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
+class UMASkillModuleInventoryComponent;
 class USpringArmComponent;
 class USkeletalMeshComponent;
 class AMAPlayerState;
@@ -77,6 +78,7 @@ public:
 	/** Input **/
 	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
+	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }
 	
 private:
 	/** Ready State Component **/
@@ -90,6 +92,9 @@ private:
 	/** Ready Check Widget **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	UReadyCheckWidgetComponent* ReadyCheckWidget;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
+	TObjectPtr<UMASkillModuleInventoryComponent> SkillModuleInventoryComponent;
 
 	/** Mount **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Mount")

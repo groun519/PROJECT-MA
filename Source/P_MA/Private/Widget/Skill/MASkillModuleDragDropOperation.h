@@ -2,8 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "MASkillModuleDragDropOperation.generated.h"
+
+class UActorComponent;
+class UMASkillDefinition;
 
 UCLASS()
 class P_MA_API UMASkillModuleDragDropOperation : public UDragDropOperation
@@ -11,9 +13,7 @@ class P_MA_API UMASkillModuleDragDropOperation : public UDragDropOperation
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(Transient)
-	EMAAbilityInputID SourceInputID = EMAAbilityInputID::None;
-
-	UPROPERTY(Transient)
-	int32 SourceModuleIndex = INDEX_NONE;
+	TWeakObjectPtr<UActorComponent> SourceOwner;
+	const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots = nullptr;
+	int32 SourceIndex = INDEX_NONE;
 };

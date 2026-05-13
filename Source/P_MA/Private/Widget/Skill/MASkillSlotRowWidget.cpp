@@ -53,9 +53,9 @@ void UMASkillSlotRowWidget::NativeDestruct()
 
 void UMASkillSlotRowWidget::Refresh()
 {
-	const TArray<UMASkillDefinition*> Definitions = SkillManager
-		? SkillManager->GetDefinitions(InputID)
-		: TArray<UMASkillDefinition*>();
+	const TArray<TObjectPtr<UMASkillDefinition>>* Definitions = SkillManager
+		? SkillManager->GetDefinitionSlotsForUI(InputID)
+		: nullptr;
 
 	if (SkillIconWidget)
 	{
@@ -102,19 +102,19 @@ void UMASkillSlotRowWidget::RefreshHotkeyText()
 	SkillIconWidget->SetHotkeyText(FMAInputStatics::GetGameplayAbilityInputText(PlayerController, PlayerCharacter, InputID));
 }
 
-void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<UMASkillDefinition*>& InSkillDefinitions)
+void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillDefinition>>* InSkillDefinitions)
 {
 	if (!ModuleSocketBox) return;
 
 	ModuleSocketBox->ClearChildren();
-	if (!ModuleSocketWidgetClass) return;
+	if (!ModuleSocketWidgetClass || !SkillManager || !InSkillDefinitions) return;
 
-	for (int32 Index = 0; Index < InSkillDefinitions.Num(); ++Index)
+	for (int32 Index = 0; Index < InSkillDefinitions->Num(); ++Index)
 	{
 		UMASkillModuleSocketWidget* SocketWidget = CreateWidget<UMASkillModuleSocketWidget>(this, ModuleSocketWidgetClass);
 		if (!SocketWidget) continue;
 
-		SocketWidget->InitializeSocket(SkillManager, InputID, Index, InSkillDefinitions[Index]);
+		SocketWidget->InitializeSocket(SkillManager, InSkillDefinitions, Index);
 		ModuleSocketBox->AddChildToHorizontalBox(SocketWidget);
 	}
 }

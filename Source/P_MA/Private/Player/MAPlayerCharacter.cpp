@@ -12,6 +12,7 @@
 #include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "Inventory/SkillBookComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
@@ -65,6 +66,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
+	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
 
 	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 
@@ -542,7 +544,7 @@ void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 	if (!NewComp || CurrentInteractComp == NewComp) return;
 
 	if (CurrentInteractComp.IsValid())
-		CurrentInteractComp->SetActive(false);
+		CurrentInteractComp->SetInteractActive(false);
 	
 	CurrentInteractComp = NewComp;
 }
@@ -551,7 +553,7 @@ void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 {
 	if (CurrentInteractComp.Get() != Comp) return;
 
-	if (Comp) Comp->SetActive(false);
+	if (Comp) Comp->SetInteractActive(false);
 	CurrentInteractComp = nullptr;
 }
 

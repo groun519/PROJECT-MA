@@ -43,7 +43,7 @@ private:
 	void HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID);
 	void RefreshHotkeyText();
 
-	void RebuildModuleSockets(const TArray<UMASkillDefinition*>& InSkillDefinitions);
+	void RebuildModuleSockets(const TArray<TObjectPtr<UMASkillDefinition>>* InSkillDefinitions);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;

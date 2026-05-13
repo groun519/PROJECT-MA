@@ -51,23 +51,32 @@ public:
 	UMASkillManagerComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void InitializeGrantedAbilities();
+	void PrepareSkillSlotStacksForUI();
 
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
-	void SetDefinitions(EMAAbilityInputID InputID, const TArray<UMASkillDefinition*>& Definitions);
-
 	bool AddDefinition(EMAAbilityInputID InputID, UMASkillDefinition* Definition);
 
-	// TODO: Wire this when module inventory/removal UI exists.
-	bool RemoveDefinitionAt(EMAAbilityInputID InputID, int32 RemoveIndex);
+	bool ReplaceDefinitionAt(
+		EMAAbilityInputID InputID,
+		int32 DefinitionIndex,
+		UMASkillDefinition* NewDefinition,
+		UMASkillDefinition*& OutPreviousDefinition);
 
 	bool RequestSwapDefinitionSlotsBetween(
 		EMAAbilityInputID InputIDA,
 		int32 IndexA,
 		EMAAbilityInputID InputIDB,
 		int32 IndexB);
+	bool RequestMoveDefinitionSlot(
+		const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+		int32 SourceIndex,
+		UActorComponent* TargetOwner,
+		const TArray<TObjectPtr<UMASkillDefinition>>* TargetSlots,
+		int32 TargetIndex);
 
-	TArray<UMASkillDefinition*> GetDefinitions(EMAAbilityInputID InputID) const;
+	const TArray<TObjectPtr<UMASkillDefinition>>* GetDefinitionSlotsForUI(EMAAbilityInputID InputID);
+	bool FindInputIDForDefinitionSlots(const TArray<TObjectPtr<UMASkillDefinition>>* DefinitionSlots, EMAAbilityInputID& OutInputID) const;
 
 	TArray<EMAAbilityInputID> GetSkillSlotInputIDs() const
 	{
@@ -89,11 +98,9 @@ private:
 	FMASkillDefinitionStack& FindOrAddStack(EMAAbilityInputID InputID);
 	FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID);
 	const FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID) const;
-	const TArray<TObjectPtr<UMASkillDefinition>>* FindSourceDefinitions(EMAAbilityInputID InputID) const;
 	bool IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const;
 	static bool IsValidDefinitionSlotIndex(int32 Index);
 	static void NormalizeDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
-	static void CopyDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Target, const TArray<UMASkillDefinition*>& Source);
 	static void CopyDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Target, const TArray<TObjectPtr<UMASkillDefinition>>& Source);
 	static bool HasAnyDefinition(const TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
 	TArray<EMAAbilityInputID> GatherUniqueSkillSlotInputIDs() const;
