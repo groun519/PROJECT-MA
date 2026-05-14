@@ -76,6 +76,7 @@ public:
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 
 	/** Input **/
+	UInputAction* GetInteractInputAction() const { return InteractInputAction; }
 	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
 	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }

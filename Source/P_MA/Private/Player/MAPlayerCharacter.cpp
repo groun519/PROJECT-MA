@@ -1,4 +1,4 @@
-#include "MAPlayerCharacter.h"
+﻿#include "MAPlayerCharacter.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -544,7 +544,7 @@ void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
 	if (!NewComp || CurrentInteractComp == NewComp) return;
 
 	if (CurrentInteractComp.IsValid())
-		CurrentInteractComp->SetInteractActive(false);
+		CurrentInteractComp->SetInteractFocused(this, false);
 	
 	CurrentInteractComp = NewComp;
 }
@@ -553,7 +553,7 @@ void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
 {
 	if (CurrentInteractComp.Get() != Comp) return;
 
-	if (Comp) Comp->SetInteractActive(false);
+	if (Comp) Comp->SetInteractFocused(this, false);
 	CurrentInteractComp = nullptr;
 }
 
@@ -786,4 +786,3 @@ void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
-

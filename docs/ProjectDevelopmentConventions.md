@@ -7,6 +7,11 @@ This document records project-specific development preferences that should guide
 - Prefer direct, necessary abstractions over thin wrappers.
 - Remove wrappers that only forward calls without adding meaning, validation, or ownership.
 - Prefer explicit ownership and responsibility boundaries over broad utility dumping grounds.
+- Prefer intent-revealing call sites. A reader should understand the operation from the call itself, e.g. `SetHighlighted(MeshComponent, bActive)`.
+- Avoid registration/cache-style APIs when the caller can pass the actual target directly. Do not add `AddTarget()`-style setup unless persistent ownership or reuse genuinely needs it.
+- Do not add future-proof product types, branches, wrappers, or data fields before the corresponding feature is implemented end-to-end.
+- Abstractions are welcome when they make the usage site read like the domain action and hide C++ syntax noise. For example, an interaction setup helper/macro can be preferable to exposing member-function pointer syntax at every call site.
+- Avoid abstractions that hide responsibility or make the flow harder to trace. Prefer abstractions that make correct usage obvious without requiring the caller to understand the internal plumbing.
 - Keep tags pure. Do not encode runtime identity into gameplay tags.
 - Prefer receiving-side disambiguation when event senders must remain semantically pure.
 - Avoid namespace-based helper bags for gameplay systems. Prefer focused static classes when a stateless helper type is needed.
@@ -17,6 +22,9 @@ This document records project-specific development preferences that should guide
 - Prefer required `BindWidget` over `BindWidgetOptional`.
 - Use `BindWidgetOptional` only for decorative, debug-only, or genuinely optional UI elements.
 - Core functional widgets should fail loudly if missing from a Widget Blueprint.
+- Do not add null guards for required widget bindings just to fail silently. Missing required widgets should be found during editor/test iteration.
+- Do not add redundant `check()` calls for required `BindWidget` fields just to revalidate the binding. The required binding itself is the contract.
+- Required widget classes, owner references, and initialization inputs should not be hidden behind quiet runtime returns unless the value is genuinely optional.
 - Buttons, panels, primary images, and labels required for behavior should be required bindings.
 - The goal is to catch missing widget bindings in the editor or compile flow instead of silently degrading at runtime.
 
@@ -73,3 +81,14 @@ Examples of optional bindings:
 - Prefer inline definitions in headers for trivial one-line getters.
 - Keep runtime behavior APIs in C++ unless Blueprint graph usage is explicitly intended.
 - Blueprint asset fields are still valid for data entry, widget binding, class assignment, material assignment, and editor-authored defaults.
+- Prefer passing the concrete runtime target to compact utility functions instead of storing hidden setup state when that makes the call site clearer.
+- Use default parameters for common defaults when they remove noise without hiding meaning.
+- If a small reusable component is needed, keep its API narrow and explicit. For example, a highlight component should apply/restore highlight state, while callers decide which primitive component and stencil value to use.
+
+## Encoding
+
+- C++ source and header files should use `UTF-8 with BOM`.
+- Markdown and other documentation files should use `UTF-8`.
+- Korean comments are allowed, but they must remain valid UTF-8 text. Do not leave mojibake or partially broken Korean comments in code.
+- If an encoding conversion is needed, prefer doing it separately from gameplay/code logic changes so review noise stays low.
+- When a Korean code comment is already broken, rewrite it in normal Korean or replace it with a concise English comment instead of preserving the broken text.

@@ -1,11 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 
 class APlayerController;
-class AMAPlayerCharacter;
 class UEnhancedInputUserSettings;
+class UInputAction;
 class UInputMappingContext;
 struct FKey;
 
@@ -13,10 +12,10 @@ class P_MA_API FMAInputStatics
 {
 public:
 	static void RegisterInputMappingContextDefaults(const APlayerController* PlayerController, const UInputMappingContext* MappingContext);
-	static FText GetGameplayAbilityInputText(const APlayerController* PlayerController, const AMAPlayerCharacter* PlayerCharacter, EMAAbilityInputID InputID);
+	static FText GetInputActionText(const APlayerController* PlayerController, const UInputMappingContext* MappingContext, const UInputAction* InputAction);
 	static FText GetKeyDisplayText(const FKey& Key);
 
 private:
-	static FName GetGameplayAbilityMappingName(const AMAPlayerCharacter* PlayerCharacter, EMAAbilityInputID InputID);
+	static FName GetInputActionMappingName(const UInputMappingContext* MappingContext, const UInputAction* InputAction);
 	static UEnhancedInputUserSettings* GetInputUserSettings(const APlayerController* PlayerController);
 };

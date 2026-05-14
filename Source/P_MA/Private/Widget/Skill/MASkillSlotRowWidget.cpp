@@ -99,7 +99,10 @@ void UMASkillSlotRowWidget::RefreshHotkeyText()
 		? Cast<AMAPlayerCharacter>(PlayerController->GetPawn())
 		: Cast<AMAPlayerCharacter>(GetOwningPlayerPawn());
 
-	SkillIconWidget->SetHotkeyText(FMAInputStatics::GetGameplayAbilityInputText(PlayerController, PlayerCharacter, InputID));
+	SkillIconWidget->SetHotkeyText(FMAInputStatics::GetInputActionText(
+		PlayerController,
+		PlayerCharacter ? PlayerCharacter->GetGameplayInputMappingContext() : nullptr,
+		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(InputID) : nullptr));
 }
 
 void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillDefinition>>* InSkillDefinitions)

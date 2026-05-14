@@ -5,7 +5,6 @@
 #include "InputAction.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
-#include "Player/MAPlayerCharacter.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 
 void FMAInputStatics::RegisterInputMappingContextDefaults(const APlayerController* PlayerController, const UInputMappingContext* MappingContext)
@@ -18,21 +17,35 @@ void FMAInputStatics::RegisterInputMappingContextDefaults(const APlayerControlle
 	}
 }
 
-FText FMAInputStatics::GetGameplayAbilityInputText(
+FText FMAInputStatics::GetInputActionText(
 	const APlayerController* PlayerController,
-	const AMAPlayerCharacter* PlayerCharacter,
-	EMAAbilityInputID InputID)
+	const UInputMappingContext* MappingContext,
+	const UInputAction* InputAction)
 {
-	if (!PlayerController || !PlayerCharacter) return FText::GetEmpty();
+	if (!ensureMsgf(PlayerController && MappingContext && InputAction,
+		TEXT("GetInputActionText requires PlayerController, MappingContext, and InputAction.")))
+	{
+		return FText::GetEmpty();
+	}
 
 	UEnhancedInputUserSettings* UserSettings = GetInputUserSettings(PlayerController);
-	if (!UserSettings) return FText::GetEmpty();
+	if (!ensureMsgf(UserSettings, TEXT("Input user settings are not available for '%s'."), *GetNameSafe(PlayerController)))
+	{
+		return FText::GetEmpty();
+	}
 
-	const FName MappingName = GetGameplayAbilityMappingName(PlayerCharacter, InputID);
-	if (MappingName.IsNone()) return FText::GetEmpty();
+	const FName MappingName = GetInputActionMappingName(MappingContext, InputAction);
+	if (!ensureMsgf(!MappingName.IsNone(), TEXT("InputAction '%s' is not player-mappable in MappingContext '%s'."),
+		*GetNameSafe(InputAction), *GetNameSafe(MappingContext)))
+	{
+		return FText::GetEmpty();
+	}
 
 	const FPlayerKeyMapping* CurrentMapping = UserSettings->FindCurrentMappingForSlot(MappingName, EPlayerMappableKeySlot::First);
-	if (!CurrentMapping) return FText::GetEmpty();
+	if (!ensureMsgf(CurrentMapping, TEXT("No current key mapping found for '%s'."), *MappingName.ToString()))
+	{
+		return FText::GetEmpty();
+	}
 
 	const FKey Key = CurrentMapping->GetCurrentKey();
 	return Key.IsValid() ? GetKeyDisplayText(Key) : FText::GetEmpty();
@@ -50,15 +63,9 @@ FText FMAInputStatics::GetKeyDisplayText(const FKey& Key)
 	return Key.GetDisplayName(false);
 }
 
-FName FMAInputStatics::GetGameplayAbilityMappingName(const AMAPlayerCharacter* PlayerCharacter, EMAAbilityInputID InputID)
+FName FMAInputStatics::GetInputActionMappingName(const UInputMappingContext* MappingContext, const UInputAction* InputAction)
 {
-	if (!PlayerCharacter) return NAME_None;
-
-	const UInputAction* InputAction = PlayerCharacter->GetGameplayAbilityInputAction(InputID);
-	if (!InputAction) return NAME_None;
-
-	const UInputMappingContext* MappingContext = PlayerCharacter->GetGameplayInputMappingContext();
-	if (!MappingContext) return NAME_None;
+	if (!MappingContext || !InputAction) return NAME_None;
 
 	for (const FEnhancedActionKeyMapping& Mapping : MappingContext->GetMappings())
 	{
