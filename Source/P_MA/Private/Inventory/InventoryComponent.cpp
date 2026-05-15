@@ -2,11 +2,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "Inventory/SkillBookComponent.h" 
-#include "Player/MAPlayerCharacter.h"
 #include "GAS/MAPlayerAttributeSet.h"
-#include "GAS/Ability/MAGameplayAbility_Skill.h"
-#include "GAS/Modules/MASkillModuleData.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -25,11 +21,6 @@ void UInventoryComponent::TryPurchaseItem(FName ItemRowName, UDataTable* SourceT
 {
 	if (!OwnerAbilitySystemComponent) return;
 	Server_PurchaseItem(ItemRowName, SourceTable);
-}
-
-void UInventoryComponent::TryPurchaseSkill(FName SkillRowName, UDataTable* SourceTable)
-{
-	Server_PurchaseSkill(SkillRowName, SourceTable);
 }
 
 void UInventoryComponent::TryActivateItem(const FInventoryItemHandle& ItemHandle)
@@ -100,11 +91,6 @@ UInventoryItem* UInventoryComponent::GetAvaliableStackFor(FName ItemRowName, UDa
 	}
 	return nullptr;
 }
-
-/*
-bool UInventoryComponent::FoundIngredientForItem(...) { ... }
-UInventoryItem* UInventoryComponent::TryGetItemForShopItem(...) { ... }
-*/
 
 void UInventoryComponent::TryActivateItemInSlot(int SlotNumber)
 {
@@ -266,25 +252,3 @@ void UInventoryComponent::Server_PurchaseItem_Implementation(FName ItemRowName, 
 	GrantItem(ItemRowName, SourceTable);
 }
 bool UInventoryComponent::Server_PurchaseItem_Validate(FName ItemRowName, UDataTable* SourceTable) { return true; }
-
-void UInventoryComponent::Server_PurchaseSkill_Implementation(FName SkillRowName, UDataTable* SourceTable)
-{
-	if (!SourceTable) return;
-	const FSkillData* SkillData = SourceTable->FindRow<FSkillData>(SkillRowName, TEXT("PurchaseSkill"));
-	if (!SkillData || !SkillData->GrantedAbility) return;
-	
-	if (GetGold() < SkillData->Price) return;
-
-	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
-	if (OwnerCharacter)
-	{
-		if (USkillBookComponent* SkillBook = OwnerCharacter->GetSkillBookComponent())
-		{
-			if (SkillBook->HasSkill(SkillData->GrantedAbility)) return;
-			
-			OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetGoldAttribute(), EGameplayModOp::Additive, -SkillData->Price);
-			SkillBook->UnlockSkill(SkillData->GrantedAbility);
-		}
-	}
-}
-bool UInventoryComponent::Server_PurchaseSkill_Validate(FName SkillRowName, UDataTable* SourceTable) { return true; }

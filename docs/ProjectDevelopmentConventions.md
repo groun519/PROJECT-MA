@@ -27,6 +27,9 @@ This document records project-specific development preferences that should guide
 - Required widget classes, owner references, and initialization inputs should not be hidden behind quiet runtime returns unless the value is genuinely optional.
 - Buttons, panels, primary images, and labels required for behavior should be required bindings.
 - The goal is to catch missing widget bindings in the editor or compile flow instead of silently degrading at runtime.
+- Widgets should own presentation-specific behavior such as displayed text, visual refresh, and binding-change reactions.
+- Gameplay components should pass minimal source data to widgets, not format UI text or subscribe to UI refresh events on behalf of the widget.
+- Prefer intent-revealing widget APIs such as `SetInputAction(...)` and `ClearInputAction()` over null-argument sentinel calls.
 
 Examples of required bindings:
 
@@ -62,6 +65,20 @@ Examples of optional bindings:
 - Damage resolution and damage application should stay separated.
 - Gameplay cues that are target hit feedback belong in damage hit config, not animation notify trace data.
 - DoT damage should re-evaluate per tick rather than pre-roll one fixed final damage.
+
+## State Ownership
+
+- Do not preserve or restore state unless this system is explicitly borrowing state owned by another active system.
+- If a component owns a visual state, model it as direct ownership rather than borrowed state.
+- Prefer simple setters/toggles for owned visual state instead of backup structs, maps, or previous-state caches.
+- Add lifecycle APIs such as `AddTarget()` and `RemoveTarget()` only when persistent ownership or reuse genuinely needs them.
+- Add restoration caches only when a real conflict exists with another system that owns the same state.
+
+Example:
+
+- A highlight component that owns highlighting should directly toggle `RenderCustomDepth`.
+- It should not store previous `RenderCustomDepth` or stencil values unless another active feature needs those values restored.
+
 ## Git Workflow
 
 - The user owns commits. Codex should not run `git commit` unless the user gives an explicit direct command to commit.

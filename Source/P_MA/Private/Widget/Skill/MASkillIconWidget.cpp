@@ -21,6 +21,7 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 	const FMASkillDefinitionIconData IconData = SkillDefinition
 		? SkillDefinition->GetDisplayData().IconData
 		: FMASkillDefinitionIconData();
+	UTexture2D* AssembledSubIcon = SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr;
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
 	{
@@ -39,9 +40,9 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 		{
 			IconMaterial->SetTextureParameterValue(IconTextureParameterName, nullptr);
 		}
-		if (IconData.SubIcon)
+		if (AssembledSubIcon)
 		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData.SubIcon);
+			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, AssembledSubIcon);
 		}
 		else
 		{
@@ -50,7 +51,7 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData.InnerColor);
 		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData.Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, IconData.SubIcon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, AssembledSubIcon ? 1.f : 0.f);
 	}
 	else if (IconData.Icon)
 	{

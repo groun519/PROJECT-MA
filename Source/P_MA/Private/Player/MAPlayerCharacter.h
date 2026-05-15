@@ -4,7 +4,6 @@
 #include "Character/MACharacter.h"
 #include "InputActionValue.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "Inventory/SkillBookComponent.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -220,10 +219,6 @@ public:
 	/** Inventory **/
 	class UInventoryComponent* InventoryComponent;
 
-	/** SkillBook **/
-	UPROPERTY(VisibleAnywhere, Category = "Skill")
-	USkillBookComponent* SkillBookComponent;
 	TSet<EMAAbilityInputID> HeldAbilityInputIDs;
-	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 };

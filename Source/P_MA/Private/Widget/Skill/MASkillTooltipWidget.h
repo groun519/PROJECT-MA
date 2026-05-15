@@ -6,6 +6,7 @@
 
 class UImage;
 class UTextBlock;
+class UTexture2D;
 class UMASkillDefinition;
 struct FMASkillDefinitionIconData;
 
@@ -28,6 +29,6 @@ protected:
 	TObjectPtr<UImage> CooldownIconImage;
 
 private:
-	void SetIconData(const FMASkillDefinitionIconData& IconData);
+	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon);
 	void SetCooldownText(const FText& InCooldownText);
 };

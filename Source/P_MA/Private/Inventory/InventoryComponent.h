@@ -3,8 +3,6 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Inventory/InventoryItem.h"
-#include "Widget/MAAbilityGauge.h"
-#include "Inventory/MAItemTypes.h" // [필수] 구조체 정의 포함
 #include "InventoryComponent.generated.h"
 
 class UAbilitySystemComponent;
@@ -33,8 +31,6 @@ public:
 	
 	void TryPurchaseItem(FName ItemRowName, UDataTable* SourceTable);
 	
-	void TryPurchaseSkill(FName SkillRowName, UDataTable* SourceTable);
-
 	float GetGold() const;
 	FORCEINLINE int GetCapacity() const { return Capacity; }
 
@@ -51,8 +47,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	
-	UFUNCTION(Server, Reliable, WithValidation) 
-	void Server_PurchaseSkill(FName SkillRowName, UDataTable* SourceTable);
 
 private:	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")

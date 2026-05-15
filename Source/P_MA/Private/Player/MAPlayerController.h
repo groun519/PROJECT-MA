@@ -104,19 +104,7 @@ private:
 	UInputMappingContext* UIInputMapping;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* ShopToggleInputAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* SkillBookToggleInputAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SkillSlotToggleInputAction;
-
-	UFUNCTION()
-	void ToggleShop();
-	
-	UFUNCTION()
-	void ToggleSkillBook();
 
 	void ToggleSkillSlots();
 };

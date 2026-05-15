@@ -64,11 +64,11 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 		static const FName UseSubIconParameterName(TEXT("UseSubIcon"));
 
 		IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData ? IconData->Icon : nullptr);
-		IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData ? IconData->SubIcon : nullptr);
+		IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, nullptr);
 		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData ? IconData->IconColor : FLinearColor::White);
 		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
 		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData && IconData->Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, IconData && IconData->SubIcon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, 0.f);
 	}
 	else if (IconData && IconData->Icon)
 	{

@@ -4,7 +4,6 @@
 #include "EnhancedInputComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
-#include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
 #include "Inventory/InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -127,7 +126,6 @@ void AMAPlayerController::SpawnGameplayWidget()
 	if (GameplayWidget)
 	{
 		GameplayWidget->AddToViewport();
-		GameplayWidget->ConfigureAbilities(MAPlayerCharacter->GetAbilities());
 		if (bHasPendingLoopReadyVisibility)
 		{
 			GameplayWidget->SetLoopReadyVisible(bPendingLoopReadyVisible);
@@ -149,8 +147,6 @@ void AMAPlayerController::SetupInputComponent()
 	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComp)
 	{
-		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
-		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
 		EnhancedInputComp->BindAction(SkillSlotToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillSlots);
 	}
 }
@@ -160,22 +156,14 @@ void AMAPlayerController::NotifyInputBindingsChanged()
 	OnInputBindingsChanged.Broadcast();
 }
 
-void AMAPlayerController::ToggleShop()
-{	
-	if(GameplayWidget)
 	{
-		GameplayWidget->ToggleShop();
 	}
 }
 
-void AMAPlayerController::ToggleSkillBook()
 {
-	if (!GameplayWidget)
 	{
 		return;
 	}
-	
-	GameplayWidget->ToggleSkillBook();
 }
 
 void AMAPlayerController::ToggleSkillSlots()

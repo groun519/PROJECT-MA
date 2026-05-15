@@ -13,7 +13,6 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
-#include "Inventory/SkillBookComponent.h"
 #include "Inventory/InventoryComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
@@ -67,8 +66,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
-
-	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
 
 	/** Create SKCs **/
 	// Create and Attach Weapon

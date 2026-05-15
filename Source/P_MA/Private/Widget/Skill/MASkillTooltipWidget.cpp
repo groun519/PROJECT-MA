@@ -12,11 +12,11 @@ void UMASkillTooltipWidget::SetSkillTooltip(const UMASkillDefinition* SkillDefin
 		: FMASkillDefinitionDisplayData();
 
 	SetDescription(DisplayData.DisplayName, DisplayData.Description);
-	SetIconData(DisplayData.IconData);
+	SetIconData(DisplayData.IconData, SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr);
 	SetCooldownText(InCooldownText);
 }
 
-void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData)
+void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon)
 {
 	if (!SkillIconImage) return;
 
@@ -37,9 +37,9 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 		{
 			IconMaterial->SetTextureParameterValue(IconTextureParameterName, nullptr);
 		}
-		if (IconData.SubIcon)
+		if (AssembledSubIcon)
 		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, IconData.SubIcon);
+			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, AssembledSubIcon);
 		}
 		else
 		{
@@ -48,7 +48,7 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData.InnerColor);
 		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData.Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, IconData.SubIcon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, AssembledSubIcon ? 1.f : 0.f);
 	}
 	else if (IconData.Icon)
 	{
@@ -59,7 +59,7 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 		SkillIconImage->SetBrush(FSlateBrush());
 	}
 
-	SkillIconImage->SetVisibility(IconData.Icon || IconData.SubIcon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	SkillIconImage->SetVisibility(IconData.Icon || AssembledSubIcon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 void UMASkillTooltipWidget::SetCooldownText(const FText& InCooldownText)

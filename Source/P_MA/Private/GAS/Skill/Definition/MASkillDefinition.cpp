@@ -15,6 +15,7 @@ FGameplayTag GetDefaultElementalTag()
 void UMASkillDefinition::ResetAssemblyData()
 {
 	DisplayData = FMASkillDefinitionDisplayData();
+	AssembledSubIcon = nullptr;
 	ElementalTag = FGameplayTag();
 	SkillSteps.Reset();
 	EventSources.Reset();

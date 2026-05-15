@@ -23,9 +23,6 @@ struct FMASkillDefinitionIconData
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
-	TObjectPtr<UTexture2D> SubIcon = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
 	FLinearColor IconColor = FLinearColor::White;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
@@ -72,6 +69,7 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 
 public:
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
+	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
@@ -94,6 +92,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(AllowPrivateAccess="true"))
 	FMASkillDefinitionDisplayData DisplayData;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTexture2D> AssembledSubIcon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;

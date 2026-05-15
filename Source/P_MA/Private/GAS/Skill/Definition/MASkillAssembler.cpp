@@ -34,7 +34,7 @@ UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TOb
 			}
 			else if (PriorityOneIconCount == 1)
 			{
-				AssembledDefinition->DisplayData.IconData.SubIcon = IconData.Icon;
+				AssembledDefinition->AssembledSubIcon = IconData.Icon;
 			}
 			++PriorityOneIconCount;
 		}
