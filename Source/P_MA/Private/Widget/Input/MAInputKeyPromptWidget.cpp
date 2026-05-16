@@ -3,21 +3,22 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/PlayerController.h"
 #include "Input/MAInputStatics.h"
+#include "InputMappingContext.h"
 #include "Player/MAPlayerController.h"
 
 void UMAInputKeyPromptWidget::NativeDestruct()
 {
-	ClearInputAction();
+	ClearInputContext();
 	Super::NativeDestruct();
 }
 
-void UMAInputKeyPromptWidget::SetInputAction(APlayerController* PlayerController, UInputMappingContext* MappingContext, UInputAction* InputAction)
+void UMAInputKeyPromptWidget::SetInputContext(APlayerController* PlayerController, UInputMappingContext* MappingContext)
 {
+	check(InputAction);
 	UnbindInputBindingChanges();
 
 	InputOwner = PlayerController;
 	InputMappingContext = MappingContext;
-	BoundInputAction = InputAction;
 
 	if (AMAPlayerController* Player = Cast<AMAPlayerController>(PlayerController))
 	{
@@ -27,13 +28,12 @@ void UMAInputKeyPromptWidget::SetInputAction(APlayerController* PlayerController
 	RefreshKeyText();
 }
 
-void UMAInputKeyPromptWidget::ClearInputAction()
+void UMAInputKeyPromptWidget::ClearInputContext()
 {
 	UnbindInputBindingChanges();
 
 	InputOwner.Reset();
 	InputMappingContext.Reset();
-	BoundInputAction.Reset();
 	KeyText->SetText(FText::GetEmpty());
 }
 
@@ -42,7 +42,7 @@ void UMAInputKeyPromptWidget::RefreshKeyText()
 	KeyText->SetText(FMAInputStatics::GetInputActionText(
 		InputOwner.Get(),
 		InputMappingContext.Get(),
-		BoundInputAction.Get()));
+		InputAction));
 }
 
 void UMAInputKeyPromptWidget::UnbindInputBindingChanges()

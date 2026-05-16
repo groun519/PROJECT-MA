@@ -21,7 +21,7 @@
 #include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Convenience/InteractComponent.h"
+#include "Convenience/MAInteractorComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
@@ -66,6 +66,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
+	InteractorComponent = CreateDefaultSubobject<UMAInteractorComponent>(TEXT("InteractorComponent"));
 
 	/** Create SKCs **/
 	// Create and Attach Weapon
@@ -433,10 +434,7 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	if (!bPressed) return;
 	if (IsInputBlocked()) return;
 
-	if (UInteractComponent* Comp = CurrentInteractComp.Get())
-	{
-		Comp->RequestInteract(this);
-	}
+	InteractorComponent->Interact(this);
 }
 
 void AMAPlayerCharacter::HandleAbilityInputStarted(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
@@ -534,24 +532,6 @@ void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
 
 	MinimapCaptureAccumulatedTime = 0.f;
 	MinimapCapture->CaptureScene();
-}
-
-void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
-{
-	if (!NewComp || CurrentInteractComp == NewComp) return;
-
-	if (CurrentInteractComp.IsValid())
-		CurrentInteractComp->SetInteractFocused(this, false);
-	
-	CurrentInteractComp = NewComp;
-}
-
-void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
-{
-	if (CurrentInteractComp.Get() != Comp) return;
-
-	if (Comp) Comp->SetInteractFocused(this, false);
-	CurrentInteractComp = nullptr;
 }
 
 void AMAPlayerCharacter::BindLoadoutDelegates()

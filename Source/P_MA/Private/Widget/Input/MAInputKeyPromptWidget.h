@@ -17,8 +17,8 @@ class P_MA_API UMAInputKeyPromptWidget : public UUserWidget
 public:
 	virtual void NativeDestruct() override;
 
-	void SetInputAction(APlayerController* PlayerController, UInputMappingContext* MappingContext, UInputAction* InputAction);
-	void ClearInputAction();
+	void SetInputContext(APlayerController* PlayerController, UInputMappingContext* MappingContext);
+	void ClearInputContext();
 
 private:
 	void RefreshKeyText();
@@ -27,7 +27,9 @@ private:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> KeyText;
 
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UInputAction> InputAction;
+
 	TWeakObjectPtr<APlayerController> InputOwner;
 	TWeakObjectPtr<UInputMappingContext> InputMappingContext;
-	TWeakObjectPtr<UInputAction> BoundInputAction;
 };

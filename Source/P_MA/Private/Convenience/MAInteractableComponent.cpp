@@ -1,6 +1,7 @@
-﻿#include "InteractComponent.h"
+﻿#include "MAInteractableComponent.h"
 
 #include "Components/WidgetComponent.h"
+#include "Convenience/MAInteractorComponent.h"
 #include "Convenience/MAHighlightComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Player/MAPlayerCharacter.h"
@@ -8,7 +9,7 @@
 #include "Setting/MAGameSettings.h"
 #include "Widget/Input/MAInputKeyPromptWidget.h"
 
-UInteractComponent::UInteractComponent()
+UMAInteractableComponent::UMAInteractableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -24,7 +25,7 @@ UInteractComponent::UInteractComponent()
 	InteractKeyWidgetComp->SetDrawAtDesiredSize(true);
 }
 
-void UInteractComponent::BeginPlay()
+void UMAInteractableComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -40,59 +41,59 @@ void UInteractComponent::BeginPlay()
 
 	InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
 	InteractKeyWidgetComp->SetVisibility(false);
-	HighlightComponent = GetOwner() ? GetOwner()->FindComponentByClass<UMAHighlightComponent>() : nullptr;
 
-	OnComponentBeginOverlap.AddDynamic(this, &UInteractComponent::HandleBeginOverlap);
-	OnComponentEndOverlap.AddDynamic(this, &UInteractComponent::HandleEndOverlap);
+	OnComponentBeginOverlap.AddDynamic(this, &UMAInteractableComponent::HandleBeginOverlap);
+	OnComponentEndOverlap.AddDynamic(this, &UMAInteractableComponent::HandleEndOverlap);
 }
 
-void UInteractComponent::RequestInteract(AMAPlayerCharacter* Interactor)
+void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 {
 	if (InteractionHandler) InteractionHandler(Interactor);
 }
 
-void UInteractComponent::SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused)
+void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused)
 {
 	if (bFocused == bNewFocused) return;
+	bFocused = bNewFocused;
 
-	UMAInputKeyPromptWidget* KeyPromptWidget = CastChecked<UMAInputKeyPromptWidget>(InteractKeyWidgetComp->GetUserWidgetObject());
-	if (bNewFocused)
+	/** Key Widget **/
+	UMAInputKeyPromptWidget* KeyPromptWidget =
+		CastChecked<UMAInputKeyPromptWidget>(InteractKeyWidgetComp->GetUserWidgetObject());
+	if (bFocused)
 	{
-		check(Interactor);
-		KeyPromptWidget->SetInputAction(
+		KeyPromptWidget->SetInputContext(
 			Cast<APlayerController>(Interactor->GetController()),
-			Interactor->GetGameplayInputMappingContext(),
-			Interactor->GetInteractInputAction());
+			Interactor->GetGameplayInputMappingContext());
 	}
 	else
 	{
-		KeyPromptWidget->ClearInputAction();
+		KeyPromptWidget->ClearInputContext();
 	}
-
-	bFocused = bNewFocused;
 	InteractKeyWidgetComp->SetVisibility(bFocused);
 
+	/** Highlight **/
 	if (UMAHighlightComponent* Highlighter = HighlightComponent.Get())
 	{
 		Highlighter->SetHighlighted(bFocused);
 	}
 }
 
-void UInteractComponent::HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep)
+void UMAInteractableComponent::HandleBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep)
 {
 	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
 		if (!Player->IsLocallyControlled()) return;
-		Player->SetCurrentInteractComp(this);
-		SetInteractFocused(Player, true);
+		Player->GetInteractorComponent()->SetCurrentInteractableComponent(this, Player);
 	}
 }
 
-void UInteractComponent::HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void UMAInteractableComponent::HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (AMAPlayerCharacter* Player = Cast<AMAPlayerCharacter>(OtherActor))
 	{
 		if (!Player->IsLocallyControlled()) return;
-		Player->ClearCurrentInteractComp(this);
+		Player->GetInteractorComponent()->ClearCurrentInteractableComponent(this, Player);
 	}
 }
+
+

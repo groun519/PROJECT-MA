@@ -10,8 +10,8 @@ class UInputAction;
 class UInputMappingContext;
 class UNiagaraComponent;
 class UAnimMontage;
-class UInteractComponent;
 class UCameraComponent;
+class UMAInteractorComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
@@ -59,25 +59,15 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetMountMesh() const { return MountMesh; }
 	FORCEINLINE float GetRideHorizontalInput() const { return RideHorizontalInput; }
 
-	/** Interact **/
-	UFUNCTION()
-	void SetCurrentInteractComp(UInteractComponent* NewComp);
-
-	UFUNCTION()
-	void ClearCurrentInteractComp(UInteractComponent* Comp);
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
-	
 	/** Cam **/
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	UCameraComponent* GetPlayerCamera() const { return Cam; }
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 
 	/** Input **/
-	UInputAction* GetInteractInputAction() const { return InteractInputAction; }
 	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
+	UMAInteractorComponent* GetInteractorComponent() const { return InteractorComponent; }
 	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }
 	
 private:
@@ -95,6 +85,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
 	TObjectPtr<UMASkillModuleInventoryComponent> SkillModuleInventoryComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Interaction")
+	TObjectPtr<UMAInteractorComponent> InteractorComponent;
 
 	/** Mount **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Mount")
