@@ -14,6 +14,7 @@
 #include "Framework/MAGameState.h"
 #include "GAS/Passive/MADamageNumberActor.h"
 #include "Input/MAInputStatics.h"
+#include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
@@ -156,14 +157,31 @@ void AMAPlayerController::NotifyInputBindingsChanged()
 	OnInputBindingsChanged.Broadcast();
 }
 
+void AMAPlayerController::SetGameplayWidgetVisible(bool bVisible)
+{
+	if (GameplayWidget)
 	{
+		GameplayWidget->SetVisibility(bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
 }
 
+void AMAPlayerController::RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId)
 {
+	if (!ShopNPC || StockId == INDEX_NONE) return;
+
+	if (HasAuthority())
 	{
+		ShopNPC->RequestPurchase(this, StockId);
 		return;
 	}
+
+	ServerRequestShopPurchase(ShopNPC, StockId);
+}
+
+void AMAPlayerController::ServerRequestShopPurchase_Implementation(AMAShopNPC* ShopNPC, int32 StockId)
+{
+	if (!ShopNPC || StockId == INDEX_NONE) return;
+	ShopNPC->RequestPurchase(this, StockId);
 }
 
 void AMAPlayerController::ToggleSkillSlots()

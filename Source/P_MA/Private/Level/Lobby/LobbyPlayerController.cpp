@@ -552,11 +552,17 @@ void ALobbyPlayerController::ApplyCameraTransition(const FLoadoutCameraViewSetti
 		if (bUseFade)
 		{
 			const FLoadoutCameraViewSettings& FadeSettings = NextViewSettings.bUseInterp ? PrevViewSettings : NextViewSettings;
-			FMACameraTeleportSettings TeleportSettings;
-			TeleportSettings.bUseFade = true;
-			TeleportSettings.FadeSettings.FadeOutSeconds = FadeSettings.FadeSeconds.CameraFadeOutSeconds;
-			TeleportSettings.FadeSettings.FadeInSeconds = FadeSettings.FadeSeconds.CameraFadeInSeconds;
-			CameraDirector->TeleportExternalCameraView(Target, TeleportSettings);
+			TWeakObjectPtr<UMAPlayerCameraDirectorComponent> WeakCameraDirector = CameraDirector;
+			const float FadeInSeconds = FadeSettings.FadeSeconds.CameraFadeInSeconds;
+			CameraDirector->FadeOut(
+				FadeSettings.FadeSeconds.CameraFadeOutSeconds,
+				[WeakCameraDirector, Target, FadeInSeconds]()
+				{
+					if (!WeakCameraDirector.IsValid()) return;
+					WeakCameraDirector->TeleportExternalCameraView(Target);
+					WeakCameraDirector->FadeIn(FadeInSeconds);
+				}
+			);
 			return;
 		}
 

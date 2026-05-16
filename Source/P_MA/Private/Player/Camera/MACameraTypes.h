@@ -48,18 +48,6 @@ struct FMACameraFadeSettings
 };
 
 USTRUCT(BlueprintType)
-struct FMACameraTeleportSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category="Camera")
-	bool bUseFade = false;
-
-	UPROPERTY(EditAnywhere, Category="Camera", meta=(EditCondition="bUseFade", EditConditionHides))
-	FMACameraFadeSettings FadeSettings;
-};
-
-USTRUCT(BlueprintType)
 struct FMAPlayerCameraRigSettings
 {
 	GENERATED_BODY()

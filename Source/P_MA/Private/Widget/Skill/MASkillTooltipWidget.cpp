@@ -1,8 +1,9 @@
-#include "Widget/Skill/MASkillTooltipWidget.h"
+﻿#include "Widget/Skill/MASkillTooltipWidget.h"
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 void UMASkillTooltipWidget::SetSkillTooltip(const UMASkillDefinition* SkillDefinition, const FText& InCooldownText)
@@ -22,33 +23,12 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
 	{
-		static const FName IconTextureParameterName(TEXT("IconTexture"));
-		static const FName SubIconTextureParameterName(TEXT("SubIconTexture"));
-		static const FName IconColorParameterName(TEXT("IconColor"));
-		static const FName InnerColorParameterName(TEXT("InnerColor"));
-		static const FName UseIconParameterName(TEXT("UseIcon"));
-		static const FName UseSubIconParameterName(TEXT("UseSubIcon"));
-
-		if (IconData.Icon)
-		{
-			IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData.Icon);
-		}
-		else
-		{
-			IconMaterial->SetTextureParameterValue(IconTextureParameterName, nullptr);
-		}
-		if (AssembledSubIcon)
-		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, AssembledSubIcon);
-		}
-		else
-		{
-			IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, nullptr);
-		}
-		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData.IconColor);
-		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData.InnerColor);
-		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData.Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, AssembledSubIcon ? 1.f : 0.f);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, AssembledSubIcon);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData.Icon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, AssembledSubIcon ? 1.f : 0.f);
 	}
 	else if (IconData.Icon)
 	{
@@ -78,3 +58,4 @@ void UMASkillTooltipWidget::SetCooldownText(const FText& InCooldownText)
 		CooldownIconImage->SetVisibility(CooldownVisibility);
 	}
 }
+

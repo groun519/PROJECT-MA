@@ -20,13 +20,17 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void RefreshPawnCamera();
+	void SwitchToViewTarget(AActor* ViewTarget);
+	void SwitchToPawnCamera();
+	void FadeOut(float Duration, TFunction<void()> OnFinished = nullptr);
+	void FadeIn(float Duration, TFunction<void()> OnFinished = nullptr);
 	void TransitionPawnCamera(const FMAPlayerCameraRigSettings& Settings);
 	void InterpExternalCameraView(const FMACameraViewTarget& Target, const FMACameraInterpMoveSettings& Settings);
 	void TeleportExternalCameraView(const FMACameraViewTarget& Target);
-	void TeleportExternalCameraView(const FMACameraViewTarget& Target, const FMACameraTeleportSettings& Settings);
 
 private:
 	void CancelCameraTransition();
+	void CancelCameraMovement();
 	void UpdateRigTransition(float DeltaTime);
 	void ApplyRigTransitionStep(float EaseAlpha, float Alpha);
 	void FinishRigTransition();
@@ -34,9 +38,8 @@ private:
 	bool SetExternalCameraTarget(const FMACameraViewTarget& Target);
 	void SnapExternalCameraToTarget();
 	void UpdateExternalCameraTransition(float DeltaTime);
-	void StartTeleportFade(const FMACameraFadeSettings& Settings);
+	void StartCameraFade(float FromAlpha, float ToAlpha, float Duration, bool bHoldWhenFinished, bool bStopWhenFinished, TFunction<void()> OnFinished);
 	void CancelFadeTransition();
-	void HandleFadeOutFinished();
 	void HandleFadeFinished();
 	void UpdateComponentTickEnabled();
 	APlayerController* GetOwnerPlayerController() const;
@@ -63,7 +66,7 @@ private:
 	FMACameraInterpMoveSettings ExternalCameraInterpSettings;
 	bool bExternalCameraTransitionActive = false;
 
-	FTimerHandle FadeOutTimerHandle;
-	FTimerHandle FadeEndTimerHandle;
-	float PendingFadeInSeconds = 0.f;
+	FTimerHandle FadeTimerHandle;
+	TFunction<void()> PendingFadeFinishedAction;
+	bool bStopCameraFadeOnFinish = false;
 };

@@ -7,6 +7,8 @@
 #include "Framework/MAGameStateTypes.h"
 #include "MAPlayerController.generated.h"
 
+class AMAShopNPC;
+
 UENUM(BlueprintType)
 enum class EChatType : uint8
 {
@@ -44,6 +46,8 @@ public:
 
 	FMAInputBindingsChangedSignature OnInputBindingsChanged;
 	void NotifyInputBindingsChanged();
+	void SetGameplayWidgetVisible(bool bVisible);
+	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
@@ -55,6 +59,9 @@ public:
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoopReady(bool bReady);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 
 	/** ChatMessage **/
 	UPROPERTY(BlueprintAssignable, Category = "Chat")

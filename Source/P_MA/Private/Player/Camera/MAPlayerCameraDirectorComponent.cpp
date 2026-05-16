@@ -48,11 +48,43 @@ void UMAPlayerCameraDirectorComponent::RefreshPawnCamera()
 	Camera = PlayerCharacter->GetPlayerCamera();
 }
 
+void UMAPlayerCameraDirectorComponent::SwitchToViewTarget(AActor* ViewTarget)
+{
+	APlayerController* PlayerController = GetOwnerPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController() || !ViewTarget) return;
+
+	CancelCameraMovement();
+	PlayerController->SetViewTargetWithBlend(ViewTarget, 0.f);
+}
+
+void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera()
+{
+	APlayerController* PlayerController = GetOwnerPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController()) return;
+
+	APawn* Pawn = PlayerController->GetPawn();
+	if (!Pawn) return;
+
+	CancelCameraMovement();
+	RefreshPawnCamera();
+	PlayerController->SetViewTargetWithBlend(Pawn, 0.f);
+}
+
+void UMAPlayerCameraDirectorComponent::FadeOut(float Duration, TFunction<void()> OnFinished)
+{
+	StartCameraFade(0.f, 1.f, Duration, true, false, MoveTemp(OnFinished));
+}
+
+void UMAPlayerCameraDirectorComponent::FadeIn(float Duration, TFunction<void()> OnFinished)
+{
+	StartCameraFade(1.f, 0.f, Duration, false, true, MoveTemp(OnFinished));
+}
+
 void UMAPlayerCameraDirectorComponent::InterpExternalCameraView(const FMACameraViewTarget& Target, const FMACameraInterpMoveSettings& Settings)
 {
 	if (!SetExternalCameraTarget(Target)) return;
 
-	CancelCameraTransition();
+	CancelCameraMovement();
 
 	ExternalCameraInterpSettings = Settings;
 
@@ -70,66 +102,52 @@ void UMAPlayerCameraDirectorComponent::TeleportExternalCameraView(const FMACamer
 {
 	if (!SetExternalCameraTarget(Target)) return;
 
-	CancelCameraTransition();
-	SnapExternalCameraToTarget();
-}
-
-void UMAPlayerCameraDirectorComponent::TeleportExternalCameraView(const FMACameraViewTarget& Target, const FMACameraTeleportSettings& Settings)
-{
-	if (!SetExternalCameraTarget(Target)) return;
-
-	CancelCameraTransition();
-	if (Settings.bUseFade)
-	{
-		StartTeleportFade(Settings.FadeSettings);
-		return;
-	}
-
+	CancelCameraMovement();
 	SnapExternalCameraToTarget();
 }
 
 void UMAPlayerCameraDirectorComponent::CancelCameraTransition()
 {
+	CancelCameraMovement();
+	CancelFadeTransition();
+}
+
+void UMAPlayerCameraDirectorComponent::CancelCameraMovement()
+{
 	bRigTransitionActive = false;
 	bExternalCameraTransitionActive = false;
-	CancelFadeTransition();
 	UpdateComponentTickEnabled();
 }
 
-void UMAPlayerCameraDirectorComponent::StartTeleportFade(const FMACameraFadeSettings& Settings)
+void UMAPlayerCameraDirectorComponent::StartCameraFade(float FromAlpha, float ToAlpha, float Duration, bool bHoldWhenFinished, bool bStopWhenFinished, TFunction<void()> OnFinished)
 {
+	CancelFadeTransition();
+	PendingFadeFinishedAction = MoveTemp(OnFinished);
+	bStopCameraFadeOnFinish = bStopWhenFinished;
+
 	APlayerController* PlayerController = GetOwnerPlayerController();
 	if (!PlayerController || !PlayerController->PlayerCameraManager)
 	{
-		SnapExternalCameraToTarget();
+		HandleFadeFinished();
 		return;
 	}
 
-	const float SafeFadeOutSeconds = FMath::Max(0.f, Settings.FadeOutSeconds);
-	PendingFadeInSeconds = FMath::Max(0.f, Settings.FadeInSeconds);
-
-	if (SafeFadeOutSeconds <= 0.f && PendingFadeInSeconds <= 0.f)
+	const float SafeDuration = FMath::Max(0.f, Duration);
+	if (SafeDuration <= 0.f)
 	{
-		HandleFadeOutFinished();
+		HandleFadeFinished();
 		return;
 	}
 
-	if (SafeFadeOutSeconds > 0.f)
-	{
-		PlayerController->PlayerCameraManager->StartCameraFade(0.f, 1.f, SafeFadeOutSeconds, FLinearColor::Black, false, true);
-		GetWorld()->GetTimerManager().SetTimer(FadeOutTimerHandle, this, &UMAPlayerCameraDirectorComponent::HandleFadeOutFinished, SafeFadeOutSeconds, false);
-		return;
-	}
-
-	HandleFadeOutFinished();
+	PlayerController->PlayerCameraManager->StartCameraFade(FromAlpha, ToAlpha, SafeDuration, FLinearColor::Black, false, bHoldWhenFinished);
+	GetWorld()->GetTimerManager().SetTimer(FadeTimerHandle, this, &UMAPlayerCameraDirectorComponent::HandleFadeFinished, SafeDuration, false);
 }
 
 void UMAPlayerCameraDirectorComponent::CancelFadeTransition()
 {
 	if (UWorld* World = GetWorld())
 	{
-		World->GetTimerManager().ClearTimer(FadeOutTimerHandle);
-		World->GetTimerManager().ClearTimer(FadeEndTimerHandle);
+		World->GetTimerManager().ClearTimer(FadeTimerHandle);
 	}
 
 	if (APlayerController* PlayerController = GetOwnerPlayerController())
@@ -140,16 +158,13 @@ void UMAPlayerCameraDirectorComponent::CancelFadeTransition()
 		}
 	}
 
-	PendingFadeInSeconds = 0.f;
+	PendingFadeFinishedAction = nullptr;
+	bStopCameraFadeOnFinish = false;
 }
 
 void UMAPlayerCameraDirectorComponent::TransitionPawnCamera(const FMAPlayerCameraRigSettings& Settings)
 {
-	if (!CameraBoom)
-	{
-		RefreshPawnCamera();
-	}
-
+	if (!CameraBoom) RefreshPawnCamera();
 	if (!CameraBoom) return;
 
 	RigTransitionTargetSettings = Settings;
@@ -191,10 +206,7 @@ void UMAPlayerCameraDirectorComponent::UpdateRigTransition(float DeltaTime)
 
 	ApplyRigTransitionStep(EaseAlpha, Alpha);
 
-	if (Alpha >= 1.f)
-	{
-		FinishRigTransition();
-	}
+	if (Alpha >= 1.f) FinishRigTransition();
 }
 
 void UMAPlayerCameraDirectorComponent::ApplyRigTransitionStep(float EaseAlpha, float Alpha)
@@ -228,10 +240,7 @@ void UMAPlayerCameraDirectorComponent::FinishRigTransition()
 	CameraBoom->SetRelativeRotation(NewRotation);
 	CameraBoom->TargetOffset = RigTransitionTargetSettings.TargetOffset;
 
-	if (Camera)
-	{
-		Camera->SetFieldOfView(RigTransitionBaseFOV);
-	}
+	if (Camera) Camera->SetFieldOfView(RigTransitionBaseFOV);
 }
 
 bool UMAPlayerCameraDirectorComponent::SetExternalCameraTarget(const FMACameraViewTarget& Target)
@@ -318,32 +327,26 @@ void UMAPlayerCameraDirectorComponent::UpdateExternalCameraTransition(float Delt
 	}
 }
 
-void UMAPlayerCameraDirectorComponent::HandleFadeOutFinished()
-{
-	SnapExternalCameraToTarget();
-
-	APlayerController* PlayerController = GetOwnerPlayerController();
-	if (PlayerController && PlayerController->PlayerCameraManager && PendingFadeInSeconds > 0.f)
-	{
-		PlayerController->PlayerCameraManager->StartCameraFade(1.f, 0.f, PendingFadeInSeconds, FLinearColor::Black, false, false);
-		GetWorld()->GetTimerManager().SetTimer(FadeEndTimerHandle, this, &UMAPlayerCameraDirectorComponent::HandleFadeFinished, PendingFadeInSeconds, false);
-		return;
-	}
-
-	HandleFadeFinished();
-}
-
 void UMAPlayerCameraDirectorComponent::HandleFadeFinished()
 {
-	if (APlayerController* PlayerController = GetOwnerPlayerController())
+	TFunction<void()> FinishedAction = MoveTemp(PendingFadeFinishedAction);
+	PendingFadeFinishedAction = nullptr;
+
+	const bool bShouldStopFade = bStopCameraFadeOnFinish;
+	bStopCameraFadeOnFinish = false;
+
+	if (bShouldStopFade)
 	{
-		if (PlayerController->PlayerCameraManager)
+		if (APlayerController* PlayerController = GetOwnerPlayerController())
 		{
-			PlayerController->PlayerCameraManager->StopCameraFade();
+			if (PlayerController->PlayerCameraManager)
+			{
+				PlayerController->PlayerCameraManager->StopCameraFade();
+			}
 		}
 	}
 
-	PendingFadeInSeconds = 0.f;
+	if (FinishedAction) FinishedAction();
 }
 
 void UMAPlayerCameraDirectorComponent::UpdateComponentTickEnabled()

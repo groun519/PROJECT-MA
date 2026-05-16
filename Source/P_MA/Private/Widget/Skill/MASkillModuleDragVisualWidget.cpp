@@ -1,6 +1,7 @@
-#include "Widget/Skill/MASkillModuleDragVisualWidget.h"
+﻿#include "Widget/Skill/MASkillModuleDragVisualWidget.h"
 
 #include "Components/Image.h"
+#include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 void UMASkillModuleDragVisualWidget::SetIcon(UTexture2D* InIconTexture, FLinearColor InIconColor)
@@ -11,10 +12,8 @@ void UMASkillModuleDragVisualWidget::SetIcon(UTexture2D* InIconTexture, FLinearC
 	{
 		if (UMaterialInstanceDynamic* IconMaterial = DragIconImage->GetDynamicMaterial())
 		{
-			static const FName IconTextureParameterName(TEXT("IconTexture"));
-			static const FName IconColorParameterName(TEXT("IconColor"));
-			IconMaterial->SetTextureParameterValue(IconTextureParameterName, InIconTexture);
-			IconMaterial->SetVectorParameterValue(IconColorParameterName, InIconColor);
+			IconMaterial->SetTextureParameterValue(PARAM_DragDropIcon_IconTexture, InIconTexture);
+			IconMaterial->SetVectorParameterValue(PARAM_DragDropIcon_IconColor, InIconColor);
 			DragIconImage->SetVisibility(ESlateVisibility::Visible);
 			return;
 		}
@@ -22,3 +21,4 @@ void UMASkillModuleDragVisualWidget::SetIcon(UTexture2D* InIconTexture, FLinearC
 
 	DragIconImage->SetVisibility(ESlateVisibility::Collapsed);
 }
+

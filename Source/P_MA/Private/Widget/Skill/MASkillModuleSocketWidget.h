@@ -47,9 +47,6 @@ private:
 	static constexpr float DraggedSourceRenderOpacity = 0.45f;
 	static constexpr float NormalIconScaleMultiplier = 0.65f;
 	static constexpr float HighlightedIconScaleMultiplier = 0.75f;
-	static const FName HighlightAlphaParameterName;
-	static const FName IconScaleMultiplierParameterName;
-
 	UMASkillDefinition* ResolveDefinition() const;
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);

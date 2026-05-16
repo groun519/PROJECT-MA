@@ -1,17 +1,15 @@
-#include "Widget/Skill/MASkillModuleSocketWidget.h"
+﻿#include "Widget/Skill/MASkillModuleSocketWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
 #include "Widget/Skill/MASkillTooltipWidget.h"
-
-const FName UMASkillModuleSocketWidget::HighlightAlphaParameterName(TEXT("HighlightAlpha"));
-const FName UMASkillModuleSocketWidget::IconScaleMultiplierParameterName(TEXT("IconScaleMultiplier"));
 
 void UMASkillModuleSocketWidget::InitializeSocket(
 	UActorComponent* InSlotOwner,
@@ -56,19 +54,12 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 	const FMASkillDefinitionIconData* IconData = Definition ? &Definition->GetDisplayData().IconData : nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
-		static const FName IconTextureParameterName(TEXT("IconTexture"));
-		static const FName SubIconTextureParameterName(TEXT("SubIconTexture"));
-		static const FName IconColorParameterName(TEXT("IconColor"));
-		static const FName InnerColorParameterName(TEXT("InnerColor"));
-		static const FName UseIconParameterName(TEXT("UseIcon"));
-		static const FName UseSubIconParameterName(TEXT("UseSubIcon"));
-
-		IconMaterial->SetTextureParameterValue(IconTextureParameterName, IconData ? IconData->Icon : nullptr);
-		IconMaterial->SetTextureParameterValue(SubIconTextureParameterName, nullptr);
-		IconMaterial->SetVectorParameterValue(IconColorParameterName, IconData ? IconData->IconColor : FLinearColor::White);
-		IconMaterial->SetVectorParameterValue(InnerColorParameterName, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
-		IconMaterial->SetScalarParameterValue(UseIconParameterName, IconData && IconData->Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(UseSubIconParameterName, 0.f);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData ? IconData->Icon : nullptr);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, nullptr);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData ? IconData->IconColor : FLinearColor::White);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData && IconData->Icon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, 0.f);
 	}
 	else if (IconData && IconData->Icon)
 	{
@@ -207,8 +198,8 @@ void UMASkillModuleSocketWidget::RefreshHoverVisual()
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
 		const bool bHighlighted = bIsHovered || bIsDropTargetHighlighted;
-		IconMaterial->SetScalarParameterValue(HighlightAlphaParameterName, bHighlighted ? DropHighlightAlpha : 0.f);
-		IconMaterial->SetScalarParameterValue(IconScaleMultiplierParameterName, bHighlighted ? HighlightedIconScaleMultiplier : NormalIconScaleMultiplier);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_HighlightAlpha, bHighlighted ? DropHighlightAlpha : 0.f);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_IconScaleMultiplier, bHighlighted ? HighlightedIconScaleMultiplier : NormalIconScaleMultiplier);
 	}
 }
 
@@ -274,3 +265,4 @@ bool UMASkillModuleSocketWidget::IsSelfDragOperation(const UDragDropOperation* O
 		&& DragOperation->SourceSlots == SlotArray
 		&& DragOperation->SourceIndex == SlotIndex;
 }
+
