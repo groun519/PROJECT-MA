@@ -20,6 +20,7 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
+#include "Player/Components/MACurrencyComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Convenience/MAInteractorComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -66,6 +67,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
+	CurrencyComponent = CreateDefaultSubobject<UMACurrencyComponent>(TEXT("CurrencyComponent"));
 	InteractorComponent = CreateDefaultSubobject<UMAInteractorComponent>(TEXT("InteractorComponent"));
 
 	/** Create SKCs **/

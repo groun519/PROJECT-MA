@@ -91,7 +91,7 @@ public:
 	void UnregisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle);
 
 private:
-	static constexpr int32 SkillModuleSlotCount = 9;
+	static constexpr int32 SkillModuleSlotCount = 8;
 
 	FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID);
 	const FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID) const;

@@ -1,16 +1,19 @@
-﻿#include "Shop/MAShopNPC.h"
+#include "Shop/MAShopNPC.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Convenience/MAInteractableComponent.h"
 #include "Convenience/MAHighlightComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/Components/MACurrencyComponent.h"
 #include "Shop/MAShopProductFinder.h"
 #include "Widget/Shop/MAShopWidget.h"
 #include "Net/UnrealNetwork.h"
@@ -72,11 +75,15 @@ bool AMAShopNPC::RequestPurchase(APlayerController* PlayerController, int32 Stoc
 	const FMAShopStockEntry Entry = CurrentStockEntries[StockIndex];
 	if (!PlayerController || !Entry.SkillDefinition) return false;
 
-	APawn* PlayerPawn = PlayerController->GetPawn();
-	if (!PlayerPawn) return false;
+	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(PlayerController->GetPawn());
+	if (!PlayerCharacter) return false;
 
-	UMASkillModuleInventoryComponent* ModuleInventory = PlayerPawn->FindComponentByClass<UMASkillModuleInventoryComponent>();
+	UMACurrencyComponent* Currency = PlayerCharacter->GetCurrencyComponent();
+	if (!Currency || !Currency->HasCoin(Entry.Price)) return false;
+
+	UMASkillModuleInventoryComponent* ModuleInventory = PlayerCharacter->GetSkillModuleInventoryComponent();
 	if (!ModuleInventory || !ModuleInventory->RequestGrantModule(Entry.SkillDefinition)) return false;
+	if (!Currency->TrySpendCoin(Entry.Price)) return false;
 
 	CurrentStockEntries.RemoveAt(StockIndex);
 	ForceNetUpdate();
@@ -215,14 +222,20 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 		Entry.StockId = Index;
 		Entry.VisualSeed = FMath::Rand();
 		Entry.SkillDefinition = Pool[Index];
-		Entry.Price = FMath::RandRange(100, 500);
+		Entry.Price = ResolveModulePrice(Pool[Index]);
 		Stock.Add(Entry);
 	}
 	return Stock;
+}
+
+int32 AMAShopNPC::ResolveModulePrice(const UMASkillDefinition* SkillDefinition) const
+{
+	if (!SkillDefinition) return 0;
+	check(ModuleQualityData);
+	return ModuleQualityData->ResolvePrice(SkillDefinition->GetModuleQuality());
 }
 
 void AMAShopNPC::OnRep_CurrentStockEntries()
 {
 	if (ActiveShopWidget) ActiveShopWidget->RefreshStock();
 }
-

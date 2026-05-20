@@ -1,26 +1,23 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "MADamageTextWidget.generated.h"
+#include "MAFloatingTextWidget.generated.h"
 
 class UTextBlock;
-/**
- * 
- */
+
 UCLASS()
-class UMADamageTextWidget : public UUserWidget
+class UMAFloatingTextWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	void SetDamageText(float DamageAmount, bool bIsCritical, bool bIsPlayerHit);
+	void SetDisplayText(const FText& Text, const FLinearColor& Color);
 
 protected:
 	UPROPERTY(meta=(BindWidget))
 	UTextBlock* DamageText;
+
 	UPROPERTY(Transient, meta=(BindWidgetAnim))
 	UWidgetAnimation* FadeUpAnim;
 };

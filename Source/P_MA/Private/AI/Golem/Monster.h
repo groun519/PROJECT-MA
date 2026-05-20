@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/CoinDrop.h"
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
@@ -28,7 +27,6 @@ class AMonster : public AMACharacter
 	GENERATED_BODY()
 	
 public:
-	AMonster();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
@@ -42,10 +40,11 @@ public:
 	void Deactivate();
 	
 	void SetEnvTag(const FGameplayTag& InEnvTag);
-	void SetDropGold(int32 InGold)
+	void SetDropCoin(int32 InCoin)
 	{
-		DropGold = InGold;
+		DropCoin = InCoin;
 	};
+	int32 GetDropCoin() const { return DropCoin; }
 	void SetStatCoefficient(float InCoefficient)
 	{
 		StatCoefficient = InCoefficient;
@@ -74,11 +73,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Env")
 	TArray<FMonsterEnvData> EnvTagToMaterial;
 
-	// 죽었을 때 줄 골드량
+	// 죽었????�?골드??
 	UPROPERTY()
-	int32 DropGold = 0;
+	int32 DropCoin = 0;
 
-	// 생성될 때 곱해질 스테이터스 계수
+	// ?�성????곱해�??�테?�터??계수
 	UPROPERTY()
 	float StatCoefficient = 1.f;
 	
@@ -92,7 +91,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Death")
 	float DisappearDelay = 3.f;
-
-	UPROPERTY(VisibleAnywhere)
-	UCoinDrop* CoinDropComp;
 };

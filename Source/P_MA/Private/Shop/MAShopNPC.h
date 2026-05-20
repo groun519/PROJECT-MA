@@ -8,6 +8,7 @@
 
 class AMAPlayerCharacter;
 class UMAHighlightComponent;
+class UMAModuleQualityData;
 class UMASkillDefinition;
 class UMAShopWidget;
 class UCameraComponent;
@@ -54,12 +55,16 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
 	FMAShopStockCountRange ModuleStockCountRange;
 
+	UPROPERTY(EditDefaultsOnly, Category="Shop|Price")
+	TObjectPtr<UMAModuleQualityData> ModuleQualityData;
+
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Camera")
 	FMACameraFadeSettings ShopCameraFadeSettings;
 	
 	void HandleInteract(AMAPlayerCharacter* Interactor);
 	void OpenShopFor(AMAPlayerCharacter* Interactor);
 	TArray<FMAShopStockEntry> GenerateShopStock() const;
+	int32 ResolveModulePrice(const UMASkillDefinition* SkillDefinition) const;
 
 	UFUNCTION()
 	void OnRep_CurrentStockEntries();
@@ -73,4 +78,3 @@ private:
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AMAPlayerCharacter> HiddenShopInteractor;
 };
-

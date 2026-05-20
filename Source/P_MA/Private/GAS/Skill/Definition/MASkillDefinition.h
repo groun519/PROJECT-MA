@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "GAS/Skill/Event/Binding/MASkillGameplayEventBinding.h"
+#include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
 #include "GAS/Skill/Step/MASkillStep.h"
 #include "GameplayTagContainer.h"
@@ -69,6 +70,7 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 
 public:
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
+	const FMAModuleQuality& GetModuleQuality() const { return ModuleQuality; }
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
@@ -92,6 +94,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(AllowPrivateAccess="true"))
 	FMASkillDefinitionDisplayData DisplayData;
+
+	UPROPERTY(EditDefaultsOnly, Category="Module")
+	FMAModuleQuality ModuleQuality;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> AssembledSubIcon = nullptr;

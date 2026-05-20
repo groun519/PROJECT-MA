@@ -10,11 +10,6 @@
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 
-AMonster::AMonster()
-{
-	CoinDropComp = CreateDefaultSubobject<UCoinDrop>(TEXT("CoinDropComp"));
-}
-
 void AMonster::BeginPlay()
 {
 	Super::BeginPlay();
@@ -165,11 +160,6 @@ void AMonster::OnDead()
 {
 	Super::OnDead();
 	OnMonsterDead.Broadcast();
-	
-	if (CoinDropComp)
-	{
-		CoinDropComp->SpawnCoinFX();
-	}
 	
 	if (HasAuthority())
 	{

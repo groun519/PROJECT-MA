@@ -5,6 +5,7 @@
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
+#include "Player/Feedback/MACoinRewardVFXActor.h"
 #include "MAPlayerController.generated.h"
 
 class AMAShopNPC;
@@ -48,6 +49,7 @@ public:
 	void NotifyInputBindingsChanged();
 	void SetGameplayWidgetVisible(bool bVisible);
 	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
+	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color);
 
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
@@ -74,9 +76,11 @@ public:
 	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<class AMADamageNumberActor> DamageNumberActorClass;
+	TSubclassOf<class AMAFloatingTextActor> FloatingTextActorClass;
 	UFUNCTION(Client, Unreliable)
 	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit);
+	UFUNCTION(Client, Unreliable)
+	void ClientPlayCoinRewardFeedback(const FMACoinRewardFeedbackParams& Params);
 	
 private:
 	void SpawnGameplayWidget();

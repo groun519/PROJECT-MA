@@ -5,14 +5,13 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
 #include "Widget/Battle/InBattleStageWidget.h"
-#include "Inventory/InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
-#include "GAS/Passive/MADamageNumberActor.h"
+#include "GAS/Passive/MAFloatingTextActor.h"
 #include "Input/MAInputStatics.h"
 #include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
@@ -98,19 +97,50 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
 void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit)
 {
-	if (DamageNumberActorClass && TargetActor)
+	if (!TargetActor) return;
+
+	FLinearColor DamageColor = FLinearColor::White;
+	if (bIsPlayerHit)
 	{
-		FVector DamageSpawnLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
-		
-		DamageSpawnLocation.X += FMath::RandRange(-40.f, 40.f);
-		DamageSpawnLocation.Y += FMath::RandRange(-40.f, 40.f);
-		
-		AMADamageNumberActor* DamageActor = GetWorld()->SpawnActor<AMADamageNumberActor>(DamageNumberActorClass, DamageSpawnLocation, FRotator::ZeroRotator);
-		
-		if (DamageActor)
-		{
-			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
-		}
+		DamageColor = FLinearColor::Red;
+	}
+	else if (bIsCriticalHit)
+	{
+		DamageColor = FLinearColor::Yellow;
+	}
+
+	FVector DamageTextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
+	DamageTextLocation.X += FMath::RandRange(-40.f, 40.f);
+	DamageTextLocation.Y += FMath::RandRange(-40.f, 40.f);
+
+	ShowFloatingText(
+		FText::AsNumber(FMath::RoundToInt(DamageAmount)),
+		DamageTextLocation,
+		DamageColor);
+}
+
+void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color)
+{
+	if (!FloatingTextActorClass) return;
+
+	AMAFloatingTextActor* FloatingTextActor = GetWorld()->SpawnActor<AMAFloatingTextActor>(FloatingTextActorClass, WorldLocation, FRotator::ZeroRotator);
+	if (FloatingTextActor)
+	{
+		FloatingTextActor->PlayText(Text, Color);
+	}
+}
+
+void AMAPlayerController::ClientPlayCoinRewardFeedback_Implementation(const FMACoinRewardFeedbackParams& Params)
+{
+	if (!Params.RewardVFX || !Params.TargetActor) return;
+
+	AMACoinRewardVFXActor* CoinRewardActor = GetWorld()->SpawnActor<AMACoinRewardVFXActor>(
+		AMACoinRewardVFXActor::StaticClass(),
+		Params.SourceLocation,
+		FRotator::ZeroRotator);
+	if (CoinRewardActor)
+	{
+		CoinRewardActor->Play(Params);
 	}
 }
 
@@ -274,10 +304,7 @@ void AMAPlayerController::HandleSectorStateChanged(EMASectorState NewState)
 
 void AMAPlayerController::ShowInBattleStageWidget()
 {
-	if (!IsLocalController())
-	{
-		return;
-	}
+	if (!IsLocalController()) return;
 
 	if (!InBattleStageWidgetClass)
 	{
@@ -297,10 +324,7 @@ void AMAPlayerController::ShowInBattleStageWidget()
 	}
 
 	InBattleStageWidget = CreateWidget<UInBattleStageWidget>(this, InBattleStageWidgetClass);
-	if (!InBattleStageWidget)
-	{
-		return;
-	}
+	if (!InBattleStageWidget) return;
 
 	InBattleStageWidget->AddToViewport();
 

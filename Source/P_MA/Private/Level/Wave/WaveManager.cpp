@@ -178,7 +178,7 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 	{
 		if (WaveMonsters.Num() == 0) return 0;
 
-		// 첫 인덱스의 몬스터 픽
+		// �??�덱?�의 몬스????
 		FWaveMonster Monster = WaveMonsters[0];
 		if (!Monster.Class) continue;
 
@@ -203,7 +203,7 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 		if (Spawned)
 		{
 			Spawned->SetEnvTag(CurEnvTag);
-			Spawned->SetDropGold(Monster.Gold);
+			Spawned->SetDropCoin(Monster.Gold);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
 			Spawned->ApplyEnvMaterials();
 			Spawned->FinishSpawning(SpawnTransform);

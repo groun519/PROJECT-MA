@@ -8,10 +8,10 @@
 
 class UInputAction;
 class UInputMappingContext;
-class UNiagaraComponent;
 class UAnimMontage;
 class UCameraComponent;
 class UMAInteractorComponent;
+class UMACurrencyComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
@@ -68,8 +68,8 @@ public:
 	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
 	UMAInteractorComponent* GetInteractorComponent() const { return InteractorComponent; }
+	UMACurrencyComponent* GetCurrencyComponent() const { return CurrencyComponent; }
 	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }
-	
 private:
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
@@ -85,6 +85,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
 	TObjectPtr<UMASkillModuleInventoryComponent> SkillModuleInventoryComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Currency")
+	TObjectPtr<UMACurrencyComponent> CurrencyComponent;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Interaction")
 	TObjectPtr<UMAInteractorComponent> InteractorComponent;
