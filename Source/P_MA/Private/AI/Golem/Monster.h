@@ -32,6 +32,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
 	FOnMonsterDead OnMonsterDead;
 
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamId) override;
 
 	bool IsActive() const;
@@ -63,6 +64,7 @@ protected:
 private:
 	virtual void OnRep_TeamID() override;
 	virtual void OnDead() override;
+	void ApplyStatCoefficientEffect();
 
 	UPROPERTY(ReplicatedUsing=OnRep_EnvGameplayTag, EditAnywhere, Category = "Env")
 	FGameplayTag EnvGameplayTag;

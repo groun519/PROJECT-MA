@@ -115,6 +115,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PlayerRangeClamp", meta = (ClampMin = "0.01"))
 	float PlayerRangeClampInterval = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ready", meta = (ClampMin = "0.0"))
+	float ReadyStartDelay = 3.f;
 	
 private:
 	bool bIsMoving = false;
@@ -145,6 +148,14 @@ private:
 	bool CanApplyPlayerRangeClamp() const;
 	const FPlayerRangeClampSettings* GetPlayerRangeClampSettingsForState(EMASectorState InState) const;
 	FTimerHandle PlayerRangeClampTimerHandle;
+
+	/** Ready **/
+	void StartReadyCountdown();
+	void CancelReadyCountdown();
+	void TickReadyCountdown();
+	bool CanUseReadyCountdown() const;
+	FTimerHandle ReadyCountdownTimerHandle;
+	int32 ReadyCountdownRemainingSeconds = 0;
 
 	/** Environment **/
 	bool BindEnvironmentManager();

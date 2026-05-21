@@ -13,7 +13,6 @@ void AMAPlayerState::CopyProperties(APlayerState* PlayerState)
 	AMAPlayerState* NewPS = Cast<AMAPlayerState>(PlayerState);
 	if (!NewPS) return;
 
-	NewPS->DefaultSkill = DefaultSkill;
 	NewPS->LoadoutSelection = LoadoutSelection;
 	NewPS->bHasFinishedLoading = bHasFinishedLoading;
 	NewPS->LobbySlotIndex = LobbySlotIndex;
@@ -26,15 +25,9 @@ void AMAPlayerState::OverrideWith(APlayerState* PlayerState)
 	const AMAPlayerState* OldPS = Cast<AMAPlayerState>(PlayerState);
 	if (!OldPS) return;
 
-	DefaultSkill = OldPS->DefaultSkill;
 	LoadoutSelection = OldPS->LoadoutSelection;
 	bHasFinishedLoading = OldPS->bHasFinishedLoading;
 	LobbySlotIndex = OldPS->LobbySlotIndex;
-}
-
-void AMAPlayerState::SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill)
-{
-	DefaultSkill = NewSkill;
 }
 
 void AMAPlayerState::SetLoadoutSelection(const FLoadoutSelection& NewLoadout)
@@ -58,10 +51,6 @@ void AMAPlayerState::SetLobbySlotIndex(int32 Index)
 	LobbySlotIndex = Index;
 }
 
-void AMAPlayerState::OnRep_DefaultSkill()
-{
-}
-
 void AMAPlayerState::OnRep_LoadoutSelection()
 {
 	OnLoadoutChanged.Broadcast(LoadoutSelection);
@@ -83,7 +72,6 @@ void AMAPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AMAPlayerState, DefaultSkill);
 	DOREPLIFETIME(AMAPlayerState, LoadoutSelection);
 	DOREPLIFETIME(AMAPlayerState, bHasFinishedLoading);
 	DOREPLIFETIME(AMAPlayerState, LobbySlotIndex);

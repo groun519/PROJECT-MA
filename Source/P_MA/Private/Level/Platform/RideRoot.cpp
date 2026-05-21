@@ -12,6 +12,13 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 
+static FString FormatReadyText(int32 ReadyCount, int32 TotalCount)
+{
+	return TotalCount < 0
+		? FString::Printf(TEXT("%d"), ReadyCount)
+		: FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+}
+
 ARideRoot::ARideRoot()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -139,8 +146,13 @@ void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 	
 	if (!ReadyText) return;
 
-	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	const FString NewText = FormatReadyText(ReadyCount, TotalCount);
 	ReadyText->SetText(FText::FromString(NewText));
+}
+
+void ARideRoot::SetReadyCountdownText(int32 RemainingSeconds)
+{
+	SetReadyText(RemainingSeconds, -1);
 }
 
 void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
@@ -167,7 +179,7 @@ void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
 void ARideRoot::OnRep_ReadyCounts()
 {
 	if (!ReadyText) return;
-	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
+	const FString NewText = FormatReadyText(ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
 	ReadyText->SetText(FText::FromString(NewText));
 }
 

@@ -173,8 +173,6 @@ public:
 	UPROPERTY()
 	TObjectPtr<AMAPlayerState> CachedLoadoutPlayerState;
 
-	bool bHasSeededAttackSkillDefinition = false;
-
 	/** Weapon **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;

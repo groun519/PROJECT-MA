@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 
 void AMonster::BeginPlay()
 {
@@ -20,6 +21,12 @@ void AMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMonster, EnvGameplayTag);
+}
+
+void AMonster::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	ApplyStatCoefficientEffect();
 }
 
 void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
@@ -104,6 +111,18 @@ void AMonster::Deactivate()
 			}
 		}
 	}
+}
+
+void AMonster::ApplyStatCoefficientEffect()
+{
+	if (!HasAuthority()) return;
+	if (FMath::IsNearlyEqual(StatCoefficient, 1.f)) return;
+
+	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent());
+	if (!ASC) return;
+
+	UMAGameplayEffect_MonsterWaveStatScale::ApplyTo(*ASC, StatCoefficient);
+	ASC->ApplyFullStatEffect();
 }
 
 void AMonster::ApplyEnvMaterials()

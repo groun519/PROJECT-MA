@@ -68,6 +68,7 @@ void ASplineSectorManager::BeginPlay()
 
 void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
+	CancelReadyCountdown();
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
 	
@@ -144,6 +145,14 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount)
 {
 	if (!CachedRideRoot) return;
+
+	if (CanUseReadyCountdown() && ReadyCount > 0 && ReadyCount == TotalCount)
+	{
+		StartReadyCountdown();
+		return;
+	}
+
+	CancelReadyCountdown();
 	CachedRideRoot->SetReadyText(ReadyCount, TotalCount);
 }
 
@@ -169,6 +178,54 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());
 	ASplineSectorManager* SSM = Cast<ASplineSectorManager>(Found);
 	return SSM;
+}
+
+bool ASplineSectorManager::CanUseReadyCountdown() const
+{
+	return CachedMAGameMode &&
+		(CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle);
+}
+
+void ASplineSectorManager::StartReadyCountdown()
+{
+	if (!CachedRideRoot || !CachedMAGameMode) return;
+	if (GetWorldTimerManager().IsTimerActive(ReadyCountdownTimerHandle)) return;
+
+	if (ReadyStartDelay <= 0.f)
+	{
+		CachedMAGameMode->RequestNextState(CachedMAGameMode->GetMASectorState());
+		return;
+	}
+
+	ReadyCountdownRemainingSeconds = FMath::Max(1, FMath::CeilToInt(ReadyStartDelay));
+	TickReadyCountdown();
+	GetWorldTimerManager().SetTimer(
+		ReadyCountdownTimerHandle,
+		this,
+		&ASplineSectorManager::TickReadyCountdown,
+		1.f,
+		true);
+}
+
+void ASplineSectorManager::CancelReadyCountdown()
+{
+	GetWorldTimerManager().ClearTimer(ReadyCountdownTimerHandle);
+	ReadyCountdownRemainingSeconds = 0;
+}
+
+void ASplineSectorManager::TickReadyCountdown()
+{
+	if (!CachedRideRoot || !CachedMAGameMode) return;
+
+	if (ReadyCountdownRemainingSeconds <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(ReadyCountdownTimerHandle);
+		CachedMAGameMode->RequestNextState(CachedMAGameMode->GetMASectorState());
+		return;
+	}
+
+	CachedRideRoot->SetReadyCountdownText(ReadyCountdownRemainingSeconds);
+	--ReadyCountdownRemainingSeconds;
 }
 
 void ASplineSectorManager::SetSectorsByState(EMASectorState InState)

@@ -1,9 +1,14 @@
 #include "WaveManager.h"
 
 #include "Framework/MAGameMode.h"
+#include "Framework/MAGameInstance.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"
 #include "Level/Environment/EnvironmentManager.h"
+#include "Player/Loadout/Data/LoadoutDataSet.h"
+#include "Player/Loadout/Data/LoadoutWeaponData.h"
 
 AWaveManager::AWaveManager()
 {
@@ -206,6 +211,7 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 			Spawned->SetDropCoin(Monster.Gold);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
 			Spawned->ApplyEnvMaterials();
+			ApplyTemporaryRandomMonsterAttackDefinition(*Spawned);
 			Spawned->FinishSpawning(SpawnTransform);
 			Spawned->SetGoal(SpawnSpline);
 			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
@@ -216,6 +222,40 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 	}
 
 	return UsingGold;
+}
+
+void AWaveManager::ApplyTemporaryRandomMonsterAttackDefinition(AMonster& Monster) const
+{
+	const UWorld* World = GetWorld();
+	const UMAGameInstance* GameInstance = World ? World->GetGameInstance<UMAGameInstance>() : nullptr;
+	const ULoadoutDataSet* LoadoutDataSet = GameInstance ? GameInstance->TryGetLoadoutDataSet() : nullptr;
+	const UDataTable* WeaponDataTable = LoadoutDataSet ? LoadoutDataSet->WeaponDataTable : nullptr;
+	if (!WeaponDataTable) return;
+
+	const TArray<FName> RowNames = WeaponDataTable->GetRowNames();
+	if (RowNames.IsEmpty()) return;
+
+	const FName WeaponRowName = RowNames[FMath::RandRange(0, RowNames.Num() - 1)];
+	const FLoadoutWeaponDataRow* WeaponDataRow = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(
+		WeaponRowName,
+		TEXT("TemporaryMonsterAttackDefinition"));
+	UMASkillDefinition* AttackDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
+	if (!AttackDefinition) return;
+
+	UMASkillManagerComponent* SkillManager = Monster.GetSkillManagerComponent();
+	if (!SkillManager) return;
+
+	UMASkillDefinition* PreviousDefinition = nullptr;
+	if (!SkillManager->ReplaceDefinitionAt(EMAAbilityInputID::Attack, 0, AttackDefinition, PreviousDefinition))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("WaveManager: Failed to assign temporary monster attack definition. Monster=%s WeaponRow=%s AttackDefinition=%s"),
+			*GetNameSafe(&Monster),
+			*WeaponRowName.ToString(),
+			*GetNameSafe(AttackDefinition));
+	}
 }
 
 void AWaveManager::CreateBaseIntervalTimer()

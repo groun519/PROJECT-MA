@@ -628,12 +628,13 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		WeaponDataRow = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
 	}
 
-	if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
+	if (HasAuthority())
 	{
-		UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
-		if (!bHasSeededAttackSkillDefinition && AttackSkillDefinition)
+		if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
 		{
-			bHasSeededAttackSkillDefinition = SkillManager->AddDefinition(EMAAbilityInputID::Attack, AttackSkillDefinition);
+			UMASkillDefinition* PreviousDefinition = nullptr;
+			UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
+			SkillManager->ReplaceDefinitionAt(EMAAbilityInputID::Attack, 0, AttackSkillDefinition, PreviousDefinition);
 		}
 	}
 

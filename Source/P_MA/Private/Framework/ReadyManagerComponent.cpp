@@ -98,12 +98,6 @@ void UReadyManagerComponent::BroadcastReadyCounts()
 	const bool bPrevAllReady = bAllPlayersReady;
 	bAllPlayersReady = (TotalCount > 0 && ReadyCount == TotalCount);
 
-	AMAGameMode* OwningGM = Cast<AMAGameMode>(GetOwner());
-	if (OwningGM && !bPrevAllReady && bAllPlayersReady)
-	{
-		OwningGM->RequestNextState(OwningGM->GetMASectorState());
-	}
-
 	OnReadyCountsChanged.Broadcast(ReadyCount, TotalCount);
 	if (bPrevAllReady != bAllPlayersReady)
 	{

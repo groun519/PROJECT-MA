@@ -87,6 +87,8 @@ private:
 	FTimerHandle BaseIntervalTimerHandle;
 	float SpawnInterval = 1.f;
 	void SpawnMonstersByInterval();
+	// TODO: Temporary monster skill test hook. Replace with monster-specific skill data when monster modules are formalized.
+	void ApplyTemporaryRandomMonsterAttackDefinition(AMonster& Monster) const;
 	
 	UPROPERTY()
 	AMAGameMode* CachedMAGameMode = nullptr;

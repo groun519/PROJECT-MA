@@ -8,7 +8,6 @@
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "Abilities/GameplayAbility.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "MACharacter.generated.h"
 
@@ -28,7 +27,6 @@ public:
 	void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const; // 이거 문제때문에임
 	
 	virtual void PossessedBy(AController* NewController) override;
 	

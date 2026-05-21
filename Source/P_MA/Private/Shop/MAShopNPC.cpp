@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Convenience/MAInteractableComponent.h"
 #include "Convenience/MAHighlightComponent.h"
+#include "Framework/MAGameMode.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
@@ -51,7 +52,30 @@ AMAShopNPC::AMAShopNPC()
 void AMAShopNPC::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority()) RefreshStock();
+	SetTemporaryShopVisible(bTemporaryShopVisible);
+	if (!HasAuthority()) return;
+
+	RefreshStock();
+
+	if (AMAGameMode* GameMode = GetWorld()->GetAuthGameMode<AMAGameMode>())
+	{
+		GameMode->OnMASectorStateChanged.RemoveAll(this);
+		GameMode->OnMASectorStateChanged.AddUObject(this, &AMAShopNPC::HandleSectorStateChanged);
+		SetTemporaryShopVisible(GameMode->GetMASectorState() == TemporaryVisibleState);
+	}
+}
+
+void AMAShopNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority())
+	{
+		if (AMAGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMAGameMode>() : nullptr)
+		{
+			GameMode->OnMASectorStateChanged.RemoveAll(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMAShopNPC::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -59,6 +83,7 @@ void AMAShopNPC::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AMAShopNPC, CurrentStockEntries);
+	DOREPLIFETIME(AMAShopNPC, bTemporaryShopVisible);
 }
 
 bool AMAShopNPC::RequestPurchase(APlayerController* PlayerController, int32 StockId)
@@ -99,6 +124,43 @@ void AMAShopNPC::RefreshStock()
 	ForceNetUpdate();
 
 	if (ActiveShopWidget) ActiveShopWidget->RefreshStock();
+}
+
+void AMAShopNPC::HandleSectorStateChanged(EMASectorState NewState)
+{
+	if (NewState == RefreshStockState) RefreshStock();
+	SetTemporaryShopVisible(NewState == TemporaryVisibleState);
+}
+
+void AMAShopNPC::SetTemporaryShopVisible(bool bVisible)
+{
+	if (HasAuthority() && bTemporaryShopVisible != bVisible)
+	{
+		bTemporaryShopVisible = bVisible;
+		ForceNetUpdate();
+	}
+
+	SetActorHiddenInGame(!bVisible);
+	if (InteractableComponent)
+	{
+		InteractableComponent->SetCollisionEnabled(bVisible ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+	}
+	if (!bVisible)
+	{
+		if (HighlightComponent)
+		{
+			HighlightComponent->SetHighlighted(false);
+		}
+		if (ActiveShopWidget)
+		{
+			CloseShop(ActiveShopWidget->GetOwningPlayer());
+		}
+	}
+}
+
+void AMAShopNPC::OnRep_TemporaryShopVisible()
+{
+	SetTemporaryShopVisible(bTemporaryShopVisible);
 }
 
 void AMAShopNPC::CloseShop(APlayerController* PlayerController)
@@ -148,6 +210,7 @@ void AMAShopNPC::CloseShop(APlayerController* PlayerController)
 
 void AMAShopNPC::HandleInteract(AMAPlayerCharacter* Interactor)
 {
+	if (!bTemporaryShopVisible) return;
 	OpenShopFor(Interactor);
 }
 
