@@ -22,7 +22,7 @@ void UMASkillModuleInventoryWidget::RefreshSlots()
 	if (!SlotContainer) return;
 	if (!Inventory) return;
 
-	const TArray<TObjectPtr<UMASkillDefinition>>* Slots = Inventory->GetModuleSlotsForUI();
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* Slots = Inventory->GetModuleSlotsForUI();
 	if (!Slots) return;
 
 	EnsureSlotWidgets(Slots->Num());

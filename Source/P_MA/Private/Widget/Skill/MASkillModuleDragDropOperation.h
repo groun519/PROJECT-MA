@@ -5,7 +5,7 @@
 #include "MASkillModuleDragDropOperation.generated.h"
 
 class UActorComponent;
-class UMASkillDefinition;
+class UMASkillModuleInstance;
 
 UCLASS()
 class P_MA_API UMASkillModuleDragDropOperation : public UDragDropOperation
@@ -14,6 +14,6 @@ class P_MA_API UMASkillModuleDragDropOperation : public UDragDropOperation
 
 public:
 	TWeakObjectPtr<UActorComponent> SourceOwner;
-	const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots = nullptr;
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots = nullptr;
 	int32 SourceIndex = INDEX_NONE;
 };

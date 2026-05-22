@@ -6,6 +6,10 @@
 #include "MASkillModuleInventoryComponent.generated.h"
 
 class UMASkillDefinition;
+class UMASkillModuleInstance;
+class UActorChannel;
+class FOutBunch;
+struct FReplicationFlags;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillModuleInventoryChangedSignature);
 
@@ -18,18 +22,19 @@ public:
 	UMASkillModuleInventoryComponent();
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 	FMASkillModuleInventoryChangedSignature OnInventoryChanged;
 
 	bool RequestGrantModule(UMASkillDefinition* Definition);
 	bool RequestMoveModuleSlot(
-		const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 		int32 SourceIndex,
 		UActorComponent* TargetOwner,
-		const TArray<TObjectPtr<UMASkillDefinition>>* TargetSlots,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 		int32 TargetIndex);
 	bool RequestMoveSkillSlotToInventorySlot(EMAAbilityInputID InputID, int32 ModuleIndex, int32 TargetSlotIndex);
-	const TArray<TObjectPtr<UMASkillDefinition>>* GetModuleSlotsForUI();
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI();
 
 private:
 	bool AddModule(UMASkillDefinition* Definition);
@@ -39,7 +44,6 @@ private:
 	bool MoveSkillSlotToInventorySlot(EMAAbilityInputID InputID, int32 ModuleIndex, int32 TargetSlotIndex);
 	bool IsValidSlotIndex(int32 SlotIndex) const;
 	void EnsureSlotCount();
-
 	UFUNCTION(Server, Reliable)
 	void ServerGrantModule(UMASkillDefinition* Definition);
 
@@ -59,5 +63,5 @@ private:
 	int32 MaxSlotCount = 30;
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_Entries)
-	TArray<TObjectPtr<UMASkillDefinition>> Entries;
+	TArray<TObjectPtr<UMASkillModuleInstance>> Entries;
 };

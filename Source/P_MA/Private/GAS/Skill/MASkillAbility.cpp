@@ -37,8 +37,6 @@ void UMASkillAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, 
 {
 	Super::OnGiveAbility(ActorInfo, Spec);
 
-	UpdateCurrentSkillDefinition(Cast<UMASkillDefinition>(Spec.SourceObject.Get()));
-
 	if (const AMACharacter* OwnerCharacter = Cast<AMACharacter>(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr))
 	{
 		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())

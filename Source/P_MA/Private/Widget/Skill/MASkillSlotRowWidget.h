@@ -8,6 +8,7 @@
 class UMASkillIconWidget;
 class UMASkillDefinition;
 class UMASkillManagerComponent;
+class UMASkillModuleInstance;
 class UMASkillModuleSocketWidget;
 class AMAPlayerController;
 class UHorizontalBox;
@@ -43,7 +44,7 @@ private:
 	void HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID);
 	void RefreshHotkeyText();
 
-	void RebuildModuleSockets(const TArray<TObjectPtr<UMASkillDefinition>>* InSkillDefinitions);
+	void RebuildModuleSockets(const TArray<TObjectPtr<UMASkillModuleInstance>>* InModuleInstances);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;

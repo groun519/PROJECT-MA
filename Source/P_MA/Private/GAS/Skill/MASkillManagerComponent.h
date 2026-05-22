@@ -9,19 +9,23 @@
 class UMASkillAbility;
 class UMASkillDefinition;
 class UMASkillGenericDataAsset;
+class UMASkillModuleInstance;
+class UActorChannel;
+class FOutBunch;
+struct FReplicationFlags;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, EMAAbilityInputID);
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FMASkillDefinitionStack
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Skill")
+	UPROPERTY(Transient)
 	EMAAbilityInputID InputID = EMAAbilityInputID::None;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Skill")
-	TArray<TObjectPtr<UMASkillDefinition>> SourceDefinitions;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMASkillModuleInstance>> SourceModuleInstances;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillDefinition> AssembledDefinition = nullptr;
@@ -37,9 +41,18 @@ struct FMASkillSlotStack
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Skill")
 	EMAAbilityInputID InputID = EMAAbilityInputID::None;
+};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Skill")
-	TArray<TObjectPtr<UMASkillDefinition>> Definitions;
+USTRUCT()
+struct FMASkillReplicatedSlotStack
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	EMAAbilityInputID InputID = EMAAbilityInputID::None;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMASkillModuleInstance>> ModuleInstances;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -50,18 +63,22 @@ class P_MA_API UMASkillManagerComponent : public UActorComponent
 public:
 	UMASkillManagerComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	void InitializeGrantedAbilities();
 	void PrepareSkillSlotStacksForUI();
 
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
-
-	bool AddDefinition(EMAAbilityInputID InputID, UMASkillDefinition* Definition);
 
 	bool ReplaceDefinitionAt(
 		EMAAbilityInputID InputID,
 		int32 DefinitionIndex,
 		UMASkillDefinition* NewDefinition,
 		UMASkillDefinition*& OutPreviousDefinition);
+	bool ReplaceModuleInstanceAt(
+		EMAAbilityInputID InputID,
+		int32 ModuleIndex,
+		UMASkillModuleInstance* NewModuleInstance,
+		UMASkillModuleInstance*& OutPreviousModuleInstance);
 
 	bool RequestSwapDefinitionSlotsBetween(
 		EMAAbilityInputID InputIDA,
@@ -69,14 +86,14 @@ public:
 		EMAAbilityInputID InputIDB,
 		int32 IndexB);
 	bool RequestMoveDefinitionSlot(
-		const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 		int32 SourceIndex,
 		UActorComponent* TargetOwner,
-		const TArray<TObjectPtr<UMASkillDefinition>>* TargetSlots,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 		int32 TargetIndex);
 
-	const TArray<TObjectPtr<UMASkillDefinition>>* GetDefinitionSlotsForUI(EMAAbilityInputID InputID);
-	bool FindInputIDForDefinitionSlots(const TArray<TObjectPtr<UMASkillDefinition>>* DefinitionSlots, EMAAbilityInputID& OutInputID) const;
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetDefinitionSlotsForUI(EMAAbilityInputID InputID);
+	bool FindInputIDForDefinitionSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* DefinitionSlots, EMAAbilityInputID& OutInputID) const;
 
 	TArray<EMAAbilityInputID> GetSkillSlotInputIDs() const
 	{
@@ -100,9 +117,8 @@ private:
 	const FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID) const;
 	bool IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const;
 	static bool IsValidDefinitionSlotIndex(int32 Index);
-	static void NormalizeDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
-	static void CopyDefinitionSlots(TArray<TObjectPtr<UMASkillDefinition>>& Target, const TArray<TObjectPtr<UMASkillDefinition>>& Source);
-	static bool HasAnyDefinition(const TArray<TObjectPtr<UMASkillDefinition>>& Definitions);
+	static void NormalizeModuleInstanceSlots(TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
+	static bool HasAnyModuleInstance(const TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	TArray<EMAAbilityInputID> GatherUniqueSkillSlotInputIDs() const;
 	bool CanMutateSkillStacks() const;
 	bool SwapDefinitionSlotsBetween(
@@ -129,7 +145,6 @@ private:
 	UPROPERTY(Transient)
 	TArray<FMASkillDefinitionStack> SkillStacks;
 
-	// TODO: This is an editor/test seed path. Replace with explicit runtime seeding from saved data/loadout before removing fallback reads.
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TArray<FMASkillSlotStack> SkillSlotStacks;
 
@@ -137,5 +152,5 @@ private:
 	TObjectPtr<UMASkillGenericDataAsset> GenericSkillDataAsset;
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotStacks)
-	TArray<FMASkillSlotStack> ReplicatedSkillSlotStacks;
+	TArray<FMASkillReplicatedSlotStack> ReplicatedSkillSlotStacks;
 };

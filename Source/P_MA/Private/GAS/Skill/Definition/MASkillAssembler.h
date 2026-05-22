@@ -3,8 +3,9 @@
 #include "CoreMinimal.h"
 
 class UMASkillDefinition;
+class UMASkillModuleInstance;
 
 struct FMASkillAssembler
 {
-	static UMASkillDefinition* Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillDefinition>>& OrderedDefinitions);
+	static UMASkillDefinition* Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances);
 };

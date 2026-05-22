@@ -1,8 +1,9 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillDefinition>>& OrderedDefinitions)
+UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
 {
 	if (!Outer) return nullptr;
 
@@ -11,8 +12,9 @@ UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TOb
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
-	for (UMASkillDefinition* Definition : OrderedDefinitions)
+	for (const UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
 	{
+		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 		if (!Definition) continue;
 
 		if (!AssembledDefinition)

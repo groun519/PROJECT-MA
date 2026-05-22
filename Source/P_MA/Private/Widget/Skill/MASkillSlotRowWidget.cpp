@@ -53,7 +53,7 @@ void UMASkillSlotRowWidget::NativeDestruct()
 
 void UMASkillSlotRowWidget::Refresh()
 {
-	const TArray<TObjectPtr<UMASkillDefinition>>* Definitions = SkillManager
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleInstances = SkillManager
 		? SkillManager->GetDefinitionSlotsForUI(InputID)
 		: nullptr;
 
@@ -62,7 +62,7 @@ void UMASkillSlotRowWidget::Refresh()
 		SkillIconWidget->SetSkillDefinition(SkillManager ? SkillManager->GetAssembledDefinition(InputID) : nullptr);
 	}
 
-	RebuildModuleSockets(Definitions);
+	RebuildModuleSockets(ModuleInstances);
 }
 
 void UMASkillSlotRowWidget::SetCollapsed(bool bCollapsed)
@@ -105,19 +105,19 @@ void UMASkillSlotRowWidget::RefreshHotkeyText()
 		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(InputID) : nullptr));
 }
 
-void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillDefinition>>* InSkillDefinitions)
+void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillModuleInstance>>* InModuleInstances)
 {
 	if (!ModuleSocketBox) return;
 
 	ModuleSocketBox->ClearChildren();
-	if (!ModuleSocketWidgetClass || !SkillManager || !InSkillDefinitions) return;
+	if (!ModuleSocketWidgetClass || !SkillManager || !InModuleInstances) return;
 
-	for (int32 Index = 0; Index < InSkillDefinitions->Num(); ++Index)
+	for (int32 Index = 0; Index < InModuleInstances->Num(); ++Index)
 	{
 		UMASkillModuleSocketWidget* SocketWidget = CreateWidget<UMASkillModuleSocketWidget>(this, ModuleSocketWidgetClass);
 		if (!SocketWidget) continue;
 
-		SocketWidget->InitializeSocket(SkillManager, InSkillDefinitions, Index);
+		SocketWidget->InitializeSocket(SkillManager, InModuleInstances, Index);
 		ModuleSocketBox->AddChildToHorizontalBox(SocketWidget);
 	}
 }

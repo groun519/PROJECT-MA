@@ -5,6 +5,7 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
@@ -13,7 +14,7 @@
 
 void UMASkillModuleSocketWidget::InitializeSocket(
 	UActorComponent* InSlotOwner,
-	const TArray<TObjectPtr<UMASkillDefinition>>* InSlotArray,
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* InSlotArray,
 	int32 InSlotIndex)
 {
 	SlotOwner = InSlotOwner;
@@ -39,7 +40,8 @@ void UMASkillModuleSocketWidget::Refresh()
 
 UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
 {
-	return IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
+	const UMASkillModuleInstance* ModuleInstance = IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
+	return ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 }
 
 bool UMASkillModuleSocketWidget::IsValidSlot() const
@@ -229,7 +231,7 @@ void UMASkillModuleSocketWidget::SetDraggedSourceVisual(bool bDragged)
 
 bool UMASkillModuleSocketWidget::HandleDropFrom(
 	UActorComponent* SourceOwner,
-	const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 	int32 SourceIndex)
 {
 	if (!SourceOwner || !SourceSlots || SourceIndex == INDEX_NONE || !IsValidSlot()) return false;

@@ -7,6 +7,7 @@
 class UActorComponent;
 class UImage;
 class UMASkillDefinition;
+class UMASkillModuleInstance;
 class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
 
@@ -18,7 +19,7 @@ class P_MA_API UMASkillModuleSocketWidget : public UUserWidget
 public:
 	void InitializeSocket(
 		UActorComponent* InSlotOwner,
-		const TArray<TObjectPtr<UMASkillDefinition>>* InSlotArray,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* InSlotArray,
 		int32 InSlotIndex);
 	void Refresh();
 
@@ -55,12 +56,12 @@ private:
 	void SetDraggedSourceVisual(bool bDragged);
 	bool HandleDropFrom(
 		UActorComponent* SourceOwner,
-		const TArray<TObjectPtr<UMASkillDefinition>>* SourceSlots,
+		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 		int32 SourceIndex);
 	bool IsSelfDragOperation(const UDragDropOperation* Operation) const;
 
 	TWeakObjectPtr<UActorComponent> SlotOwner;
-	const TArray<TObjectPtr<UMASkillDefinition>>* SlotArray = nullptr;
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* SlotArray = nullptr;
 	int32 SlotIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
