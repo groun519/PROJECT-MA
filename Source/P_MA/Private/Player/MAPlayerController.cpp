@@ -254,19 +254,6 @@ void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString
 	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
 }
 
-void AMAPlayerController::ServerNotifyLoaded_Implementation()
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadingComplete(true);
-	}
-
-	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
-	{
-		GI->UpdateLoadingStatus();
-	}
-}
-
 void AMAPlayerController::ServerSetLoadoutSelection_Implementation(const FLoadoutSelection& Loadout)
 {
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())

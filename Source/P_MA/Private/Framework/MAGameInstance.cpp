@@ -13,7 +13,7 @@
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
-#include "Player/MAPlayerController.h"
+#include "Player/MAPlayerControllerBase.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Framework/LoadoutSaveGame.h"
@@ -329,7 +329,7 @@ bool UMAGameInstance::TrySendLocalLoadedNotify()
 {
 	if (bLocalLoadedNotifySent) return true;
 
-	AMAPlayerController* LocalController = Cast<AMAPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	AMAPlayerControllerBase* LocalController = Cast<AMAPlayerControllerBase>(UGameplayStatics::GetPlayerController(this, 0));
 	if (!LocalController)
 	{
 		return false;

@@ -25,6 +25,9 @@ public:
 	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void SetupInputComponent() override;
 
+	UFUNCTION(Server, Reliable)
+	void ServerNotifyLoaded();
+
 	UMAPlayerCameraDirectorComponent* GetCameraDirector() const { return CameraDirectorComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")

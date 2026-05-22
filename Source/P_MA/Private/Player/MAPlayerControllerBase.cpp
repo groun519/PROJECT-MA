@@ -3,8 +3,10 @@
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Framework/MAGameInstance.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/MAPlayerState.h"
 #include "Widget/Settings/SettingsWidget.h"
 #include "Widget/System/SystemMenuWidget.h"
 
@@ -55,6 +57,19 @@ void AMAPlayerControllerBase::SetupInputComponent()
 		{
 			EnhancedInputComp->BindAction(SystemMenuToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerControllerBase::ToggleSystemMenu);
 		}
+	}
+}
+
+void AMAPlayerControllerBase::ServerNotifyLoaded_Implementation()
+{
+	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
+	{
+		PS->SetLoadingComplete(true);
+	}
+
+	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
+	{
+		GI->UpdateLoadingStatus();
 	}
 }
 

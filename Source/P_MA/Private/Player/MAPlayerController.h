@@ -51,9 +51,6 @@ public:
 	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color);
 
-	UFUNCTION(Server, Reliable)
-	void ServerNotifyLoaded();
-
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoadoutSelection(const FLoadoutSelection& Loadout);
