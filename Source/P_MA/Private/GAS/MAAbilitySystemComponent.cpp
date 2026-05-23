@@ -36,11 +36,27 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 
 	for (const TPair<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
 	{
+		if (!AbilityPair.Value)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid initial ability. Owner=%s InputID=%d"),
+				*GetNameSafe(GetOwner()),
+				static_cast<int32>(AbilityPair.Key));
+			continue;
+		}
+
 		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 0, (int32)AbilityPair.Key, nullptr));
 	}
 
 	for (const TPair<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
 	{
+		if (!AbilityPair.Value)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid basic ability. Owner=%s InputID=%d"),
+				*GetNameSafe(GetOwner()),
+				static_cast<int32>(AbilityPair.Key));
+			continue;
+		}
+
 		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
 	}
 
@@ -48,6 +64,12 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 
 	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
 	{
+		if (!PassiveAbility)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid passive ability. Owner=%s"), *GetNameSafe(GetOwner()));
+			continue;
+		}
+
 		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
 	}
 }

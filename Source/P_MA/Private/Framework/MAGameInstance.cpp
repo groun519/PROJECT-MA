@@ -189,6 +189,7 @@ void UMAGameInstance::StartLoadingScreen()
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	bLoadingScreenActive = true;
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	LoadingStatusLastUpdateSeconds = FPlatformTime::Seconds();
 
@@ -228,6 +229,7 @@ void UMAGameInstance::StopLoadingScreen()
 
 	bLoadingScreenActive = false;
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	GetMoviePlayer()->StopMovie();
 	LoadingScreenSlateWidget.Reset();
@@ -252,6 +254,7 @@ void UMAGameInstance::StopLoadingScreen()
 void UMAGameInstance::HandlePreLoadMap(const FString& MapName)
 {
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	if (UWorld* World = GetWorld())
 	{
@@ -347,8 +350,11 @@ bool UMAGameInstance::TrySendLocalLoadedNotify()
 
 void UMAGameInstance::NotifyLocalLoadingVisualComplete()
 {
-	if (bLocalLoadedNotifySent || !bLocalMainMapLoaded) return;
-	TrySendLocalLoadedNotify();
+	bLocalLoadingVisualComplete = true;
+	if (bLocalMainMapLoaded && !bLocalLoadedNotifySent)
+	{
+		TrySendLocalLoadedNotify();
+	}
 }
 
 /** Online **/
@@ -370,6 +376,11 @@ void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
 void UMAGameInstance::HandleBeginFrame()
 {
 	if (!bLoadingScreenActive) return;
+
+	if (bLocalMainMapLoaded && bLocalLoadingVisualComplete && !bLocalLoadedNotifySent)
+	{
+		TrySendLocalLoadedNotify();
+	}
 
 	if (LoadingScreenSlateWidget.IsValid() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{
