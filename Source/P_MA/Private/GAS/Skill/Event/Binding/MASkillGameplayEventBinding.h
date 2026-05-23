@@ -5,7 +5,7 @@
 #include "MASkillGameplayEventBinding.generated.h"
 
 class UMASkillAction;
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 
 USTRUCT(BlueprintType)
 struct P_MA_API FMASkillGameplayEventBinding
@@ -22,7 +22,7 @@ struct P_MA_API FMASkillGameplayEventBinding
 	TObjectPtr<UMASkillAction> Action;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillRuntimeScope> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
 };
 
 

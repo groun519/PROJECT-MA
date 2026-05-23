@@ -38,7 +38,7 @@ void UMASkillSlotWidget::RebuildSlotRows()
 	SlotRowsBox->ClearChildren();
 	if (!SkillManager || !SlotRowWidgetClass) return;
 
-	SkillManager->PrepareSkillSlotStacksForUI();
+	SkillManager->PrepareSkillSlotRuntimeStatesForUI();
 	const TArray<EMAAbilityInputID> InputIDs = SkillManager->GetSkillSlotInputIDs();
 	APlayerController* OwningPlayer = GetOwningPlayer();
 	for (const EMAAbilityInputID InputID : InputIDs)

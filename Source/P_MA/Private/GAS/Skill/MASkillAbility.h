@@ -12,7 +12,7 @@ class UAbilityTask_WaitGameplayEvent;
 class UMASkillDefinition;
 class UMASkillEventSource;
 class UMASkillGenericDataAsset;
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 class UMASkillStepManager;
 struct FGameplayEventData;
 
@@ -38,11 +38,11 @@ public:
 	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
 	UFUNCTION()
 	void HandleExternalGameplayEvent(FGameplayEventData Payload);
-	void SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillRuntimeScope* RuntimeScope = nullptr);
-	const UMASkillDefinition* GetCurrentSkillDefinition() const { return CurrentSkillDefinition; }
-	void UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition);
+	void SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope = nullptr);
+	const UMASkillDefinition* GetCurrentSkillDefinition() const;
+	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	UMASkillStepManager* GetStepManager() const { return StepManager; }
-	UMASkillRuntimeScope* GetCurrentRuntimeScope() const;
+	UMASkillModuleInstance* GetCurrentRuntimeScope() const;
 	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }
 	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
 	void EndSkill() { K2_EndAbility(); }
@@ -55,7 +55,7 @@ protected:
 
 private:
 	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
-	void ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition);
+	void ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
@@ -65,12 +65,12 @@ private:
 	void EnsureStepManager();
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> CurrentSkillDefinition;
+	TObjectPtr<UMASkillModuleInstance> CurrentSkillModuleInstance;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> PendingSkillDefinition;
+	TObjectPtr<UMASkillModuleInstance> PendingSkillModuleInstance;
 
-	bool bHasPendingSkillDefinitionUpdate = false;
+	bool bHasPendingSkillModuleInstanceUpdate = false;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> EventTasks;

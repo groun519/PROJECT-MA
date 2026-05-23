@@ -12,9 +12,9 @@
 #include "GAS/Skill/Event/Binding/MASkillGameplayEventBinding.h"
 #include "GAS/Skill/Event/Publish/MASkillGameplayEventScope.h"
 #include "GAS/Skill/Event/Publish/MASkillEventSource.h"
-#include "GAS/Skill/Event/Runtime/MASkillRuntimeScope.h"
 #include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
 UMASkillAbility::UMASkillAbility()
@@ -58,27 +58,32 @@ void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo
 		}
 	}
 
-	UpdateCurrentSkillDefinition(nullptr);
+	UpdateCurrentSkillModuleInstance(nullptr);
 }
 
-void UMASkillAbility::UpdateCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition)
+const UMASkillDefinition* UMASkillAbility::GetCurrentSkillDefinition() const
+{
+	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
+}
+
+void UMASkillAbility::UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance)
 {
 	if (IsActive())
 	{
-		PendingSkillDefinition = SourceSkillDefinition;
-		bHasPendingSkillDefinitionUpdate = true;
+		PendingSkillModuleInstance = SourceSkillModuleInstance;
+		bHasPendingSkillModuleInstanceUpdate = true;
 		return;
 	}
 
-	PendingSkillDefinition = nullptr;
-	bHasPendingSkillDefinitionUpdate = false;
-	ApplyCurrentSkillDefinition(SourceSkillDefinition);
+	PendingSkillModuleInstance = nullptr;
+	bHasPendingSkillModuleInstanceUpdate = false;
+	ApplyCurrentSkillModuleInstance(SourceSkillModuleInstance);
 }
 
-void UMASkillAbility::ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkillDefinition)
+void UMASkillAbility::ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance)
 {
 	UnbindGameplayEvents();
-	if (CurrentSkillDefinition)
+	if (const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition())
 	{
 		for (UMASkillEventSource* RuntimeEventSource : CurrentSkillDefinition->GetEventSources())
 		{
@@ -88,17 +93,13 @@ void UMASkillAbility::ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkil
 	}
 	if (StepManager) StepManager->ResetRuntimeState();
 
-	if (!SourceSkillDefinition)
+	CurrentSkillModuleInstance = SourceSkillModuleInstance;
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
+	if (!CurrentSkillDefinition)
 	{
-		CurrentSkillDefinition = nullptr;
 		return;
 	}
 
-	CurrentSkillDefinition = SourceSkillDefinition->IsRuntimeAssembledDefinition()
-		? SourceSkillDefinition
-		: DuplicateObject<UMASkillDefinition>(SourceSkillDefinition, this);
-
-	if (!CurrentSkillDefinition) return;
 	EnsureStepManager();
 	StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
 	EnsureEventSources();
@@ -107,6 +108,7 @@ void UMASkillAbility::ApplyCurrentSkillDefinition(UMASkillDefinition* SourceSkil
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition) { K2_EndAbility(); return; }
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
@@ -144,12 +146,12 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	}
 
 	PayloadStore.Reset();
-	if (bHasPendingSkillDefinitionUpdate)
+	if (bHasPendingSkillModuleInstanceUpdate)
 	{
-		UMASkillDefinition* NextSkillDefinition = PendingSkillDefinition;
-		PendingSkillDefinition = nullptr;
-		bHasPendingSkillDefinitionUpdate = false;
-		ApplyCurrentSkillDefinition(NextSkillDefinition);
+		UMASkillModuleInstance* NextSkillModuleInstance = PendingSkillModuleInstance;
+		PendingSkillModuleInstance = nullptr;
+		bHasPendingSkillModuleInstanceUpdate = false;
+		ApplyCurrentSkillModuleInstance(NextSkillModuleInstance);
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -158,7 +160,8 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 const FGameplayTag& UMASkillAbility::GetElementalTag() const
 {
 	static const FGameplayTag EmptyTag;
-	static const FGameplayTag DefaultElementalTag = FGameplayTag::RequestGameplayTag(TEXT("Elemental.Default"));
+	static const FGameplayTag DefaultElementalTag = UMAAbilitySystemStatics::GetDefaultElementalTag();
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition) return EmptyTag;
 
 	const FGameplayTag& CurrentElementalTag = CurrentSkillDefinition->GetElementalTag();
@@ -190,9 +193,10 @@ const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() cons
 
 void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 {
-	const UMASkillRuntimeScope* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
+	const UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
 
 	if (StepManager) StepManager->HandleRuntimeEvent(Payload);
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition || !Payload.EventTag.IsValid()) return;
 
 	for (const FMASkillGameplayEventBinding& EventBinding : CurrentSkillDefinition->GetEventBindings())
@@ -211,7 +215,7 @@ void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 	}
 }
 
-void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillRuntimeScope* RuntimeScope)
+void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope)
 {
 	AActor* TargetActor = GetAvatarActorFromActorInfo();
 	if (!TargetActor || !Payload.EventTag.IsValid()) return;
@@ -221,7 +225,7 @@ void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& Payload, 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventPayload.EventTag, EventPayload);
 }
 
-UMASkillRuntimeScope* UMASkillAbility::GetCurrentRuntimeScope() const
+UMASkillModuleInstance* UMASkillAbility::GetCurrentRuntimeScope() const
 {
 	return StepManager
 		? StepManager->GetCurrentRuntimeScope()
@@ -280,6 +284,7 @@ void UMASkillAbility::HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewC
 
 void UMASkillAbility::BindGameplayEvents()
 {
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition || !EventTasks.IsEmpty()) return;
 
 	TSet<FGameplayTag> RequiredEventTags;
@@ -319,6 +324,7 @@ void UMASkillAbility::UnbindGameplayEvents()
 
 void UMASkillAbility::EnsureStepManager()
 {
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition) return;
 
 	if (!StepManager)
@@ -330,6 +336,7 @@ void UMASkillAbility::EnsureStepManager()
 
 void UMASkillAbility::EnsureEventSources()
 {
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition) return;
 
 	for (UMASkillEventSource* RuntimeEventSource : CurrentSkillDefinition->GetEventSources())

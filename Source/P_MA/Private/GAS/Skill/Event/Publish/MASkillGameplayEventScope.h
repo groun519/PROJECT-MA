@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTypes.h"
 
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 
 class MASkillGameplayEventScope final
 {
 public:
-	static void InjectRuntimeScope(FGameplayEventData& Payload, UMASkillRuntimeScope* InRuntimeScope);
-	static const UMASkillRuntimeScope* ExtractRuntimeScope(const FGameplayEventData& Payload);
+	static void InjectRuntimeScope(FGameplayEventData& Payload, UMASkillModuleInstance* InRuntimeScope);
+	static const UMASkillModuleInstance* ExtractRuntimeScope(const FGameplayEventData& Payload);
 
 private:
 	MASkillGameplayEventScope() = delete;

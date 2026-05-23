@@ -3,28 +3,33 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
+UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
 {
 	if (!Outer) return nullptr;
 
+	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
 	UMASkillDefinition* AssembledDefinition = nullptr;
 	TMap<int32, FText> NameKeywordsByPriority;
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
-	for (const UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
+	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
 	{
 		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 		if (!Definition) continue;
 
 		if (!AssembledDefinition)
 		{
-			AssembledDefinition = NewObject<UMASkillDefinition>(Outer);
+			AssembledModuleInstance = NewObject<UMASkillModuleInstance>(Outer);
+			if (!AssembledModuleInstance) return nullptr;
+
+			AssembledDefinition = NewObject<UMASkillDefinition>(AssembledModuleInstance);
 			if (!AssembledDefinition) return nullptr;
 			AssembledDefinition->ResetAssemblyData();
+			AssembledModuleInstance->SetDefinition(AssembledDefinition);
 		}
 
-		AssembledDefinition->AppendFrom(*Definition);
+		AssembledDefinition->AppendFrom(ModuleInstance);
 
 		const FMASkillDefinitionDisplayData& DisplayData = Definition->DisplayData;
 		const FMASkillDefinitionIconData& IconData = DisplayData.IconData;
@@ -77,5 +82,5 @@ UMASkillDefinition* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TOb
 		AssembledDefinition->DisplayData.NameData.Keyword = FText::FromString(AssembledName);
 	}
 
-	return AssembledDefinition;
+	return AssembledModuleInstance;
 }

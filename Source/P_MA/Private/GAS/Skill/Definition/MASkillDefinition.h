@@ -10,7 +10,7 @@
 #include "MASkillDefinition.generated.h"
 
 class UMASkillEventSource;
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 class UTexture2D;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
@@ -76,7 +76,6 @@ public:
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
-	bool IsRuntimeAssembledDefinition() const { return bIsRuntimeAssembledDefinition; }
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
 	{
@@ -88,7 +87,7 @@ public:
 
 private:
 	void ResetAssemblyData();
-	void AppendFrom(const UMASkillDefinition& Other);
+	void AppendFrom(UMASkillModuleInstance* SourceModuleInstance);
 
 	friend struct FMASkillAssembler;
 
@@ -119,6 +118,4 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Payload")
 	TArray<FMASkillPayloadEntry> Payloads;
 
-	UPROPERTY(Transient)
-	bool bIsRuntimeAssembledDefinition = false;
 };

@@ -101,7 +101,7 @@ bool UMASkillModuleInventoryComponent::RequestMoveModuleSlot(
 	if (!TargetSkillManager) return false;
 
 	EMAAbilityInputID TargetInputID = EMAAbilityInputID::None;
-	if (!TargetSkillManager->FindInputIDForDefinitionSlots(TargetSlots, TargetInputID)) return false;
+	if (!TargetSkillManager->FindInputIDForModuleSlots(TargetSlots, TargetInputID)) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;

@@ -6,7 +6,7 @@
 #include "MASkillStepManager.generated.h"
 
 class UMASkillAbility;
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 struct FGameplayEventData;
 
 UCLASS()
@@ -33,7 +33,7 @@ public:
 	void StopActiveStep(float MontageBlendOutTime = 0.f);
 	void ClearPreparedStepPreviews(int32 ExceptStepIndex = INDEX_NONE) const;
 	bool IsCurrentStepPrepared() const { return CurrentStepStartMode == EMASkillStepStartMode::Prepared; }
-	UMASkillRuntimeScope* GetCurrentRuntimeScope() const;
+	UMASkillModuleInstance* GetCurrentRuntimeScope() const;
 
 private:
 	void HandleSkillActivated();

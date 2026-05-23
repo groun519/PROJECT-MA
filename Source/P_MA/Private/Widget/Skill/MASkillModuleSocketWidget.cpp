@@ -1,4 +1,4 @@
-﻿#include "Widget/Skill/MASkillModuleSocketWidget.h"
+#include "Widget/Skill/MASkillModuleSocketWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
@@ -238,7 +238,7 @@ bool UMASkillModuleSocketWidget::HandleDropFrom(
 
 	if (UMASkillManagerComponent* SourceSkillManager = Cast<UMASkillManagerComponent>(SourceOwner))
 	{
-		return SourceSkillManager->RequestMoveDefinitionSlot(
+		return SourceSkillManager->RequestMoveModuleSlot(
 			SourceSlots,
 			SourceIndex,
 			SlotOwner.Get(),

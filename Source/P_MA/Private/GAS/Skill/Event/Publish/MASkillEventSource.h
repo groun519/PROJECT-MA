@@ -6,8 +6,8 @@
 #include "MASkillEventSource.generated.h"
 
 class UMASkillAbility;
+class UMASkillModuleInstance;
 class UMASkillPayloadWriter;
-class UMASkillRuntimeScope;
 struct FGameplayEventData;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
@@ -20,8 +20,8 @@ public:
 	void DeinitializeRuntime();
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() {}
-	void SetRuntimeScope(UMASkillRuntimeScope* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
-	UMASkillRuntimeScope* GetRuntimeScope() const { return RuntimeScope; }
+	void SetRuntimeScope(UMASkillModuleInstance* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
+	UMASkillModuleInstance* GetRuntimeScope() const { return RuntimeScope; }
 
 protected:
 	void EmitEvent() const;
@@ -43,6 +43,6 @@ protected:
 	TObjectPtr<UMASkillAbility> OwnerSkillAbility;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillRuntimeScope> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
 };
 

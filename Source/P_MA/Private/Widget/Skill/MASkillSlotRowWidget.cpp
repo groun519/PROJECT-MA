@@ -54,7 +54,7 @@ void UMASkillSlotRowWidget::NativeDestruct()
 void UMASkillSlotRowWidget::Refresh()
 {
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleInstances = SkillManager
-		? SkillManager->GetDefinitionSlotsForUI(InputID)
+		? SkillManager->GetModuleSlotsForUI(InputID)
 		: nullptr;
 
 	if (SkillIconWidget)

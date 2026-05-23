@@ -10,7 +10,7 @@ class UMASkillAbility;
 class UMASkillStepManager;
 class UAnimInstance;
 class UAbilityTask_PlayMontageAndWait;
-class UMASkillRuntimeScope;
+class UMASkillModuleInstance;
 struct FGameplayEventData;
 
 UENUM()
@@ -39,8 +39,8 @@ public:
 		NextMontageStepIndex = InNextMontageStepIndex;
 		RuntimeSequenceSectionIndex = FMath::Max(InInitialSequenceSectionIndex, 0);
 	}
-	void SetRuntimeScope(UMASkillRuntimeScope* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
-	UMASkillRuntimeScope* GetRuntimeScope() const { return RuntimeScope; }
+	void SetRuntimeScope(UMASkillModuleInstance* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
+	UMASkillModuleInstance* GetRuntimeScope() const { return RuntimeScope; }
 
 	virtual void StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode);
 	void EnterStep(EMASkillStepStartMode StartMode)
@@ -129,7 +129,7 @@ protected:
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillRuntimeScope> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
 
 	int32 ResolveCurrentSequenceSectionIndex() const;
 	int32 ResolveNextSequenceSectionIndex() const;

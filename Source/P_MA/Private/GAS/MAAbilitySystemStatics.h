@@ -48,6 +48,8 @@ public:
 	static FGameplayTag GetMeleeActionTag();
 	static FGameplayTag GetProjectileActionTag();
 	static FGameplayTag GetTargetingActionTag();
+
+	static FGameplayTag GetDefaultElementalTag();
 	
 	static FGameplayTag GetMontageDamageTag();
 	static FGameplayTag GetMontageProjectileTag();

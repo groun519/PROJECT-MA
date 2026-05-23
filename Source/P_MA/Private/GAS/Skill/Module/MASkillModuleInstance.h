@@ -18,6 +18,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UMASkillDefinition* GetDefinition() const { return Definition; }
+	void SetDefinition(UMASkillDefinition* InDefinition) { Definition = InDefinition; }
 	bool IsValid() const { return Definition != nullptr; }
 
 private:

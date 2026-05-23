@@ -7,5 +7,5 @@ class UMASkillModuleInstance;
 
 struct FMASkillAssembler
 {
-	static UMASkillDefinition* Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances);
+	static UMASkillModuleInstance* Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances);
 };

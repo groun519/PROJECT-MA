@@ -86,6 +86,11 @@ FGameplayTag UMAAbilitySystemStatics::GetTargetingActionTag()
 	return FGameplayTag::RequestGameplayTag("Ability.Action.Targeting");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetDefaultElementalTag()
+{
+	return FGameplayTag::RequestGameplayTag("Elemental.Default");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");

@@ -17,7 +17,7 @@ struct FReplicationFlags;
 DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, EMAAbilityInputID);
 
 USTRUCT()
-struct FMASkillDefinitionStack
+struct FMASkillSlotRuntimeState
 {
 	GENERATED_BODY()
 
@@ -28,7 +28,7 @@ struct FMASkillDefinitionStack
 	TArray<TObjectPtr<UMASkillModuleInstance>> SourceModuleInstances;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> AssembledDefinition = nullptr;
+	TObjectPtr<UMASkillModuleInstance> AssembledModuleInstance = nullptr;
 
 	UPROPERTY(Transient)
 	FGameplayAbilitySpecHandle AbilityHandle;
@@ -44,7 +44,7 @@ struct FMASkillSlotStack
 };
 
 USTRUCT()
-struct FMASkillReplicatedSlotStack
+struct FMASkillReplicatedSlotRuntimeState
 {
 	GENERATED_BODY()
 
@@ -65,13 +65,13 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	void InitializeGrantedAbilities();
-	void PrepareSkillSlotStacksForUI();
+	void PrepareSkillSlotRuntimeStatesForUI();
 
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
 	bool ReplaceDefinitionAt(
 		EMAAbilityInputID InputID,
-		int32 DefinitionIndex,
+		int32 ModuleIndex,
 		UMASkillDefinition* NewDefinition,
 		UMASkillDefinition*& OutPreviousDefinition);
 	bool ReplaceModuleInstanceAt(
@@ -80,20 +80,20 @@ public:
 		UMASkillModuleInstance* NewModuleInstance,
 		UMASkillModuleInstance*& OutPreviousModuleInstance);
 
-	bool RequestSwapDefinitionSlotsBetween(
+	bool RequestSwapModuleSlotsBetween(
 		EMAAbilityInputID InputIDA,
 		int32 IndexA,
 		EMAAbilityInputID InputIDB,
 		int32 IndexB);
-	bool RequestMoveDefinitionSlot(
+	bool RequestMoveModuleSlot(
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 		int32 SourceIndex,
 		UActorComponent* TargetOwner,
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 		int32 TargetIndex);
 
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetDefinitionSlotsForUI(EMAAbilityInputID InputID);
-	bool FindInputIDForDefinitionSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* DefinitionSlots, EMAAbilityInputID& OutInputID) const;
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(EMAAbilityInputID InputID);
+	bool FindInputIDForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, EMAAbilityInputID& OutInputID) const;
 
 	TArray<EMAAbilityInputID> GetSkillSlotInputIDs() const
 	{
@@ -110,40 +110,40 @@ public:
 private:
 	static constexpr int32 SkillModuleSlotCount = 8;
 
-	FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID);
-	const FMASkillDefinitionStack* FindStack(EMAAbilityInputID InputID) const;
-	FMASkillDefinitionStack& FindOrAddStack(EMAAbilityInputID InputID);
+	FMASkillSlotRuntimeState* FindSlotRuntimeState(EMAAbilityInputID InputID);
+	const FMASkillSlotRuntimeState* FindSlotRuntimeState(EMAAbilityInputID InputID) const;
+	FMASkillSlotRuntimeState& FindOrAddSlotRuntimeState(EMAAbilityInputID InputID);
 	FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID);
 	const FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID) const;
 	bool IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const;
-	static bool IsValidDefinitionSlotIndex(int32 Index);
+	static bool IsValidModuleSlotIndex(int32 Index);
 	static void NormalizeModuleInstanceSlots(TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	static bool HasAnyModuleInstance(const TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	TArray<EMAAbilityInputID> GatherUniqueSkillSlotInputIDs() const;
-	bool CanMutateSkillStacks() const;
-	bool SwapDefinitionSlotsBetween(
+	bool CanMutateSkillSlots() const;
+	bool SwapModuleSlotsBetween(
 		EMAAbilityInputID InputIDA,
 		int32 IndexA,
 		EMAAbilityInputID InputIDB,
 		int32 IndexB);
 
 	UFUNCTION(Server, Reliable)
-	void ServerSwapDefinitionSlotsBetween(
+	void ServerSwapModuleSlotsBetween(
 		EMAAbilityInputID InputIDA,
 		int32 IndexA,
 		EMAAbilityInputID InputIDB,
 		int32 IndexB);
 
 	UFUNCTION()
-	void OnRep_ReplicatedSkillSlotStacks();
+	void OnRep_ReplicatedSkillSlotRuntimeStates();
 
-	void ApplyReplicatedSkillSlotStacks();
-	void UpdateReplicatedSkillSlotStack(const FMASkillDefinitionStack& SkillStack);
-	void RefreshAbilityDefinition(FMASkillDefinitionStack& SkillStack);
-	UMASkillAbility* ResolveSkillAbility(const FMASkillDefinitionStack& SkillStack) const;
+	void ApplyReplicatedSkillSlotRuntimeStates();
+	void UpdateReplicatedSkillSlotRuntimeState(const FMASkillSlotRuntimeState& SlotState);
+	void RefreshAbilityDefinition(FMASkillSlotRuntimeState& SlotState);
+	UMASkillAbility* ResolveSkillAbility(const FMASkillSlotRuntimeState& SlotState) const;
 
 	UPROPERTY(Transient)
-	TArray<FMASkillDefinitionStack> SkillStacks;
+	TArray<FMASkillSlotRuntimeState> SkillSlotRuntimeStates;
 
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TArray<FMASkillSlotStack> SkillSlotStacks;
@@ -151,6 +151,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TObjectPtr<UMASkillGenericDataAsset> GenericSkillDataAsset;
 
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotStacks)
-	TArray<FMASkillReplicatedSlotStack> ReplicatedSkillSlotStacks;
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotRuntimeStates)
+	TArray<FMASkillReplicatedSlotRuntimeState> ReplicatedSkillSlotRuntimeStates;
 };

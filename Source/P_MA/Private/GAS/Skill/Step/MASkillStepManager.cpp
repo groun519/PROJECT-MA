@@ -208,7 +208,7 @@ void UMASkillStepManager::ClearPreparedStepPreviews(int32 ExceptStepIndex) const
 	}
 }
 
-UMASkillRuntimeScope* UMASkillStepManager::GetCurrentRuntimeScope() const
+UMASkillModuleInstance* UMASkillStepManager::GetCurrentRuntimeScope() const
 {
 	if (const UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
