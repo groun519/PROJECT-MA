@@ -140,11 +140,11 @@ static TArray<FHitResult> ResolveShapeHitResults(
 	return HitResults;
 }
 
-void UMASkillAction_MeleeOverlapShape::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&)
+void UMASkillAction_MeleeOverlapShape::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
-	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetPayloadStore();
+	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetAssembledModulePayloadStore();
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
 	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig);
 

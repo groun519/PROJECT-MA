@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAGameplayAbility.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
@@ -15,6 +14,7 @@ class UMASkillGenericDataAsset;
 class UMASkillModuleInstance;
 class UMASkillStepManager;
 struct FGameplayEventData;
+struct FMASkillPayloadStore;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillAbilityLifecycleDelegate);
 
@@ -34,8 +34,8 @@ public:
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const;
 	const UDataTable* GetOverlapDecalDataTable() const;
-	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
-	const FMASkillPayloadStore& GetPayloadStore() const { return PayloadStore; }
+	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* RuntimeScope) const;
+	FMASkillPayloadStore& GetAssembledModulePayloadStore();
 	UFUNCTION()
 	void HandleExternalGameplayEvent(FGameplayEventData Payload);
 	void SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope = nullptr);
@@ -77,9 +77,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillStepManager> StepManager;
-
-	UPROPERTY(Transient)
-	FMASkillPayloadStore PayloadStore;
 
 	FMASkillAbilityLifecycleDelegate SkillActivatedDelegate;
 	FMASkillAbilityLifecycleDelegate SkillDeactivatedDelegate;

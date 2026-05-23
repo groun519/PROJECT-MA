@@ -7,8 +7,8 @@ void MASkillGameplayEventScope::InjectRuntimeScope(FGameplayEventData& Payload, 
 	Payload.OptionalObject = InRuntimeScope;
 }
 
-const UMASkillModuleInstance* MASkillGameplayEventScope::ExtractRuntimeScope(const FGameplayEventData& Payload)
+UMASkillModuleInstance* MASkillGameplayEventScope::ExtractRuntimeScope(FGameplayEventData& Payload)
 {
-	return Cast<UMASkillModuleInstance>(Payload.OptionalObject);
+	return const_cast<UMASkillModuleInstance*>(Cast<UMASkillModuleInstance>(Payload.OptionalObject));
 }
 

@@ -66,6 +66,17 @@ const UMASkillDefinition* UMASkillAbility::GetCurrentSkillDefinition() const
 	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
 }
 
+FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* RuntimeScope) const
+{
+	return RuntimeScope ? &RuntimeScope->GetPayloadStore() : nullptr;
+}
+
+FMASkillPayloadStore& UMASkillAbility::GetAssembledModulePayloadStore()
+{
+	check(CurrentSkillModuleInstance);
+	return CurrentSkillModuleInstance->GetPayloadStore();
+}
+
 void UMASkillAbility::UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance)
 {
 	if (IsActive())
@@ -112,8 +123,9 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	if (!CurrentSkillDefinition) { K2_EndAbility(); return; }
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
-	PayloadStore.Reset();
-	CurrentSkillDefinition->ApplyPayloadsTo(PayloadStore);
+	FMASkillPayloadStore& AssembledModulePayloadStore = GetAssembledModulePayloadStore();
+	AssembledModulePayloadStore.Reset();
+	CurrentSkillDefinition->ApplyPayloadsTo(AssembledModulePayloadStore);
 	if (StepManager)
 	{
 		StepManager->SetDesiredMontagePlayRate(1.f);
@@ -145,7 +157,10 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 
-	PayloadStore.Reset();
+	if (CurrentSkillModuleInstance)
+	{
+		CurrentSkillModuleInstance->ResetPayloadStore();
+	}
 	if (bHasPendingSkillModuleInstanceUpdate)
 	{
 		UMASkillModuleInstance* NextSkillModuleInstance = PendingSkillModuleInstance;
@@ -193,7 +208,7 @@ const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() cons
 
 void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 {
-	const UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
+	UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
 
 	if (StepManager) StepManager->HandleRuntimeEvent(Payload);
 	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
@@ -211,7 +226,7 @@ void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 			}
 		}
 
-		EventBinding.Action->Execute(*this, Payload);
+		EventBinding.Action->Execute(*this, Payload, RuntimeScope);
 	}
 }
 

@@ -6,6 +6,7 @@
 
 struct FGameplayEventData;
 class UMASkillAbility;
+class UMASkillModuleInstance;
 
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillAction : public UObject
@@ -13,6 +14,6 @@ class P_MA_API UMASkillAction : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload)
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope)
 		PURE_VIRTUAL(UMASkillAction::Execute, );
 };

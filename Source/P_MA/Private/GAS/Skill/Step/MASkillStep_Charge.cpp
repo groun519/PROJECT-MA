@@ -1,7 +1,9 @@
 #include "GAS/Skill/Step/MASkillStep_Charge.h"
 
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 
 UMASkillStep_Charge::UMASkillStep_Charge()
 {
@@ -33,7 +35,7 @@ void UMASkillStep_Charge::HandleInputReleased(float /*TimeHeld*/)
 {
 	StopWaitingInputRelease();
 	StopTimedStep();
-	CommitChargePayload();
+	CommitChargeDamageMultiplier();
 	ChargeStartTime = -1.f;
 	AdvanceOrCompleteOwnerStep();
 }
@@ -59,18 +61,24 @@ void UMASkillStep_Charge::StopWaitingInputRelease()
 void UMASkillStep_Charge::OnTimedStepElapsed()
 {
 	StopWaitingInputRelease();
-	CommitChargePayload();
+	CommitChargeDamageMultiplier();
 	AdvanceOrCompleteOwnerStep();
 }
 
-void UMASkillStep_Charge::CommitChargePayload() const
+void UMASkillStep_Charge::CommitChargeDamageMultiplier() const
 {
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
 	if (!SkillAbility) return;
 
-	SkillAbility->GetPayloadStore().SetScalar(
-		FGameplayTag::RequestGameplayTag(TEXT("Data.Skill.Payload.Scalar.ChargeRatio")),
-		ResolveChargeRatio());
+	FMASkillPayloadStore& PayloadStore = SkillAbility->GetAssembledModulePayloadStore();
+	const FGameplayTag FinalDamageMultiplierTag = UMAAbilitySystemStatics::GetFinalDamageMultiplierTag();
+
+	float CurrentMultiplier = 1.f;
+	PayloadStore.TryGetScalar(FinalDamageMultiplierTag, CurrentMultiplier);
+
+	const float ChargeRatio = ResolveChargeRatio();
+	const float ChargeDamageMultiplier = 1.f + ((FullChargeFinalDamageMultiplier - 1.f) * ChargeRatio);
+	PayloadStore.SetScalar(FinalDamageMultiplierTag, CurrentMultiplier * ChargeDamageMultiplier);
 }
 
 float UMASkillStep_Charge::ResolveChargeRatio() const

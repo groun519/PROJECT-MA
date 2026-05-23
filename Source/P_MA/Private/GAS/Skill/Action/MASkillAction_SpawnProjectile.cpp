@@ -7,9 +7,10 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameFramework/Pawn.h"
 
-void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&)
+void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
 {
 	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
 
@@ -38,7 +39,7 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, cons
 		SpawnParams);
 	if (!Projectile) return;
 
-	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetPayloadStore();
+	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetAssembledModulePayloadStore();
 	FMASkillDamageConfig DamageConfig;
 	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
 

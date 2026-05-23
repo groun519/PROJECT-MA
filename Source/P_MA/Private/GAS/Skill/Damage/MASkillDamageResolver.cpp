@@ -1,9 +1,11 @@
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamage.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamageOverTime.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
 void MASkillDamageResolver::ApplyDamageOverTimeConfig(FGameplayEffectSpecHandle& SpecHandle, const FMASkillDamageOverTimeConfig& DamageOverTime)
@@ -70,6 +72,19 @@ FResolvedSkillHitEffects MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAb
 				: UMAGameplayEffect_SkillDamage::StaticClass(),
 			1,
 			&AppliedExecutionConfig);
+
+		float FinalDamageMultiplier = 1.f;
+		if (OwnerAbility.GetAssembledModulePayloadStore().TryGetScalar(
+			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
+			FinalDamageMultiplier)
+			&& !FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
+			&& ResolvedHitEffects.DamageSpec.IsValid()
+			&& ResolvedHitEffects.DamageSpec.Data.IsValid())
+		{
+			ResolvedHitEffects.DamageSpec.Data->SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
+				FinalDamageMultiplier);
+		}
 
 		if (bApplyDamageOverTime)
 		{

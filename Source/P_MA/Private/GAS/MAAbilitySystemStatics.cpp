@@ -153,10 +153,6 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 
 	TMap<FGameplayTag, float> SummedMagnitudes;
 	SummedMagnitudes.FindOrAdd(GetDamageBaseTag()) += DamageConfig.BaseDamage;
-	if (!FMath::IsNearlyEqual(DamageConfig.FinalDamageMultiplier, 1.f))
-	{
-		SummedMagnitudes.Add(GetFinalDamageMultiplierTag(), DamageConfig.FinalDamageMultiplier);
-	}
 
 	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{

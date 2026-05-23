@@ -34,6 +34,8 @@
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Engine/DataTable.h"
+#include "EngineUtils.h"
+#include "Shop/MAShopNPC.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -309,91 +311,35 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
-// 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
-void AMAPlayerCharacter::SetAttribute(const FString& SkillClassName, const FString& AttributeName)
+
+/** Command **/
+void AMAPlayerCharacter::AddCoin(float Amount)
 {
-	Server_SetAttribute(SkillClassName, AttributeName);
+	Server_AddCoin(Amount);
 }
 
-void AMAPlayerCharacter::Server_SetAttribute_Implementation(const FString& SkillClassName,
-                                                                 const FString& AttributeName)
+void AMAPlayerCharacter::Server_AddCoin_Implementation(float Amount)
 {
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-
-	FGameplayTag AttributeTag = FGameplayTag::RequestGameplayTag("Ability.Attribute");
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(AttributeTag)));
-	FGameplayTag NewTag = FGameplayTag::RequestGameplayTag(FName(*AttributeName));
-	if (NewTag.IsValid() && !AttributeName.Equals("None", ESearchCase::IgnoreCase))
+	if (CurrencyComponent)
 	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewTag);
+		CurrencyComponent->AddCoin(Amount);
 	}
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 
-void AMAPlayerCharacter::SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
+void AMAPlayerCharacter::RefreshShopStock()
 {
-	Server_SetBehavior(SkillClassName, BehaviorTagString);
+	Server_RefreshShopStock();
 }
-void AMAPlayerCharacter::Server_SetBehavior_Implementation(const FString& SkillClassName,
-                                                                const FString& BehaviorTagString)
+
+void AMAPlayerCharacter::Server_RefreshShopStock_Implementation()
 {
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
+	UWorld* World = GetWorld();
+	if (!World) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-
-	// 1. 기존의 모든 Behavior 관련 태그를 제거합니다.
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Behavior"));
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
-
-	// 2. "None"이 아닐 경우에만 새로운 태그를 추가합니다.
-	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*BehaviorTagString));
-	if (NewBehaviorTag.IsValid() && !BehaviorTagString.Equals("None", ESearchCase::IgnoreCase))
+	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
 	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+		It->RefreshStock();
 	}
-
-	// 3. 변경사항을 모든 클라이언트에 동기화합니다.
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
-}
-
-void AMAPlayerCharacter::SetUtility(const FString& SkillClassName, const FString& UtilityName)
-{
-	Server_SetUtility(SkillClassName, UtilityName);
-}
-
-void AMAPlayerCharacter::Server_SetUtility_Implementation(const FString& SkillClassName, const FString& UtilityName)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-	
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Module.Utility"));
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
-	
-	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*UtilityName));
-	if (NewBehaviorTag.IsValid() && !UtilityName.Equals("None", ESearchCase::IgnoreCase))
-	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
-	}
-	
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 //******************************************************************************//
 

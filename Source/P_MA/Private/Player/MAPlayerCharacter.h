@@ -38,18 +38,15 @@ public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
 
+	/** Command **/
 	UFUNCTION(Exec)
-	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	void AddCoin(float Amount = 1000.f);
 	UFUNCTION(Server, Reliable)
-	void Server_SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	void Server_AddCoin(float Amount);
 	UFUNCTION(Exec)
-	void SetAttribute(const FString& SkillClassName, const FString& AttributeName);
+	void RefreshShopStock();
 	UFUNCTION(Server, Reliable)
-	void Server_SetAttribute(const FString& SkillClassName, const FString& AttributeName);
-	UFUNCTION(Exec)
-	void SetUtility(const FString& SkillClassName, const FString& UtilityName);
-	UFUNCTION(Server, Reliable)
-	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
+	void Server_RefreshShopStock();
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }

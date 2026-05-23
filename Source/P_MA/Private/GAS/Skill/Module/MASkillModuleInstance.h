@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "UObject/Object.h"
 #include "MASkillModuleInstance.generated.h"
 
@@ -20,8 +21,14 @@ public:
 	UMASkillDefinition* GetDefinition() const { return Definition; }
 	void SetDefinition(UMASkillDefinition* InDefinition) { Definition = InDefinition; }
 	bool IsValid() const { return Definition != nullptr; }
+	// Add a const getter when a const module instance needs read-only payload access.
+	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
+	void ResetPayloadStore() { PayloadStore.Reset(); }
 
 private:
 	UPROPERTY(Replicated)
 	TObjectPtr<UMASkillDefinition> Definition;
+
+	UPROPERTY(Transient)
+	FMASkillPayloadStore PayloadStore;
 };

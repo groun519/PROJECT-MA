@@ -12,7 +12,7 @@ namespace
 	}
 }
 
-void UMASkillAction_Dash::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&)
+void UMASkillAction_Dash::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 

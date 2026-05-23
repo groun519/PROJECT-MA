@@ -25,11 +25,14 @@ private:
 
 	void ArmInputRelease();
 	void StopWaitingInputRelease();
-	void CommitChargePayload() const;
+	void CommitChargeDamageMultiplier() const;
 	float ResolveChargeRatio() const;
 
 	UPROPERTY(EditDefaultsOnly, Category="Charge", meta=(ClampMin="0.0"))
 	float ChargeDuration = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Charge", meta=(ClampMin="1.0"))
+	float FullChargeFinalDamageMultiplier = 1.f;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAbilityTask_WaitInputRelease> InputReleaseTask;

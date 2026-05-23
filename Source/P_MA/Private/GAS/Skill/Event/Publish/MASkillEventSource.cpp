@@ -41,7 +41,7 @@ void UMASkillEventSource::EmitEvent(const FGameplayEventData& Payload) const
 	{
 		if (PayloadWriter)
 		{
-			PayloadWriter->WritePayload(*OwnerSkillAbility, EventPayload);
+			PayloadWriter->WritePayload(*OwnerSkillAbility, EventPayload, RuntimeScope);
 		}
 	}
 
