@@ -39,8 +39,8 @@ public:
 		NextMontageStepIndex = InNextMontageStepIndex;
 		RuntimeSequenceSectionIndex = FMath::Max(InInitialSequenceSectionIndex, 0);
 	}
-	void SetRuntimeScope(UMASkillModuleInstance* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
-	UMASkillModuleInstance* GetRuntimeScope() const { return RuntimeScope; }
+	void SetBindingScope(UMASkillModuleInstance* InBindingScope) { BindingScope = InBindingScope; }
+	UMASkillModuleInstance* GetBindingScope() const { return BindingScope; }
 
 	virtual void StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode StartMode);
 	void EnterStep(EMASkillStepStartMode StartMode)
@@ -129,7 +129,7 @@ protected:
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> CurrentMontageTask;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> BindingScope = nullptr;
 
 	int32 ResolveCurrentSequenceSectionIndex() const;
 	int32 ResolveNextSequenceSectionIndex() const;

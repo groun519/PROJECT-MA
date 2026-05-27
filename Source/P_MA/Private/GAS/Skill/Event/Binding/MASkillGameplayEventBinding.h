@@ -22,7 +22,7 @@ struct P_MA_API FMASkillGameplayEventBinding
 	TObjectPtr<UMASkillAction> Action;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> BindingScope = nullptr;
 };
 
 

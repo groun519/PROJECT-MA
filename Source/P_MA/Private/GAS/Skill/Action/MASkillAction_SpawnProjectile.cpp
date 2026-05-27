@@ -14,11 +14,10 @@
 void UMASkillAction_SpawnProjectile::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FGameplayEventData&,
-	UMASkillModuleInstance*,
-	UMASkillModuleInstance* EventOwnerScope)
+	const FMASkillEventScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
-	if (!EventOwnerScope) return;
+	if (!Scopes.EventScope) return;
 
 	UWorld* World = OwnerAbility.GetWorld();
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
@@ -45,7 +44,7 @@ void UMASkillAction_SpawnProjectile::Execute(
 		SpawnParams);
 	if (!Projectile) return;
 
-	const FMASkillPayloadStore& PayloadStore = EventOwnerScope->GetPayloadStore();
+	const FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
 	FMASkillDamageConfig DamageConfig;
 	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
 
@@ -56,7 +55,7 @@ void UMASkillAction_SpawnProjectile::Execute(
 	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.EventExecutorAbility = &OwnerAbility;
-	ProjectileParams.EventOwnerScope = EventOwnerScope;
+	ProjectileParams.EventScope = Scopes.EventScope;
 
 	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
 		ElementalDataTable && ProjectileParams.ElementalSettings.ElementalTag.IsValid())

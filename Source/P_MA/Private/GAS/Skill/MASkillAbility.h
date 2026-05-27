@@ -34,17 +34,17 @@ public:
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const;
 	const UDataTable* GetOverlapDecalDataTable() const;
-	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* RuntimeScope) const;
+	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
 	UFUNCTION()
 	void HandleExternalGameplayEvent(FGameplayEventData EventData);
-	void ExecuteScopedGameplayEvent(UMASkillModuleInstance* EventOwnerScope, FGameplayEventData EventData, UMASkillModuleInstance* RuntimeScope);
-	void SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope = nullptr);
+	void ExecuteScopedGameplayEvent(UMASkillModuleInstance* EventScope, FGameplayEventData EventData, UMASkillModuleInstance* BindingScope);
+	void SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* BindingScope = nullptr);
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;
 	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
 	UMASkillStepManager* GetStepManager() const { return StepManager; }
-	UMASkillModuleInstance* GetCurrentRuntimeScope() const;
+	UMASkillModuleInstance* GetCurrentBindingScope() const;
 	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }
 	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
 	void EndSkill() { K2_EndAbility(); }

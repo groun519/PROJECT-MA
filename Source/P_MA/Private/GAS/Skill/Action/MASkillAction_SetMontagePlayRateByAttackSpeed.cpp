@@ -8,8 +8,7 @@
 void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FGameplayEventData&,
-	UMASkillModuleInstance*,
-	UMASkillModuleInstance*)
+	const FMASkillEventScopes&)
 {
 	float AttackSpeed = 1.f;
 	if (UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo())

@@ -78,7 +78,7 @@ struct P_MA_API FMAProjectileParams
 	FMAProjectileElementalSettings ElementalSettings;
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
 	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;
-	TWeakObjectPtr<UMASkillModuleInstance> EventOwnerScope;
+	TWeakObjectPtr<UMASkillModuleInstance> EventScope;
 };
 
 UCLASS()

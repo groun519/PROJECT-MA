@@ -34,7 +34,7 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 		UMASkillStep* NewSkillStep = DuplicateObject<UMASkillStep>(SkillStep, this);
 		if (!NewSkillStep) continue;
 
-		NewSkillStep->SetRuntimeScope(SourceModuleInstance);
+		NewSkillStep->SetBindingScope(SourceModuleInstance);
 		SkillSteps.Add(NewSkillStep);
 	}
 
@@ -44,14 +44,14 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 		UMASkillEventSource* NewEventSource = DuplicateObject<UMASkillEventSource>(EventSource, this);
 		if (!NewEventSource) continue;
 
-		NewEventSource->SetRuntimeScope(SourceModuleInstance);
+		NewEventSource->SetBindingScope(SourceModuleInstance);
 		EventSources.Add(NewEventSource);
 	}
 
 	for (const FMASkillGameplayEventBinding& EventBinding : SourceDefinition->EventBindings)
 	{
 		FMASkillGameplayEventBinding NewEventBinding = EventBinding;
-		NewEventBinding.RuntimeScope = EventBinding.bUseLocalBinding
+		NewEventBinding.BindingScope = EventBinding.bUseLocalBinding
 			? SourceModuleInstance
 			: nullptr;
 		NewEventBinding.Action = EventBinding.Action

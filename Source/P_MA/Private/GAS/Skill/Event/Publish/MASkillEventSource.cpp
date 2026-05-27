@@ -5,15 +5,15 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadWriter.h"
 
-void UMASkillEventSource::InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* InEventOwnerScope)
+void UMASkillEventSource::InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* InEventScope)
 {
-	if (!SkillAbility || !InEventOwnerScope) return;
-	if (OwnerSkillAbility == SkillAbility && EventOwnerScope == InEventOwnerScope) return;
+	if (!SkillAbility || !InEventScope) return;
+	if (OwnerSkillAbility == SkillAbility && EventScope == InEventScope) return;
 	if (OwnerSkillAbility) DeinitializeRuntime();
 
 	OwnerSkillAbility = SkillAbility;
-	EventOwnerScope = InEventOwnerScope;
-	ScopedEventDelegateHandle = EventOwnerScope->OnScopedEvent().AddUObject(this, &UMASkillEventSource::HandleScopedEvent);
+	EventScope = InEventScope;
+	ScopedEventDelegateHandle = EventScope->OnScopedEvent().AddUObject(this, &UMASkillEventSource::HandleScopedEvent);
 	OwnerSkillAbility->OnSkillActivated().AddUObject(this, &UMASkillEventSource::HandleSkillActivated);
 	OwnerSkillAbility->OnSkillDeactivated().AddUObject(this, &UMASkillEventSource::HandleSkillDeactivated);
 }
@@ -23,14 +23,14 @@ void UMASkillEventSource::DeinitializeRuntime()
 	if (!OwnerSkillAbility) return;
 
 	StopSource();
-	if (EventOwnerScope && ScopedEventDelegateHandle.IsValid())
+	if (EventScope && ScopedEventDelegateHandle.IsValid())
 	{
-		EventOwnerScope->OnScopedEvent().Remove(ScopedEventDelegateHandle);
+		EventScope->OnScopedEvent().Remove(ScopedEventDelegateHandle);
 	}
 	ScopedEventDelegateHandle.Reset();
 	OwnerSkillAbility->OnSkillActivated().RemoveAll(this);
 	OwnerSkillAbility->OnSkillDeactivated().RemoveAll(this);
-	EventOwnerScope = nullptr;
+	EventScope = nullptr;
 	OwnerSkillAbility = nullptr;
 }
 
@@ -43,14 +43,14 @@ void UMASkillEventSource::EmitEvent() const
 void UMASkillEventSource::EmitEvent(const FGameplayEventData& EventData) const
 {
 	if (!OwnerSkillAbility || !EmittedTag.IsValid()) return;
-	if (!EventOwnerScope) return;
+	if (!EventScope) return;
 
-	EmitEvent(*OwnerSkillAbility, *EventOwnerScope, EventData);
+	EmitEvent(*OwnerSkillAbility, *EventScope, EventData);
 }
 
 void UMASkillEventSource::EmitEvent(
 	UMASkillAbility& SkillAbility,
-	UMASkillModuleInstance& InEventOwnerScope,
+	UMASkillModuleInstance& InEventScope,
 	const FGameplayEventData& EventData) const
 {
 	if (!EmittedTag.IsValid()) return;
@@ -62,27 +62,27 @@ void UMASkillEventSource::EmitEvent(
 	{
 		if (PayloadWriter)
 		{
-			PayloadWriter->WritePayload(SkillAbility, OutgoingEventData, &InEventOwnerScope);
+			PayloadWriter->WritePayload(SkillAbility, OutgoingEventData, &InEventScope);
 		}
 	}
 
-	SkillAbility.ExecuteScopedGameplayEvent(&InEventOwnerScope, OutgoingEventData, RuntimeScope);
+	SkillAbility.ExecuteScopedGameplayEvent(&InEventScope, OutgoingEventData, BindingScope);
 }
 
 void UMASkillEventSource::HandleScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData)
 {
-	if (!OwnerSkillAbility || !EventOwnerScope) return;
-	HandleSourceEvent(*OwnerSkillAbility, *EventOwnerScope, SourceEventTag, EventData);
+	if (!OwnerSkillAbility || !EventScope) return;
+	HandleSourceEvent(*OwnerSkillAbility, *EventScope, SourceEventTag, EventData);
 }
 
 void UMASkillEventSource::HandleSourceEvent(
 	UMASkillAbility& SkillAbility,
-	UMASkillModuleInstance& InEventOwnerScope,
+	UMASkillModuleInstance& InEventScope,
 	const FGameplayTag& SourceEventTag,
 	const FGameplayEventData& EventData) const
 {
 	if (SourceEventTag != EmittedTag) return;
-	EmitEvent(SkillAbility, InEventOwnerScope, EventData);
+	EmitEvent(SkillAbility, InEventScope, EventData);
 }
 
 void UMASkillEventSource::HandleSkillActivated()

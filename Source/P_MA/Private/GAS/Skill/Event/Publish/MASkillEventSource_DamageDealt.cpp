@@ -12,14 +12,14 @@ UMASkillEventSource_DamageDealt::UMASkillEventSource_DamageDealt()
 
 void UMASkillEventSource_DamageDealt::HandleSourceEvent(
 	UMASkillAbility& SkillAbility,
-	UMASkillModuleInstance& InEventOwnerScope,
+	UMASkillModuleInstance& InEventScope,
 	const FGameplayTag& SourceEventTag,
 	const FGameplayEventData& EventData) const
 {
 	if (SourceEventTag != EmittedTag || EventData.EventMagnitude <= 0.f) return;
 
-	FMASkillPayloadStore& PayloadStore = InEventOwnerScope.GetPayloadStore();
+	FMASkillPayloadStore& PayloadStore = InEventScope.GetPayloadStore();
 	PayloadStore.SetScalar(UMAAbilitySystemStatics::GetAppliedDamageTag(), EventData.EventMagnitude);
 	PayloadStore.SetObject(UMAAbilitySystemStatics::GetDamageTargetTag(), const_cast<AActor*>(EventData.Target.Get()));
-	EmitEvent(SkillAbility, InEventOwnerScope, EventData);
+	EmitEvent(SkillAbility, InEventScope, EventData);
 }

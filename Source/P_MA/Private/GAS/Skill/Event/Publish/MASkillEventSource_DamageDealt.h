@@ -14,7 +14,7 @@ public:
 
 	virtual void HandleSourceEvent(
 		UMASkillAbility& SkillAbility,
-		UMASkillModuleInstance& InEventOwnerScope,
+		UMASkillModuleInstance& InEventScope,
 		const FGameplayTag& SourceEventTag,
 		const FGameplayEventData& EventData) const override;
 };

@@ -61,5 +61,5 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		bDrawDebug,
 		ShapeWorldLocation);
 
-	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());
+	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
 }

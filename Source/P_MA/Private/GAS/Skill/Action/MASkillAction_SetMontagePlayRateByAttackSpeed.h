@@ -10,7 +10,7 @@ class P_MA_API UMASkillAction_SetMontagePlayRateByAttackSpeed : public UMASkillA
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope, UMASkillModuleInstance* EventOwnerScope) override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& EventData, const FMASkillEventScopes& Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Animation", meta=(ClampMin="0.01"))

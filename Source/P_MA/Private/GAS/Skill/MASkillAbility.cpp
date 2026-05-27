@@ -66,9 +66,9 @@ const UMASkillDefinition* UMASkillAbility::GetCurrentSkillDefinition() const
 	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
 }
 
-FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* RuntimeScope) const
+FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const
 {
-	return RuntimeScope ? &RuntimeScope->GetPayloadStore() : nullptr;
+	return BindingScope ? &BindingScope->GetPayloadStore() : nullptr;
 }
 
 FMASkillPayloadStore& UMASkillAbility::GetAssembledModulePayloadStore()
@@ -208,55 +208,56 @@ const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() cons
 
 void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData EventData)
 {
-	UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(EventData);
+	UMASkillModuleInstance* BindingScope = MASkillGameplayEventScope::ExtractBindingScope(EventData);
 
-	ExecuteScopedGameplayEvent(CurrentSkillModuleInstance, EventData, RuntimeScope);
+	ExecuteScopedGameplayEvent(CurrentSkillModuleInstance, EventData, BindingScope);
 }
 
 void UMASkillAbility::ExecuteScopedGameplayEvent(
-	UMASkillModuleInstance* EventOwnerScope,
+	UMASkillModuleInstance* EventScope,
 	FGameplayEventData EventData,
-	UMASkillModuleInstance* RuntimeScope)
+	UMASkillModuleInstance* BindingScope)
 {
-	const UMASkillDefinition* SkillDefinition = EventOwnerScope ? EventOwnerScope->GetDefinition() : nullptr;
+	const UMASkillDefinition* SkillDefinition = EventScope ? EventScope->GetDefinition() : nullptr;
 	if (!SkillDefinition || !EventData.EventTag.IsValid()) return;
 
-	MASkillGameplayEventScope::InjectRuntimeScope(EventData, RuntimeScope);
-	if (IsActive() && EventOwnerScope == CurrentSkillModuleInstance && StepManager)
+	MASkillGameplayEventScope::InjectBindingScope(EventData, BindingScope);
+	if (IsActive() && EventScope == CurrentSkillModuleInstance && StepManager)
 	{
 		StepManager->HandleRuntimeEvent(EventData);
 	}
 
+	const FMASkillEventScopes Scopes{ BindingScope, EventScope };
 	for (const FMASkillGameplayEventBinding& EventBinding : SkillDefinition->GetEventBindings())
 	{
 		if (EventBinding.EventTag != EventData.EventTag || !EventBinding.Action)
 			continue;
 		if (EventBinding.bUseLocalBinding)
 		{
-			if (!EventBinding.RuntimeScope || EventBinding.RuntimeScope != RuntimeScope)
+			if (!EventBinding.BindingScope || EventBinding.BindingScope != BindingScope)
 			{
 				continue;
 			}
 		}
 
-		EventBinding.Action->Execute(*this, EventData, RuntimeScope, EventOwnerScope);
+		EventBinding.Action->Execute(*this, EventData, Scopes);
 	}
 }
 
-void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope)
+void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* BindingScope)
 {
 	AActor* TargetActor = GetAvatarActorFromActorInfo();
 	if (!TargetActor || !EventData.EventTag.IsValid()) return;
 
 	FGameplayEventData OutgoingEventData = EventData;
-	MASkillGameplayEventScope::InjectRuntimeScope(OutgoingEventData, RuntimeScope);
+	MASkillGameplayEventScope::InjectBindingScope(OutgoingEventData, BindingScope);
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, OutgoingEventData.EventTag, OutgoingEventData);
 }
 
-UMASkillModuleInstance* UMASkillAbility::GetCurrentRuntimeScope() const
+UMASkillModuleInstance* UMASkillAbility::GetCurrentBindingScope() const
 {
 	return StepManager
-		? StepManager->GetCurrentRuntimeScope()
+		? StepManager->GetCurrentBindingScope()
 		: nullptr;
 }
 

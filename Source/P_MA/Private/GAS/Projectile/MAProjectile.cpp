@@ -192,7 +192,7 @@ void AMAProjectile::ApplyResolvedHitEffectsToTarget(UAbilitySystemComponent* Tar
 	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
 	ApplicationContext.EffectCauser = this;
 	ApplicationContext.SkillAbility = ProjectileParams.EventExecutorAbility.Get();
-	ApplicationContext.SkillEventScope = ProjectileParams.EventOwnerScope.Get();
+	ApplicationContext.SkillEventScope = ProjectileParams.EventScope.Get();
 	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
 	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedHitEffects, ApplicationContext);
 }

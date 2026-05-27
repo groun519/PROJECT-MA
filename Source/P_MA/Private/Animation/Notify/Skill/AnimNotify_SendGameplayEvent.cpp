@@ -31,7 +31,7 @@ void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAn
 	{
 		FGameplayEventData Data;
 		Data.EventTag = MontageEventTag;
-		SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());
+		SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
 	}
 }
 

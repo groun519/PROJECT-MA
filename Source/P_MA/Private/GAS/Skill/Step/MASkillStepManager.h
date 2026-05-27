@@ -33,7 +33,7 @@ public:
 	void StopActiveStep(float MontageBlendOutTime = 0.f);
 	void ClearPreparedStepPreviews(int32 ExceptStepIndex = INDEX_NONE) const;
 	bool IsCurrentStepPrepared() const { return CurrentStepStartMode == EMASkillStepStartMode::Prepared; }
-	UMASkillModuleInstance* GetCurrentRuntimeScope() const;
+	UMASkillModuleInstance* GetCurrentBindingScope() const;
 
 private:
 	void HandleSkillActivated();

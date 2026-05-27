@@ -8,12 +8,11 @@
 void UMASkillAction_MultiplyFinalDamage::Execute(
 	UMASkillAbility&,
 	const FGameplayEventData&,
-	UMASkillModuleInstance*,
-	UMASkillModuleInstance* EventOwnerScope)
+	const FMASkillEventScopes& Scopes)
 {
-	if (!EventOwnerScope) return;
+	if (!Scopes.EventScope) return;
 
-	FMASkillPayloadStore& PayloadStore = EventOwnerScope->GetPayloadStore();
+	FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
 	const FGameplayTag FinalDamageMultiplierTag = UMAAbilitySystemStatics::GetFinalDamageMultiplierTag();
 
 	float CurrentMultiplier = 1.f;

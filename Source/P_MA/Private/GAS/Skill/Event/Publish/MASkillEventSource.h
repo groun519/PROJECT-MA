@@ -16,22 +16,22 @@ class P_MA_API UMASkillEventSource : public UObject
 	GENERATED_BODY()
 
 public:
-	void InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* EventOwnerScope);
+	void InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* EventScope);
 	void DeinitializeRuntime();
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() {}
 	virtual void HandleSourceEvent(
 		UMASkillAbility& SkillAbility,
-		UMASkillModuleInstance& InEventOwnerScope,
+		UMASkillModuleInstance& InEventScope,
 		const FGameplayTag& SourceEventTag,
 		const FGameplayEventData& EventData) const;
-	void SetRuntimeScope(UMASkillModuleInstance* InRuntimeScope) { RuntimeScope = InRuntimeScope; }
-	UMASkillModuleInstance* GetRuntimeScope() const { return RuntimeScope; }
+	void SetBindingScope(UMASkillModuleInstance* InBindingScope) { BindingScope = InBindingScope; }
+	UMASkillModuleInstance* GetBindingScope() const { return BindingScope; }
 
 protected:
 	void EmitEvent() const;
 	void EmitEvent(const FGameplayEventData& EventData) const;
-	void EmitEvent(UMASkillAbility& SkillAbility, UMASkillModuleInstance& InEventOwnerScope, const FGameplayEventData& EventData) const;
+	void EmitEvent(UMASkillAbility& SkillAbility, UMASkillModuleInstance& InEventScope, const FGameplayEventData& EventData) const;
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
 
 private:
@@ -50,10 +50,10 @@ protected:
 	TObjectPtr<UMASkillAbility> OwnerSkillAbility;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> RuntimeScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> BindingScope = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> EventOwnerScope = nullptr;
+	TObjectPtr<UMASkillModuleInstance> EventScope = nullptr;
 
 	FDelegateHandle ScopedEventDelegateHandle;
 };

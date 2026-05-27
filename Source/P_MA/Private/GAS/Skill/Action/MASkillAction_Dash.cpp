@@ -15,8 +15,7 @@ namespace
 void UMASkillAction_Dash::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FGameplayEventData&,
-	UMASkillModuleInstance*,
-	UMASkillModuleInstance*)
+	const FMASkillEventScopes&)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 

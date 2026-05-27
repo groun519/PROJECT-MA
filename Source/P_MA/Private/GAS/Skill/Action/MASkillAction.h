@@ -8,6 +8,12 @@ struct FGameplayEventData;
 class UMASkillAbility;
 class UMASkillModuleInstance;
 
+struct FMASkillEventScopes
+{
+	UMASkillModuleInstance* BindingScope = nullptr;
+	UMASkillModuleInstance* EventScope = nullptr;
+};
+
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillAction : public UObject
 {
@@ -17,7 +23,6 @@ public:
 	virtual void Execute(
 		UMASkillAbility& OwnerAbility,
 		const FGameplayEventData& EventData,
-		UMASkillModuleInstance* RuntimeScope,
-		UMASkillModuleInstance* EventOwnerScope)
+		const FMASkillEventScopes& Scopes)
 		PURE_VIRTUAL(UMASkillAction::Execute, );
 };

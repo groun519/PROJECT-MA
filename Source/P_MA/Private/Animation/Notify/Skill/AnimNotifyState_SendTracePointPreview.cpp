@@ -145,7 +145,7 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 		bDrawDebug,
 		WorldLocation);
 
-	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentRuntimeScope());
+	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
 }
 
 void UAnimNotifyState_SendTracePointPreview::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,

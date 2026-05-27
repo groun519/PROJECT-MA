@@ -24,7 +24,7 @@ class P_MA_API UMASkillPayloadWriter_Static : public UMASkillPayloadWriter
 	GENERATED_BODY()
 
 public:
-	virtual void WritePayload(UMASkillAbility& SkillAbility, const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope) const override;
+	virtual void WritePayload(UMASkillAbility& SkillAbility, const FGameplayEventData& EventData, UMASkillModuleInstance* EventScope) const override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Payload")

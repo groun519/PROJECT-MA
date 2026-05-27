@@ -144,17 +144,16 @@ static TArray<FHitResult> ResolveShapeHitResults(
 void UMASkillAction_MeleeOverlapShape::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FGameplayEventData&,
-	UMASkillModuleInstance*,
-	UMASkillModuleInstance* EventOwnerScope)
+	const FMASkillEventScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
-	if (!EventOwnerScope) return;
+	if (!Scopes.EventScope) return;
 
-	const FMASkillPayloadStore& PayloadStore = EventOwnerScope->GetPayloadStore();
+	const FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
 	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
 
 	FVector CenterPoint = FVector::ZeroVector;
 	const TArray<FHitResult> HitResults = ResolveShapeHitResults(OwnerAbility, Config, ResolvedHitEffects.TargetRelationMask, CenterPoint);
-	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, EventOwnerScope, HitResults, ResolvedHitEffects, CenterPoint);
+	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes.EventScope, HitResults, ResolvedHitEffects, CenterPoint);
 }
