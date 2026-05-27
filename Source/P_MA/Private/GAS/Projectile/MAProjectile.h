@@ -11,6 +11,8 @@ class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UAbilitySystemComponent;
+class UMASkillAbility;
+class UMASkillModuleInstance;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
 
@@ -75,6 +77,8 @@ struct P_MA_API FMAProjectileParams
 	FMAProjectilePenetratingSettings PenetratingSettings;
 	FMAProjectileElementalSettings ElementalSettings;
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
+	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;
+	TWeakObjectPtr<UMASkillModuleInstance> EventOwnerScope;
 };
 
 UCLASS()

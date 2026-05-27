@@ -1,5 +1,16 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 
+#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
+
+void FMAGameplayEffectContext::SetSkillEventContext(
+	UMASkillAbility* InSkillAbility,
+	UMASkillModuleInstance* InSkillEventScope)
+{
+	SkillEventAbility = InSkillAbility;
+	SkillEventScope = InSkillEventScope;
+}
+
 bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	Super::NetSerialize(Ar, Map, bOutSuccess);

@@ -2,13 +2,13 @@
 
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-void MASkillGameplayEventScope::InjectRuntimeScope(FGameplayEventData& Payload, UMASkillModuleInstance* InRuntimeScope)
+void MASkillGameplayEventScope::InjectRuntimeScope(FGameplayEventData& EventData, UMASkillModuleInstance* InRuntimeScope)
 {
-	Payload.OptionalObject = InRuntimeScope;
+	EventData.OptionalObject = InRuntimeScope;
 }
 
-UMASkillModuleInstance* MASkillGameplayEventScope::ExtractRuntimeScope(FGameplayEventData& Payload)
+UMASkillModuleInstance* MASkillGameplayEventScope::ExtractRuntimeScope(FGameplayEventData& EventData)
 {
-	return const_cast<UMASkillModuleInstance*>(Cast<UMASkillModuleInstance>(Payload.OptionalObject));
+	return const_cast<UMASkillModuleInstance*>(Cast<UMASkillModuleInstance>(EventData.OptionalObject));
 }
 

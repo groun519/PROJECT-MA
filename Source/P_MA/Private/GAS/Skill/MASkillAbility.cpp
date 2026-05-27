@@ -124,7 +124,6 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	FMASkillPayloadStore& AssembledModulePayloadStore = GetAssembledModulePayloadStore();
-	AssembledModulePayloadStore.Reset();
 	CurrentSkillDefinition->ApplyPayloadsTo(AssembledModulePayloadStore);
 	if (StepManager)
 	{
@@ -135,6 +134,11 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	SkillActivatedDelegate.Broadcast();
+	if (CurrentSkillModuleInstance)
+	{
+		FGameplayEventData ActivateEventData;
+		CurrentSkillModuleInstance->BroadcastScopedEvent(FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Activate")), ActivateEventData);
+	}
 
 	if (IsActive() && (!StepManager || !StepManager->GetCurrentRuntimeSkillStep()))
 	{
@@ -157,10 +161,6 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 
-	if (CurrentSkillModuleInstance)
-	{
-		CurrentSkillModuleInstance->ResetPayloadStore();
-	}
 	if (bHasPendingSkillModuleInstanceUpdate)
 	{
 		UMASkillModuleInstance* NextSkillModuleInstance = PendingSkillModuleInstance;
@@ -206,17 +206,30 @@ const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() cons
 	return SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
 }
 
-void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
+void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData EventData)
 {
-	UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(Payload);
+	UMASkillModuleInstance* RuntimeScope = MASkillGameplayEventScope::ExtractRuntimeScope(EventData);
 
-	if (StepManager) StepManager->HandleRuntimeEvent(Payload);
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition || !Payload.EventTag.IsValid()) return;
+	ExecuteScopedGameplayEvent(CurrentSkillModuleInstance, EventData, RuntimeScope);
+}
 
-	for (const FMASkillGameplayEventBinding& EventBinding : CurrentSkillDefinition->GetEventBindings())
+void UMASkillAbility::ExecuteScopedGameplayEvent(
+	UMASkillModuleInstance* EventOwnerScope,
+	FGameplayEventData EventData,
+	UMASkillModuleInstance* RuntimeScope)
+{
+	const UMASkillDefinition* SkillDefinition = EventOwnerScope ? EventOwnerScope->GetDefinition() : nullptr;
+	if (!SkillDefinition || !EventData.EventTag.IsValid()) return;
+
+	MASkillGameplayEventScope::InjectRuntimeScope(EventData, RuntimeScope);
+	if (IsActive() && EventOwnerScope == CurrentSkillModuleInstance && StepManager)
 	{
-		if (EventBinding.EventTag != Payload.EventTag || !EventBinding.Action)
+		StepManager->HandleRuntimeEvent(EventData);
+	}
+
+	for (const FMASkillGameplayEventBinding& EventBinding : SkillDefinition->GetEventBindings())
+	{
+		if (EventBinding.EventTag != EventData.EventTag || !EventBinding.Action)
 			continue;
 		if (EventBinding.bUseLocalBinding)
 		{
@@ -226,18 +239,18 @@ void UMASkillAbility::HandleExternalGameplayEvent(FGameplayEventData Payload)
 			}
 		}
 
-		EventBinding.Action->Execute(*this, Payload, RuntimeScope);
+		EventBinding.Action->Execute(*this, EventData, RuntimeScope, EventOwnerScope);
 	}
 }
 
-void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope)
+void UMASkillAbility::SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope)
 {
 	AActor* TargetActor = GetAvatarActorFromActorInfo();
-	if (!TargetActor || !Payload.EventTag.IsValid()) return;
+	if (!TargetActor || !EventData.EventTag.IsValid()) return;
 
-	FGameplayEventData EventPayload = Payload;
-	MASkillGameplayEventScope::InjectRuntimeScope(EventPayload, RuntimeScope);
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventPayload.EventTag, EventPayload);
+	FGameplayEventData OutgoingEventData = EventData;
+	MASkillGameplayEventScope::InjectRuntimeScope(OutgoingEventData, RuntimeScope);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, OutgoingEventData.EventTag, OutgoingEventData);
 }
 
 UMASkillModuleInstance* UMASkillAbility::GetCurrentRuntimeScope() const
@@ -358,6 +371,6 @@ void UMASkillAbility::EnsureEventSources()
 	{
 		if (!RuntimeEventSource) continue;
 
-		RuntimeEventSource->InitializeRuntime(this);
+		RuntimeEventSource->InitializeRuntime(this, CurrentSkillModuleInstance);
 	}
 }

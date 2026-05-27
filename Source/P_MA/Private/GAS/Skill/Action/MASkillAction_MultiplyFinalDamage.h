@@ -10,7 +10,7 @@ class P_MA_API UMASkillAction_MultiplyFinalDamage : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope) override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope, UMASkillModuleInstance* EventOwnerScope) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")

@@ -1,8 +1,12 @@
 #include "GAS/MAAttributeSet.h"
 
+#include "Abilities/GameplayAbilityTypes.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
 #include "MAGameplayAbilityTypes.h"
+#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "Player/MAPlayerController.h"
 
 /*
@@ -86,6 +90,24 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 		if (VictimPC)
 		{
 			VictimPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,true);
+		}
+
+		if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+		{
+			UMASkillAbility* SkillAbility = MAContext->GetSkillEventAbility();
+			UMASkillModuleInstance* SkillEventScope = MAContext->GetSkillEventScope();
+			if (SkillAbility && SkillEventScope)
+			{
+				FGameplayEventData EventData;
+				EventData.Instigator = ContextHandle.GetOriginalInstigator();
+				EventData.Target = TargetActor;
+				EventData.EventMagnitude = FinalDamage;
+				if (const FHitResult* HitResult = ContextHandle.GetHitResult())
+				{
+					EventData.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(*HitResult);
+				}
+				SkillEventScope->BroadcastScopedEvent(FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.DamageDealt")), EventData);
+			}
 		}
 	}
 }

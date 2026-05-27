@@ -58,6 +58,8 @@ public:
 	static FGameplayTag GetElementalMultiplierTag();
 	static FGameplayTag GetUtilityMultiplierTag();
 	static FGameplayTag GetDamageBaseTag();
+	static FGameplayTag GetAppliedDamageTag();
+	static FGameplayTag GetDamageTargetTag();
 	static FGameplayTag GetFinalDamageMultiplierTag();
 	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);
 	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);

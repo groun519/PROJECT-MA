@@ -4,7 +4,9 @@
 #include "AbilitySystemComponent.h"
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GenericTeamAgentInterface.h"
 #include "Net/UnrealNetwork.h"
@@ -189,6 +191,8 @@ void AMAProjectile::ApplyResolvedHitEffectsToTarget(UAbilitySystemComponent* Tar
 	MASkillDamageApplicator::FMASkillDamageApplicationContext ApplicationContext;
 	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
 	ApplicationContext.EffectCauser = this;
+	ApplicationContext.SkillAbility = ProjectileParams.EventExecutorAbility.Get();
+	ApplicationContext.SkillEventScope = ProjectileParams.EventOwnerScope.Get();
 	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
 	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedHitEffects, ApplicationContext);
 }

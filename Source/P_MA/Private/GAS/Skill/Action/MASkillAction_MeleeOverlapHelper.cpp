@@ -12,21 +12,21 @@ FMASkillDamageConfig MASkillActionMeleeOverlap::ResolveDamageConfig(const FMASki
 	return DamageConfig;
 }
 
-TArray<FHitResult> MASkillActionMeleeOverlap::ResolveHitResultsFromPayload(
+TArray<FHitResult> MASkillActionMeleeOverlap::ResolveHitResultsFromEventData(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData& Payload,
+	const FGameplayEventData& EventData,
 	int32 TargetRelationMask)
 {
-	return OwnerAbility.GetHitResultFromVirtualSocketTargetData(Payload.TargetData, TargetRelationMask);
+	return OwnerAbility.GetHitResultFromVirtualSocketTargetData(EventData.TargetData, TargetRelationMask);
 }
 
 FVector MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData& Payload)
+	const FGameplayEventData& EventData)
 {
-	if (Payload.TargetData.Num() > 0 && Payload.TargetData.Data[0].IsValid())
+	if (EventData.TargetData.Num() > 0 && EventData.TargetData.Data[0].IsValid())
 	{
-		return Payload.TargetData.Data[0]->GetOrigin().GetTranslation();
+		return EventData.TargetData.Data[0]->GetOrigin().GetTranslation();
 	}
 
 	if (const AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo())

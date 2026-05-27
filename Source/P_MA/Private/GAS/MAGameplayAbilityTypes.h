@@ -6,6 +6,8 @@
 #include "MAGameplayAbilityTypes.generated.h"
 
 struct FMAGameplayEffectContext;
+class UMASkillAbility;
+class UMASkillModuleInstance;
 
 USTRUCT()
 struct FMAGameplayEffectContext : public FGameplayEffectContext
@@ -14,6 +16,9 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 
 	bool IsCriticalHit() const {return bIsCriticalHit;}
 	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
+	void SetSkillEventContext(UMASkillAbility* InSkillAbility, UMASkillModuleInstance* InSkillEventScope);
+	UMASkillAbility* GetSkillEventAbility() const { return SkillEventAbility.Get(); }
+	UMASkillModuleInstance* GetSkillEventScope() const { return SkillEventScope.Get(); }
 	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
 	virtual FMAGameplayEffectContext* Duplicate() const override
 	{
@@ -30,6 +35,9 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 protected:
 	UPROPERTY()
 	bool bIsCriticalHit = false;
+
+	TWeakObjectPtr<UMASkillAbility> SkillEventAbility;
+	TWeakObjectPtr<UMASkillModuleInstance> SkillEventScope;
 };
 
 template<>

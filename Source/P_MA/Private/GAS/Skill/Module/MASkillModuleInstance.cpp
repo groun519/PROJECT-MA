@@ -1,6 +1,5 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 UMASkillModuleInstance* UMASkillModuleInstance::Create(UObject* Outer, UMASkillDefinition* InDefinition)
@@ -19,4 +18,10 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UMASkillModuleInstance, Definition);
+}
+
+void UMASkillModuleInstance::BroadcastScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData)
+{
+	if (!SourceEventTag.IsValid()) return;
+	ScopedEventDelegate.Broadcast(SourceEventTag, EventData);
 }

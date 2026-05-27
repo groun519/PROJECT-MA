@@ -14,6 +14,10 @@ class P_MA_API UMASkillAction : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope)
+	virtual void Execute(
+		UMASkillAbility& OwnerAbility,
+		const FGameplayEventData& EventData,
+		UMASkillModuleInstance* RuntimeScope,
+		UMASkillModuleInstance* EventOwnerScope)
 		PURE_VIRTUAL(UMASkillAction::Execute, );
 };

@@ -4,11 +4,16 @@
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 
 class UMASkillAbility;
+struct FMASkillPayloadStore;
 
 class P_MA_API MASkillDamageResolver final
 {
 public:
 	static FResolvedSkillHitEffects Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig);
+	static FResolvedSkillHitEffects Resolve(
+		UMASkillAbility& OwnerAbility,
+		const FMASkillDamageConfig& DamageConfig,
+		const FMASkillPayloadStore& PayloadStore);
 
 private:
 	MASkillDamageResolver() = delete;

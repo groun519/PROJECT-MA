@@ -37,10 +37,12 @@ public:
 	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* RuntimeScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
 	UFUNCTION()
-	void HandleExternalGameplayEvent(FGameplayEventData Payload);
-	void SendSkillGameplayEvent(const FGameplayEventData& Payload, UMASkillModuleInstance* RuntimeScope = nullptr);
+	void HandleExternalGameplayEvent(FGameplayEventData EventData);
+	void ExecuteScopedGameplayEvent(UMASkillModuleInstance* EventOwnerScope, FGameplayEventData EventData, UMASkillModuleInstance* RuntimeScope);
+	void SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* RuntimeScope = nullptr);
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;
 	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
+	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
 	UMASkillStepManager* GetStepManager() const { return StepManager; }
 	UMASkillModuleInstance* GetCurrentRuntimeScope() const;
 	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }

@@ -9,6 +9,7 @@
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GenericTeamAgentInterface.h"
 #include "P_MA/P_MA.h"
 
@@ -140,15 +141,20 @@ static TArray<FHitResult> ResolveShapeHitResults(
 	return HitResults;
 }
 
-void UMASkillAction_MeleeOverlapShape::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
+void UMASkillAction_MeleeOverlapShape::Execute(
+	UMASkillAbility& OwnerAbility,
+	const FGameplayEventData&,
+	UMASkillModuleInstance*,
+	UMASkillModuleInstance* EventOwnerScope)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
+	if (!EventOwnerScope) return;
 
-	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetAssembledModulePayloadStore();
+	const FMASkillPayloadStore& PayloadStore = EventOwnerScope->GetPayloadStore();
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
-	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig);
+	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
 
 	FVector CenterPoint = FVector::ZeroVector;
 	const TArray<FHitResult> HitResults = ResolveShapeHitResults(OwnerAbility, Config, ResolvedHitEffects.TargetRelationMask, CenterPoint);
-	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, HitResults, ResolvedHitEffects, CenterPoint);
+	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, EventOwnerScope, HitResults, ResolvedHitEffects, CenterPoint);
 }

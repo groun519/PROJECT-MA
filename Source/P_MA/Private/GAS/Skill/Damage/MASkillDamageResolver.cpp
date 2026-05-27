@@ -53,6 +53,14 @@ void MASkillDamageResolver::AppendElementalHitGameplayCueTag(UMASkillAbility& Ow
 
 FResolvedSkillHitEffects MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig)
 {
+	return Resolve(OwnerAbility, DamageConfig, OwnerAbility.GetAssembledModulePayloadStore());
+}
+
+FResolvedSkillHitEffects MASkillDamageResolver::Resolve(
+	UMASkillAbility& OwnerAbility,
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadStore& PayloadStore)
+{
 	FResolvedSkillHitEffects ResolvedHitEffects;
 	ResolvedHitEffects.TargetRelationMask = DamageConfig.TargetRelationMask;
 	ResolvedHitEffects.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
@@ -74,7 +82,7 @@ FResolvedSkillHitEffects MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAb
 			&AppliedExecutionConfig);
 
 		float FinalDamageMultiplier = 1.f;
-		if (OwnerAbility.GetAssembledModulePayloadStore().TryGetScalar(
+		if (PayloadStore.TryGetScalar(
 			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
 			FinalDamageMultiplier)
 			&& !FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)

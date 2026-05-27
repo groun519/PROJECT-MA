@@ -4,6 +4,7 @@
 
 class AActor;
 class UMASkillAbility;
+class UMASkillModuleInstance;
 class UAbilitySystemComponent;
 enum class EMASkillStatusEffectSourceType : uint8;
 struct FGameplayEffectSpecHandle;
@@ -18,17 +19,21 @@ public:
 	{
 		AActor* InstigatorActor = nullptr;
 		AActor* EffectCauser = nullptr;
+		UMASkillAbility* SkillAbility = nullptr;
+		UMASkillModuleInstance* SkillEventScope = nullptr;
 		FVector StatusEffectSourcePoint = FVector::ZeroVector;
 	};
 
 	static void ApplyHitResults(
 		UMASkillAbility& OwnerAbility,
+		UMASkillModuleInstance* SkillEventScope,
 		const TArray<FHitResult>& HitResults,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
 		const FVector& StatusEffectSourcePoint);
 
 	static void ApplyHitResult(
 		UMASkillAbility& OwnerAbility,
+		UMASkillModuleInstance* SkillEventScope,
 		const FHitResult& HitResult,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
 		const FVector& StatusEffectSourcePoint);
@@ -42,6 +47,7 @@ public:
 	static void ApplyToTarget(
 		UAbilitySystemComponent& TargetASC,
 		UMASkillAbility& OwnerAbility,
+		UMASkillModuleInstance* SkillEventScope,
 		const FHitResult& HitResult,
 		const FResolvedSkillHitEffects& ResolvedHitEffects,
 		const FVector& StatusEffectSourcePoint);
@@ -51,6 +57,7 @@ private:
 
 	static FMASkillDamageApplicationContext MakeApplicationContext(
 		const UMASkillAbility& OwnerAbility,
+		UMASkillModuleInstance* SkillEventScope,
 		const FVector& StatusEffectSourcePoint);
 
 	static FVector ResolveStatusEffectSourcePoint(
@@ -65,6 +72,7 @@ private:
 	static void ApplySpecToTargetASC(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
+		const FMASkillDamageApplicationContext& ApplicationContext,
 		const FGameplayEffectSpecHandle& SpecHandle);
 
 	static void ExecuteTargetGameplayCues(

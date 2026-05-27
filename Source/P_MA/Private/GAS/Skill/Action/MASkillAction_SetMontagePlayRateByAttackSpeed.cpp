@@ -5,7 +5,11 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
-void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
+void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(
+	UMASkillAbility& OwnerAbility,
+	const FGameplayEventData&,
+	UMASkillModuleInstance*,
+	UMASkillModuleInstance*)
 {
 	float AttackSpeed = 1.f;
 	if (UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo())

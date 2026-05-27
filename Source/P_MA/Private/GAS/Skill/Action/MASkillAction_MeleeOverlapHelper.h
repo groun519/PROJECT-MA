@@ -14,13 +14,13 @@ class P_MA_API MASkillActionMeleeOverlap final
 {
 public:
 	static FMASkillDamageConfig ResolveDamageConfig(const FMASkillPayloadStore& PayloadStore, const FGameplayTag& DamagePayloadTag);
-	static TArray<FHitResult> ResolveHitResultsFromPayload(
+	static TArray<FHitResult> ResolveHitResultsFromEventData(
 		UMASkillAbility& OwnerAbility,
-		const FGameplayEventData& Payload,
+		const FGameplayEventData& EventData,
 		int32 TargetRelationMask);
 	static FVector ResolveStatusEffectCenterPoint(
 		UMASkillAbility& OwnerAbility,
-		const FGameplayEventData& Payload);
+		const FGameplayEventData& EventData);
 
 private:
 	MASkillActionMeleeOverlap() = delete;

@@ -7,12 +7,18 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameFramework/Pawn.h"
 
-void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData&, UMASkillModuleInstance*)
+void UMASkillAction_SpawnProjectile::Execute(
+	UMASkillAbility& OwnerAbility,
+	const FGameplayEventData&,
+	UMASkillModuleInstance*,
+	UMASkillModuleInstance* EventOwnerScope)
 {
 	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
+	if (!EventOwnerScope) return;
 
 	UWorld* World = OwnerAbility.GetWorld();
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
@@ -39,16 +45,18 @@ void UMASkillAction_SpawnProjectile::Execute(UMASkillAbility& OwnerAbility, cons
 		SpawnParams);
 	if (!Projectile) return;
 
-	const FMASkillPayloadStore& PayloadStore = OwnerAbility.GetAssembledModulePayloadStore();
+	const FMASkillPayloadStore& PayloadStore = EventOwnerScope->GetPayloadStore();
 	FMASkillDamageConfig DamageConfig;
 	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
 
-	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig);
+	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.ResolvedHitEffects = ResolvedHitEffects;
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ElementalSettings.ElementalTag = OwnerAbility.GetElementalTag();
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
+	ProjectileParams.EventExecutorAbility = &OwnerAbility;
+	ProjectileParams.EventOwnerScope = EventOwnerScope;
 
 	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
 		ElementalDataTable && ProjectileParams.ElementalSettings.ElementalTag.IsValid())
