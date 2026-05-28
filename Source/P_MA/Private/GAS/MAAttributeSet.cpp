@@ -1,13 +1,14 @@
 #include "GAS/MAAttributeSet.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
-#include "AbilitySystemBlueprintLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
-#include "MAGameplayAbilityTypes.h"
+#include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "Player/MAPlayerController.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "MAGameplayAbilityTypes.h"
 
 /*
 * void UNVAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
@@ -52,62 +53,103 @@ void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, fl
 
 void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
 {
+	float DeltaHealth = 0.f;
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
-		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+	{
+		const float RawHealth = GetHealth();
+		const float ClampedHealth = FMath::Clamp(RawHealth, 0.f, GetMaxHealth());
+		DeltaHealth = ClampedHealth - (RawHealth - Data.EvaluatedData.Magnitude);
+		SetHealth(ClampedHealth);
+	}
+	else
+	{
+		return;
+	}
 
-	float DeltaHealth = Data.EvaluatedData.Magnitude;
+	if (FMath::IsNearlyZero(DeltaHealth)) return;
+
+	FGameplayEffectContextHandle ContextHandle = Data.EffectSpec.GetContext();
 
 	if (DeltaHealth < 0.f)
 	{
 		float FinalDamage = -DeltaHealth;
 
+		const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
 		bool bIsCriticalHit = false;
-		FGameplayEffectContextHandle ContextHandle = Data.EffectSpec.GetContext();
-		if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+		if (MAContext)
 		{
 			bIsCriticalHit = MAContext->IsCriticalHit();
 		}
 		AActor* TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
-		
-		AMAPlayerController* AttackerPC = nullptr;
-		if (AActor* Instigator = Data.EffectSpec.GetContext().GetOriginalInstigator())
+
+		FMADamageAppliedEvent DamageEvent;
+		DamageEvent.SourceActor = ContextHandle.GetOriginalInstigator();
+		DamageEvent.TargetActor = TargetActor;
+		DamageEvent.Amount = FinalDamage;
+		DamageEvent.DamageTypeTag = MAContext && MAContext->GetDamageTypeTag().IsValid()
+			? MAContext->GetDamageTypeTag()
+			: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+		DamageEvent.bIsCriticalHit = bIsCriticalHit;
+		if (const FHitResult* HitResult = ContextHandle.GetHitResult())
 		{
-			if (APawn* Pawn = Cast<APawn>(Instigator))	AttackerPC = Cast<AMAPlayerController>(Pawn->GetController());
-			else AttackerPC = Cast<AMAPlayerController>(Instigator);
+			DamageEvent.HitResult = *HitResult;
 		}
 
-		AMAPlayerController* VictimPC = nullptr;
-		if (TargetActor)
+		UMAAbilitySystemComponent* SourceASC = Cast<UMAAbilitySystemComponent>(ContextHandle.GetOriginalInstigatorAbilitySystemComponent());
+		UMAAbilitySystemComponent* TargetASC = Cast<UMAAbilitySystemComponent>(&Data.Target);
+		if (SourceASC && SourceASC != TargetASC)
 		{
-			if (APawn* Pawn = Cast<APawn>(TargetActor))	VictimPC = Cast<AMAPlayerController>(Pawn->GetController());
-			else VictimPC = Cast<AMAPlayerController>(TargetActor);
+			SourceASC->NotifyDamageApplied(DamageEvent, false);
+		}
+		if (TargetASC)
+		{
+			TargetASC->NotifyDamageApplied(DamageEvent, true);
 		}
 
-		if (AttackerPC && AttackerPC!= VictimPC)
-		{
-			AttackerPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,false);
-		}
-		if (VictimPC)
-		{
-			VictimPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,true);
-		}
-
-		if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+		if (MAContext)
 		{
 			UMASkillAbility* SkillAbility = MAContext->GetSkillEventAbility();
 			UMASkillModuleInstance* SkillEventScope = MAContext->GetSkillEventScope();
 			if (SkillAbility && SkillEventScope)
 			{
 				FGameplayEventData EventData;
-				EventData.Instigator = ContextHandle.GetOriginalInstigator();
-				EventData.Target = TargetActor;
-				EventData.EventMagnitude = FinalDamage;
+				EventData.Instigator = DamageEvent.SourceActor.Get();
+				EventData.Target = DamageEvent.TargetActor.Get();
+				EventData.EventMagnitude = DamageEvent.Amount;
 				if (const FHitResult* HitResult = ContextHandle.GetHitResult())
 				{
 					EventData.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(*HitResult);
 				}
 				SkillEventScope->BroadcastScopedEvent(FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.DamageDealt")), EventData);
 			}
+		}
+	}
+	else if (DeltaHealth > 0.f)
+	{
+		const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
+		if (!MAContext || !MAContext->GetDamageTypeTag().MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag())) return;
+
+		AActor* TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
+
+		FMADamageAppliedEvent DamageEvent;
+		DamageEvent.SourceActor = ContextHandle.GetOriginalInstigator();
+		DamageEvent.TargetActor = TargetActor;
+		DamageEvent.Amount = DeltaHealth;
+		DamageEvent.DamageTypeTag = MAContext->GetDamageTypeTag();
+		if (const FHitResult* HitResult = ContextHandle.GetHitResult())
+		{
+			DamageEvent.HitResult = *HitResult;
+		}
+
+		UMAAbilitySystemComponent* SourceASC = Cast<UMAAbilitySystemComponent>(ContextHandle.GetOriginalInstigatorAbilitySystemComponent());
+		UMAAbilitySystemComponent* TargetASC = Cast<UMAAbilitySystemComponent>(&Data.Target);
+		if (SourceASC && SourceASC != TargetASC)
+		{
+			SourceASC->NotifyDamageApplied(DamageEvent, false);
+		}
+		if (TargetASC)
+		{
+			TargetASC->NotifyDamageApplied(DamageEvent, true);
 		}
 	}
 }
