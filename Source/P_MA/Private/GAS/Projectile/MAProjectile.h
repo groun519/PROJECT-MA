@@ -1,8 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Projectile/MAProjectileTypes.h"
 #include "GameFramework/Actor.h"
 #include "MAProjectile.generated.h"
 
@@ -11,75 +10,8 @@ class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UAbilitySystemComponent;
-class UMASkillAbility;
-class UMASkillModuleInstance;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
-
-USTRUCT()
-struct P_MA_API FMAProjectileTargetingSettings
-{
-	GENERATED_BODY()
-
-	bool bHitOnlyDamageTarget = false;
-	TWeakObjectPtr<AActor> DamageTarget;
-};
-
-USTRUCT()
-struct P_MA_API FMAProjectilePenetratingSettings
-{
-	GENERATED_BODY()
-
-	bool bIsPenetrating = false;
-	int32 PenetratingCount = 0;
-};
-
-USTRUCT()
-struct P_MA_API FMAProjectileElementalSettings
-{
-	GENERATED_BODY()
-
-	FGameplayTag ElementalTag;
-	FLinearColor ElementalColor = FLinearColor::White;
-};
-
-USTRUCT(BlueprintType)
-struct P_MA_API FMAProjectileContinuousHitSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit")
-	bool bEnabled = true;
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.01", UIMin="0.01"))
-	float TickInterval = 0.08f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.0", UIMin="0.0"))
-	float MinSweepDistance = 10.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1.0", UIMin="1.0"))
-	float MaxSweepSegmentLength = 150.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1", UIMin="1"))
-	int32 MaxSweepSubsteps = 8;
-};
-
-USTRUCT()
-struct P_MA_API FMAProjectileParams
-{
-	GENERATED_BODY()
-
-	FResolvedSkillHitEffects ResolvedHitEffects;
-	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
-
-	/** Settings **/
-	FMAProjectileTargetingSettings TargetingSettings;
-	FMAProjectilePenetratingSettings PenetratingSettings;
-	FMAProjectileElementalSettings ElementalSettings;
-	FMAProjectileContinuousHitSettings ContinuousHitSettings;
-	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;
-	TWeakObjectPtr<UMASkillModuleInstance> EventScope;
-};
 
 UCLASS()
 class AMAProjectile : public AActor
@@ -105,10 +37,31 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UNiagaraComponent> TrailNiagara;
 
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Visual|Main")
+	FMAProjectileElementalVisualSettings MainVisualSettings;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Visual|Trail")
+	FMAProjectileElementalVisualSettings TrailVisualSettings;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Movement")
+	bool bDecayLaunchSpeed = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Movement", meta=(ClampMin="0.0", UIMin="0.0", EditCondition="bDecayLaunchSpeed", EditConditionHides))
+	float LaunchSpeedDecayDuration = 0.35f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Movement", meta=(ClampMin="0.0", UIMin="0.0", EditCondition="bDecayLaunchSpeed", EditConditionHides))
+	float LaunchSpeedEndScale = 0.f;
+
 	UPROPERTY()
 	FOnProjectileHitSignature OnProjectileHit;
 
 	void InitializeProjectile(const FMAProjectileParams& InProjectileParams);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
+	bool bRep_HasElementalVisualData = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
+	TObjectPtr<UNiagaraSystem> Rep_MainVFX = nullptr;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
 	TObjectPtr<UNiagaraSystem> Rep_TrailVFX = nullptr;
@@ -123,11 +76,15 @@ private:
 	FMAProjectileParams ProjectileParams;
 	bool bPendingDestroy = false;
 	FVector PreviousHitCheckLocation = FVector::ZeroVector;
+	float LaunchSpeed = 0.f;
+	float LaunchSpeedDecayElapsed = 0.f;
+	bool bLaunchSpeedDecayFinished = false;
 
 	FHitResult BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const;
-	FHitResult BuildHitResultFromActor(AActor* HitActor) const;
-	void ApplyResolvedHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
+	void ApplyHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
 	void ApplyProjectileVisuals();
+	void BindHomingTarget();
+	void ApplyLaunchSpeedDecay(float DeltaTime);
 	void BeginPendingDestroy();
 	void ApplyPendingDestroyVisuals();
 	UFUNCTION(NetMulticast, Reliable)
@@ -135,7 +92,6 @@ private:
 	bool CanDamageActor(AActor* OtherActor) const;
 	bool TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult);
 	void CheckContinuousHit();
-	void CheckAndHandleNearTargetHit();
 
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 };

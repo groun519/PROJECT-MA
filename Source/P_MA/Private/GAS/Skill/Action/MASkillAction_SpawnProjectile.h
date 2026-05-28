@@ -1,13 +1,49 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayEffectTypes.h"
+#include "GAS/Projectile/MAProjectileTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
-#include "GAS/Projectile/MAProjectile.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAction_SpawnProjectile.generated.h"
 
-class UGameplayEffect;
+class AMAProjectile;
+
+UENUM(BlueprintType)
+enum class EMASkillProjectileStartObjectSource : uint8
+{
+	Self,
+	ObjectPayload
+};
+
+UENUM(BlueprintType)
+enum class EMASkillProjectileDirectionSource : uint8
+{
+	Forward,
+	Self,
+	ObjectPayload
+};
+
+UENUM(BlueprintType)
+enum class EMASkillProjectileTrackingTargetSource : uint8
+{
+	Self,
+	ObjectPayload
+};
+
+USTRUCT(BlueprintType)
+struct FMASkillProjectileTrackingConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Tracking")
+	EMASkillProjectileTrackingTargetSource TargetSource = EMASkillProjectileTrackingTargetSource::Self;
+
+	UPROPERTY(EditDefaultsOnly, Category="Tracking", meta=(Categories="Data", EditCondition="TargetSource == EMASkillProjectileTrackingTargetSource::ObjectPayload", EditConditionHides))
+	FGameplayTag TargetObjectPayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Tracking")
+	bool bHitOnlyTarget = false;
+};
 
 USTRUCT(BlueprintType)
 struct FMASkillActionConfig_SpawnProjectile
@@ -16,6 +52,24 @@ struct FMASkillActionConfig_SpawnProjectile
 	
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	TSubclassOf<AMAProjectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	EMASkillProjectileStartObjectSource StartObjectSource = EMASkillProjectileStartObjectSource::Self;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile", meta=(Categories="Data", EditCondition="StartObjectSource == EMASkillProjectileStartObjectSource::ObjectPayload", EditConditionHides))
+	FGameplayTag StartObjectPayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	EMASkillProjectileDirectionSource DirectionSource = EMASkillProjectileDirectionSource::Forward;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile", meta=(Categories="Data", EditCondition="DirectionSource == EMASkillProjectileDirectionSource::ObjectPayload", EditConditionHides))
+	FGameplayTag DirectionObjectPayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile")
+	bool bUseTargetTracking = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Projectile", meta=(EditCondition="bUseTargetTracking", EditConditionHides))
+	FMASkillProjectileTrackingConfig TargetTracking;
 
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	FName SpawnSocketName = TEXT("WeaponHandSocket");
