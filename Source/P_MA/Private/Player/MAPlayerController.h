@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GenericTeamAgentInterface.h"
+#include "GameplayTagContainer.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
@@ -75,7 +76,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<class AMAFloatingTextActor> FloatingTextActorClass;
 	UFUNCTION(Client, Unreliable)
-	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit);
+	void ClientShowDamageNumber(float Amount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit, FGameplayTag DamageTypeTag);
 	UFUNCTION(Client, Unreliable)
 	void ClientPlayCoinRewardFeedback(const FMACoinRewardFeedbackParams& Params);
 	

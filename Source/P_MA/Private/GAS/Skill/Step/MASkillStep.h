@@ -86,7 +86,7 @@ public:
 	void ClearPreparedStepPreview(float BlendOutTime = 0.f);
 	virtual bool ShouldAutoAdvanceOnMontageCompleted() const { return true; }
 	virtual bool GetStepProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const { return false; }
-	virtual void HandleRuntimeEvent(const FGameplayEventData& Payload) {}
+	virtual void HandleRuntimeEvent(const FGameplayEventData& EventData) {}
 
 protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }

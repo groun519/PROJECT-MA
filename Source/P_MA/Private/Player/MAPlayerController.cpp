@@ -11,6 +11,7 @@
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Passive/MAFloatingTextActor.h"
 #include "Input/MAInputStatics.h"
 #include "Shop/MAShopNPC.h"
@@ -95,12 +96,17 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
-void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit)
+void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit, FGameplayTag DamageTypeTag)
 {
 	if (!TargetActor) return;
 
+	const bool bIsHeal = DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag());
 	FLinearColor DamageColor = FLinearColor::White;
-	if (bIsPlayerHit)
+	if (bIsHeal)
+	{
+		DamageColor = FLinearColor::Green;
+	}
+	else if (bIsPlayerHit)
 	{
 		DamageColor = FLinearColor::Red;
 	}
@@ -109,13 +115,13 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmou
 		DamageColor = FLinearColor::Yellow;
 	}
 
-	FVector DamageTextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
-	DamageTextLocation.X += FMath::RandRange(-40.f, 40.f);
-	DamageTextLocation.Y += FMath::RandRange(-40.f, 40.f);
+	FVector TextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, bIsHeal ? 130.f : 100.f);
+	TextLocation.X += FMath::RandRange(-40.f, 40.f);
+	TextLocation.Y += FMath::RandRange(-40.f, 40.f);
 
 	ShowFloatingText(
-		FText::AsNumber(FMath::RoundToInt(DamageAmount)),
-		DamageTextLocation,
+		FText::AsNumber(FMath::RoundToInt(Amount)),
+		TextLocation,
 		DamageColor);
 }
 

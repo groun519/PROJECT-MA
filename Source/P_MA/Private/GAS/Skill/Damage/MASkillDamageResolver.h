@@ -19,6 +19,7 @@ private:
 	MASkillDamageResolver() = delete;
 
 	static void ApplyDamageOverTimeConfig(FGameplayEffectSpecHandle& SpecHandle, const FMASkillDamageOverTimeConfig& DamageOverTime);
+	static FMADamageExecutionConfig ResolveExecutionConfig(const FMASkillDamageConfig& DamageConfig, const FMASkillPayloadStore& PayloadStore);
 	static FMADamageExecutionConfig ScaleDamageConfigForTick(const FMADamageExecutionConfig& DamageConfig, int32 TickCount);
 	static void AppendElementalHitGameplayCueTag(UMASkillAbility& OwnerAbility, FGameplayTagContainer& TargetGameplayCueTags);
 };

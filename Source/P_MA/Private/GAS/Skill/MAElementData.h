@@ -19,6 +19,9 @@ struct P_MA_API FMAElementDataRow : public FTableRowBase
 	FLinearColor ElementColor = FLinearColor::White;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element")
+	TObjectPtr<UNiagaraSystem> MainVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element")
 	TObjectPtr<UNiagaraSystem> TrailVFX = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element", meta=(Categories="GameplayCue"))

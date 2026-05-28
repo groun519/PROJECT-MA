@@ -35,7 +35,7 @@ static TArray<FHitResult> ResolveShapeHitResults(
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Hitbox);
 
 	FCollisionQueryParams QueryParams;
-	if (Config.bIgnoreOwner)
+	if (Config.bIgnoreOwner && !MATargetRelation::IncludesSelf(TargetRelationMask))
 	{
 		QueryParams.AddIgnoredActor(AvatarActor);
 	}
@@ -126,10 +126,14 @@ static TArray<FHitResult> ResolveShapeHitResults(
 		if (OwnerTeamInterface)
 		{
 			const ETeamAttitude::Type TeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
-			if (!MATargetRelation::MatchesMask(TargetRelationMask, TeamAttitude))
+			if (!MATargetRelation::MatchesTarget(TargetRelationMask, AvatarActor, HitActor, TeamAttitude))
 			{
 				continue;
 			}
+		}
+		else if (MATargetRelation::IsSelfTarget(AvatarActor, HitActor) && !MATargetRelation::IncludesSelf(TargetRelationMask))
+		{
+			continue;
 		}
 
 		SeenActors.Add(HitActor);

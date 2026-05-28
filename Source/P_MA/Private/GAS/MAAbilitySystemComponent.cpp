@@ -7,7 +7,18 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAplayerAttributeSet.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
+#include "Player/MAPlayerController.h"
 #include "Player/MAPlayerCharacter.h"
+
+static AMAPlayerController* ResolvePlayerControllerFromActor(AActor* Actor)
+{
+	if (APawn* Pawn = Cast<APawn>(Actor))
+	{
+		return Cast<AMAPlayerController>(Pawn->GetController());
+	}
+
+	return Cast<AMAPlayerController>(Actor);
+}
 
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
@@ -88,6 +99,31 @@ void UMAAbilitySystemComponent::TryActivateAbilitiesByInputID(EMAAbilityInputID 
 		if (AbilitySpec.IsActive()) continue;
 
 		TryActivateAbility(AbilitySpec.Handle);
+	}
+}
+
+void UMAAbilitySystemComponent::NotifyDamageApplied(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming)
+{
+	DamageAppliedDelegate.Broadcast(DamageEvent);
+	ShowDamageNumber(DamageEvent, bIsIncoming);
+}
+
+void UMAAbilitySystemComponent::ShowDamageNumber(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming) const
+{
+	AActor* TargetActor = DamageEvent.TargetActor.Get();
+	if (!TargetActor) return;
+
+	AActor* ViewerActor = bIsIncoming ? TargetActor : DamageEvent.SourceActor.Get();
+	if (!ViewerActor || (!bIsIncoming && ViewerActor == TargetActor)) return;
+
+	if (AMAPlayerController* PlayerController = ResolvePlayerControllerFromActor(ViewerActor))
+	{
+		PlayerController->ClientShowDamageNumber(
+			DamageEvent.Amount,
+			TargetActor,
+			DamageEvent.bIsCriticalHit,
+			bIsIncoming,
+			DamageEvent.DamageTypeTag);
 	}
 }
 

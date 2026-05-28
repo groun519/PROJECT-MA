@@ -41,6 +41,7 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	TArray<FOverlapResult> OutResults;
 	TSet<AActor*> HitActors;
 
+	AActor* SourceActor = GetAvatarActorFromActorInfo();
 	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
 
 	const TSharedPtr<FGameplayAbilityTargetData>& TargetData = TargetDataHandle.Data[0];
@@ -51,7 +52,10 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	ObjParams.AddObjectTypesToQuery(ECC_Hitbox);
 
 	FCollisionQueryParams QueryParams;
-	if (bIgnoreSelf) QueryParams.AddIgnoredActor(GetAvatarActorFromActorInfo());
+	if (bIgnoreSelf && !MATargetRelation::IncludesSelf(TargetRelationMask) && SourceActor)
+	{
+		QueryParams.AddIgnoredActor(SourceActor);
+	}
 	const bool bDoSectorFilter = bUseSector && SectorAngle > 0.f;
 	FVector SectorForward = FVector::ForwardVector;
 	float SectorCosThreshold = -1.f;
@@ -142,7 +146,11 @@ TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
 		if (OwnerTeamInterface)
 		{
 			const ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
-			if (!MATargetRelation::MatchesMask(TargetRelationMask, OtherActorTeamAttitude)) continue;
+			if (!MATargetRelation::MatchesTarget(TargetRelationMask, SourceActor, HitActor, OtherActorTeamAttitude)) continue;
+		}
+		else if (MATargetRelation::IsSelfTarget(SourceActor, HitActor) && !MATargetRelation::IncludesSelf(TargetRelationMask))
+		{
+			continue;
 		}
 
 		HitActors.Add(HitActor);
@@ -256,7 +264,7 @@ void UMAGameplayAbility::ApplyGameplayEffectSpecToHitResultActor(const FHitResul
 {
 	if (!EffectSpecHandle.IsValid()) return;
 
-	FGameplayEffectContextHandle EffectContext = MakeEffectContext(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo());
+	FGameplayEffectContextHandle EffectContext = EffectSpecHandle.Data->GetContext().Duplicate();
 	EffectContext.AddHitResult(HitResult);
 
 	EffectSpecHandle.Data->SetContext(EffectContext);

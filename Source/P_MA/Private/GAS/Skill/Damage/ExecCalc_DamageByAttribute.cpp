@@ -109,6 +109,19 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	BaseDamage = FMath::Max(0.f, BaseDamage);
 	if (BaseDamage <= 0.f) return;
 
+	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(Spec.GetContext().Get());
+	if (MAContext && MAContext->GetDamageTypeTag().MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag()))
+	{
+		const float FinalHeal = FMath::RoundToFloat(BaseDamage);
+		if (FinalHeal <= 0.f) return;
+
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			UMAAttributeSet::GetHealthAttribute(),
+			EGameplayModOp::Additive,
+			FinalHeal));
+		return;
+	}
+
 	const float Armor = CaptureMagnitude(TargetArmorDef);
 	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
 	const float DamageVariance = CaptureMagnitude(SourceDamageVarianceDef);
@@ -131,9 +144,9 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		RandomizedDamage *= CriticalDamage;
 	}
 
-	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+	if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 	{
-		MAContext->SetIsCriticalHit(bIsCriticalHit);
+		MutableMAContext->SetIsCriticalHit(bIsCriticalHit);
 	}
 
 	const float DamageAfterArmor = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));

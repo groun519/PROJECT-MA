@@ -13,20 +13,34 @@ void FMAGameplayEffectContext::SetSkillEventContext(
 
 bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	Super::NetSerialize(Ar, Map, bOutSuccess);
+	bool bSuccess = true;
+	Super::NetSerialize(Ar, Map, bSuccess);
 
 	uint32 RepBits =0;
 	if (Ar.IsSaving())
 	{
 		if (bIsCriticalHit) RepBits |=1 << 0;
+		if (DamageTypeTag.IsValid()) RepBits |= 1 << 1;
 	}
-	Ar.SerializeBits(&RepBits, 1);
+	Ar.SerializeBits(&RepBits, 2);
 
 	if (Ar.IsLoading())
 	{
 		bIsCriticalHit = (RepBits & (1<<0)) != 0;
+		if ((RepBits & (1 << 1)) == 0)
+		{
+			DamageTypeTag = FGameplayTag();
+		}
 	}
-	bOutSuccess = true;
+
+	if ((RepBits & (1 << 1)) != 0)
+	{
+		bool bDamageTypeTagSuccess = true;
+		DamageTypeTag.NetSerialize(Ar, Map, bDamageTypeTagSuccess);
+		bSuccess &= bDamageTypeTagSuccess;
+	}
+
+	bOutSuccess = bSuccess;
 	return true;	
 }
 

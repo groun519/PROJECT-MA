@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameplayEffect.h"
+#include "GameplayTagContainer.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
 struct FMAGameplayEffectContext;
@@ -16,6 +17,8 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 
 	bool IsCriticalHit() const {return bIsCriticalHit;}
 	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
+	const FGameplayTag& GetDamageTypeTag() const { return DamageTypeTag; }
+	void SetDamageTypeTag(const FGameplayTag& InDamageTypeTag) { DamageTypeTag = InDamageTypeTag; }
 	void SetSkillEventContext(UMASkillAbility* InSkillAbility, UMASkillModuleInstance* InSkillEventScope);
 	UMASkillAbility* GetSkillEventAbility() const { return SkillEventAbility.Get(); }
 	UMASkillModuleInstance* GetSkillEventScope() const { return SkillEventScope.Get(); }
@@ -35,6 +38,9 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 protected:
 	UPROPERTY()
 	bool bIsCriticalHit = false;
+
+	UPROPERTY()
+	FGameplayTag DamageTypeTag;
 
 	TWeakObjectPtr<UMASkillAbility> SkillEventAbility;
 	TWeakObjectPtr<UMASkillModuleInstance> SkillEventScope;
@@ -99,7 +105,8 @@ UENUM(BlueprintType)
 enum class EMADamageAttributeSide : uint8
 {
 	Source,
-	Target
+	Target,
+	Payload
 };
 
 UENUM(BlueprintType, meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
@@ -108,7 +115,8 @@ enum class EMATargetRelation : uint8
 	None     = 0 UMETA(Hidden),
 	Friendly = 1 << 0,
 	Hostile  = 1 << 1,
-	Neutral  = 1 << 2
+	Neutral  = 1 << 2,
+	Self     = 1 << 3
 };
 ENUM_CLASS_FLAGS(EMATargetRelation);
 
@@ -139,9 +147,29 @@ namespace MATargetRelation
 		return ToMask(EMATargetRelation::Hostile);
 	}
 
+	FORCEINLINE bool IncludesSelf(const int32 AllowedRelationMask)
+	{
+		return (AllowedRelationMask & ToMask(EMATargetRelation::Self)) != 0;
+	}
+
+	FORCEINLINE bool IsSelfTarget(const AActor* SourceActor, const AActor* TargetActor)
+	{
+		return SourceActor && TargetActor && SourceActor == TargetActor;
+	}
+
 	FORCEINLINE bool MatchesMask(const int32 AllowedRelationMask, const ETeamAttitude::Type TeamAttitude)
 	{
 		return (AllowedRelationMask & ToMask(TeamAttitude)) != 0;
+	}
+
+	FORCEINLINE bool MatchesTarget(const int32 AllowedRelationMask, const AActor* SourceActor, const AActor* TargetActor, const ETeamAttitude::Type TeamAttitude)
+	{
+		if (IsSelfTarget(SourceActor, TargetActor))
+		{
+			return IncludesSelf(AllowedRelationMask);
+		}
+
+		return MatchesMask(AllowedRelationMask, TeamAttitude);
 	}
 }
 
@@ -153,8 +181,11 @@ struct FMADamageAttributeCoefficient
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	EMADamageAttributeSide Side = EMADamageAttributeSide::Source;
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(EditCondition="Side != EMADamageAttributeSide::Payload", EditConditionHides))
 	EMADamageAttribute Attribute = EMADamageAttribute::Attack;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Data", EditCondition="Side == EMADamageAttributeSide::Payload", EditConditionHides))
+	FGameplayTag PayloadTag;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	float Coefficient = 0.f;
@@ -169,11 +200,18 @@ struct FMADamageExecutionConfig
 	float BaseDamage = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	FGameplayTag DamageTypeTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Damage"));
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
 
 	void Append(const FMADamageExecutionConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
+		if (Other.DamageTypeTag.IsValid())
+		{
+			DamageTypeTag = Other.DamageTypeTag;
+		}
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
 	}
 

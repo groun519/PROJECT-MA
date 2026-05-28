@@ -4,13 +4,10 @@
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
-#include "GAS/Projectile/MAAbilityRangeActor.h"
-#include "GAS/Projectile/MAProjectile.h"
 #include "Inventory/MAItemTypes.h"
 #include "InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
-class UMAProjectileSkinData;
 class UNiagaraSystem;
 class UMAGameplayAbility_Skill;
 class UGameplayEffect;
@@ -255,9 +252,6 @@ struct FActionConfig_Projectile : public FSkillActionConfig
 {
 	GENERATED_BODY()
 public:
-	/**속성별로 적용시킬 나이아가라를 넣어놓은 데이터 에셋*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UMAProjectileSkinData> SkinData;
 	/**투사체 스폰 개수*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;
@@ -287,10 +281,6 @@ struct FActionConfig_Targeting : public FSkillActionConfig
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AGameplayAbilityTargetActor> TargetActorClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AMAAbilityRangeActor> RangeActorClass;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UMAProjectileSkinData> SkinData;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumOfProjectiles = 1;

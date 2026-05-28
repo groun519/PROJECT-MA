@@ -136,6 +136,16 @@ FGameplayTag UMAAbilitySystemStatics::GetFinalDamageMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.FinalModifier");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetDefaultDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHealDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Heal");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
 {
 	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
@@ -167,6 +177,7 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
+		if (Coefficient.Side == EMADamageAttributeSide::Payload) continue;
 
 		SummedMagnitudes.FindOrAdd(GetDamageAttributeCoefficientTag(Coefficient.Side, Coefficient.Attribute)) += Coefficient.Coefficient;
 	}
@@ -176,6 +187,14 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 		if (FMath::IsNearlyZero(Pair.Value)) continue;
 
 		SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
+	}
+
+	FGameplayEffectContextHandle ContextHandle = SpecHandle.Data->GetContext();
+	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+	{
+		MAContext->SetDamageTypeTag(DamageConfig.DamageTypeTag.IsValid()
+			? DamageConfig.DamageTypeTag
+			: GetDefaultDamageTypeTag());
 	}
 }
 

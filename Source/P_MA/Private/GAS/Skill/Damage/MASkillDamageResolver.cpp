@@ -18,6 +18,34 @@ void MASkillDamageResolver::ApplyDamageOverTimeConfig(FGameplayEffectSpecHandle&
 	SpecHandle.Data->Period = Duration / static_cast<float>(TickCount);
 }
 
+FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadStore& PayloadStore)
+{
+	FMADamageExecutionConfig Result;
+	Result.BaseDamage = DamageConfig.BaseDamage;
+	Result.DamageTypeTag = DamageConfig.DamageTypeTag;
+
+	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
+	{
+		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
+
+		if (Coefficient.Side == EMADamageAttributeSide::Payload)
+		{
+			float PayloadValue = 0.f;
+			if (PayloadStore.TryGetScalar(Coefficient.PayloadTag, PayloadValue))
+			{
+				Result.BaseDamage += PayloadValue * Coefficient.Coefficient;
+			}
+			continue;
+		}
+
+		Result.AttributeCoefficients.Add(Coefficient);
+	}
+
+	return Result;
+}
+
 FMADamageExecutionConfig MASkillDamageResolver::ScaleDamageConfigForTick(const FMADamageExecutionConfig& DamageConfig, int32 TickCount)
 {
 	FMADamageExecutionConfig Result = DamageConfig;
@@ -66,7 +94,7 @@ FResolvedSkillHitEffects MASkillDamageResolver::Resolve(
 	ResolvedHitEffects.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
 	AppendElementalHitGameplayCueTag(OwnerAbility, ResolvedHitEffects.TargetGameplayCueTags);
 
-	const FMADamageExecutionConfig ExecutionConfig = DamageConfig.ToExecutionConfig();
+	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, PayloadStore);
 	if (ExecutionConfig.HasValues())
 	{
 		const bool bApplyDamageOverTime = DamageConfig.ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime;

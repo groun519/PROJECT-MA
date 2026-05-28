@@ -25,7 +25,7 @@ public:
 	bool TransitionToStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime);
 	bool TryTransitionToPreparedStep(int32 TargetStepIndex);
 	void AdvanceOrEnd(int32 NextStepIndex, float MontageBlendOutTime);
-	void HandleRuntimeEvent(const FGameplayEventData& Payload) const;
+	void HandleRuntimeEvent(const FGameplayEventData& EventData) const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	void ApplyDesiredMontagePlayRate() const;

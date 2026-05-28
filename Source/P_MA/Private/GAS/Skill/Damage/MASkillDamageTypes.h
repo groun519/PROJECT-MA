@@ -83,6 +83,9 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	float BaseDamage = 0.f;
 
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="DamageType"))
+	FGameplayTag DamageTypeTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Damage"));
+
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
 
@@ -104,6 +107,10 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	void Append(const FMASkillDamageConfig& Other)
 	{
 		BaseDamage += Other.BaseDamage;
+		if (Other.DamageTypeTag.IsValid())
+		{
+			DamageTypeTag = Other.DamageTypeTag;
+		}
 		AttributeCoefficients.Append(Other.AttributeCoefficients);
 		if (Other.ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime)
 		{
@@ -126,13 +133,6 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 		return StatusEffects.Num() > 0 || !TargetGameplayCueTags.IsEmpty();
 	}
 
-	FMADamageExecutionConfig ToExecutionConfig() const
-	{
-		FMADamageExecutionConfig Result;
-		Result.BaseDamage = BaseDamage;
-		Result.AttributeCoefficients = AttributeCoefficients;
-		return Result;
-	}
 };
 
 USTRUCT()
