@@ -61,6 +61,7 @@ public:
 	static FGameplayTag GetAppliedDamageTag();
 	static FGameplayTag GetDamageTargetTag();
 	static FGameplayTag GetFinalDamageMultiplierTag();
+	static FGameplayTag GetDamageDealtEventTag();
 	static FGameplayTag GetDefaultDamageTypeTag();
 	static FGameplayTag GetHealDamageTypeTag();
 	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);

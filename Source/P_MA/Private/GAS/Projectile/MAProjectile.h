@@ -81,7 +81,7 @@ private:
 	bool bLaunchSpeedDecayFinished = false;
 
 	FHitResult BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const;
-	void ApplyHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
+	void ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
 	void ApplyProjectileVisuals();
 	void BindHomingTarget();
 	void ApplyLaunchSpeedDecay(float DeltaTime);

@@ -9,8 +9,8 @@ struct FMASkillPayloadStore;
 class P_MA_API MASkillDamageResolver final
 {
 public:
-	static FResolvedSkillHitEffects Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig);
-	static FResolvedSkillHitEffects Resolve(
+	static FResolvedSkillDamage Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig);
+	static FResolvedSkillDamage Resolve(
 		UMASkillAbility& OwnerAbility,
 		const FMASkillDamageConfig& DamageConfig,
 		const FMASkillPayloadStore& PayloadStore);

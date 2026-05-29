@@ -4,7 +4,6 @@
 #include "AbilitySystemComponent.h"
 #include "NiagaraComponent.h"
 #include "Components/SphereComponent.h"
-#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -143,26 +142,25 @@ bool AMAProjectile::CanDamageActor(AActor* OtherActor) const
 	const AActor* SourceActor = GetOwner() ? GetOwner() : GetInstigator();
 	if (MATargetRelation::IsSelfTarget(SourceActor, OtherActor))
 	{
-		return MATargetRelation::IncludesSelf(ProjectileParams.ResolvedHitEffects.TargetRelationMask);
+		return MATargetRelation::IncludesSelf(ProjectileParams.ResolvedDamage.TargetRelationMask);
 	}
 
 	const IGenericTeamAgentInterface* SourceTeamInterface = Cast<IGenericTeamAgentInterface>(SourceActor);
 	if (!SourceTeamInterface) return true;
 
 	return MATargetRelation::MatchesMask(
-		ProjectileParams.ResolvedHitEffects.TargetRelationMask,
+		ProjectileParams.ResolvedDamage.TargetRelationMask,
 		SourceTeamInterface->GetTeamAttitudeTowards(*OtherActor));
 }
 
-void AMAProjectile::ApplyHitEffectsToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult)
+void AMAProjectile::ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult)
 {
 	MASkillDamageApplicator::FMASkillDamageApplicationContext ApplicationContext;
 	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
 	ApplicationContext.EffectCauser = this;
-	ApplicationContext.SkillAbility = ProjectileParams.EventExecutorAbility.Get();
 	ApplicationContext.SkillEventScope = ProjectileParams.EventScope.Get();
 	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
-	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedHitEffects, ApplicationContext);
+	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedDamage, ApplicationContext);
 }
 
 bool AMAProjectile::TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult)
@@ -185,7 +183,7 @@ bool AMAProjectile::TryApplyHitToActor(AActor* OtherActor, const FHitResult& Hit
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OtherActor);
 	if (!TargetASC) return false;
 
-	ApplyHitEffectsToTarget(TargetASC, HitResult);
+	ApplyDamageToTarget(TargetASC, HitResult);
 
 	HitActors.Add(HitActor);
 	OnProjectileHit.Broadcast(OtherActor);
@@ -221,7 +219,7 @@ void AMAProjectile::CheckContinuousHit()
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MAProjectileContinuousHit), false, this);
 	QueryParams.AddIgnoredActor(this);
-	if (!MATargetRelation::IncludesSelf(ProjectileParams.ResolvedHitEffects.TargetRelationMask))
+	if (!MATargetRelation::IncludesSelf(ProjectileParams.ResolvedDamage.TargetRelationMask))
 	{
 		if (AActor* InstigatorActor = GetInstigator())
 		{

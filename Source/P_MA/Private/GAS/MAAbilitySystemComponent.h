@@ -8,17 +8,17 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
+struct FGameplayEffectModCallbackData;
+
 struct FMADamageAppliedEvent
 {
 	TWeakObjectPtr<AActor> SourceActor;
 	TWeakObjectPtr<AActor> TargetActor;
 	FHitResult HitResult;
-	float Amount = 0.f;
+	float DisplayMagnitude = 0.f;
 	FGameplayTag DamageTypeTag;
 	bool bIsCriticalHit = false;
 };
-
-DECLARE_MULTICAST_DELEGATE_OneParam(FMADamageAppliedSignature, const FMADamageAppliedEvent&);
 
 UCLASS()
 class UMAAbilitySystemComponent : public UAbilitySystemComponent
@@ -31,8 +31,7 @@ public:
 	void ServerSideInit();
 	void ApplyFullStatEffect();
 	void TryActivateAbilitiesByInputID(EMAAbilityInputID InputID);
-	void NotifyDamageApplied(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming);
-	FMADamageAppliedSignature& OnDamageApplied() { return DamageAppliedDelegate; }
+	void NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data);
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 
 	UPROPERTY(Transient)
@@ -43,7 +42,7 @@ private:
 	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
-	void ShowDamageNumber(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming) const;
+	void ShowDamageText(const FMADamageAppliedEvent& DamageAppliedEvent, bool bIsIncoming) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
@@ -53,6 +52,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	UPA_AbilitySystemGenerics* AbilitySystemGenerics;
-
-	FMADamageAppliedSignature DamageAppliedDelegate;
 };

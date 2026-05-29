@@ -5,6 +5,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Engine/HitResult.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
@@ -19,7 +20,6 @@ MASkillDamageApplicator::FMASkillDamageApplicationContext MASkillDamageApplicato
 	FMASkillDamageApplicationContext Context;
 	Context.InstigatorActor = OwnerAbility.GetAvatarActorFromActorInfo();
 	Context.EffectCauser = Context.InstigatorActor;
-	Context.SkillAbility = const_cast<UMASkillAbility*>(&OwnerAbility);
 	Context.SkillEventScope = SkillEventScope;
 	Context.StatusEffectSourcePoint = StatusEffectSourcePoint;
 	return Context;
@@ -107,15 +107,13 @@ bool MASkillDamageApplicator::ShouldApplyResolvedStatusEffect(
 	return true;
 }
 
-void MASkillDamageApplicator::ApplySpecToTargetASC(
-	UAbilitySystemComponent& TargetASC,
+FGameplayEffectSpecHandle MASkillDamageApplicator::MakeSpecWithHitResult(
 	const FHitResult& HitResult,
-	const FMASkillDamageApplicationContext& ApplicationContext,
 	const FGameplayEffectSpecHandle& SpecHandle)
 {
 	if (!SpecHandle.IsValid() || !SpecHandle.Data.IsValid())
 	{
-		return;
+		return FGameplayEffectSpecHandle();
 	}
 
 	FGameplayEffectSpecHandle LocalSpecHandle;
@@ -123,35 +121,59 @@ void MASkillDamageApplicator::ApplySpecToTargetASC(
 
 	FGameplayEffectContextHandle ContextHandle = LocalSpecHandle.Data->GetContext().Duplicate();
 	ContextHandle.AddHitResult(HitResult, true);
-	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
-	{
-		MAContext->SetSkillEventContext(ApplicationContext.SkillAbility, ApplicationContext.SkillEventScope);
-	}
 	LocalSpecHandle.Data->SetContext(ContextHandle);
+	return LocalSpecHandle;
+}
+
+void MASkillDamageApplicator::ApplySpecToTargetASC(
+	UAbilitySystemComponent& TargetASC,
+	const FHitResult& HitResult,
+	const FGameplayEffectSpecHandle& SpecHandle)
+{
+	FGameplayEffectSpecHandle LocalSpecHandle = MakeSpecWithHitResult(HitResult, SpecHandle);
+	if (!LocalSpecHandle.IsValid() || !LocalSpecHandle.Data.IsValid()) return;
 
 	TargetASC.ApplyGameplayEffectSpecToSelf(*LocalSpecHandle.Data.Get());
 }
 
-static void NotifySkillHit(
-	const MASkillDamageApplicator::FMASkillDamageApplicationContext& ApplicationContext,
-	const FHitResult& HitResult)
+bool MASkillDamageApplicator::ApplyDamageSpecToTargetASC(
+	UAbilitySystemComponent& TargetASC,
+	const FHitResult& HitResult,
+	const FGameplayEffectSpecHandle& SpecHandle,
+	FMADamageAppliedEvent& OutDamageAppliedEvent)
 {
-	if (!ApplicationContext.SkillAbility || !ApplicationContext.SkillEventScope) return;
+	FGameplayEffectSpecHandle LocalSpecHandle = MakeSpecWithHitResult(HitResult, SpecHandle);
+	if (!LocalSpecHandle.IsValid() || !LocalSpecHandle.Data.IsValid()) return false;
 
-	FGameplayEventData EventData;
-	EventData.Instigator = ApplicationContext.InstigatorActor;
-	EventData.Target = HitResult.GetActor();
-	EventData.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(HitResult);
-	ApplicationContext.SkillEventScope->BroadcastScopedEvent(FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Hit")), EventData);
+	TargetASC.ApplyGameplayEffectSpecToSelf(*LocalSpecHandle.Data.Get());
+
+	const FGameplayEffectContextHandle ContextHandle = LocalSpecHandle.Data->GetContext();
+	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
+	if (!MAContext || MAContext->GetDisplayMagnitude() <= 0.f) return false;
+
+	const FGameplayTag DamageTypeTag = MAContext->GetDamageTypeTag().IsValid()
+		? MAContext->GetDamageTypeTag()
+		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+
+	FMADamageAppliedEvent DamageAppliedEvent;
+	DamageAppliedEvent.SourceActor = ContextHandle.GetOriginalInstigator();
+	DamageAppliedEvent.TargetActor = TargetASC.GetAvatarActor();
+	DamageAppliedEvent.HitResult = HitResult;
+	DamageAppliedEvent.DisplayMagnitude = MAContext->GetDisplayMagnitude();
+	DamageAppliedEvent.DamageTypeTag = DamageTypeTag;
+	DamageAppliedEvent.bIsCriticalHit = MAContext->IsCriticalHit();
+
+	OutDamageAppliedEvent = DamageAppliedEvent;
+	return true;
 }
 
 void MASkillDamageApplicator::ExecuteTargetGameplayCues(
 	UAbilitySystemComponent& TargetASC,
 	const FHitResult& HitResult,
-	const FResolvedSkillHitEffects& ResolvedHitEffects,
+	const FResolvedSkillDamage& ResolvedDamage,
 	const FMASkillDamageApplicationContext& ApplicationContext)
 {
-	if (ResolvedHitEffects.TargetGameplayCueTags.IsEmpty()) return;
+	if (ResolvedDamage.TargetGameplayCueTags.IsEmpty()) return;
 
 	FGameplayCueParameters CueParams;
 	CueParams.Location = HitResult.ImpactPoint.IsNearlyZero() ? HitResult.Location : HitResult.ImpactPoint;
@@ -159,13 +181,14 @@ void MASkillDamageApplicator::ExecuteTargetGameplayCues(
 	CueParams.Instigator = ApplicationContext.InstigatorActor;
 	CueParams.EffectCauser = ApplicationContext.EffectCauser ? ApplicationContext.EffectCauser : ApplicationContext.InstigatorActor;
 
-	for (const FGameplayTag& GameplayCueTag : ResolvedHitEffects.TargetGameplayCueTags)
+	for (const FGameplayTag& GameplayCueTag : ResolvedDamage.TargetGameplayCueTags)
 	{
 		if (!GameplayCueTag.IsValid()) continue;
 
 		FGameplayCueParameters CueParamsForTag = CueParams;
 		CueParamsForTag.OriginalTag = GameplayCueTag;
 		CueParamsForTag.AggregatedSourceTags.AddTag(GameplayCueTag);
+		CueParamsForTag.AggregatedTargetTags.AddTag(GameplayCueTag);
 		TargetASC.ExecuteGameplayCue(GameplayCueTag, CueParamsForTag);
 	}
 }
@@ -174,7 +197,7 @@ void MASkillDamageApplicator::ApplyHitResults(
 	UMASkillAbility& OwnerAbility,
 	UMASkillModuleInstance* SkillEventScope,
 	const TArray<FHitResult>& HitResults,
-	const FResolvedSkillHitEffects& ResolvedHitEffects,
+	const FResolvedSkillDamage& ResolvedDamage,
 	const FVector& StatusEffectSourcePoint)
 {
 	TSet<AActor*> HitActors;
@@ -194,7 +217,7 @@ void MASkillDamageApplicator::ApplyHitResults(
 			continue;
 		}
 
-		ApplyToTarget(*TargetASC, HitResult, ResolvedHitEffects, ApplicationContext);
+		ApplyToTarget(*TargetASC, HitResult, ResolvedDamage, ApplicationContext);
 		HitActors.Add(HitActor);
 	}
 }
@@ -203,7 +226,7 @@ void MASkillDamageApplicator::ApplyHitResult(
 	UMASkillAbility& OwnerAbility,
 	UMASkillModuleInstance* SkillEventScope,
 	const FHitResult& HitResult,
-	const FResolvedSkillHitEffects& ResolvedHitEffects,
+	const FResolvedSkillDamage& ResolvedDamage,
 	const FVector& StatusEffectSourcePoint)
 {
 	AActor* HitActor = HitResult.GetActor();
@@ -212,22 +235,44 @@ void MASkillDamageApplicator::ApplyHitResult(
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
 	if (!TargetASC) return;
 
-	ApplyToTarget(*TargetASC, HitResult, ResolvedHitEffects, MakeApplicationContext(OwnerAbility, SkillEventScope, StatusEffectSourcePoint));
+	ApplyToTarget(*TargetASC, HitResult, ResolvedDamage, MakeApplicationContext(OwnerAbility, SkillEventScope, StatusEffectSourcePoint));
+}
+
+void MASkillDamageApplicator::ApplyToTargetActor(
+	UMASkillAbility& OwnerAbility,
+	UMASkillModuleInstance* SkillEventScope,
+	AActor& TargetActor,
+	const FResolvedSkillDamage& ResolvedDamage,
+	const FVector& StatusEffectSourcePoint)
+{
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(&TargetActor);
+	if (!TargetASC) return;
+
+	const FVector TargetLocation = TargetActor.GetActorLocation();
+	FHitResult HitResult(&TargetActor, nullptr, TargetLocation, FVector::UpVector);
+
+	ApplyToTarget(*TargetASC, HitResult, ResolvedDamage, MakeApplicationContext(OwnerAbility, SkillEventScope, StatusEffectSourcePoint));
 }
 
 void MASkillDamageApplicator::ApplyToTarget(
 	UAbilitySystemComponent& TargetASC,
 	const FHitResult& HitResult,
-	const FResolvedSkillHitEffects& ResolvedHitEffects,
+	const FResolvedSkillDamage& ResolvedDamage,
 	const FMASkillDamageApplicationContext& ApplicationContext)
 {
-	if (ResolvedHitEffects.DamageSpec.IsValid())
+	FMADamageAppliedEvent DamageAppliedEvent;
+	bool bHasDamageAppliedEvent = false;
+	if (ResolvedDamage.DamageSpec.IsValid())
 	{
-		ApplySpecToTargetASC(TargetASC, HitResult, ApplicationContext, ResolvedHitEffects.DamageSpec);
+		bHasDamageAppliedEvent = ApplyDamageSpecToTargetASC(
+			TargetASC,
+			HitResult,
+			ResolvedDamage.DamageSpec,
+			DamageAppliedEvent);
 	}
 
 	AActor* HitActor = HitResult.GetActor();
-	for (const FResolvedStatusEffect& StatusEffect : ResolvedHitEffects.StatusEffects)
+	for (const FResolvedStatusEffect& StatusEffect : ResolvedDamage.StatusEffects)
 	{
 		if (!StatusEffect.SpecHandle.IsValid() || !StatusEffect.SpecHandle.Data.IsValid()) continue;
 		if (!ShouldApplyResolvedStatusEffect(TargetASC, HitActor, StatusEffect)) continue;
@@ -237,11 +282,25 @@ void MASkillDamageApplicator::ApplyToTarget(
 		UMAAbilitySystemStatics::SetReactionSourcePoint(
 			StatusEffectSpecHandle,
 			ResolveStatusEffectSourcePoint(ApplicationContext, StatusEffect.SourceType));
-		ApplySpecToTargetASC(TargetASC, HitResult, ApplicationContext, StatusEffectSpecHandle);
+		ApplySpecToTargetASC(TargetASC, HitResult, StatusEffectSpecHandle);
 	}
 
-	ExecuteTargetGameplayCues(TargetASC, HitResult, ResolvedHitEffects, ApplicationContext);
-	NotifySkillHit(ApplicationContext, HitResult);
+	ExecuteTargetGameplayCues(TargetASC, HitResult, ResolvedDamage, ApplicationContext);
+
+	if (bHasDamageAppliedEvent
+		&& DamageAppliedEvent.DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetDefaultDamageTypeTag())
+		&& ApplicationContext.SkillEventScope)
+	{
+		FGameplayEventData EventData;
+		EventData.Instigator = DamageAppliedEvent.SourceActor.Get();
+		EventData.Target = DamageAppliedEvent.TargetActor.Get();
+		EventData.EventMagnitude = DamageAppliedEvent.DisplayMagnitude;
+		if (DamageAppliedEvent.HitResult.GetActor())
+		{
+			EventData.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromHitResult(DamageAppliedEvent.HitResult);
+		}
+		ApplicationContext.SkillEventScope->BroadcastScopedEvent(UMAAbilitySystemStatics::GetDamageDealtEventTag(), EventData);
+	}
 }
 
 void MASkillDamageApplicator::ApplyToTarget(
@@ -249,8 +308,8 @@ void MASkillDamageApplicator::ApplyToTarget(
 	UMASkillAbility& OwnerAbility,
 	UMASkillModuleInstance* SkillEventScope,
 	const FHitResult& HitResult,
-	const FResolvedSkillHitEffects& ResolvedHitEffects,
+	const FResolvedSkillDamage& ResolvedDamage,
 	const FVector& StatusEffectSourcePoint)
 {
-	ApplyToTarget(TargetASC, HitResult, ResolvedHitEffects, MakeApplicationContext(OwnerAbility, SkillEventScope, StatusEffectSourcePoint));
+	ApplyToTarget(TargetASC, HitResult, ResolvedDamage, MakeApplicationContext(OwnerAbility, SkillEventScope, StatusEffectSourcePoint));
 }

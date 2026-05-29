@@ -7,8 +7,6 @@
 #include "MAGameplayAbilityTypes.generated.h"
 
 struct FMAGameplayEffectContext;
-class UMASkillAbility;
-class UMASkillModuleInstance;
 
 USTRUCT()
 struct FMAGameplayEffectContext : public FGameplayEffectContext
@@ -19,9 +17,8 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
 	const FGameplayTag& GetDamageTypeTag() const { return DamageTypeTag; }
 	void SetDamageTypeTag(const FGameplayTag& InDamageTypeTag) { DamageTypeTag = InDamageTypeTag; }
-	void SetSkillEventContext(UMASkillAbility* InSkillAbility, UMASkillModuleInstance* InSkillEventScope);
-	UMASkillAbility* GetSkillEventAbility() const { return SkillEventAbility.Get(); }
-	UMASkillModuleInstance* GetSkillEventScope() const { return SkillEventScope.Get(); }
+	float GetDisplayMagnitude() const { return DisplayMagnitude; }
+	void SetDisplayMagnitude(float InDisplayMagnitude) { DisplayMagnitude = InDisplayMagnitude; }
 	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
 	virtual FMAGameplayEffectContext* Duplicate() const override
 	{
@@ -42,8 +39,8 @@ protected:
 	UPROPERTY()
 	FGameplayTag DamageTypeTag;
 
-	TWeakObjectPtr<UMASkillAbility> SkillEventAbility;
-	TWeakObjectPtr<UMASkillModuleInstance> SkillEventScope;
+	UPROPERTY()
+	float DisplayMagnitude = 0.f;
 };
 
 template<>

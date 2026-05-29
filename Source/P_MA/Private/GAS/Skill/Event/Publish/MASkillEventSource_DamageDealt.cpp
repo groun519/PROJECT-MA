@@ -7,7 +7,7 @@
 
 UMASkillEventSource_DamageDealt::UMASkillEventSource_DamageDealt()
 {
-	EmittedTag = FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.DamageDealt"));
+	EmittedTag = UMAAbilitySystemStatics::GetDamageDealtEventTag();
 }
 
 void UMASkillEventSource_DamageDealt::HandleSourceEvent(

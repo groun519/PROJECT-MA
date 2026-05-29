@@ -1,16 +1,5 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 
-#include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
-
-void FMAGameplayEffectContext::SetSkillEventContext(
-	UMASkillAbility* InSkillAbility,
-	UMASkillModuleInstance* InSkillEventScope)
-{
-	SkillEventAbility = InSkillAbility;
-	SkillEventScope = InSkillEventScope;
-}
-
 bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bool bSuccess = true;
@@ -21,8 +10,9 @@ bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map
 	{
 		if (bIsCriticalHit) RepBits |=1 << 0;
 		if (DamageTypeTag.IsValid()) RepBits |= 1 << 1;
+		if (!FMath::IsNearlyZero(DisplayMagnitude)) RepBits |= 1 << 2;
 	}
-	Ar.SerializeBits(&RepBits, 2);
+	Ar.SerializeBits(&RepBits, 3);
 
 	if (Ar.IsLoading())
 	{
@@ -31,6 +21,10 @@ bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map
 		{
 			DamageTypeTag = FGameplayTag();
 		}
+		if ((RepBits & (1 << 2)) == 0)
+		{
+			DisplayMagnitude = 0.f;
+		}
 	}
 
 	if ((RepBits & (1 << 1)) != 0)
@@ -38,6 +32,10 @@ bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map
 		bool bDamageTypeTagSuccess = true;
 		DamageTypeTag.NetSerialize(Ar, Map, bDamageTypeTagSuccess);
 		bSuccess &= bDamageTypeTagSuccess;
+	}
+	if ((RepBits & (1 << 2)) != 0)
+	{
+		Ar << DisplayMagnitude;
 	}
 
 	bOutSuccess = bSuccess;

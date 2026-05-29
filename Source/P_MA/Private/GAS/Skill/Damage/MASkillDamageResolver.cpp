@@ -79,20 +79,20 @@ void MASkillDamageResolver::AppendElementalHitGameplayCueTag(UMASkillAbility& Ow
 	}
 }
 
-FResolvedSkillHitEffects MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig)
+FResolvedSkillDamage MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig)
 {
 	return Resolve(OwnerAbility, DamageConfig, OwnerAbility.GetAssembledModulePayloadStore());
 }
 
-FResolvedSkillHitEffects MASkillDamageResolver::Resolve(
+FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillDamageConfig& DamageConfig,
 	const FMASkillPayloadStore& PayloadStore)
 {
-	FResolvedSkillHitEffects ResolvedHitEffects;
-	ResolvedHitEffects.TargetRelationMask = DamageConfig.TargetRelationMask;
-	ResolvedHitEffects.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
-	AppendElementalHitGameplayCueTag(OwnerAbility, ResolvedHitEffects.TargetGameplayCueTags);
+	FResolvedSkillDamage ResolvedDamage;
+	ResolvedDamage.TargetRelationMask = DamageConfig.TargetRelationMask;
+	ResolvedDamage.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
+	AppendElementalHitGameplayCueTag(OwnerAbility, ResolvedDamage.TargetGameplayCueTags);
 
 	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, PayloadStore);
 	if (ExecutionConfig.HasValues())
@@ -102,7 +102,7 @@ FResolvedSkillHitEffects MASkillDamageResolver::Resolve(
 		const FMADamageExecutionConfig AppliedExecutionConfig = bApplyDamageOverTime
 			? ScaleDamageConfigForTick(ExecutionConfig, TickCount)
 			: ExecutionConfig;
-		ResolvedHitEffects.DamageSpec = OwnerAbility.MakeDamageEffectSpec(
+		ResolvedDamage.DamageSpec = OwnerAbility.MakeDamageEffectSpec(
 			bApplyDamageOverTime
 				? UMAGameplayEffect_SkillDamageOverTime::StaticClass()
 				: UMAGameplayEffect_SkillDamage::StaticClass(),
@@ -114,25 +114,25 @@ FResolvedSkillHitEffects MASkillDamageResolver::Resolve(
 			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
 			FinalDamageMultiplier)
 			&& !FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
-			&& ResolvedHitEffects.DamageSpec.IsValid()
-			&& ResolvedHitEffects.DamageSpec.Data.IsValid())
+			&& ResolvedDamage.DamageSpec.IsValid()
+			&& ResolvedDamage.DamageSpec.Data.IsValid())
 		{
-			ResolvedHitEffects.DamageSpec.Data->SetSetByCallerMagnitude(
+			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
 				UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
 				FinalDamageMultiplier);
 		}
 
 		if (bApplyDamageOverTime)
 		{
-			ApplyDamageOverTimeConfig(ResolvedHitEffects.DamageSpec, DamageConfig.DamageOverTime);
+			ApplyDamageOverTimeConfig(ResolvedDamage.DamageSpec, DamageConfig.DamageOverTime);
 		}
 	}
 
 	for (const TObjectPtr<UMASkillStatusEffect>& StatusEffect : DamageConfig.StatusEffects)
 	{
 		if (!StatusEffect) continue;
-		StatusEffect->BuildResolvedEffect(OwnerAbility, ResolvedHitEffects.StatusEffects);
+		StatusEffect->BuildResolvedEffect(OwnerAbility, ResolvedDamage.StatusEffects);
 	}
 
-	return ResolvedHitEffects;
+	return ResolvedDamage;
 }

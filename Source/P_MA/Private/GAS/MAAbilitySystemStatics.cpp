@@ -136,6 +136,11 @@ FGameplayTag UMAAbilitySystemStatics::GetFinalDamageMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.FinalModifier");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetDamageDealtEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageDealt");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDefaultDamageTypeTag()
 {
 	return FGameplayTag::RequestGameplayTag("DamageType.Damage");

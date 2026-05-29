@@ -17,8 +17,8 @@ void UMASkillAction_MeleeOverlap::Execute(
 
 	const FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
-	const FResolvedSkillHitEffects ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
-	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEventData(OwnerAbility, EventData, ResolvedHitEffects.TargetRelationMask);
+	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
+	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEventData(OwnerAbility, EventData, ResolvedDamage.TargetRelationMask);
 	const FVector StatusEffectCenterPoint = MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(OwnerAbility, EventData);
-	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes.EventScope, HitResults, ResolvedHitEffects, StatusEffectCenterPoint);
+	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes.EventScope, HitResults, ResolvedDamage, StatusEffectCenterPoint);
 }

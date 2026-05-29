@@ -145,7 +145,7 @@ void UMASkillAction_SpawnProjectile::Execute(
 	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
-	ProjectileParams.ResolvedHitEffects = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
+	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;

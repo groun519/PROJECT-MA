@@ -110,11 +110,18 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	if (BaseDamage <= 0.f) return;
 
 	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(Spec.GetContext().Get());
-	if (MAContext && MAContext->GetDamageTypeTag().MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag()))
+	const FGameplayTag DamageTypeTag = MAContext && MAContext->GetDamageTypeTag().IsValid()
+		? MAContext->GetDamageTypeTag()
+		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag()))
 	{
 		const float FinalHeal = FMath::RoundToFloat(BaseDamage);
 		if (FinalHeal <= 0.f) return;
 
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetDisplayMagnitude(FinalHeal);
+		}
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
 			UMAAttributeSet::GetHealthAttribute(),
 			EGameplayModOp::Additive,
@@ -153,6 +160,10 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	const float FinalDamage = FMath::RoundToFloat(DamageAfterArmor * UtilityBonus * ElementBonus * BehaviorBonus * FinalDamageMultiplier);
 	if (FinalDamage <= 0.f) return;
 
+	if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+	{
+		MutableMAContext->SetDisplayMagnitude(FinalDamage);
+	}
 	OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
 		UMAAttributeSet::GetHealthAttribute(),
 		EGameplayModOp::Additive,

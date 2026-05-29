@@ -77,7 +77,7 @@ struct P_MA_API FMAProjectileParams
 {
 	GENERATED_BODY()
 
-	FResolvedSkillHitEffects ResolvedHitEffects;
+	FResolvedSkillDamage ResolvedDamage;
 
 	FMAProjectileTargetSettings TargetSettings;
 	FMAProjectilePenetratingSettings PenetratingSettings;

@@ -7,7 +7,7 @@ struct FGameplayEventData;
 struct FHitResult;
 struct FMASkillDamageConfig;
 struct FMASkillPayloadStore;
-struct FResolvedSkillHitEffects;
+struct FResolvedSkillDamage;
 class UMASkillAbility;
 
 class P_MA_API MASkillActionMeleeOverlap final

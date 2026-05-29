@@ -1,6 +1,7 @@
 #include "GAS/MAAbilitySystemComponent.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayEffectExtension.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
@@ -102,28 +103,53 @@ void UMAAbilitySystemComponent::TryActivateAbilitiesByInputID(EMAAbilityInputID 
 	}
 }
 
-void UMAAbilitySystemComponent::NotifyDamageApplied(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming)
+void UMAAbilitySystemComponent::NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data)
 {
-	DamageAppliedDelegate.Broadcast(DamageEvent);
-	ShowDamageNumber(DamageEvent, bIsIncoming);
+	const FGameplayEffectContextHandle ContextHandle = Data.EffectSpec.GetContext();
+	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
+	if (!MAContext || MAContext->GetDisplayMagnitude() <= 0.f) return;
+
+	FMADamageAppliedEvent DamageAppliedEvent;
+	DamageAppliedEvent.SourceActor = ContextHandle.GetOriginalInstigator();
+	DamageAppliedEvent.TargetActor = Data.Target.AbilityActorInfo ? Data.Target.AbilityActorInfo->AvatarActor.Get() : nullptr;
+	DamageAppliedEvent.DisplayMagnitude = MAContext->GetDisplayMagnitude();
+	DamageAppliedEvent.DamageTypeTag = MAContext->GetDamageTypeTag().IsValid()
+		? MAContext->GetDamageTypeTag()
+		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	DamageAppliedEvent.bIsCriticalHit = MAContext->IsCriticalHit();
+	if (const FHitResult* HitResult = ContextHandle.GetHitResult())
+	{
+		DamageAppliedEvent.HitResult = *HitResult;
+	}
+
+	UMAAbilitySystemComponent* SourceASC = Cast<UMAAbilitySystemComponent>(ContextHandle.GetOriginalInstigatorAbilitySystemComponent());
+	UMAAbilitySystemComponent* TargetASC = Cast<UMAAbilitySystemComponent>(&Data.Target);
+	if (SourceASC && SourceASC != TargetASC)
+	{
+		SourceASC->ShowDamageText(DamageAppliedEvent, false);
+	}
+	if (TargetASC)
+	{
+		TargetASC->ShowDamageText(DamageAppliedEvent, true);
+	}
 }
 
-void UMAAbilitySystemComponent::ShowDamageNumber(const FMADamageAppliedEvent& DamageEvent, bool bIsIncoming) const
+void UMAAbilitySystemComponent::ShowDamageText(const FMADamageAppliedEvent& DamageAppliedEvent, bool bIsIncoming) const
 {
-	AActor* TargetActor = DamageEvent.TargetActor.Get();
+	AActor* TargetActor = DamageAppliedEvent.TargetActor.Get();
 	if (!TargetActor) return;
 
-	AActor* ViewerActor = bIsIncoming ? TargetActor : DamageEvent.SourceActor.Get();
+	AActor* ViewerActor = bIsIncoming ? TargetActor : DamageAppliedEvent.SourceActor.Get();
 	if (!ViewerActor || (!bIsIncoming && ViewerActor == TargetActor)) return;
 
 	if (AMAPlayerController* PlayerController = ResolvePlayerControllerFromActor(ViewerActor))
 	{
 		PlayerController->ClientShowDamageNumber(
-			DamageEvent.Amount,
+			DamageAppliedEvent.DisplayMagnitude,
 			TargetActor,
-			DamageEvent.bIsCriticalHit,
+			DamageAppliedEvent.bIsCriticalHit,
 			bIsIncoming,
-			DamageEvent.DamageTypeTag);
+			DamageAppliedEvent.DamageTypeTag);
 	}
 }
 
