@@ -54,7 +54,7 @@ void UMAGameplayEffect_StatusEffectAttribute::RebuildModifiers()
 
 UMAGameplayEffect_StatusEffectSlow::UMAGameplayEffect_StatusEffectSlow()
 {
-	TargetAttribute = UMAAttributeSet::GetMoveSpeedAttribute();
+	TargetAttribute = UMAAttributeSet::GetSlowMultiplierAttribute();
 	ModifierOp = EGameplayModOp::Multiplicitive;
 	Magnitude = 0.8f;
 	RebuildModifiers();

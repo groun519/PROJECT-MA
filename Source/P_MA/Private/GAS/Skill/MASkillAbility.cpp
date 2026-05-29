@@ -27,6 +27,7 @@ UMASkillAbility::UMASkillAbility()
 	BlockAbilitiesWithTag.AddTag(SkillTag);
 
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());
+	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetFrozenStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetAirborneStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetGrabStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStaggerStatTag());

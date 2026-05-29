@@ -12,6 +12,7 @@
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
+class UMAElementalComponent;
 class UMAImpulseComponent;
 class UMAStatusEffectComponent;
 class UMASkillManagerComponent;
@@ -41,6 +42,7 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 	UMAImpulseComponent* GetImpulseComponent() const { return ImpulseComponent; }
 	UMAStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
+	UMAElementalComponent* GetElementalComponent() const { return ElementalComponent; }
 	UMASkillManagerComponent* GetSkillManagerComponent() const { return SkillManagerComponent; }
 	
 	UFUNCTION(Server, Reliable, WithValidation)
@@ -62,6 +64,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Status Effect")
 	UMAStatusEffectComponent* StatusEffectComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Elemental")
+	TObjectPtr<UMAElementalComponent> ElementalComponent;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Status Effect")
 	TObjectPtr<UMAImpulseComponent> ImpulseComponent;

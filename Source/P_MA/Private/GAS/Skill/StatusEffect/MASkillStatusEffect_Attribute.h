@@ -44,8 +44,6 @@ protected:
 	float Magnitude = 0.8f;
 
 	virtual void PrepareEffectTemplate() const override;
-	virtual EMASkillStatusEffectStrengthPolicy GetStrengthPolicy() const override { return EMASkillStatusEffectStrengthPolicy::SmallerMagnitudeStronger; }
-	virtual float GetStrengthMagnitude() const override { return Magnitude; }
 };
 
 UCLASS(BlueprintType, DisplayName="SE Haste", HideCategories="Internal")

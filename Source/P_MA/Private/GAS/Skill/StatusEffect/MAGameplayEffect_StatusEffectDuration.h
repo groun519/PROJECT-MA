@@ -12,3 +12,12 @@ class P_MA_API UMAGameplayEffect_StatusEffectDuration : public UGameplayEffect
 public:
 	UMAGameplayEffect_StatusEffectDuration();
 };
+
+UCLASS()
+class P_MA_API UMAGameplayEffect_StatusEffectInfinite : public UGameplayEffect
+{
+	GENERATED_BODY()
+
+public:
+	UMAGameplayEffect_StatusEffectInfinite();
+};

@@ -38,6 +38,11 @@ namespace
 			true));
 
 		StatusEffectRules.Add(MakeStatusEffectRule(
+			UMAAbilitySystemStatics::GetFrozenStatTag(),
+			EStatusEffectImpulseMode::None,
+			true));
+
+		StatusEffectRules.Add(MakeStatusEffectRule(
 			UMAAbilitySystemStatics::GetRootStatTag(),
 			EStatusEffectImpulseMode::None,
 			true,

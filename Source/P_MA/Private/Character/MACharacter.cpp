@@ -7,6 +7,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/MAElementalComponent.h"
 #include "Character/MAImpulseComponent.h"
 #include "Character/MAStatusEffectComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
@@ -38,6 +39,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
 	StatusEffectComponent = CreateDefaultSubobject<UMAStatusEffectComponent>("Reaction Component");
+	ElementalComponent = CreateDefaultSubobject<UMAElementalComponent>("Elemental Component");
 	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
@@ -133,6 +135,7 @@ void AMACharacter::BindGASChangeDelegates()
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
+		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetSlowMultiplierAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
 
@@ -191,7 +194,7 @@ void AMACharacter::RefreshMaxWalkSpeed()
 	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
 	if (!MoveComp || !MAAttributeSet || !MAAbilitySystemComponent) return;
 
-	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
+	const float MoveSpeed = MAAttributeSet->GetMoveSpeed() * MAAttributeSet->GetSlowMultiplier();
 	const float MovementResponsiveness = 10.f;
 	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag()))
 	{

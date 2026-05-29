@@ -151,6 +151,7 @@ FGameplayTag UMAAbilitySystemStatics::GetHealDamageTypeTag()
 	return FGameplayTag::RequestGameplayTag("DamageType.Heal");
 }
 
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
 {
 	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
@@ -230,6 +231,11 @@ bool UMAAbilitySystemStatics::TryGetReactionSourcePoint(const FGameplayEffectSpe
 FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetFrozenStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Frozen");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetRootStatTag()
