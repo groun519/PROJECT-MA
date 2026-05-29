@@ -7,6 +7,8 @@
 
 class AMACharacter;
 class UMAAbilitySystemComponent;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
 
 UCLASS(ClassGroup=(Custom))
 class P_MA_API UMAElementalComponent : public UActorComponent
@@ -25,6 +27,8 @@ private:
 	void BindToASC();
 	void HandleTemperatureChanged(const FOnAttributeChangeData& Data);
 	void RefreshTemperatureRecoveryEffect();
+	void RefreshTemperatureOverlay();
+	float CalculateTemperatureOverlayAlpha() const;
 	bool IsTemperatureRecoveryActive() const;
 	void ApplyTemperatureRecovery();
 	void RemoveTemperatureRecovery();
@@ -47,11 +51,17 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental|Slow", meta=(ClampMin="0.0", ClampMax="1.0"))
 	float FrozenSlowMinMultiplier = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category="Elemental|Overlay")
+	TObjectPtr<UMaterialInterface> TemperatureOverlayMaterial;
+
 	UPROPERTY(Transient)
 	TObjectPtr<AMACharacter> OwnerCharacter;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMAAbilitySystemComponent> OwnerASC;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> TemperatureOverlayMID;
 
 	float CurrentTemperature = 0.f;
 	FActiveGameplayEffectHandle TemperatureRecoveryEffectHandle;

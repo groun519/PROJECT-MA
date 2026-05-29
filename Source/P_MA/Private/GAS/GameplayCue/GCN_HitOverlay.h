@@ -8,7 +8,6 @@
 
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
-class USkeletalMeshComponent;
 
 UCLASS()
 class P_MA_API AGCN_HitOverlay : public AGameplayCueNotify_Actor
@@ -40,16 +39,13 @@ protected:
 private:
 	struct FActiveOverlayFade
 	{
-		TWeakObjectPtr<USkeletalMeshComponent> MeshComp;
 		TWeakObjectPtr<UMaterialInstanceDynamic> OverlayMID;
 		float Elapsed = 0.f;
 	};
 
 	FGameplayTag ResolveRequestedCueTag(const FGameplayCueParameters& Parameters) const;
 	FLinearColor ResolveOverlayColor(const FGameplayCueParameters& Parameters) const;
-	void StartOrRestartFade(USkeletalMeshComponent* MeshComp, const FLinearColor& OverlayColor);
-	int32 FindFadeIndex(const USkeletalMeshComponent* MeshComp) const;
-	USkeletalMeshComponent* ResolveTargetMesh(AActor* TargetActor) const;
+	void StartFade(AActor* TargetActor, const FLinearColor& OverlayColor);
 
 	TArray<FActiveOverlayFade> ActiveFades;
 };

@@ -16,3 +16,6 @@ inline const FName PARAM_ModuleIcon_UseSubIcon(TEXT("UseSubIcon"));
 /** DragDropIcon **/
 inline const FName PARAM_DragDropIcon_IconTexture(TEXT("IconTexture"));
 inline const FName PARAM_DragDropIcon_IconColor(TEXT("IconColor"));
+
+/** TemperatureOverlay **/
+inline const FName PARAM_TemperatureOverlay_TemperatureAlpha(TEXT("TemperatureAlpha"));

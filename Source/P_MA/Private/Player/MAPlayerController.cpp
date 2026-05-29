@@ -106,6 +106,10 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AA
 	{
 		DamageColor = FLinearColor::Green;
 	}
+	else if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetIceDamageTypeTag()))
+	{
+		DamageColor = FLinearColor(0.f, 1.f, 1.f);
+	}
 	else if (bIsPlayerHit)
 	{
 		DamageColor = FLinearColor::Red;

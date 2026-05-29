@@ -1,12 +1,15 @@
 #include "Character/MAElementalComponent.h"
 
 #include "Character/MACharacter.h"
+#include "Character/MAOverlayComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureRecovery.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureSlow.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
+#include "MAMaterialParams.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 UMAElementalComponent::UMAElementalComponent()
 {
@@ -23,6 +26,13 @@ void UMAElementalComponent::BeginPlay()
 
 void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (OwnerCharacter && TemperatureOverlayMaterial)
+	{
+		if (UMAOverlayComponent* OverlayComponent = OwnerCharacter->GetOverlayComponent())
+		{
+			OverlayComponent->RemovePersistentOverlay(TemperatureOverlayMaterial);
+		}
+	}
 	RemoveTemperatureRecovery();
 	RemoveTemperatureSlow();
 	RemoveFrozenStatus();
@@ -38,6 +48,7 @@ void UMAElementalComponent::BindToASC()
 
 	CurrentTemperature = OwnerASC->GetNumericAttribute(UMAAttributeSet::GetTemperatureAttribute());
 	OwnerASC->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetTemperatureAttribute()).AddUObject(this, &UMAElementalComponent::HandleTemperatureChanged);
+	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
 	RefreshTemperatureRecoveryEffect();
@@ -46,9 +57,31 @@ void UMAElementalComponent::BindToASC()
 void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeData& Data)
 {
 	CurrentTemperature = Data.NewValue;
+	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
 	RefreshTemperatureRecoveryEffect();
+}
+
+void UMAElementalComponent::RefreshTemperatureOverlay()
+{
+	if (!OwnerCharacter || !TemperatureOverlayMaterial) return;
+
+	if (!TemperatureOverlayMID)
+	{
+		if (UMAOverlayComponent* OverlayComponent = OwnerCharacter->GetOverlayComponent())
+		{
+			TemperatureOverlayMID = OverlayComponent->AddPersistentOverlay(TemperatureOverlayMaterial, 2);
+		}
+	}
+	if (!TemperatureOverlayMID) return;
+
+	TemperatureOverlayMID->SetScalarParameterValue(PARAM_TemperatureOverlay_TemperatureAlpha, CalculateTemperatureOverlayAlpha());
+}
+
+float UMAElementalComponent::CalculateTemperatureOverlayAlpha() const
+{
+	return FMath::Clamp((CurrentTemperature + 100.f) / 200.f, 0.f, 1.f);
 }
 
 void UMAElementalComponent::RefreshTemperatureRecoveryEffect()

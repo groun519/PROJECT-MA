@@ -151,6 +151,10 @@ FGameplayTag UMAAbilitySystemStatics::GetHealDamageTypeTag()
 	return FGameplayTag::RequestGameplayTag("DamageType.Heal");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetIceDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Ice");
+}
 
 FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
 {

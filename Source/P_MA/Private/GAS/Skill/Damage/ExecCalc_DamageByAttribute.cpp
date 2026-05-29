@@ -129,6 +129,22 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return;
 	}
 
+	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetIceDamageTypeTag()))
+	{
+		const float FinalIceDamage = FMath::RoundToFloat(BaseDamage);
+		if (FinalIceDamage <= 0.f) return;
+
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetDisplayMagnitude(FinalIceDamage);
+		}
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			UMAAttributeSet::GetTemperatureAttribute(),
+			EGameplayModOp::Additive,
+			-FinalIceDamage));
+		return;
+	}
+
 	const float Armor = CaptureMagnitude(TargetArmorDef);
 	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
 	const float DamageVariance = CaptureMagnitude(SourceDamageVarianceDef);
