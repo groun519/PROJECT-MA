@@ -34,6 +34,14 @@ void UMASkillEventSource::DeinitializeRuntime()
 	OwnerSkillAbility = nullptr;
 }
 
+void UMASkillEventSource::UnbindSkillLifecycle()
+{
+	if (!OwnerSkillAbility) return;
+
+	OwnerSkillAbility->OnSkillActivated().RemoveAll(this);
+	OwnerSkillAbility->OnSkillDeactivated().RemoveAll(this);
+}
+
 void UMASkillEventSource::EmitEvent() const
 {
 	FGameplayEventData EventData;

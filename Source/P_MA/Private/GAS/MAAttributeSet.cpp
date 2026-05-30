@@ -35,7 +35,6 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Attack, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, DamageVariance, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, SlowMultiplier, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
@@ -92,7 +91,6 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 DEFINE_REPNOTIFY(Health)
 DEFINE_REPNOTIFY(MaxHealth)
 DEFINE_REPNOTIFY(Attack)
-DEFINE_REPNOTIFY(DamageVariance)
 DEFINE_REPNOTIFY(MoveSpeed)
 DEFINE_REPNOTIFY(SlowMultiplier)
 DEFINE_REPNOTIFY(AttackSpeed)

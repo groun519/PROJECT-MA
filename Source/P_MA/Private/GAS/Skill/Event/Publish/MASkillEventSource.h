@@ -18,6 +18,7 @@ class P_MA_API UMASkillEventSource : public UObject
 public:
 	void InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* EventScope);
 	void DeinitializeRuntime();
+	void UnbindSkillLifecycle();
 	virtual void StartSource(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	virtual void StopSource() {}
 	virtual void HandleSourceEvent(

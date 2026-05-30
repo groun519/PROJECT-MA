@@ -4,6 +4,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Framework/MAGameMode.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -338,6 +339,33 @@ void AMAPlayerCharacter::Server_RefreshShopStock_Implementation()
 
 	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
 	{
+		It->RefreshStock();
+	}
+}
+
+void AMAPlayerCharacter::ShopTest()
+{
+	Server_ShopTest();
+}
+
+void AMAPlayerCharacter::Server_ShopTest_Implementation()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	if (AMAGameMode* GameMode = World->GetAuthGameMode<AMAGameMode>())
+	{
+		GameMode->SetMAState(4);
+	}
+
+	if (CurrencyComponent)
+	{
+		CurrencyComponent->AddCoin(99999.f);
+	}
+
+	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
+	{
+		It->SetModuleStockCountForTest(99);
 		It->RefreshStock();
 	}
 }

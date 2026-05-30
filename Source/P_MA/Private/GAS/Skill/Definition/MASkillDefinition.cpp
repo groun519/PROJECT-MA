@@ -9,6 +9,7 @@ void UMASkillDefinition::ResetAssemblyData()
 {
 	DisplayData = FMASkillDefinitionDisplayData();
 	AssembledSubIcon = nullptr;
+	ExclusiveAssemblyTag = FGameplayTag();
 	ElementalTag = FGameplayTag();
 	SkillSteps.Reset();
 	EventSources.Reset();
@@ -61,4 +62,31 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 	}
 
 	Payloads.Append(SourceDefinition->Payloads);
+}
+
+void UMASkillDefinition::RestoreBindingScopesFrom(const UMASkillDefinition& SourceDefinition)
+{
+	const int32 StepCount = FMath::Min(SkillSteps.Num(), SourceDefinition.SkillSteps.Num());
+	for (int32 Index = 0; Index < StepCount; ++Index)
+	{
+		if (SkillSteps[Index] && SourceDefinition.SkillSteps[Index])
+		{
+			SkillSteps[Index]->SetBindingScope(SourceDefinition.SkillSteps[Index]->GetBindingScope());
+		}
+	}
+
+	const int32 EventSourceCount = FMath::Min(EventSources.Num(), SourceDefinition.EventSources.Num());
+	for (int32 Index = 0; Index < EventSourceCount; ++Index)
+	{
+		if (EventSources[Index] && SourceDefinition.EventSources[Index])
+		{
+			EventSources[Index]->SetBindingScope(SourceDefinition.EventSources[Index]->GetBindingScope());
+		}
+	}
+
+	const int32 EventBindingCount = FMath::Min(EventBindings.Num(), SourceDefinition.EventBindings.Num());
+	for (int32 Index = 0; Index < EventBindingCount; ++Index)
+	{
+		EventBindings[Index].BindingScope = SourceDefinition.EventBindings[Index].BindingScope;
+	}
 }

@@ -11,6 +11,13 @@ struct FGameplayEventData;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FMASkillScopedEventSignature, const FGameplayTag&, const FGameplayEventData&);
 
+UENUM(BlueprintType)
+enum class EMASkillModuleActivationState : uint8
+{
+	Active,
+	Inactive
+};
+
 UCLASS()
 class P_MA_API UMASkillModuleInstance : public UObject
 {
@@ -25,6 +32,13 @@ public:
 	UMASkillDefinition* GetDefinition() const { return Definition; }
 	void SetDefinition(UMASkillDefinition* InDefinition) { Definition = InDefinition; }
 	bool IsValid() const { return Definition != nullptr; }
+	bool IsActive() const { return ActivationState == EMASkillModuleActivationState::Active; }
+	void SetActivationState(EMASkillModuleActivationState InActivationState, const FGameplayTag& InInactiveReasonTag = FGameplayTag())
+	{
+		ActivationState = InActivationState;
+		InactiveReasonTag = IsActive() ? FGameplayTag() : InInactiveReasonTag;
+	}
+	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
 	FMASkillScopedEventSignature& OnScopedEvent() { return ScopedEventDelegate; }
 	void BroadcastScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData);
 	// Add a const getter when a const module instance needs read-only payload access.
@@ -34,6 +48,12 @@ public:
 private:
 	UPROPERTY(Replicated)
 	TObjectPtr<UMASkillDefinition> Definition;
+
+	UPROPERTY(Transient)
+	EMASkillModuleActivationState ActivationState = EMASkillModuleActivationState::Active;
+
+	UPROPERTY(Transient)
+	FGameplayTag InactiveReasonTag;
 
 	UPROPERTY(Transient)
 	FMASkillPayloadStore PayloadStore;

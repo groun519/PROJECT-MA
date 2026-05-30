@@ -6,7 +6,10 @@
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
-void UMASkillTooltipWidget::SetSkillTooltip(const UMASkillDefinition* SkillDefinition, const FText& InCooldownText)
+void UMASkillTooltipWidget::SetSkillTooltip(
+	const UMASkillDefinition* SkillDefinition,
+	const FText& InCooldownText,
+	const FText& InWarningText)
 {
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
 		? SkillDefinition->GetDisplayData()
@@ -15,6 +18,7 @@ void UMASkillTooltipWidget::SetSkillTooltip(const UMASkillDefinition* SkillDefin
 	SetDescription(DisplayData.DisplayName, DisplayData.Description);
 	SetIconData(DisplayData.IconData, SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr);
 	SetCooldownText(InCooldownText);
+	SetWarningText(InWarningText);
 }
 
 void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon)
@@ -57,5 +61,16 @@ void UMASkillTooltipWidget::SetCooldownText(const FText& InCooldownText)
 	{
 		CooldownIconImage->SetVisibility(CooldownVisibility);
 	}
+}
+
+void UMASkillTooltipWidget::SetWarningText(const FText& InWarningText)
+{
+	const ESlateVisibility WarningVisibility = InWarningText.IsEmpty()
+		? ESlateVisibility::Collapsed
+		: ESlateVisibility::SelfHitTestInvisible;
+
+	WarningText->SetText(InWarningText);
+	WarningText->SetVisibility(WarningVisibility);
+	WarningIconImage->SetVisibility(WarningVisibility);
 }
 

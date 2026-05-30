@@ -37,11 +37,10 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 	InitCaptureDef(TargetCriticalChanceDef, UMAAttributeSet::GetCriticalChanceAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetCriticalDamageDef, UMAAttributeSet::GetCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 
-	InitCaptureDef(SourceDamageVarianceDef, UMAAttributeSet::GetDamageVarianceAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-
 	BehaviorModifierTag = UMAAbilitySystemStatics::GetBehaviorMultiplierTag();
 	UtilityModifierTag = UMAAbilitySystemStatics::GetUtilityMultiplierTag();
 	ElementalModifierTag = UMAAbilitySystemStatics::GetElementalMultiplierTag();
+	DamageVarianceTag = UMAAbilitySystemStatics::GetDamageVarianceTag();
 }
 
 void UExecCalc_DamageByAttribute::Execute_Implementation(
@@ -147,7 +146,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 
 	const float Armor = CaptureMagnitude(TargetArmorDef);
 	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
-	const float DamageVariance = CaptureMagnitude(SourceDamageVarianceDef);
+	const float DamageVariance = FMath::Max(0.f, Spec.GetSetByCallerMagnitude(DamageVarianceTag, false, 0.f));
 	const float CriticalChance = CaptureMagnitude(SourceCriticalChanceDef);
 	const float CriticalDamage = CaptureMagnitude(SourceCriticalDamageDef);
 

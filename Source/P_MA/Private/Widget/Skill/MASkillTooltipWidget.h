@@ -16,7 +16,10 @@ class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
 	GENERATED_BODY()
 
 public:
-	void SetSkillTooltip(const UMASkillDefinition* SkillDefinition, const FText& InCooldownText);
+	void SetSkillTooltip(
+		const UMASkillDefinition* SkillDefinition,
+		const FText& InCooldownText,
+		const FText& InWarningText);
 
 protected:
 	UPROPERTY(meta=(BindWidget))
@@ -28,7 +31,14 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> CooldownIconImage;
 
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UTextBlock> WarningText;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UImage> WarningIconImage;
+
 private:
 	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon);
 	void SetCooldownText(const FText& InCooldownText);
+	void SetWarningText(const FText& InWarningText);
 };

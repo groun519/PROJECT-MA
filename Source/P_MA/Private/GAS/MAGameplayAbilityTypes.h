@@ -241,9 +241,6 @@ FPlayerBaseStats();
 	float BaseAttack;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseDamageVariance;
-
-	UPROPERTY(EditAnywhere)
 	float BaseAttackSpeed;
 	
 	UPROPERTY(EditAnywhere)
@@ -283,9 +280,6 @@ struct FMonsterBaseStats : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	float BaseAttack;
 	
-	UPROPERTY(EditAnywhere)
-	float BaseDamageVariance;
-
 	UPROPERTY(EditAnywhere)
 	float BaseMoveSpeed;
 

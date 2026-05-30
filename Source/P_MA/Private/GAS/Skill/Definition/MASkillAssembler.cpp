@@ -10,13 +10,34 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
 	UMASkillDefinition* AssembledDefinition = nullptr;
 	TMap<int32, FText> NameKeywordsByPriority;
+	TSet<FGameplayTag> UsedExclusiveAssemblyTags;
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
 	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
 	{
+		if (ModuleInstance)
+		{
+			ModuleInstance->SetActivationState(EMASkillModuleActivationState::Active);
+		}
+	}
+
+	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
+	{
 		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 		if (!Definition) continue;
+
+		const FGameplayTag& ExclusiveAssemblyTag = Definition->GetExclusiveAssemblyTag();
+		if (ExclusiveAssemblyTag.IsValid())
+		{
+			if (UsedExclusiveAssemblyTags.Contains(ExclusiveAssemblyTag))
+			{
+				ModuleInstance->SetActivationState(EMASkillModuleActivationState::Inactive, ExclusiveAssemblyTag);
+				continue;
+			}
+
+			UsedExclusiveAssemblyTags.Add(ExclusiveAssemblyTag);
+		}
 
 		if (!AssembledDefinition)
 		{

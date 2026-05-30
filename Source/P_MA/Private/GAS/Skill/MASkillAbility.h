@@ -58,6 +58,7 @@ protected:
 private:
 	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
 	void ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
+	UMASkillModuleInstance* CreateRuntimeSkillModuleInstance();
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
@@ -68,6 +69,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModuleInstance> CurrentSkillModuleInstance;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillModuleInstance> CachedSkillModuleInstance;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModuleInstance> PendingSkillModuleInstance;

@@ -126,6 +126,15 @@ void AMAShopNPC::RefreshStock()
 	if (ActiveShopWidget) ActiveShopWidget->RefreshStock();
 }
 
+void AMAShopNPC::SetModuleStockCountForTest(int32 Count)
+{
+	if (!HasAuthority()) return;
+
+	const int32 ClampedCount = FMath::Max(0, Count);
+	ModuleStockCountRange.Min = ClampedCount;
+	ModuleStockCountRange.Max = ClampedCount;
+}
+
 void AMAShopNPC::HandleSectorStateChanged(EMASectorState NewState)
 {
 	if (NewState == RefreshStockState) RefreshStock();

@@ -10,6 +10,7 @@ class UNiagaraComponent;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UAbilitySystemComponent;
+class UMASkillModuleInstance;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProjectileHitSignature, AActor*, HitActor);
 
@@ -74,6 +75,10 @@ public:
 
 private:
 	FMAProjectileParams ProjectileParams;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillModuleInstance> EventScope;
+
 	bool bPendingDestroy = false;
 	FVector PreviousHitCheckLocation = FVector::ZeroVector;
 	float LaunchSpeed = 0.f;

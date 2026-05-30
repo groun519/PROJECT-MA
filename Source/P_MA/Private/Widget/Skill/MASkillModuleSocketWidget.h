@@ -10,6 +10,7 @@ class UMASkillDefinition;
 class UMASkillModuleInstance;
 class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
+class UDataTable;
 
 UCLASS()
 class P_MA_API UMASkillModuleSocketWidget : public UUserWidget
@@ -48,9 +49,13 @@ private:
 	static constexpr float DraggedSourceRenderOpacity = 0.45f;
 	static constexpr float NormalIconScaleMultiplier = 0.65f;
 	static constexpr float HighlightedIconScaleMultiplier = 0.75f;
+	UMASkillModuleInstance* ResolveModuleInstance() const;
 	UMASkillDefinition* ResolveDefinition() const;
+	FText ResolveInactiveReasonText(const UMASkillModuleInstance* ModuleInstance) const;
+	const UDataTable* ResolveWarningTextDataTable() const;
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
+	void ApplyActivationVisual(const UMASkillModuleInstance* ModuleInstance);
 	void RefreshHoverVisual();
 	void RefreshTooltip();
 	void SetDraggedSourceVisual(bool bDragged);

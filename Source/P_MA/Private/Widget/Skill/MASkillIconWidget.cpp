@@ -61,7 +61,7 @@ void UMASkillIconWidget::RefreshTooltip(const UMASkillDefinition* SkillDefinitio
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(SkillDefinition, InCooldownText);
+	TooltipWidget->SetSkillTooltip(SkillDefinition, InCooldownText, FText());
 	SetToolTip(TooltipWidget);
 }
 

@@ -3,7 +3,9 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Definition/MASkillWarningTextData.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
@@ -33,15 +35,48 @@ void UMASkillModuleSocketWidget::Refresh()
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();
 
-	CachedDefinition = ResolveDefinition();
+	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
+	CachedDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 	ApplyDefinitionVisual(CachedDefinition);
+	ApplyActivationVisual(ModuleInstance);
 	RefreshTooltip();
+}
+
+UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() const
+{
+	return IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
 }
 
 UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
 {
-	const UMASkillModuleInstance* ModuleInstance = IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
+	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	return ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
+}
+
+FText UMASkillModuleSocketWidget::ResolveInactiveReasonText(const UMASkillModuleInstance* ModuleInstance) const
+{
+	static const FGameplayTag EmptyTag;
+	const FGameplayTag& InactiveReasonTag = ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : EmptyTag;
+	const UDataTable* WarningTextDataTable = InactiveReasonTag.IsValid() ? ResolveWarningTextDataTable() : nullptr;
+	if (!WarningTextDataTable) return FText();
+
+	TArray<FMASkillWarningTextDataRow*> TextRows;
+	WarningTextDataTable->GetAllRows(TEXT("SkillModuleSocketInactiveReasonLookup"), TextRows);
+	for (const FMASkillWarningTextDataRow* TextRow : TextRows)
+	{
+		if (!TextRow || TextRow->ReasonTag != InactiveReasonTag) continue;
+
+		return TextRow->WarningText;
+	}
+
+	return FText();
+}
+
+const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
+{
+	const UMASkillManagerComponent* SkillManager = Cast<UMASkillManagerComponent>(SlotOwner.Get());
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
+	return GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
 }
 
 bool UMASkillModuleSocketWidget::IsValidSlot() const
@@ -73,6 +108,18 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 	}
 
 	ModuleIconImage->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMASkillModuleSocketWidget::ApplyActivationVisual(const UMASkillModuleInstance* ModuleInstance)
+{
+	if (!ModuleIconImage) return;
+
+	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
+	{
+		IconMaterial->SetScalarParameterValue(
+			PARAM_ModuleIcon_SaturationAlpha,
+			!ModuleInstance || ModuleInstance->IsActive() ? 1.f : 0.f);
+	}
 }
 
 void UMASkillModuleSocketWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -220,7 +267,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(CachedDefinition, FText());
+	TooltipWidget->SetSkillTooltip(CachedDefinition, FText(), ResolveInactiveReasonText(ResolveModuleInstance()));
 	SetToolTip(TooltipWidget);
 }
 

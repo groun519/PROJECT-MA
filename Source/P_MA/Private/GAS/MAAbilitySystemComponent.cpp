@@ -265,7 +265,6 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 		{
 			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
-			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
@@ -298,7 +297,6 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 		{
 			SetNumericAttributeBase(UMAAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackAttribute(), BaseStats->BaseAttack);
-			SetNumericAttributeBase(UMAAttributeSet::GetDamageVarianceAttribute(), BaseStats->BaseDamageVariance);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);

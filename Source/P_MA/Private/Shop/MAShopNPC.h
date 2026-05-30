@@ -34,6 +34,7 @@ public:
 	const TArray<FMAShopStockEntry>& GetCurrentStockEntries() const { return CurrentStockEntries; }
 	bool RequestPurchase(APlayerController* PlayerController, int32 StockId);
 	void RefreshStock();
+	void SetModuleStockCountForTest(int32 Count);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category="Component")

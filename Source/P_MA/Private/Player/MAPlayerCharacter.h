@@ -47,6 +47,10 @@ public:
 	void RefreshShopStock();
 	UFUNCTION(Server, Reliable)
 	void Server_RefreshShopStock();
+	UFUNCTION(Exec)
+	void ShopTest();
+	UFUNCTION(Server, Reliable)
+	void Server_ShopTest();
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }

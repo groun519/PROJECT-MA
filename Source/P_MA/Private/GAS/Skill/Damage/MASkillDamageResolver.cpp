@@ -122,6 +122,19 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 				FinalDamageMultiplier);
 		}
 
+		float DamageVariance = 0.f;
+		if (PayloadStore.TryGetScalar(
+			UMAAbilitySystemStatics::GetDamageVarianceTag(),
+			DamageVariance)
+			&& !FMath::IsNearlyZero(DamageVariance)
+			&& ResolvedDamage.DamageSpec.IsValid()
+			&& ResolvedDamage.DamageSpec.Data.IsValid())
+		{
+			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetDamageVarianceTag(),
+				DamageVariance);
+		}
+
 		if (bApplyDamageOverTime)
 		{
 			ApplyDamageOverTimeConfig(ResolvedDamage.DamageSpec, DamageConfig.DamageOverTime);

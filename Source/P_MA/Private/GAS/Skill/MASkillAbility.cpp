@@ -64,7 +64,12 @@ void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo
 
 const UMASkillDefinition* UMASkillAbility::GetCurrentSkillDefinition() const
 {
-	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
+	if (CurrentSkillModuleInstance)
+	{
+		return CurrentSkillModuleInstance->GetDefinition();
+	}
+
+	return CachedSkillModuleInstance ? CachedSkillModuleInstance->GetDefinition() : nullptr;
 }
 
 FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const
@@ -105,7 +110,8 @@ void UMASkillAbility::ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* So
 	}
 	if (StepManager) StepManager->ResetRuntimeState();
 
-	CurrentSkillModuleInstance = SourceSkillModuleInstance;
+	CachedSkillModuleInstance = SourceSkillModuleInstance;
+	CurrentSkillModuleInstance = nullptr;
 	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition)
 	{
@@ -114,18 +120,43 @@ void UMASkillAbility::ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* So
 
 	EnsureStepManager();
 	StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
-	EnsureEventSources();
+}
+
+UMASkillModuleInstance* UMASkillAbility::CreateRuntimeSkillModuleInstance()
+{
+	UMASkillDefinition* CachedSkillDefinition = CachedSkillModuleInstance ? CachedSkillModuleInstance->GetDefinition() : nullptr;
+	if (!CachedSkillDefinition) return nullptr;
+
+	UMASkillModuleInstance* RuntimeSkillModuleInstance = NewObject<UMASkillModuleInstance>(this);
+	if (!RuntimeSkillModuleInstance) return nullptr;
+
+	UMASkillDefinition* RuntimeSkillDefinition = DuplicateObject<UMASkillDefinition>(CachedSkillDefinition, RuntimeSkillModuleInstance);
+	if (!RuntimeSkillDefinition) return nullptr;
+
+	RuntimeSkillDefinition->RestoreBindingScopesFrom(*CachedSkillDefinition);
+	RuntimeSkillModuleInstance->SetDefinition(RuntimeSkillDefinition);
+	RuntimeSkillModuleInstance->ResetPayloadStore();
+	RuntimeSkillDefinition->ApplyPayloadsTo(RuntimeSkillModuleInstance->GetPayloadStore());
+	return RuntimeSkillModuleInstance;
 }
 
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition) { K2_EndAbility(); return; }
+	const UMASkillDefinition* CachedSkillDefinition = CachedSkillModuleInstance ? CachedSkillModuleInstance->GetDefinition() : nullptr;
+	if (!CachedSkillDefinition) { K2_EndAbility(); return; }
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
-	FMASkillPayloadStore& AssembledModulePayloadStore = GetAssembledModulePayloadStore();
-	CurrentSkillDefinition->ApplyPayloadsTo(AssembledModulePayloadStore);
+	CurrentSkillModuleInstance = CreateRuntimeSkillModuleInstance();
+	const UMASkillDefinition* CurrentSkillDefinition = CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
+	if (!CurrentSkillDefinition) { K2_EndAbility(); return; }
+
+	EnsureStepManager();
+	if (StepManager)
+	{
+		StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
+	}
+	EnsureEventSources();
 	if (StepManager)
 	{
 		StepManager->SetDesiredMontagePlayRate(1.f);
@@ -151,6 +182,14 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	SkillDeactivatedDelegate.Broadcast();
+	if (const UMASkillDefinition* CurrentSkillDefinition = CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr)
+	{
+		for (UMASkillEventSource* RuntimeEventSource : CurrentSkillDefinition->GetEventSources())
+		{
+			if (!RuntimeEventSource) continue;
+			RuntimeEventSource->UnbindSkillLifecycle();
+		}
+	}
 	UnbindGameplayEvents();
 
 	UnregisterCancelTriggers();
@@ -168,6 +207,10 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		PendingSkillModuleInstance = nullptr;
 		bHasPendingSkillModuleInstanceUpdate = false;
 		ApplyCurrentSkillModuleInstance(NextSkillModuleInstance);
+	}
+	else
+	{
+		CurrentSkillModuleInstance = nullptr;
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);

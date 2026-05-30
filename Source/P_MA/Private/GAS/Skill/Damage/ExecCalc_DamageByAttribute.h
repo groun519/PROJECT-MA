@@ -37,9 +37,8 @@ private:
 	FGameplayEffectAttributeCaptureDefinition TargetCriticalChanceDef;
 	FGameplayEffectAttributeCaptureDefinition TargetCriticalDamageDef;
 
-	FGameplayEffectAttributeCaptureDefinition SourceDamageVarianceDef;
-
 	FGameplayTag BehaviorModifierTag;
 	FGameplayTag UtilityModifierTag;
 	FGameplayTag ElementalModifierTag;
+	FGameplayTag DamageVarianceTag;
 };

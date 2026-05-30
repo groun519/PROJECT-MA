@@ -72,6 +72,7 @@ public:
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
 	const FMAModuleQuality& GetModuleQuality() const { return ModuleQuality; }
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
+	const FGameplayTag& GetExclusiveAssemblyTag() const { return ExclusiveAssemblyTag; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
@@ -84,6 +85,7 @@ public:
 			PayloadEntry.ApplyTo(PayloadStore);
 		}
 	}
+	void RestoreBindingScopesFrom(const UMASkillDefinition& SourceDefinition);
 
 private:
 	void ResetAssemblyData();
@@ -99,6 +101,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> AssembledSubIcon = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category="Assembly", meta=(Categories="Module.Assembly.Exclusive"))
+	FGameplayTag ExclusiveAssemblyTag;
 
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;
