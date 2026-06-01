@@ -44,7 +44,7 @@ void AGCN_HitOverlay::Tick(float DeltaSeconds)
 
 		FadeState.Elapsed += DeltaSeconds;
 		const float Alpha = FMath::Clamp(FadeState.Elapsed / SafeFadeDuration, 0.f, 1.f);
-		OverlayMID->SetScalarParameterValue(OpacityParamName, 1.f - Alpha);
+		OverlayMID->SetScalarParameterValue(AlphaParamName, 1.f - Alpha);
 
 		if (Alpha >= 1.f)
 		{
@@ -130,7 +130,7 @@ void AGCN_HitOverlay::StartFade(AActor* TargetActor, const FLinearColor& Overlay
 	UMaterialInstanceDynamic* OverlayMID = OverlayComponent->AddTimedOverlay(OverlayMaterial, 1, FadeDuration);
 	if (!OverlayMID) return;
 
-	OverlayMID->SetScalarParameterValue(OpacityParamName, 1.f);
+	OverlayMID->SetScalarParameterValue(AlphaParamName, 1.f);
 	OverlayMID->SetVectorParameterValue(ColorParamName, OverlayColor);
 
 	FActiveOverlayFade& FadeState = ActiveFades.AddDefaulted_GetRef();

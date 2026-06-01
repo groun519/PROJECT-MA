@@ -4,12 +4,14 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Convenience/MAInteractableComponent.h"
 #include "Convenience/MAHighlightComponent.h"
+#include "Convenience/MAInteractorComponent.h"
 #include "Framework/MAGameMode.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerInput.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerControllerBase.h"
@@ -184,7 +186,12 @@ void AMAShopNPC::CloseShop(APlayerController* PlayerController)
 
 	if (HiddenShopInteractor.IsValid())
 	{
-		PlayerController->HiddenActors.Remove(HiddenShopInteractor.Get());
+		AMAPlayerCharacter* ShopInteractor = HiddenShopInteractor.Get();
+		if (UMAInteractorComponent* InteractorComponent = ShopInteractor->GetInteractorComponent())
+		{
+			InteractorComponent->SetInteractionEnabled(true, ShopInteractor);
+		}
+		PlayerController->HiddenActors.Remove(ShopInteractor);
 		HiddenShopInteractor.Reset();
 	}
 	if (AMAPlayerController* MAPlayerController = Cast<AMAPlayerController>(PlayerController))
@@ -231,8 +238,18 @@ void AMAShopNPC::OpenShopFor(AMAPlayerCharacter* Interactor)
 	APlayerController* PlayerController = Cast<APlayerController>(Interactor->GetController());
 	if (!PlayerController || !PlayerController->IsLocalController()) return;
 
+	if (PlayerController->PlayerInput)
+	{
+		PlayerController->PlayerInput->FlushPressedKeys();
+	}
+
 	ActiveShopWidget = CreateWidget<UMAShopWidget>(PlayerController, ShopWidgetClass);
 	if (!ActiveShopWidget) return;
+
+	if (UMAInteractorComponent* InteractorComponent = Interactor->GetInteractorComponent())
+	{
+		InteractorComponent->SetInteractionEnabled(false, Interactor);
+	}
 
 	ActiveShopWidget->AddToViewport(100);
 	ActiveShopWidget->InitializeShop(this);

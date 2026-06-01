@@ -35,13 +35,13 @@ void UInventoryComponent::SellItem(const FInventoryItemHandle& ItemHandle)
 	Server_SellItem(ItemHandle);
 }
 
-float UInventoryComponent::GetGold() const
+float UInventoryComponent::GetCoin() const
 {
 	bool bFound = false;
 	if (OwnerAbilitySystemComponent)
 	{
-		float Gold = OwnerAbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetGoldAttribute(), bFound);
-		if (bFound) return Gold;
+		float Coin = OwnerAbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetCoinAttribute(), bFound);
+		if (bFound) return Coin;
 	}
 	return 0.f;
 }
@@ -150,7 +150,7 @@ void UInventoryComponent::Server_SellItem_Implementation(FInventoryItemHandle It
 	if (const FBaseItemData* Data = InventoryItem->GetBaseData())
 	{
 		float SellPrice = Data->Price / 2.f;
-		OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetGoldAttribute(), EGameplayModOp::Additive, SellPrice * InventoryItem->GetStackCount());
+		OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, SellPrice * InventoryItem->GetStackCount());
 	}
 	RemoveItem(InventoryItem);
 }
@@ -244,11 +244,11 @@ void UInventoryComponent::Server_PurchaseItem_Implementation(FName ItemRowName, 
 	const FBaseItemData* Data = SourceTable->FindRow<FBaseItemData>(ItemRowName, TEXT("PurchaseItem"));
 	if (!Data) return;
 	
-	if (GetGold() < Data->Price) return;
+	if (GetCoin() < Data->Price) return;
 	
 	if (IsFullFor(ItemRowName, SourceTable)) return;
 	
-	OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetGoldAttribute(), EGameplayModOp::Additive, -Data->Price);
+	OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, -Data->Price);
 	GrantItem(ItemRowName, SourceTable);
 }
 bool UInventoryComponent::Server_PurchaseItem_Validate(FName ItemRowName, UDataTable* SourceTable) { return true; }

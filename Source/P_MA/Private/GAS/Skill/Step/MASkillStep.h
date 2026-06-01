@@ -79,7 +79,7 @@ public:
 	virtual FName ResolveStepStartSectionName() const;
 	virtual FName ResolvePreparedStepStartSectionName() const;
 	bool UsesSequenceSections() const { return !SequenceSectionNameBase.IsNone(); }
-	FName GetSequenceSectionNameBase() const { return SequenceSectionNameBase; }
+	FString GetSequenceSectionKey() const;
 	bool PrepareNextStepPreview(float PreviewBlendInTime);
 	bool HasPreparedStepPreview() const { return PreparedStepPreviewMontage != nullptr; }
 	bool PromotePreparedStepPreviewToActive();

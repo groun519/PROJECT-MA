@@ -31,7 +31,7 @@ public:
 	
 	void TryPurchaseItem(FName ItemRowName, UDataTable* SourceTable);
 	
-	float GetGold() const;
+	float GetCoin() const;
 	FORCEINLINE int GetCapacity() const { return Capacity; }
 
 	void ItemSlotChanged(const FInventoryItemHandle& Handle, int NewSlotNumber);

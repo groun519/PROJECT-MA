@@ -25,7 +25,7 @@ protected:
 	TObjectPtr<UMaterialInterface> OverlayMaterial;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	FName OpacityParamName = TEXT("Opacity");
+	FName AlphaParamName = TEXT("Alpha");
 
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
 	FName ColorParamName = TEXT("BaseColor");

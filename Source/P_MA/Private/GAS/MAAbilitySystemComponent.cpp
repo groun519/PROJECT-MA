@@ -271,7 +271,7 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
-			SetNumericAttributeBase(UMAPlayerAttributeSet::GetGoldAttribute(), BaseStats->BaseGold);
+			SetNumericAttributeBase(UMAPlayerAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalChanceAttribute(), BaseStats->BaseCriticalChance);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
 		}

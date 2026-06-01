@@ -44,6 +44,16 @@ FName UMASkillStep::ResolvePreparedStepStartSectionName() const
 	return MakeSequenceSectionName(ResolveNextSequenceSectionIndex());
 }
 
+FString UMASkillStep::GetSequenceSectionKey() const
+{
+	if (!UsesSequenceSections()) return FString();
+
+	return FString::Printf(
+		TEXT("%s|%s"),
+		*GetPathNameSafe(ResolveStepMontage()),
+		*SequenceSectionNameBase.ToString());
+}
+
 bool UMASkillStep::PrepareStepPreview(float PreviewBlendInTime)
 {
 	if (PreparedStepPreviewMontage) return false;

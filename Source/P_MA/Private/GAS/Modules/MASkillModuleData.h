@@ -11,7 +11,6 @@
 class UNiagaraSystem;
 class UMAGameplayAbility_Skill;
 class UGameplayEffect;
-class UMASkillModule;
 
 /*
  *	모든 스킬 관리 데이터 테이블
@@ -107,9 +106,6 @@ struct FModuleBehaviorData : public FTableRowBase
 {
 	GENERATED_BODY()
 public:
-	/**이 모듈의 행동 로직 클래스*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UMASkillModule> ModuleClass;
 	/**행동 로직에서의 디테일 값 설정 (Instant는 설정할 필요 없음)*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(BaseStruct = "/Script/P_MA.SkillBehaviorConfig"))
 	FInstancedStruct ModuleConfig;
@@ -117,14 +113,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Trait"), Category="Requirement")
 	FGameplayTagContainer RequiredTraits;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override")
-	//bool bReplaceActionTags = true;
-	/** 스킬의 액션 태그를 해당 태그로 덮어씌움 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Ability.Action"), Category="Override")
-	FGameplayTagContainer ActionTagOverride;
-	/** 스킬의 액션 데이터를 해당 데이터로 덮어씌움 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Override", meta=(BaseStruct = "/Script/P_MA.SkillActionConfig"))
-	FInstancedStruct ActionDataOverride;
 	/** 모듈 설명 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Information")
 	FText Description;

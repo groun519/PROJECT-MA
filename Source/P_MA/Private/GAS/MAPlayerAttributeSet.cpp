@@ -23,8 +23,8 @@ GAMEPLAYATTRIBUTE_REPNOTIFY(UMAPlayerAttributeSet, PropertyName, OldValue); \
 void UMAPlayerAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAPlayerAttributeSet, Gold, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAPlayerAttributeSet, Coin, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAPlayerAttributeSet, AttackRange, COND_None, REPNOTIFY_Always);
 }
-DEFINE_REPNOTIFY(Gold)
+DEFINE_REPNOTIFY(Coin)
 DEFINE_REPNOTIFY(AttackRange)

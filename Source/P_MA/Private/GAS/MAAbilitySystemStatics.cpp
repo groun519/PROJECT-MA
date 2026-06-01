@@ -66,9 +66,9 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
+FGameplayTag UMAAbilitySystemStatics::GetCoinAttributeTag()
 {
-	return FGameplayTag::RequestGameplayTag("attr.gold");
+	return FGameplayTag::RequestGameplayTag("attr.coin");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMeleeActionTag()

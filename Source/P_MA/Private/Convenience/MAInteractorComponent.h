@@ -16,9 +16,13 @@ public:
 	void SetCurrentInteractableComponent(UMAInteractableComponent* NewComp, AMAPlayerCharacter* Interactor);
 	void ClearCurrentInteractableComponent(UMAInteractableComponent* Comp, AMAPlayerCharacter* Interactor);
 	void Interact(AMAPlayerCharacter* Interactor);
+	void SetInteractionEnabled(bool bEnabled, AMAPlayerCharacter* Interactor);
 
 private:
+	void ApplyCurrentInteractFocus(AMAPlayerCharacter* Interactor);
+
 	TWeakObjectPtr<UMAInteractableComponent> CurrentInteractableComponent;
+	bool bInteractionEnabled = true;
 };
 
 

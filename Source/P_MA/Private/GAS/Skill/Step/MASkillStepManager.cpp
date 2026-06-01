@@ -38,11 +38,7 @@ void UMASkillStepManager::UpdateSteps(const TArray<TObjectPtr<UMASkillStep>>& In
 		int32 InitialSequenceSectionIndex = 0;
 		if (RuntimeStep->UsesSequenceSections())
 		{
-			const FString SequenceSectionKey = FString::Printf(
-				TEXT("%s|%s"),
-				*GetPathNameSafe(RuntimeStep->ResolveStepMontage()),
-				*RuntimeStep->GetSequenceSectionNameBase().ToString());
-
+			const FString SequenceSectionKey = RuntimeStep->GetSequenceSectionKey();
 			InitialSequenceSectionIndex = SequenceSectionOffsets.FindRef(SequenceSectionKey);
 			SequenceSectionOffsets.Add(SequenceSectionKey, InitialSequenceSectionIndex + 1);
 		}

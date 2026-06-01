@@ -88,7 +88,7 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 		if (!RewardTarget || CoinAmount <= 0.f) continue;
 
 		FGameplayEffectSpecHandle EffectSpec = MakeOutgoingGameplayEffectSpec(this->CoinReward.RewardEffect);
-		EffectSpec.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetGoldAttributeTag(), CoinAmount);
+		EffectSpec.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetCoinAttributeTag(), CoinAmount);
 		K2_ApplyGameplayEffectSpecToTarget(EffectSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(RewardTarget));
 
 		if (const APawn* RewardPawn = Cast<APawn>(RewardTarget))

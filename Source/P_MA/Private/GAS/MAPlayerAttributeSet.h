@@ -17,14 +17,14 @@ class UMAPlayerAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 
 public:
-	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, Gold)
+	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, Coin)
 	ATTRIBUTE_ACCESSORS(UMAPlayerAttributeSet, AttackRange)
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_Gold)				FGameplayAttributeData Gold;
+	UPROPERTY(ReplicatedUsing = OnRep_Coin)				FGameplayAttributeData Coin;
 	UPROPERTY(ReplicatedUsing = OnRep_AttackRange)		FGameplayAttributeData AttackRange;
 	
-	UFUNCTION() void OnRep_Gold(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Coin(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_AttackRange(const FGameplayAttributeData& OldValue);
 
 };

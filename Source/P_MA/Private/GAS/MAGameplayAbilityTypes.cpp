@@ -56,7 +56,7 @@ FPlayerBaseStats::FPlayerBaseStats()
 	BaseMoveSpeed{0.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f},
-	BaseGold{0.f},
+	BaseCoin{0.f},
 	BaseCriticalChance{0.f},
 	BaseCriticalDamage{0.f}
 {

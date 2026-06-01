@@ -262,7 +262,7 @@ FPlayerBaseStats();
 	float BaseArmorPenetration;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseGold;
+	float BaseCoin;
 };
 
 USTRUCT(BlueprintType)

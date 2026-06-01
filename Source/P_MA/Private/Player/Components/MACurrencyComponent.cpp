@@ -14,7 +14,7 @@ float UMACurrencyComponent::GetCoin() const
 	bool bFound = false;
 	UAbilitySystemComponent* AbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
 	return AbilitySystemComponent
-		? AbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetGoldAttribute(), bFound)
+		? AbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetCoinAttribute(), bFound)
 		: 0.f;
 }
 
@@ -30,8 +30,8 @@ bool UMACurrencyComponent::TrySpendCoin(float Amount)
 	if (Amount < 0.f || !AbilitySystemComponent) return false;
 
 	bool bFound = false;
-	if (AbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetGoldAttribute(), bFound) < Amount) return false;
-	AbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetGoldAttribute(), EGameplayModOp::Additive, -Amount);
+	if (AbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetCoinAttribute(), bFound) < Amount) return false;
+	AbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, -Amount);
 	return true;
 }
 
@@ -41,5 +41,5 @@ void UMACurrencyComponent::AddCoin(float Amount)
 	UAbilitySystemComponent* AbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
 	if (Amount <= 0.f || !AbilitySystemComponent) return;
 
-	AbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetGoldAttribute(), EGameplayModOp::Additive, Amount);
+	AbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, Amount);
 }

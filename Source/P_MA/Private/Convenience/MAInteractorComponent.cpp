@@ -15,7 +15,7 @@ void UMAInteractorComponent::SetCurrentInteractableComponent(UMAInteractableComp
 	}
 
 	CurrentInteractableComponent = NewComp;
-	NewComp->SetInteractFocused(Interactor, true);
+	ApplyCurrentInteractFocus(Interactor);
 }
 
 void UMAInteractorComponent::ClearCurrentInteractableComponent(UMAInteractableComponent* Comp, AMAPlayerCharacter* Interactor)
@@ -30,10 +30,30 @@ void UMAInteractorComponent::ClearCurrentInteractableComponent(UMAInteractableCo
 void UMAInteractorComponent::Interact(AMAPlayerCharacter* Interactor)
 {
 	check(Interactor);
+	if (!bInteractionEnabled) return;
 
 	if (UMAInteractableComponent* Comp = CurrentInteractableComponent.Get())
 	{
 		Comp->RequestInteract(Interactor);
+	}
+}
+
+void UMAInteractorComponent::SetInteractionEnabled(bool bEnabled, AMAPlayerCharacter* Interactor)
+{
+	check(Interactor);
+	if (bInteractionEnabled == bEnabled) return;
+
+	bInteractionEnabled = bEnabled;
+	ApplyCurrentInteractFocus(Interactor);
+}
+
+void UMAInteractorComponent::ApplyCurrentInteractFocus(AMAPlayerCharacter* Interactor)
+{
+	check(Interactor);
+
+	if (UMAInteractableComponent* Comp = CurrentInteractableComponent.Get())
+	{
+		Comp->SetInteractFocused(Interactor, bInteractionEnabled);
 	}
 }
 
