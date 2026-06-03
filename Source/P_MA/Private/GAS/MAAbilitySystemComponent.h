@@ -30,6 +30,7 @@ public:
 	void InitializeBaseAttributes();
 	void ServerSideInit();
 	void ApplyFullStatEffect();
+	void ApplyReviveStatEffect();
 	void TryActivateAbilitiesByInputID(EMAAbilityInputID InputID);
 	void NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data);
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};

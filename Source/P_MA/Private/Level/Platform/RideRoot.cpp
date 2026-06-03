@@ -12,13 +12,6 @@
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 
-static FString FormatReadyText(int32 ReadyCount, int32 TotalCount)
-{
-	return TotalCount < 0
-		? FString::Printf(TEXT("%d"), ReadyCount)
-		: FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
-}
-
 ARideRoot::ARideRoot()
 {
 	PrimaryActorTick.bCanEverTick = true;

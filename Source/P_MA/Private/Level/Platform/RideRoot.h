@@ -65,6 +65,12 @@ private:
 	/** Ready Text **/
 	UPROPERTY(VisibleAnywhere)
 	UTextRenderComponent* ReadyText = nullptr;
+	FORCEINLINE FString FormatReadyText(int32 ReadyCount, int32 TotalCount)
+	{
+		return TotalCount < 0
+		? FString::Printf(TEXT("%d"), ReadyCount)
+		: FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	};
 
 	/** VFX **/
 	UPROPERTY(VisibleAnywhere)
@@ -108,5 +114,4 @@ private:
 
 	UFUNCTION()
 	void HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
 };

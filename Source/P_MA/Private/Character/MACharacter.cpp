@@ -263,7 +263,7 @@ void AMACharacter::Respawn()
 
 	if (MAAbilitySystemComponent)
 	{
-		MAAbilitySystemComponent->ApplyFullStatEffect();
+		MAAbilitySystemComponent->ApplyReviveStatEffect();
 	}
 
 	OnRespawn();

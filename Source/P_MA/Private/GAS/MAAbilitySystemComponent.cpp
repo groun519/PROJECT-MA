@@ -92,6 +92,12 @@ void UMAAbilitySystemComponent::ApplyFullStatEffect()
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
 }
 
+void UMAAbilitySystemComponent::ApplyReviveStatEffect()
+{
+	if (!AbilitySystemGenerics) return;
+	AuthApplyGameplayEffect(AbilitySystemGenerics->GetReviveStatEffect());
+}
+
 void UMAAbilitySystemComponent::TryActivateAbilitiesByInputID(EMAAbilityInputID InputID)
 {
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())

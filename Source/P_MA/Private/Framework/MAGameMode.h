@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -19,9 +17,6 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnMASectorStateChanged, EMASectorState);
 DECLARE_MULTICAST_DELEGATE(FOnAllPlayersReady);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnReadyCountChanged, int32, int32);
 
-/**
- * 
- */
 UCLASS()
 class AMAGameMode : public AGameModeBase
 {
