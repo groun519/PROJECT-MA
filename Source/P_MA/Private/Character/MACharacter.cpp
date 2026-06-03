@@ -16,6 +16,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "TimerManager.h"
 #include "Widget/MAOverHeadStatsGauge.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
@@ -144,7 +145,7 @@ void AMACharacter::BindGASChangeDelegates()
 void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
 {
 	if (NewCount != 0) StartDeathSequence();
-	else Respawn();
+	else GetWorldTimerManager().SetTimerForNextTick(this, &AMACharacter::Respawn);
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)

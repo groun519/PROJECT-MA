@@ -22,6 +22,7 @@ class P_MA_API UMAInteractableComponent : public USphereComponent
 	GENERATED_BODY()
 
 protected:
+	virtual void OnRegister() override;
 	virtual void BeginPlay() override;
 
 public:
@@ -45,6 +46,8 @@ public:
 	TWeakObjectPtr<UMAHighlightComponent> HighlightComponent;
 	
 private:
+	void AttachKeyWidgetToInteractable();
+
 	UPROPERTY(VisibleAnywhere, Category="MA|UI", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UWidgetComponent> InteractKeyWidgetComp;
 	

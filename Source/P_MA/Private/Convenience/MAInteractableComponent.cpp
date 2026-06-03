@@ -25,9 +25,16 @@ UMAInteractableComponent::UMAInteractableComponent()
 	InteractKeyWidgetComp->SetDrawAtDesiredSize(true);
 }
 
+void UMAInteractableComponent::OnRegister()
+{
+	Super::OnRegister();
+	AttachKeyWidgetToInteractable();
+}
+
 void UMAInteractableComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	AttachKeyWidgetToInteractable();
 
 	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
 	check(GameSettings);
@@ -44,6 +51,16 @@ void UMAInteractableComponent::BeginPlay()
 
 	OnComponentBeginOverlap.AddDynamic(this, &UMAInteractableComponent::HandleBeginOverlap);
 	OnComponentEndOverlap.AddDynamic(this, &UMAInteractableComponent::HandleEndOverlap);
+}
+
+void UMAInteractableComponent::AttachKeyWidgetToInteractable()
+{
+	if (!InteractKeyWidgetComp) return;
+	if (InteractKeyWidgetComp->GetAttachParent() != this)
+	{
+		InteractKeyWidgetComp->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	}
+	InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
 }
 
 void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
