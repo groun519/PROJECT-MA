@@ -8,6 +8,8 @@
 #include "PCGGraph.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerControllerBase.h"
+#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "TimerManager.h"
 
 ASplineSectorManager::ASplineSectorManager()
@@ -69,6 +71,7 @@ void ASplineSectorManager::BeginPlay()
 void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
 	CancelReadyCountdown();
+	GetWorldTimerManager().ClearTimer(LoopReadyCompletionTimerHandle);
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
 	
@@ -154,6 +157,37 @@ void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 Tot
 
 	CancelReadyCountdown();
 	CachedRideRoot->SetReadyText(ReadyCount, TotalCount);
+}
+
+void ASplineSectorManager::CompleteLoopReady()
+{
+	if (!HasAuthority() || !CachedRideRoot || !CachedMAGameMode || !GetWorld()) return;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMAPlayerControllerBase* PC = Cast<AMAPlayerControllerBase>(It->Get());
+		if (!PC) continue;
+
+		if (UMAPlayerCameraDirectorComponent* CameraDirector = PC->GetCameraDirector())
+		{
+			CameraDirector->RequestFade(LoopReadyFadeSettings);
+		}
+	}
+
+	GetWorldTimerManager().SetTimer(
+		LoopReadyCompletionTimerHandle,
+		[this]()
+		{
+			if (!HasAuthority() || !CachedRideRoot || !CachedMAGameMode) return;
+
+			const EMASectorState NewState = EMASectorState::InBattle;
+			CachedMAGameMode->RequestStateChange(NewState);
+			CurSectorIndex = 0;
+			SetSectorsByState(NewState);
+			ApplyCurSplineAndSeed();
+		},
+		LoopReadyFadeSettings.FadeOutSeconds,
+		false);
 }
 
 int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)

@@ -4,12 +4,14 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerControllerBase.h"
 #include "TimerManager.h"
 
 UMAPlayerCameraDirectorComponent::UMAPlayerCameraDirectorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	SetIsReplicatedByDefault(true);
 }
 
 void UMAPlayerCameraDirectorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -68,6 +70,39 @@ void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera()
 	CancelCameraMovement();
 	RefreshPawnCamera();
 	PlayerController->SetViewTargetWithBlend(Pawn, 0.f);
+}
+
+void UMAPlayerCameraDirectorComponent::RequestFade(const FMACameraFadeSettings& Settings)
+{
+	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwnerPlayerController());
+	if (!PlayerController) return;
+
+	if (PlayerController->IsLocalController())
+	{
+		PlayFade(Settings);
+		return;
+	}
+
+	if (PlayerController->HasAuthority())
+	{
+		ClientRequestFade(Settings);
+	}
+}
+
+void UMAPlayerCameraDirectorComponent::ClientRequestFade_Implementation(const FMACameraFadeSettings& Settings)
+{
+	PlayFade(Settings);
+}
+
+void UMAPlayerCameraDirectorComponent::PlayFade(const FMACameraFadeSettings& Settings)
+{
+	const float FadeInSeconds = Settings.FadeInSeconds;
+	FadeOut(
+		Settings.FadeOutSeconds,
+		[this, FadeInSeconds]()
+		{
+			FadeIn(FadeInSeconds);
+		});
 }
 
 void UMAPlayerCameraDirectorComponent::FadeOut(float Duration, TFunction<void()> OnFinished)
@@ -182,10 +217,8 @@ void UMAPlayerCameraDirectorComponent::TransitionPawnCamera(const FMAPlayerCamer
 		NewRotation.Pitch = Settings.BoomPitch;
 		CameraBoom->SetRelativeRotation(NewRotation);
 		CameraBoom->TargetOffset = Settings.TargetOffset;
-		if (Camera)
-		{
-			Camera->SetFieldOfView(RigTransitionBaseFOV);
-		}
+		if (Camera) Camera->SetFieldOfView(RigTransitionBaseFOV);
+
 		bRigTransitionActive = false;
 		UpdateComponentTickEnabled();
 		return;

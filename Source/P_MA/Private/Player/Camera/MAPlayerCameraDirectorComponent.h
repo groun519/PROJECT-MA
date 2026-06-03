@@ -7,6 +7,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class AMAPlayerControllerBase;
 
 UCLASS(ClassGroup=(Camera), meta=(BlueprintSpawnableComponent))
 class P_MA_API UMAPlayerCameraDirectorComponent : public UActorComponent
@@ -22,6 +23,8 @@ public:
 	void RefreshPawnCamera();
 	void SwitchToViewTarget(AActor* ViewTarget);
 	void SwitchToPawnCamera();
+	void RequestFade(const FMACameraFadeSettings& Settings);
+	void PlayFade(const FMACameraFadeSettings& Settings);
 	void FadeOut(float Duration, TFunction<void()> OnFinished = nullptr);
 	void FadeIn(float Duration, TFunction<void()> OnFinished = nullptr);
 	void TransitionPawnCamera(const FMAPlayerCameraRigSettings& Settings);
@@ -29,6 +32,9 @@ public:
 	void TeleportExternalCameraView(const FMACameraViewTarget& Target);
 
 private:
+	UFUNCTION(Client, Reliable)
+	void ClientRequestFade(const FMACameraFadeSettings& Settings);
+
 	void CancelCameraTransition();
 	void CancelCameraMovement();
 	void UpdateRigTransition(float DeltaTime);

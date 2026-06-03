@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
+#include "Level/Sector/Spline/SplineSectorManager.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/Components/ReadyStateComponent.h"
 
@@ -124,7 +125,10 @@ void UReadyManagerComponent::SetPlayerLoopReady(APlayerState* PlayerState, bool 
 	AMAGameMode* OwningGM = Cast<AMAGameMode>(GetOwner());
 	if (OwningGM && bIsAllReady && OwningGM->GetMASectorState() == EMASectorState::Loop)
 	{
-		OwningGM->RequestStateChange(EMASectorState::Start);
+		ASplineSectorManager* SplineSectorManager = ASplineSectorManager::FindSplineSectorManager(GetWorld());
+		if (!ensureMsgf(SplineSectorManager, TEXT("Loop ready completion requires SplineSectorManager."))) return;
+
+		SplineSectorManager->CompleteLoopReady();
 		ResetAllLoopReady();
 	}
 }

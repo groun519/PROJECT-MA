@@ -5,6 +5,7 @@
 #include "Framework/MAGameStateTypes.h"
 #include "GameFramework/Actor.h"
 #include "Level/Platform/RideRoot.h"
+#include "Player/Camera/MACameraTypes.h"
 #include "SplineSectorManager.generated.h"
 
 class AMAGameMode;
@@ -86,6 +87,7 @@ public:
 	void OnHandlePlatformReachedEnd();
 	void OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount);
 	void OnHandleEnvironmentPCGChanged(UPCGGraph* NewPCGGraph);
+	void CompleteLoopReady();
 
 	/** Sector **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sector")
@@ -118,6 +120,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ready", meta = (ClampMin = "0.0"))
 	float ReadyStartDelay = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ready")
+	FMACameraFadeSettings LoopReadyFadeSettings;
 	
 private:
 	bool bIsMoving = false;
@@ -155,6 +160,7 @@ private:
 	void TickReadyCountdown();
 	bool CanUseReadyCountdown() const;
 	FTimerHandle ReadyCountdownTimerHandle;
+	FTimerHandle LoopReadyCompletionTimerHandle;
 	int32 ReadyCountdownRemainingSeconds = 0;
 
 	/** Environment **/
