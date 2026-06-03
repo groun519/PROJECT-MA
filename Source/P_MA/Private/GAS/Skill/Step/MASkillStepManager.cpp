@@ -17,38 +17,12 @@ void UMASkillStepManager::Initialize(UMASkillAbility* SkillAbility)
 void UMASkillStepManager::UpdateSteps(const TArray<TObjectPtr<UMASkillStep>>& InRuntimeSteps)
 {
 	RuntimeSteps = &InRuntimeSteps;
-	TMap<FString, int32> SequenceSectionOffsets;
 
-	for (int32 StepIndex = 0; StepIndex < InRuntimeSteps.Num(); ++StepIndex)
+	for (UMASkillStep* RuntimeStep : InRuntimeSteps)
 	{
-		UMASkillStep* RuntimeStep = InRuntimeSteps[StepIndex];
 		if (!RuntimeStep) continue;
 
-		const int32 NextStepIndex = InRuntimeSteps.IsValidIndex(StepIndex + 1) ? StepIndex + 1 : INDEX_NONE;
-		int32 NextMontageStepIndex = INDEX_NONE;
-		for (int32 NextStepCandidateIndex = StepIndex + 1; NextStepCandidateIndex < InRuntimeSteps.Num(); ++NextStepCandidateIndex)
-		{
-			const UMASkillStep* NextRuntimeStep = InRuntimeSteps[NextStepCandidateIndex];
-			if (!NextRuntimeStep || !NextRuntimeStep->ResolveStepMontage()) continue;
-
-			NextMontageStepIndex = NextStepCandidateIndex;
-			break;
-		}
-
-		int32 InitialSequenceSectionIndex = 0;
-		if (RuntimeStep->UsesSequenceSections())
-		{
-			const FString SequenceSectionKey = RuntimeStep->GetSequenceSectionKey();
-			InitialSequenceSectionIndex = SequenceSectionOffsets.FindRef(SequenceSectionKey);
-			SequenceSectionOffsets.Add(SequenceSectionKey, InitialSequenceSectionIndex + 1);
-		}
-
-		RuntimeStep->InitializeStep(
-			OwnerSkillAbility,
-			StepIndex,
-			NextStepIndex,
-			NextMontageStepIndex,
-			InitialSequenceSectionIndex);
+		RuntimeStep->BindRuntimeSkillAbility(OwnerSkillAbility);
 	}
 }
 

@@ -11,9 +11,21 @@
 void UMASkillStep::StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode /*StartMode*/)
 {
 	OwnerSkillAbility = SkillAbility;
-	if (!UsesSequenceSections()) return;
+}
 
-	RuntimeSequenceSectionIndex = ResolveNextSequenceSectionIndex();
+void UMASkillStep::ConfigureAssembledStep(
+	int32 InStepIndex,
+	int32 InNextStepIndex,
+	int32 InNextMontageStepIndex,
+	int32 InInitialSequenceIndex,
+	int32 InSequenceAdvanceCount)
+{
+	StepIndex = InStepIndex;
+	NextStepIndex = InNextStepIndex;
+	NextMontageStepIndex = InNextMontageStepIndex;
+	SequenceState.AdvanceCount = FMath::Max(InSequenceAdvanceCount, 0);
+	SequenceState.MaxIndex = FMath::Max(MaxSequenceSectionCount, 0);
+	SequenceState.CurrentIndex = UsesSequenceSections() ? FMath::Max(InInitialSequenceIndex, 1) : 0;
 }
 
 void UMASkillStep::HandleStepMontageCancelled()
@@ -36,12 +48,7 @@ void UMASkillStep::HandleStepMontageCompleted()
 
 FName UMASkillStep::ResolveStepStartSectionName() const
 {
-	return MakeSequenceSectionName(ResolveCurrentSequenceSectionIndex());
-}
-
-FName UMASkillStep::ResolvePreparedStepStartSectionName() const
-{
-	return MakeSequenceSectionName(ResolveNextSequenceSectionIndex());
+	return MakeSequenceSectionName(ResolveCurrentSequenceIndex());
 }
 
 FString UMASkillStep::GetSequenceSectionKey() const
@@ -71,7 +78,7 @@ bool UMASkillStep::PrepareStepPreview(float PreviewBlendInTime)
 		return false;
 	}
 
-	if (const FName StartSectionName = ResolvePreparedStepStartSectionName(); !StartSectionName.IsNone())
+	if (const FName StartSectionName = ResolveStepStartSectionName(); !StartSectionName.IsNone())
 	{
 		AnimInstance->Montage_JumpToSection(StartSectionName, StepPreviewMontage);
 	}
@@ -105,12 +112,9 @@ bool UMASkillStep::PromotePreparedStepPreviewToActive()
 {
 	if (!PreparedStepPreviewMontage) return false;
 
-	UAnimMontage* PreparedMontage = PreparedStepPreviewMontage;
-	if (!PreparedMontage) return false;
-
 	if (UAnimInstance* AnimInstance = ResolveOwnerAnimInstance())
 	{
-		if (FAnimMontageInstance* PreparedMontageInstance = AnimInstance->GetInstanceForMontage(PreparedMontage))
+		if (FAnimMontageInstance* PreparedMontageInstance = AnimInstance->GetInstanceForMontage(PreparedStepPreviewMontage))
 		{
 			PreparedMontageInstance->SetWeight(1.f);
 			PreparedMontageInstance->SetDesiredWeight(1.f);
@@ -118,6 +122,7 @@ bool UMASkillStep::PromotePreparedStepPreviewToActive()
 	}
 
 	bPreparedStepPreviewActivated = true;
+	AdvanceSequence();
 	return true;
 }
 
@@ -133,29 +138,28 @@ void UMASkillStep::ClearPreparedStepPreview(float BlendOutTime)
 	}
 }
 
-int32 UMASkillStep::ResolveCurrentSequenceSectionIndex() const
+int32 UMASkillStep::ResolveCurrentSequenceIndex() const
 {
 	if (!UsesSequenceSections()) return 0;
 
-	int32 ResolvedSectionIndex = FMath::Max(RuntimeSequenceSectionIndex, 1);
-	if (MaxSequenceSectionCount > 0)
+	int32 ResolvedSectionIndex = FMath::Max(SequenceState.CurrentIndex, 1);
+	if (SequenceState.MaxIndex > 0)
 	{
-		ResolvedSectionIndex = FMath::Clamp(ResolvedSectionIndex, 1, MaxSequenceSectionCount);
+		ResolvedSectionIndex = FMath::Clamp(ResolvedSectionIndex, 1, SequenceState.MaxIndex);
 	}
 
 	return ResolvedSectionIndex;
 }
 
-int32 UMASkillStep::ResolveNextSequenceSectionIndex() const
+void UMASkillStep::AdvanceSequence()
 {
-	if (!UsesSequenceSections()) return 0;
+	if (!UsesSequenceSections() || SequenceState.AdvanceCount <= 0) return;
 
-	if (MaxSequenceSectionCount > 0)
+	SequenceState.CurrentIndex = FMath::Max(SequenceState.CurrentIndex, 1) + SequenceState.AdvanceCount;
+	if (SequenceState.MaxIndex > 0)
 	{
-		return (RuntimeSequenceSectionIndex % MaxSequenceSectionCount) + 1;
+		SequenceState.CurrentIndex = ((SequenceState.CurrentIndex - 1) % SequenceState.MaxIndex) + 1;
 	}
-
-	return FMath::Max(RuntimeSequenceSectionIndex + 1, 1);
 }
 
 FName UMASkillStep::MakeSequenceSectionName(int32 SectionIndex) const
@@ -203,12 +207,13 @@ void UMASkillStep::StartCurrentStepMontage()
 	UAnimMontage* CurrentStepMontage = nullptr;
 	if (!SkillAbility || !SkillAbility->CanPlaySkillMontageLocally() || !TryResolveStepMontageContext(AnimInstance, CurrentStepMontage)) return;
 
+	const FName StartSectionName = ResolveStepStartSectionName();
 	CurrentMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 		SkillAbility,
 		NAME_None,
 		CurrentStepMontage,
 		GetOwnerStepManager() ? GetOwnerStepManager()->GetDesiredMontagePlayRate() : 1.f,
-		ResolveStepStartSectionName());
+		StartSectionName);
 	if (!CurrentMontageTask) return;
 
 	CurrentMontageTask->OnBlendOut.AddDynamic(this, &UMASkillStep::HandleCurrentStepMontageCompletedTask);
@@ -220,6 +225,7 @@ void UMASkillStep::StartCurrentStepMontage()
 		MAAnimInstance->RegisterAnimationOwner(CurrentStepMontage, GetOwnerSkillAbility());
 	}
 	CurrentMontageTask->ReadyForActivation();
+	AdvanceSequence();
 }
 
 void UMASkillStep::ClearCurrentMontageTask()

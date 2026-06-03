@@ -103,5 +103,10 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 		AssembledDefinition->DisplayData.NameData.Keyword = FText::FromString(AssembledName);
 	}
 
+	if (AssembledDefinition)
+	{
+		AssembledDefinition->FinalizeStepAssembly();
+	}
+
 	return AssembledModuleInstance;
 }

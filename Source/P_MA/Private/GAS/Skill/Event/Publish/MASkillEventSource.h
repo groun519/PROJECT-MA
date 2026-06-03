@@ -36,6 +36,7 @@ protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
 
 private:
+	void BindSkillLifecycle();
 	void HandleScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData);
 	void HandleSkillActivated();
 	void HandleSkillDeactivated();
@@ -57,5 +58,6 @@ protected:
 	TObjectPtr<UMASkillModuleInstance> EventScope = nullptr;
 
 	FDelegateHandle ScopedEventDelegateHandle;
+	bool bSkillLifecycleBound = false;
 };
 

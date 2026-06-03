@@ -116,6 +116,7 @@ FLinearColor AGCN_HitOverlay::ResolveOverlayColor(const FGameplayCueParameters& 
 	if (ColorName.Equals(TEXT("Blue"), ESearchCase::IgnoreCase)) return FLinearColor::Blue;
 	if (ColorName.Equals(TEXT("Green"), ESearchCase::IgnoreCase)) return FLinearColor::Green;
 	if (ColorName.Equals(TEXT("Cyan"), ESearchCase::IgnoreCase)) return FLinearColor(0.f, 1.f, 1.f);
+	if (ColorName.Equals(TEXT("Yellow"), ESearchCase::IgnoreCase)) return FLinearColor::Yellow;
 
 	return DefaultOverlayColor;
 }

@@ -8,14 +8,17 @@
 void UMASkillEventSource::InitializeRuntime(UMASkillAbility* SkillAbility, UMASkillModuleInstance* InEventScope)
 {
 	if (!SkillAbility || !InEventScope) return;
-	if (OwnerSkillAbility == SkillAbility && EventScope == InEventScope) return;
+	if (OwnerSkillAbility == SkillAbility && EventScope == InEventScope)
+	{
+		BindSkillLifecycle();
+		return;
+	}
 	if (OwnerSkillAbility) DeinitializeRuntime();
 
 	OwnerSkillAbility = SkillAbility;
 	EventScope = InEventScope;
 	ScopedEventDelegateHandle = EventScope->OnScopedEvent().AddUObject(this, &UMASkillEventSource::HandleScopedEvent);
-	OwnerSkillAbility->OnSkillActivated().AddUObject(this, &UMASkillEventSource::HandleSkillActivated);
-	OwnerSkillAbility->OnSkillDeactivated().AddUObject(this, &UMASkillEventSource::HandleSkillDeactivated);
+	BindSkillLifecycle();
 }
 
 void UMASkillEventSource::DeinitializeRuntime()
@@ -28,18 +31,27 @@ void UMASkillEventSource::DeinitializeRuntime()
 		EventScope->OnScopedEvent().Remove(ScopedEventDelegateHandle);
 	}
 	ScopedEventDelegateHandle.Reset();
-	OwnerSkillAbility->OnSkillActivated().RemoveAll(this);
-	OwnerSkillAbility->OnSkillDeactivated().RemoveAll(this);
+	UnbindSkillLifecycle();
 	EventScope = nullptr;
 	OwnerSkillAbility = nullptr;
 }
 
 void UMASkillEventSource::UnbindSkillLifecycle()
 {
-	if (!OwnerSkillAbility) return;
+	if (!OwnerSkillAbility || !bSkillLifecycleBound) return;
 
 	OwnerSkillAbility->OnSkillActivated().RemoveAll(this);
 	OwnerSkillAbility->OnSkillDeactivated().RemoveAll(this);
+	bSkillLifecycleBound = false;
+}
+
+void UMASkillEventSource::BindSkillLifecycle()
+{
+	if (!OwnerSkillAbility || bSkillLifecycleBound) return;
+
+	OwnerSkillAbility->OnSkillActivated().AddUObject(this, &UMASkillEventSource::HandleSkillActivated);
+	OwnerSkillAbility->OnSkillDeactivated().AddUObject(this, &UMASkillEventSource::HandleSkillDeactivated);
+	bSkillLifecycleBound = true;
 }
 
 void UMASkillEventSource::EmitEvent() const

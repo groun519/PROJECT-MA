@@ -64,29 +64,49 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 	Payloads.Append(SourceDefinition->Payloads);
 }
 
-void UMASkillDefinition::RestoreBindingScopesFrom(const UMASkillDefinition& SourceDefinition)
+void UMASkillDefinition::FinalizeStepAssembly()
 {
-	const int32 StepCount = FMath::Min(SkillSteps.Num(), SourceDefinition.SkillSteps.Num());
-	for (int32 Index = 0; Index < StepCount; ++Index)
+	TMap<FString, int32> SequenceOffsets;
+	TMap<FString, int32> SequenceCounts;
+
+	for (const UMASkillStep* SkillStep : SkillSteps)
 	{
-		if (SkillSteps[Index] && SourceDefinition.SkillSteps[Index])
-		{
-			SkillSteps[Index]->SetBindingScope(SourceDefinition.SkillSteps[Index]->GetBindingScope());
-		}
+		if (!SkillStep || !SkillStep->UsesSequenceSections()) continue;
+
+		SequenceCounts.FindOrAdd(SkillStep->GetSequenceSectionKey())++;
 	}
 
-	const int32 EventSourceCount = FMath::Min(EventSources.Num(), SourceDefinition.EventSources.Num());
-	for (int32 Index = 0; Index < EventSourceCount; ++Index)
+	for (int32 StepIndex = 0; StepIndex < SkillSteps.Num(); ++StepIndex)
 	{
-		if (EventSources[Index] && SourceDefinition.EventSources[Index])
-		{
-			EventSources[Index]->SetBindingScope(SourceDefinition.EventSources[Index]->GetBindingScope());
-		}
-	}
+		UMASkillStep* SkillStep = SkillSteps[StepIndex];
+		if (!SkillStep) continue;
 
-	const int32 EventBindingCount = FMath::Min(EventBindings.Num(), SourceDefinition.EventBindings.Num());
-	for (int32 Index = 0; Index < EventBindingCount; ++Index)
-	{
-		EventBindings[Index].BindingScope = SourceDefinition.EventBindings[Index].BindingScope;
+		const int32 NextStepIndex = SkillSteps.IsValidIndex(StepIndex + 1) ? StepIndex + 1 : INDEX_NONE;
+		int32 NextMontageStepIndex = INDEX_NONE;
+		for (int32 NextStepCandidateIndex = StepIndex + 1; NextStepCandidateIndex < SkillSteps.Num(); ++NextStepCandidateIndex)
+		{
+			const UMASkillStep* NextSkillStep = SkillSteps[NextStepCandidateIndex];
+			if (!NextSkillStep || !NextSkillStep->ResolveStepMontage()) continue;
+
+			NextMontageStepIndex = NextStepCandidateIndex;
+			break;
+		}
+
+		int32 InitialSequenceIndex = 0;
+		int32 SequenceAdvanceCount = 0;
+		if (SkillStep->UsesSequenceSections())
+		{
+			const FString SequenceSectionKey = SkillStep->GetSequenceSectionKey();
+			InitialSequenceIndex = SequenceOffsets.FindRef(SequenceSectionKey) + 1;
+			SequenceOffsets.Add(SequenceSectionKey, InitialSequenceIndex);
+			SequenceAdvanceCount = SequenceCounts.FindRef(SequenceSectionKey);
+		}
+
+		SkillStep->ConfigureAssembledStep(
+			StepIndex,
+			NextStepIndex,
+			NextMontageStepIndex,
+			InitialSequenceIndex,
+			SequenceAdvanceCount);
 	}
 }

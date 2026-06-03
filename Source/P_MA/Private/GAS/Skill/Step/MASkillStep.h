@@ -20,25 +20,34 @@ enum class EMASkillStepStartMode : uint8
 	Prepared
 };
 
+USTRUCT()
+struct FMASkillStepSequenceState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	int32 CurrentIndex = 0;
+
+	UPROPERTY(Transient)
+	int32 AdvanceCount = 0;
+
+	UPROPERTY(Transient)
+	int32 MaxIndex = 0;
+};
+
 UCLASS(Abstract, BlueprintType, EditInlineNew, DefaultToInstanced)
 class P_MA_API UMASkillStep : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	virtual void InitializeStep(
-		UMASkillAbility* SkillAbility,
+	void ConfigureAssembledStep(
 		int32 InStepIndex,
 		int32 InNextStepIndex,
 		int32 InNextMontageStepIndex,
-		int32 InInitialSequenceSectionIndex = 0)
-	{
-		OwnerSkillAbility = SkillAbility;
-		StepIndex = InStepIndex;
-		NextStepIndex = InNextStepIndex;
-		NextMontageStepIndex = InNextMontageStepIndex;
-		RuntimeSequenceSectionIndex = FMath::Max(InInitialSequenceSectionIndex, 0);
-	}
+		int32 InInitialSequenceIndex = 0,
+		int32 InSequenceAdvanceCount = 0);
+	void BindRuntimeSkillAbility(UMASkillAbility* SkillAbility) { OwnerSkillAbility = SkillAbility; }
 	void SetBindingScope(UMASkillModuleInstance* InBindingScope) { BindingScope = InBindingScope; }
 	UMASkillModuleInstance* GetBindingScope() const { return BindingScope; }
 
@@ -77,7 +86,6 @@ public:
 
 	virtual UAnimMontage* ResolveStepMontage() const { return StepMontage; }
 	virtual FName ResolveStepStartSectionName() const;
-	virtual FName ResolvePreparedStepStartSectionName() const;
 	bool UsesSequenceSections() const { return !SequenceSectionNameBase.IsNone(); }
 	FString GetSequenceSectionKey() const;
 	bool PrepareNextStepPreview(float PreviewBlendInTime);
@@ -97,6 +105,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Step")
 	TObjectPtr<UAnimMontage> StepMontage;
 
+	// Steps with the same montage and sequence section base are one visual sequence group.
+	// Keep each montage + section base pair unique inside a module unless shared sequencing is intended.
 	UPROPERTY(EditDefaultsOnly, Category="Step", meta=(DisplayName="SequenceSectionNameBase"))
 	FName SequenceSectionNameBase = NAME_None;
 
@@ -117,7 +127,7 @@ protected:
 	int32 NextMontageStepIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
-	int32 RuntimeSequenceSectionIndex = 0;
+	FMASkillStepSequenceState SequenceState;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> PreparedStepPreviewMontage;
@@ -131,9 +141,9 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModuleInstance> BindingScope = nullptr;
 
-	int32 ResolveCurrentSequenceSectionIndex() const;
-	int32 ResolveNextSequenceSectionIndex() const;
+	int32 ResolveCurrentSequenceIndex() const;
 	FName MakeSequenceSectionName(int32 SectionIndex) const;
+	void AdvanceSequence();
 	UMASkillStep* ResolveNextMontageRuntimeStep() const;
 	bool PrepareStepPreview(float PreviewBlendInTime);
 	bool TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutStepMontage) const;

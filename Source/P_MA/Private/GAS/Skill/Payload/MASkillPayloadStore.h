@@ -110,6 +110,39 @@ public:
 		return false;
 	}
 
+	template <typename StructType>
+	void FindStructsByTag(
+		const FGameplayTag& Key,
+		bool bExactTagMatch,
+		TArray<TPair<FGameplayTag, StructType>>& OutValues) const
+	{
+		OutValues.Reset();
+		if (!Key.IsValid()) return;
+
+		if (bExactTagMatch)
+		{
+			StructType Value;
+			if (TryGetStruct(Key, Value))
+			{
+				OutValues.Emplace(Key, MoveTemp(Value));
+			}
+
+			return;
+		}
+
+		for (const TPair<FGameplayTag, FInstancedStruct>& Pair : Structs)
+		{
+			if (!Pair.Key.MatchesTag(Key)) continue;
+			if (!Pair.Value.IsValid()) continue;
+			if (Pair.Value.GetScriptStruct() != StructType::StaticStruct()) continue;
+
+			if (const StructType* Value = Pair.Value.GetPtr<StructType>())
+			{
+				OutValues.Emplace(Pair.Key, *Value);
+			}
+		}
+	}
+
 private:
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, float> Scalars;

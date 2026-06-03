@@ -85,11 +85,11 @@ public:
 			PayloadEntry.ApplyTo(PayloadStore);
 		}
 	}
-	void RestoreBindingScopesFrom(const UMASkillDefinition& SourceDefinition);
 
 private:
 	void ResetAssemblyData();
 	void AppendFrom(UMASkillModuleInstance* SourceModuleInstance);
+	void FinalizeStepAssembly();
 
 	friend struct FMASkillAssembler;
 
