@@ -35,9 +35,6 @@ protected:
 	void OnDamageEvent(FGameplayEventData Data);
 
 	UFUNCTION()
-	void OnClearEvent(FGameplayEventData Data);
-
-	UFUNCTION()
 	void OnEndEventReceived(FGameplayEventData Data);
 	
 private:

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAGameplayAbility.h"
 #include "GAS/Modules/MASkillModuleData.h"
 #include "MAGameplayAbility_Skill.generated.h"
@@ -54,12 +53,6 @@ protected:
 	FGameplayEffectSpecHandle MakeSkillDamageSpec(float BehaviorMultiplier);
 
 	void ApplyHitStop(AActor* TargetActor);
-	
-	UPROPERTY()
-	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitClearEventTask;
-	UFUNCTION()
-	void TargetClear(FGameplayEventData Payload);
-	FGameplayTag IgnoreClearTag;
 	
 public:
 	void Montage_SetPlayRate(UAnimMontage* AnimMontage, float PlayRate);

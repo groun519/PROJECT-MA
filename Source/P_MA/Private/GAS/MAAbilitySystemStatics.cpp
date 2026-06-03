@@ -11,11 +11,6 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
 	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
-}
-
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Dead");
@@ -104,16 +99,6 @@ FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
 FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
 {
 	return FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetElementalMultiplierTag()
-{
-	return FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
-{
-	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetDamageBaseTag()

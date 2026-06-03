@@ -8,7 +8,6 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameplayTagsManager.h"
 #include "GameFramework/Character.h"
-#include "GAS/MAAbilitySystemStatics.h"
 
 void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                       const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -50,10 +49,6 @@ void UGA_MonsterDash::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	WaitDamageEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnDamageEvent);
 	WaitDamageEvent->ReadyForActivation();
 	
-	UAbilityTask_WaitGameplayEvent* WaitClearEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,UMAAbilitySystemStatics::GetIgnoreClearTag());
-	WaitClearEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnClearEvent);
-	WaitClearEvent->ReadyForActivation();
-
 	UAbilityTask_WaitGameplayEvent* WaitEndEvent = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End")));
 	WaitEndEvent->EventReceived.AddDynamic(this, &UGA_MonsterDash::OnEndEventReceived);
 	WaitEndEvent->ReadyForActivation();
@@ -91,11 +86,6 @@ void UGA_MonsterDash::OnDamageEvent(FGameplayEventData Data)
 
 		IgnoreTargets.Add(HitResult.GetActor());
 	}
-}
-
-void UGA_MonsterDash::OnClearEvent(FGameplayEventData Data)
-{
-	IgnoreTargets.Empty();
 }
 
 void UGA_MonsterDash::OnEndEventReceived(FGameplayEventData Data)

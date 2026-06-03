@@ -13,7 +13,6 @@
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
 	AbilityTags.AddTag(UMAAbilitySystemStatics::GetSkillAttackTag());
-	IgnoreClearTag = UMAAbilitySystemStatics::GetIgnoreClearTag();
 
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
@@ -46,20 +45,12 @@ void UMAGameplayAbility_Skill::ActivateAbility(const FGameplayAbilitySpecHandle 
 
 	IgnoreTargets.Empty();
 	ChargeRatio = 1.f;
-
-	WaitClearEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,IgnoreClearTag);
-	WaitClearEventTask->EventReceived.AddDynamic(this, &UMAGameplayAbility_Skill::TargetClear);
-	WaitClearEventTask->ReadyForActivation();
 	
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
 void UMAGameplayAbility_Skill::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicateEndAbility, bool bWasCancelled)
 {
-	if (WaitClearEventTask)
-	{
-		WaitClearEventTask->EndTask();
-	}
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
 		if (!CachedSkillData.bCanMove)
@@ -317,11 +308,6 @@ void UMAGameplayAbility_Skill::Montage_SetSection(FName SectionName)
 	{
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
-}
-
-void UMAGameplayAbility_Skill::TargetClear(FGameplayEventData Payload)
-{
-	IgnoreTargets.Empty();
 }
 
 void UMAGameplayAbility_Skill::ApplyHitStop(AActor* TargetActor)

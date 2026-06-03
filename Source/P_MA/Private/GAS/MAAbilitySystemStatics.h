@@ -22,7 +22,6 @@ class UMAAbilitySystemStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static FGameplayTag GetSkillAttackTag();
-	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
 	static FGameplayTag GetFrozenStatTag();
@@ -56,8 +55,6 @@ public:
 	static FGameplayTag GetMontageProjectileTag();
 
 	static FGameplayTag GetBehaviorMultiplierTag();
-	static FGameplayTag GetElementalMultiplierTag();
-	static FGameplayTag GetUtilityMultiplierTag();
 	static FGameplayTag GetDamageBaseTag();
 	static FGameplayTag GetAppliedDamageTag();
 	static FGameplayTag GetDamageTargetTag();
