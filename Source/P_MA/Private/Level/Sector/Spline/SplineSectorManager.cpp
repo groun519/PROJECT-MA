@@ -185,6 +185,7 @@ void ASplineSectorManager::CompleteLoopReady()
 			CurSectorIndex = 0;
 			SetSectorsByState(NewState);
 			ApplyCurSplineAndSeed();
+			CachedRideRoot->ApplyCurrentSplineTransform();
 		},
 		LoopReadyFadeSettings.FadeOutSeconds,
 		false);

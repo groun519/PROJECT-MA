@@ -49,6 +49,7 @@ public:
 	void SetWaitMoveIn(bool bWaitMoveIn);
 	void ReleaseAttachedPlayers();
 	void SetCurSpline(USplineComponent* Spline);
+	void ApplyCurrentSplineTransform(float DeltaTime = 0.f);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
 	void SetReadyCountdownText(int32 RemainingSeconds);
 	void SetRangeClampVisual(bool bVisible, float InSize);

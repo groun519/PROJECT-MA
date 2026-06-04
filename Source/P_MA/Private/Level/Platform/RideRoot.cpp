@@ -130,6 +130,35 @@ void ARideRoot::SetCurSpline(USplineComponent* Spline)
 	}
 }
 
+void ARideRoot::ApplyCurrentSplineTransform(float DeltaTime)
+{
+	if (!IsValid(CurSpline))
+	{
+		CurSpline = nullptr;
+		return;
+	}
+
+	FVector TargetLoc =
+		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	FRotator TargetRot =
+		CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	TargetRot.Pitch = 0.f;
+	TargetRot.Roll  = 0.f;
+
+	const float RotationInterpSpeed = 1.0f;
+	const FRotator CurrentRot = GetActorRotation();
+	const FRotator SmoothedRot =
+		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
+
+	TargetLoc.Z = GetActorLocation().Z;
+
+	SetActorLocation(TargetLoc);
+	SetActorRotation(SmoothedRot);
+	UpdateRangeClampVFXWorldLocation();
+}
+
 void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 {
 	if (HasAuthority())
@@ -228,25 +257,7 @@ void ARideRoot::Tick(float DeltaTime)
 		if (!IsValid(CurSpline)) return;
 	}
 
-	FVector TargetLoc =
-		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-
-	FRotator TargetRot =
-		CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-
-	TargetRot.Pitch = 0.f;
-	TargetRot.Roll  = 0.f;
-
-	const float RotationInterpSpeed = 1.0f; 
-	const FRotator CurrentRot = GetActorRotation();
-	const FRotator SmoothedRot =
-		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
-
-	TargetLoc.Z = GetActorLocation().Z;
-
-	SetActorLocation(TargetLoc);
-	SetActorRotation(SmoothedRot);
-	UpdateRangeClampVFXWorldLocation();
+	ApplyCurrentSplineTransform(DeltaTime);
 }
 
 void ARideRoot::MoveEnd()

@@ -7,6 +7,7 @@ void UMAPlayerCharacterMovementComponent::SetRideMovementEnabled(bool bEnabled)
 	const uint8 RideMode = static_cast<uint8>(ERideCustomMovementMode::Ride);
 	if (bEnabled)
 	{
+		bFastAttachedMove = true;
 		if (MovementMode != MOVE_Custom || CustomMovementMode != RideMode)
 		{
 			SetMovementMode(MOVE_Custom, RideMode);
@@ -16,6 +17,7 @@ void UMAPlayerCharacterMovementComponent::SetRideMovementEnabled(bool bEnabled)
 
 	if (MovementMode == MOVE_Custom && CustomMovementMode == RideMode)
 	{
+		bFastAttachedMove = false;
 		SetMovementMode(MOVE_Walking);
 	}
 }
