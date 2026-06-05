@@ -7,7 +7,9 @@
 #include "AnimNotifyState_SendTracePointPreview.generated.h"
 
 class UDecalComponent;
+class UDataTable;
 class UMASkillAbility;
+class UMASkillGenericDataAsset;
 class UMaterialInstanceDynamic;
 
 UCLASS()
@@ -23,7 +25,9 @@ public:
 
 private:
 	static UMASkillAbility* ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation);
+	static FGameplayTag ResolvePreviewElementalTag(USkeletalMeshComponent* MeshComp, const UMASkillAbility* SkillAbility);
 	static FName ResolveElementRowName(const FGameplayTag& ElementalTag);
+	static FLinearColor ResolveElementColor(const FGameplayTag& ElementalTag, const UDataTable* ElementalDataTable);
 
 	UPROPERTY(EditAnywhere, Category="Gameplay Ability")
 	FGameplayTag EventTag;

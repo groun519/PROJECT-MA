@@ -1,11 +1,13 @@
 #include "GAS/Skill/Step/MASkillStep.h"
 
+#include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Animation/MAAnimInstance.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
 void UMASkillStep::StartStep(UMASkillAbility* SkillAbility, EMASkillStepStartMode /*StartMode*/)
@@ -98,6 +100,19 @@ bool UMASkillStep::TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance,
 	OutAnimInstance = ResolveOwnerAnimInstance();
 	OutStepMontage = ResolveStepMontage();
 	return OutAnimInstance && OutStepMontage;
+}
+
+void UMASkillStep::BroadcastMontageStartedEvent() const
+{
+	const UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
+	UMASkillModuleInstance* EventScope = SkillAbility ? SkillAbility->GetCurrentSkillModuleInstance() : nullptr;
+	if (!EventScope || !BindingScope) return;
+
+	static const FGameplayTag MontageStartedTag = FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.MontageStart"));
+	FGameplayEventData EventData;
+	EventData.EventTag = MontageStartedTag;
+	EventData.OptionalObject = BindingScope;
+	EventScope->BroadcastScopedEvent(MontageStartedTag, EventData);
 }
 
 bool UMASkillStep::PrepareNextStepPreview(float PreviewBlendInTime)
@@ -225,6 +240,7 @@ void UMASkillStep::StartCurrentStepMontage()
 		MAAnimInstance->RegisterAnimationOwner(CurrentStepMontage, GetOwnerSkillAbility());
 	}
 	CurrentMontageTask->ReadyForActivation();
+	BroadcastMontageStartedEvent();
 	AdvanceSequence();
 }
 

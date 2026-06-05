@@ -55,10 +55,13 @@ public:
 	void EnterStep(EMASkillStepStartMode StartMode)
 	{
 		StartStep(GetOwnerSkillAbility(), StartMode);
-		if (StartMode != EMASkillStepStartMode::Prepared)
+		if (StartMode == EMASkillStepStartMode::Prepared)
 		{
-			StartCurrentStepMontage();
+			BroadcastMontageStartedEvent();
+			return;
 		}
+
+		StartCurrentStepMontage();
 	}
 
 	void StopActiveStep(float MontageBlendOutTime = 0.f)
@@ -147,6 +150,7 @@ protected:
 	UMASkillStep* ResolveNextMontageRuntimeStep() const;
 	bool PrepareStepPreview(float PreviewBlendInTime);
 	bool TryResolveStepMontageContext(UAnimInstance*& OutAnimInstance, UAnimMontage*& OutStepMontage) const;
+	void BroadcastMontageStartedEvent() const;
 	void StartCurrentStepMontage();
 	void ClearCurrentMontageTask();
 	void StopCurrentStepMontage(float MontageBlendOutTime = 0.f);

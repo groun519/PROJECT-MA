@@ -2,6 +2,7 @@
 
 #include "Animation/MAAnimInstance.h"
 #include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
+#include "Character/MACharacter.h"
 #include "Components/DecalComponent.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -9,6 +10,9 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MAOverlapDecalData.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillGenericDataAsset.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
+#include "Setting/MAGameSettings.h"
 
 UMASkillAbility* UAnimNotifyState_SendTracePointPreview::ResolveAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
 {
@@ -16,6 +20,15 @@ UMASkillAbility* UAnimNotifyState_SendTracePointPreview::ResolveAnimationOwnerSk
 
 	const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
 	return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
+}
+
+FGameplayTag UAnimNotifyState_SendTracePointPreview::ResolvePreviewElementalTag(USkeletalMeshComponent* MeshComp, const UMASkillAbility* SkillAbility)
+{
+	if (SkillAbility) return SkillAbility->GetElementalTag();
+
+	const AMACharacter* OwnerCharacter = MeshComp ? Cast<AMACharacter>(MeshComp->GetOwner()) : nullptr;
+	const UMASkillManagerComponent* SkillManager = OwnerCharacter ? OwnerCharacter->GetSkillManagerComponent() : nullptr;
+	return SkillManager ? SkillManager->GetActivePreviewElementalTag() : FGameplayTag();
 }
 
 FName UAnimNotifyState_SendTracePointPreview::ResolveElementRowName(const FGameplayTag& ElementalTag)
@@ -29,6 +42,17 @@ FName UAnimNotifyState_SendTracePointPreview::ResolveElementRowName(const FGamep
 	}
 
 	return FName(*RowNameString);
+}
+
+FLinearColor UAnimNotifyState_SendTracePointPreview::ResolveElementColor(const FGameplayTag& ElementalTag, const UDataTable* ElementalDataTable)
+{
+	if (!ElementalTag.IsValid() || !ElementalDataTable) return FLinearColor::White;
+
+	const FName ElementRowName = ResolveElementRowName(ElementalTag);
+	if (ElementRowName == NAME_None) return FLinearColor::White;
+
+	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(ElementRowName, TEXT("AnimNotifyState_SendTracePointPreview"));
+	return ElementRow ? ElementRow->ElementColor : FLinearColor::White;
 }
 
 bool UAnimNotifyState_SendTracePointPreview::ResolvePreviewWorldSpace(USkeletalMeshComponent* MeshComp, FVector& OutWorldLocation, FVector& OutShapeForward, FRotator& OutDecalRotation) const
@@ -189,9 +213,11 @@ void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComp
 	if (!MeshComp) return;
 
 	const UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
-	if (!SkillAbility) return;
-
-	const UDataTable* OverlapDecalDataTable = SkillAbility->GetOverlapDecalDataTable();
+	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
+	const UMASkillGenericDataAsset* DefaultSkillGenericDataAsset = GameSettings ? GameSettings->GetDefaultSkillGenericDataAsset() : nullptr;
+	const UDataTable* OverlapDecalDataTable = SkillAbility
+		? SkillAbility->GetOverlapDecalDataTable()
+		: (DefaultSkillGenericDataAsset ? DefaultSkillGenericDataAsset->GetOverlapDecalDataTable() : nullptr);
 	if (!OverlapDecalDataTable) return;
 
 	const FName DecalRowName = GetPreviewDecalRowName();
@@ -199,19 +225,6 @@ void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComp
 
 	const FMAOverlapDecalDataRow* DecalRow = OverlapDecalDataTable->FindRow<FMAOverlapDecalDataRow>(DecalRowName, TEXT("AnimNotifyState_SendTracePointPreview"));
 	if (!DecalRow || !DecalRow->DecalMaterial) return;
-
-	FLinearColor ElementColor = FLinearColor::White;
-	if (const UDataTable* ElementalDataTable = SkillAbility->GetElementalDataTable())
-	{
-		const FName ElementRowName = ResolveElementRowName(SkillAbility->GetElementalTag());
-		if (ElementRowName != NAME_None)
-		{
-			if (const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(ElementRowName, TEXT("AnimNotifyState_SendTracePointPreview")))
-			{
-				ElementColor = ElementRow->ElementColor;
-			}
-		}
-	}
 
 	const FVector DecalSize = GetPreviewDecalSize();
 	if (DecalSize.IsNearlyZero()) return;
@@ -224,6 +237,11 @@ void UAnimNotifyState_SendTracePointPreview::SpawnPreviewDecal(USkeletalMeshComp
 		: UGameplayStatics::SpawnDecalAttached(DecalRow->DecalMaterial, DecalSize, MeshComp, NAME_None, WorldLocation, DecalRotation, EAttachLocation::KeepWorldPosition, 0.f);
 	if (!DecalComponent) return;
 
+	const UDataTable* ElementalDataTable = SkillAbility
+		? SkillAbility->GetElementalDataTable()
+		: (DefaultSkillGenericDataAsset ? DefaultSkillGenericDataAsset->GetElementalDataTable() : nullptr);
+	const FGameplayTag ElementalTag = ResolvePreviewElementalTag(MeshComp, SkillAbility);
+	const FLinearColor ElementColor = ResolveElementColor(ElementalTag, ElementalDataTable);
 	ConfigurePreviewDecalMaterial(DecalComponent->CreateDynamicMaterialInstance(), ElementColor);
 	ActiveDecals.Add(MeshComp, DecalComponent);
 	UpdatePreviewDecalTransform(MeshComp, WorldLocation, DecalRotation);
