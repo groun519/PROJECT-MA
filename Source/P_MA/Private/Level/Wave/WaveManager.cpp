@@ -1,14 +1,10 @@
 #include "WaveManager.h"
 
+#include "AI/Golem/Monster.h"
 #include "Framework/MAGameMode.h"
-#include "Framework/MAGameInstance.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"
 #include "Level/Environment/EnvironmentManager.h"
-#include "Player/Loadout/Data/LoadoutDataSet.h"
-#include "Player/Loadout/Data/LoadoutWeaponData.h"
 
 AWaveManager::AWaveManager()
 {
@@ -69,10 +65,10 @@ TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 		);
 		if (Data && CurEnvTag == Data->EnvGameplayTag)
 		{
-			for (const auto& Pair : Data->MonsterToGold)
+			for (const auto& Pair : Data->MonsterToData)
 			{
-				if (Pair.Value <= 0) continue;
-				MinGold = (MinGold == 0) ? Pair.Value : FMath::Min(MinGold, Pair.Value);
+				if (Pair.Value.Gold <= 0) continue;
+				MinGold = (MinGold == 0) ? Pair.Value.Gold : FMath::Min(MinGold, Pair.Value.Gold);
 			}
 		}
 	}
@@ -85,24 +81,24 @@ TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 	while (UsingGold + MinGold <= TotalGold && OutWaveMonsters.Num() < WaveSetting.MaxMonsterNum)
 	{
 		TSubclassOf<AMonster> Monster;
-		int32 Gold = 0;
-		GetRandomMonsterByEnv(Monster, Gold, CurEnvTag);
+		FMonsterData MonsterData;
+		GetRandomMonsterByEnv(Monster, MonsterData, CurEnvTag);
 
-		if (Gold == 0)
+		if (MonsterData.Gold == 0)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Monster Gold is Zero"));
 			break;
 		}
-		if (UsingGold + Gold > TotalGold)
+		if (UsingGold + MonsterData.Gold > TotalGold)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Skip monster gold=%d (UsingGold=%d TotalGold=%d)"),
-				Gold, UsingGold, TotalGold);
+				MonsterData.Gold, UsingGold, TotalGold);
 			continue;
 		}
 
-		FWaveMonster NewMonster(Monster, Gold);
+		FWaveMonster NewMonster{Monster, MonsterData};
 		OutWaveMonsters.Add(NewMonster);
-		UsingGold += Gold;
+		UsingGold += MonsterData.Gold;
 	}
 
 	LastGold = FMath::Max(0, TotalGold - UsingGold);
@@ -114,13 +110,13 @@ TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 
 	OutWaveMonsters.Sort([](const FWaveMonster& A, const FWaveMonster& B)
 	{
-		return A.Gold < B.Gold;   
+		return A.Data.Gold < B.Data.Gold;
 	});
 	
 	return OutWaveMonsters;
 }
 
-void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutGold, FGameplayTag InEnvTag)
+void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, FMonsterData& OutData, FGameplayTag InEnvTag)
 {
 	if (!MonsByEnvData) return;
 	
@@ -138,14 +134,14 @@ void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int3
 	if (InEnvTag != Data->EnvGameplayTag) return;
 	
 	TArray<TSubclassOf<AMonster>> Keys;
-	Data->MonsterToGold.GetKeys(Keys);
+	Data->MonsterToData.GetKeys(Keys);
 
 	if (Keys.Num() == 0) return;
 	
-	int32 RandomIndex = FMath::RandRange(0, Data->MonsterToGold.Num() - 1);
+	int32 RandomIndex = FMath::RandRange(0, Data->MonsterToData.Num() - 1);
 	
 	OutMonster = Keys[RandomIndex];
-	OutGold = Data->MonsterToGold[OutMonster];
+	OutData = Data->MonsterToData[OutMonster];
 }
 
 void AWaveManager::StartWave()
@@ -183,12 +179,13 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 	{
 		if (WaveMonsters.Num() == 0) return 0;
 
-		// �??�덱?�의 몬스????
+		// 첫 인덱스의 몬스터 픽
 		FWaveMonster Monster = WaveMonsters[0];
+		WaveMonsters.RemoveAt(0);
 		if (!Monster.Class) continue;
 
 		// 골드 +
-		UsingGold += Monster.Gold;
+		UsingGold += Monster.Data.Gold;
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride =
@@ -208,54 +205,18 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 		if (Spawned)
 		{
 			Spawned->SetEnvTag(CurEnvTag);
-			Spawned->SetDropCoin(Monster.Gold);
+			Spawned->SetDropCoin(Monster.Data.Gold);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
-			Spawned->ApplyEnvMaterials();
-			ApplyTemporaryRandomMonsterAttackDefinition(*Spawned);
+			Spawned->SetSkillSlots(Monster.Data.SkillSlots);
 			Spawned->FinishSpawning(SpawnTransform);
 			Spawned->SetGoal(SpawnSpline);
 			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
 			AliveMonsterCount++;
 		}
 
-		WaveMonsters.RemoveAt(0);
 	}
 
 	return UsingGold;
-}
-
-void AWaveManager::ApplyTemporaryRandomMonsterAttackDefinition(AMonster& Monster) const
-{
-	const UWorld* World = GetWorld();
-	const UMAGameInstance* GameInstance = World ? World->GetGameInstance<UMAGameInstance>() : nullptr;
-	const ULoadoutDataSet* LoadoutDataSet = GameInstance ? GameInstance->TryGetLoadoutDataSet() : nullptr;
-	const UDataTable* WeaponDataTable = LoadoutDataSet ? LoadoutDataSet->WeaponDataTable : nullptr;
-	if (!WeaponDataTable) return;
-
-	const TArray<FName> RowNames = WeaponDataTable->GetRowNames();
-	if (RowNames.IsEmpty()) return;
-
-	const FName WeaponRowName = RowNames[FMath::RandRange(0, RowNames.Num() - 1)];
-	const FLoadoutWeaponDataRow* WeaponDataRow = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(
-		WeaponRowName,
-		TEXT("TemporaryMonsterAttackDefinition"));
-	UMASkillDefinition* AttackDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
-	if (!AttackDefinition) return;
-
-	UMASkillManagerComponent* SkillManager = Monster.GetSkillManagerComponent();
-	if (!SkillManager) return;
-
-	UMASkillDefinition* PreviousDefinition = nullptr;
-	if (!SkillManager->ReplaceDefinitionAt(EMAAbilityInputID::Attack, 0, AttackDefinition, PreviousDefinition))
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("WaveManager: Failed to assign temporary monster attack definition. Monster=%s WeaponRow=%s AttackDefinition=%s"),
-			*GetNameSafe(&Monster),
-			*WeaponRowName.ToString(),
-			*GetNameSafe(AttackDefinition));
-	}
 }
 
 void AWaveManager::CreateBaseIntervalTimer()

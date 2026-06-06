@@ -3,13 +3,14 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
-#include "AI/Golem/Monster.h"
+#include "AI/MAMonsterTypes.h"
 #include "Level/Sector/Battle/BattleSpaceSpline.h"
 #include "Framework/MAGameStateTypes.h"
 #include "WaveManager.generated.h"
 
 class UDataTable;
 class AMAGameMode;
+class AMonster;
 
 USTRUCT()
 struct FWaveMonster
@@ -20,7 +21,7 @@ struct FWaveMonster
 	TSubclassOf<AMonster> Class;
 
 	UPROPERTY()
-	int32 Gold = 0;
+	FMonsterData Data;
 };
 
 USTRUCT(BlueprintType)
@@ -74,7 +75,7 @@ public:
 	// 몬스터를 데이터에서 뽑아 배열에 저장
 	TArray<FWaveMonster> GetNewWaveMonsters();
 	// 몬스터 뽑기
-	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutGold, FGameplayTag InEnvTag);
+	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, FMonsterData& OutData, FGameplayTag InEnvTag);
 
 	void CreateBaseIntervalTimer();
 	// 개수만큼 몬스터 생성 후 골드량 리턴
@@ -87,8 +88,6 @@ private:
 	FTimerHandle BaseIntervalTimerHandle;
 	float SpawnInterval = 1.f;
 	void SpawnMonstersByInterval();
-	// TODO: Temporary monster skill test hook. Replace with monster-specific skill data when monster modules are formalized.
-	void ApplyTemporaryRandomMonsterAttackDefinition(AMonster& Monster) const;
 	
 	UPROPERTY()
 	AMAGameMode* CachedMAGameMode = nullptr;

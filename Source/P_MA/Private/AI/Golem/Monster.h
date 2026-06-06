@@ -1,8 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/MAMonsterTypes.h"
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
@@ -18,22 +17,20 @@ struct FMonsterEnvData
 	TArray<UMaterialInterface*> MIList;
 };
 
-/**
- * 
- */
 UCLASS()
 class AMonster : public AMACharacter
 {
 	GENERATED_BODY()
-	
-public:
+
+protected:
+	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+	virtual void OnDead() override;
+	virtual void PossessedBy(AController* NewController) override;
+
+public:
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
 	FOnMonsterDead OnMonsterDead;
-
-	virtual void PossessedBy(AController* NewController) override;
-	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamId) override;
 
 	bool IsActive() const;
 	void Activate();
@@ -41,30 +38,19 @@ public:
 	void Deactivate();
 	
 	void SetEnvTag(const FGameplayTag& InEnvTag);
-	void SetDropCoin(int32 InCoin)
-	{
-		DropCoin = InCoin;
-	};
+	void SetDropCoin(int32 InCoin) { DropCoin = InCoin; }
 	int32 GetDropCoin() const { return DropCoin; }
-	void SetStatCoefficient(float InCoefficient)
-	{
-		StatCoefficient = InCoefficient;
-	};
-	void ApplyEnvMaterials();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	bool bUseFuryThreshold = true;
+	void SetStatCoefficient(float InCoefficient) { StatCoefficient = InCoefficient; }
+	void SetSkillSlots(const TArray<FMonsterSkillSlotData>& InSkillSlots) { SkillSlots = InSkillSlots; }
+	bool SelectWeightedSkill();
+	bool HasSelectedSkill() const { return SelectedSkillSlotTag.IsValid(); }
+	FGameplayTag GetSelectedSkillSlotTag() const { return SelectedSkillSlotTag; }
+	float GetSelectedSkillUseDistance() const { return SelectedSkillUseDistance; }
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	float FuryThreshold = 50.f;
-	
-protected:
-	virtual void BeginPlay() override;
-
 private:
-	virtual void OnRep_TeamID() override;
-	virtual void OnDead() override;
 	void ApplyStatCoefficientEffect();
+	void ApplyEnvMaterials();
+	void InitializeSkills();
 
 	UPROPERTY(ReplicatedUsing=OnRep_EnvGameplayTag, EditAnywhere, Category = "Env")
 	FGameplayTag EnvGameplayTag;
@@ -75,13 +61,20 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Env")
 	TArray<FMonsterEnvData> EnvTagToMaterial;
 
-	// 죽었????�?골드??
 	UPROPERTY()
 	int32 DropCoin = 0;
 
-	// ?�성????곱해�??�테?�터??계수
 	UPROPERTY()
 	float StatCoefficient = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Skill")
+	TArray<FMonsterSkillSlotData> SkillSlots;
+
+	UPROPERTY()
+	FGameplayTag SelectedSkillSlotTag;
+
+	UPROPERTY()
+	float SelectedSkillUseDistance = 0.f;
 	
 	UPROPERTY()
 	bool bActiveInPool = true;

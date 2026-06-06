@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "AI/Golem/Monster.h"
 
 #include "AbilitySystemComponent.h"
@@ -10,6 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 
 void AMonster::BeginPlay()
 {
@@ -26,12 +25,8 @@ void AMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetime
 void AMonster::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	InitializeSkills();
 	ApplyStatCoefficientEffect();
-}
-
-void AMonster::SetGenericTeamId(const FGenericTeamId& NewTeamId)
-{
-	Super::SetGenericTeamId(NewTeamId);
 }
 
 void AMonster::SetEnvTag(const FGameplayTag& InEnvTag)
@@ -41,10 +36,7 @@ void AMonster::SetEnvTag(const FGameplayTag& InEnvTag)
 	EnvGameplayTag = InEnvTag;
 	ApplyEnvMaterials();
 
-	if (HasAuthority())
-	{
-		ForceNetUpdate();
-	}
+	if (HasAuthority()) ForceNetUpdate();
 }
 
 bool AMonster::IsActive() const
@@ -128,10 +120,6 @@ void AMonster::ApplyStatCoefficientEffect()
 void AMonster::ApplyEnvMaterials()
 {
 	USkeletalMeshComponent* MeshComp = GetMesh();
-	if (!MeshComp)
-	{
-		return;
-	}
 
 	const FMonsterEnvData* Found = nullptr;
 	for (const FMonsterEnvData& Data : EnvTagToMaterial)
@@ -154,6 +142,52 @@ void AMonster::ApplyEnvMaterials()
 	}
 }
 
+void AMonster::InitializeSkills()
+{
+	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+
+	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
+	{
+		if (!SkillSlot.SlotTag.IsValid()) continue;
+
+		for (int32 Index = 0; Index < SkillSlot.Definitions.Num(); ++Index)
+		{
+			if (!SkillSlot.Definitions[Index]) continue;
+			SkillManager->ReplaceDefinitionAt(SkillSlot.SlotTag, Index, SkillSlot.Definitions[Index]);
+		}
+	}
+}
+
+bool AMonster::SelectWeightedSkill()
+{
+	SelectedSkillSlotTag = FGameplayTag();
+	SelectedSkillUseDistance = 0.f;
+
+	const UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+
+	float TotalWeight = 0.f;
+	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
+	{
+		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledDefinition(SkillSlot.SlotTag)) continue;
+		TotalWeight += SkillSlot.SelectionWeight;
+	}
+	if (TotalWeight <= 0.f) return false;
+
+	float RandomWeight = FMath::FRandRange(0.f, TotalWeight);
+	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
+	{
+		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledDefinition(SkillSlot.SlotTag)) continue;
+
+		RandomWeight -= SkillSlot.SelectionWeight;
+		if (RandomWeight > 0.f) continue;
+
+		SelectedSkillSlotTag = SkillSlot.SlotTag;
+		SelectedSkillUseDistance = SkillSlot.UseDistance;
+		return true;
+	}
+	return false;
+}
+
 void AMonster::SetGoal(AActor* Goal)
 {
 	if (AAIController* AIController = GetController<AAIController>())
@@ -163,11 +197,6 @@ void AMonster::SetGoal(AActor* Goal)
 			BlackboardComponent->SetValueAsObject(GoalBlackboardKeyName, Goal);
 		}
 	}
-}
-
-void AMonster::OnRep_TeamID()
-{
-	
 }
 
 void AMonster::OnRep_EnvGameplayTag()

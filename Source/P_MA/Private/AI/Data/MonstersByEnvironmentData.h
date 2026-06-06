@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/MAMonsterTypes.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
 #include "MonstersByEnvironmentData.generated.h"
@@ -22,5 +23,5 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 	UPCGGraph* EnvPCGGraph = nullptr;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10000"))
-	TMap<TSubclassOf<AMonster>, int32> MonsterToGold;
+	TMap<TSubclassOf<AMonster>, FMonsterData> MonsterToData;
 };

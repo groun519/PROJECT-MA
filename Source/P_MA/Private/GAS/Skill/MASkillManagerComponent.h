@@ -32,8 +32,7 @@ public:
 	bool ReplaceDefinitionAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
-		UMASkillDefinition* NewDefinition,
-		UMASkillDefinition*& OutPreviousDefinition);
+		UMASkillDefinition* NewDefinition);
 	bool ReplaceModuleInstanceAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,

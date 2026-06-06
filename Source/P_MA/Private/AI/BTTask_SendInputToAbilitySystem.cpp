@@ -3,13 +3,16 @@
 
 #include "AI/BTTask_SendInputToAbilitySystem.h"
 #include "AI/Golem/Monster.h"
-#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
-#include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "AIController.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogBTTaskAbilitySystem, Log, All);
+UBTTask_SendInputToAbilitySystem::UBTTask_SendInputToAbilitySystem()
+{
+	NodeName = TEXT("Use Selected Monster Skill");
+}
 
 EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
@@ -21,61 +24,18 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 	if (!Monster)
 		return EBTNodeResult::Failed;
 
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Monster);
-	if (!ASC)
+	UMASkillManagerComponent* SkillManager = Monster->GetSkillManagerComponent();
+	UAbilitySystemComponent* AbilitySystemComponent = Monster->GetAbilitySystemComponent();
+
+	if (!Monster->HasSelectedSkill())
 		return EBTNodeResult::Failed;
 
-	const UMAAttributeSet* Attr = ASC->GetSet<UMAAttributeSet>();
-	if (!Attr)
-		return EBTNodeResult::Failed;
+	const FGameplayTag SlotTagToUse = Monster->GetSelectedSkillSlotTag();
+	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotTagToUse);
+	if (SlotInputID == INDEX_NONE) return EBTNodeResult::Failed;
 
-	const float Fury = Attr->GetFury();
-	const float Threshold = Monster->FuryThreshold;
-
-	EMAAbilityInputID InputToUse = EMAAbilityInputID::Attack;
-
-	if (Monster->bUseFuryThreshold && Fury >= Threshold)
-	{
-		InputToUse = EMAAbilityInputID::Skill1;
-	}
-
-	const TCHAR* InputName = (InputToUse == EMAAbilityInputID::Skill1) ? TEXT("Skill1") : TEXT("Attack");
-
-	ASC->PressInputID(static_cast<int32>(InputToUse));
-
-	if (InputToUse == EMAAbilityInputID::Skill1)
-	{
-		FGameplayTag EndEventTag = FGameplayTag::RequestGameplayTag(TEXT("Monster.Ability.End"));
-		FGameplayTagContainer TagContainer(EndEventTag);
-
-		FDelegateHandle DelegateHandle = ASC->AddGameplayEventTagContainerDelegate(
-			TagContainer,
-			FGameplayEventTagMulticastDelegate::FDelegate::CreateLambda(
-				[this, &OwnerComp, ASC, TagContainer, DelegateHandle](const FGameplayTag Tag, const FGameplayEventData* Payload) mutable
-				{
-					FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-
-					if (UBehaviorTreeComponent* BTC = &OwnerComp)
-					{
-						if (UWorld* World = BTC->GetWorld())
-						{
-							FTimerHandle RestartHandle;
-							World->GetTimerManager().SetTimer(RestartHandle, [BTC]()
-							{
-								if (UBehaviorTree* BTAsset = BTC->GetCurrentTree())
-								{
-									BTC->RestartTree();
-								}
-							}, 0.1f, false);
-						}
-					}
-
-					ASC->RemoveGameplayEventTagContainerDelegate(TagContainer, DelegateHandle);
-				}
-			)
-		);
-
-		return EBTNodeResult::InProgress;
-	}
-	return EBTNodeResult::Succeeded;
+	AbilitySystemComponent->AbilityLocalInputPressed(SlotInputID);
+	const bool bActivated = SkillManager->TryActivateSkill(SlotTagToUse);
+	AbilitySystemComponent->AbilityLocalInputReleased(SlotInputID);
+	return bActivated ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
 }

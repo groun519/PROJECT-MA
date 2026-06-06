@@ -67,11 +67,8 @@ void UMASkillManagerComponent::PrepareSkillSlotRuntimeStatesForUI()
 bool UMASkillManagerComponent::ReplaceDefinitionAt(
 	FGameplayTag SlotTag,
 	int32 ModuleIndex,
-	UMASkillDefinition* NewDefinition,
-	UMASkillDefinition*& OutPreviousDefinition)
+	UMASkillDefinition* NewDefinition)
 {
-	OutPreviousDefinition = nullptr;
-
 	if (!CanMutateSkillSlots()) return false;
 	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
 	if (!IsValidModuleSlotIndex(ModuleIndex)) return false;
@@ -89,7 +86,6 @@ bool UMASkillManagerComponent::ReplaceDefinitionAt(
 		return false;
 	}
 
-	OutPreviousDefinition = PreviousModuleInstance ? PreviousModuleInstance->GetDefinition() : nullptr;
 	return true;
 }
 

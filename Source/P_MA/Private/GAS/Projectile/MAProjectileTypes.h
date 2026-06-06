@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "MAProjectileTypes.generated.h"
 
