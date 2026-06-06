@@ -14,8 +14,8 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "Inventory/InventoryComponent.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "Weapon/WeaponComponent.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
@@ -280,9 +280,9 @@ void AMAPlayerCharacter::PawnClientRestart()
 	}
 }
 
-UInputAction* AMAPlayerCharacter::GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const
+UInputAction* AMAPlayerCharacter::GetGameplayAbilityInputAction(FGameplayTag SlotTag) const
 {
-	if (UInputAction* const* FoundAction = GameplayAbilityInputActions.Find(InputID)) return *FoundAction;
+	if (UInputAction* const* FoundAction = GameplayAbilityInputActions.Find(SlotTag)) return *FoundAction;
 	return nullptr;
 }
 
@@ -303,7 +303,7 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleMoveInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
 		
-		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
+		for (const TPair<FGameplayTag, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
 		{
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInputStarted, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
@@ -413,49 +413,53 @@ void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActio
 	InteractorComponent->Interact(this);
 }
 
-void AMAPlayerCharacter::HandleAbilityInputStarted(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
+void AMAPlayerCharacter::HandleAbilityInputStarted(const FInputActionValue& InputActionValue, FGameplayTag SlotTag)
 {
 	if (!InputActionValue.Get<bool>()) return;
 	if (IsInputBlocked()) return;
 
-	SetAbilityInputHeld(InputID, true);
-	TryActivateHeldAbilityInput(InputID);
+	SetAbilityInputHeld(SlotTag, true);
+	TryActivateHeldAbilityInput(SlotTag);
 }
 
-void AMAPlayerCharacter::HandleAbilityInputReleased(const FInputActionValue& /*InputActionValue*/, EMAAbilityInputID InputID)
+void AMAPlayerCharacter::HandleAbilityInputReleased(const FInputActionValue& /*InputActionValue*/, FGameplayTag SlotTag)
 {
-	SetAbilityInputHeld(InputID, false);
+	SetAbilityInputHeld(SlotTag, false);
 }
 
 void AMAPlayerCharacter::TickHeldAbilityInputs()
 {
 	if (IsInputBlocked()) return;
 
-	for (const EMAAbilityInputID InputID : HeldAbilityInputIDs)
+	for (const FGameplayTag& SlotTag : HeldAbilitySlotTags)
 	{
-		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
-		TryActivateHeldAbilityInput(InputID);
+		TryActivateHeldAbilityInput(SlotTag);
 	}
 }
 
-void AMAPlayerCharacter::SetAbilityInputHeld(EMAAbilityInputID InputID, bool bHeld)
+void AMAPlayerCharacter::SetAbilityInputHeld(FGameplayTag SlotTag, bool bHeld)
 {
+	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotTag);
+	if (SlotInputID == INDEX_NONE) return;
+
 	if (bHeld)
 	{
-		HeldAbilityInputIDs.Add(InputID);
-		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
+		HeldAbilitySlotTags.Add(SlotTag);
+		GetAbilitySystemComponent()->AbilityLocalInputPressed(SlotInputID);
 		return;
 	}
 
-	HeldAbilityInputIDs.Remove(InputID);
-	GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
+	HeldAbilitySlotTags.Remove(SlotTag);
+	GetAbilitySystemComponent()->AbilityLocalInputReleased(SlotInputID);
 }
 
-void AMAPlayerCharacter::TryActivateHeldAbilityInput(EMAAbilityInputID InputID)
+void AMAPlayerCharacter::TryActivateHeldAbilityInput(FGameplayTag SlotTag)
 {
-	if (UMAAbilitySystemComponent* AbilitySystemComponent = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent()))
+	if (!SlotTag.IsValid()) return;
+
+	if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
 	{
-		AbilitySystemComponent->TryActivateAbilitiesByInputID(InputID);
+		SkillManager->TryActivateSkill(SlotTag);
 	}
 }
 
@@ -608,7 +612,11 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		{
 			UMASkillDefinition* PreviousDefinition = nullptr;
 			UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
-			SkillManager->ReplaceDefinitionAt(EMAAbilityInputID::Attack, 0, AttackSkillDefinition, PreviousDefinition);
+			SkillManager->ReplaceDefinitionAt(
+				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.1")),
+				0,
+				AttackSkillDefinition,
+				PreviousDefinition);
 		}
 	}
 

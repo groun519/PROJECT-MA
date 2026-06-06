@@ -39,9 +39,9 @@ void UMASkillSlotWidget::RebuildSlotRows()
 	if (!SkillManager || !SlotRowWidgetClass) return;
 
 	SkillManager->PrepareSkillSlotRuntimeStatesForUI();
-	const TArray<EMAAbilityInputID> InputIDs = SkillManager->GetSkillSlotInputIDs();
+	const TArray<FGameplayTag> SlotTags = SkillManager->GetSkillSlotTags();
 	APlayerController* OwningPlayer = GetOwningPlayer();
-	for (const EMAAbilityInputID InputID : InputIDs)
+	for (const FGameplayTag& SlotTag : SlotTags)
 	{
 		UMASkillSlotRowWidget* RowWidget = OwningPlayer
 			? CreateWidget<UMASkillSlotRowWidget>(OwningPlayer, SlotRowWidgetClass)
@@ -49,7 +49,7 @@ void UMASkillSlotWidget::RebuildSlotRows()
 		if (!RowWidget) continue;
 
 		SlotRowsBox->AddChild(RowWidget);
-		RowWidget->InitializeSlot(SkillManager, InputID);
+		RowWidget->InitializeSlot(SkillManager, SlotTag);
 		RowWidget->SetCollapsed(bRowsCollapsed);
 	}
 }

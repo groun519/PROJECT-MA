@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GameplayTagContainer.h"
 #include "MASkillSlotRowWidget.generated.h"
 
 class UMASkillIconWidget;
@@ -20,7 +20,7 @@ class P_MA_API UMASkillSlotRowWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void InitializeSlot(UMASkillManagerComponent* InSkillManager, EMAAbilityInputID InInputID);
+	void InitializeSlot(UMASkillManagerComponent* InSkillManager, FGameplayTag InSlotTag);
 
 	void Refresh();
 	void SetCollapsed(bool bCollapsed);
@@ -41,7 +41,7 @@ protected:
 	TObjectPtr<UWidgetAnimation> RowCollapse;
 
 private:
-	void HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID);
+	void HandleSkillSlotChanged(FGameplayTag ChangedSlotTag);
 	void RefreshHotkeyText();
 
 	void RebuildModuleSockets(const TArray<TObjectPtr<UMASkillModuleInstance>>* InModuleInstances);
@@ -50,7 +50,7 @@ private:
 	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;
 
 	UPROPERTY(Transient)
-	EMAAbilityInputID InputID = EMAAbilityInputID::None;
+	FGameplayTag SlotTag;
 
 	bool bIsCollapsed = false;
 

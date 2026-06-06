@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GameplayTagContainer.h"
 #include "MASkillModuleInventoryComponent.generated.h"
 
 class UMASkillDefinition;
@@ -33,28 +33,28 @@ public:
 		UActorComponent* TargetOwner,
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 		int32 TargetIndex);
-	bool RequestMoveSkillSlotToInventorySlot(EMAAbilityInputID InputID, int32 ModuleIndex, int32 TargetSlotIndex);
+	bool RequestMoveSkillSlotToInventorySlot(FGameplayTag SlotTag, int32 ModuleIndex, int32 TargetSlotIndex);
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI();
 
 private:
 	bool AddModule(UMASkillDefinition* Definition);
 	bool CanMutateInventory() const;
-	bool EquipInventorySlotToSkillSlot(int32 SourceSlotIndex, EMAAbilityInputID InputID, int32 ModuleIndex);
+	bool EquipInventorySlotToSkillSlot(int32 SourceSlotIndex, FGameplayTag SlotTag, int32 ModuleIndex);
 	bool SwapInventorySlots(int32 SourceSlotIndex, int32 TargetSlotIndex);
-	bool MoveSkillSlotToInventorySlot(EMAAbilityInputID InputID, int32 ModuleIndex, int32 TargetSlotIndex);
+	bool MoveSkillSlotToInventorySlot(FGameplayTag SlotTag, int32 ModuleIndex, int32 TargetSlotIndex);
 	bool IsValidSlotIndex(int32 SlotIndex) const;
 	void EnsureSlotCount();
 	UFUNCTION(Server, Reliable)
 	void ServerGrantModule(UMASkillDefinition* Definition);
 
 	UFUNCTION(Server, Reliable)
-	void ServerEquipInventorySlotToSkillSlot(int32 SourceSlotIndex, EMAAbilityInputID InputID, int32 ModuleIndex);
+	void ServerEquipInventorySlotToSkillSlot(int32 SourceSlotIndex, FGameplayTag SlotTag, int32 ModuleIndex);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapInventorySlots(int32 SourceSlotIndex, int32 TargetSlotIndex);
 
 	UFUNCTION(Server, Reliable)
-	void ServerMoveSkillSlotToInventorySlot(EMAAbilityInputID InputID, int32 ModuleIndex, int32 TargetSlotIndex);
+	void ServerMoveSkillSlotToInventorySlot(FGameplayTag SlotTag, int32 ModuleIndex, int32 TargetSlotIndex);
 
 	UFUNCTION()
 	void OnRep_Entries();

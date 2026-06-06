@@ -31,7 +31,6 @@ public:
 	void ServerSideInit();
 	void ApplyFullStatEffect();
 	void ApplyReviveStatEffect();
-	void TryActivateAbilitiesByInputID(EMAAbilityInputID InputID);
 	void NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data);
 	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 
@@ -46,10 +45,10 @@ private:
 	void ShowDamageText(const FMADamageAppliedEvent& DamageAppliedEvent, bool bIsIncoming) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
+	TArray<TSubclassOf<UGameplayAbility>> Abilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
+	TArray<TSubclassOf<UGameplayAbility>> BasicAbilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	UPA_AbilitySystemGenerics* AbilitySystemGenerics;

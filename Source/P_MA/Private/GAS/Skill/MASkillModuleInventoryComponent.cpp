@@ -100,23 +100,23 @@ bool UMASkillModuleInventoryComponent::RequestMoveModuleSlot(
 	UMASkillManagerComponent* TargetSkillManager = Cast<UMASkillManagerComponent>(TargetOwner);
 	if (!TargetSkillManager) return false;
 
-	EMAAbilityInputID TargetInputID = EMAAbilityInputID::None;
-	if (!TargetSkillManager->FindInputIDForModuleSlots(TargetSlots, TargetInputID)) return false;
+	FGameplayTag TargetSlotTag;
+	if (!TargetSkillManager->FindSlotTagForModuleSlots(TargetSlots, TargetSlotTag)) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
 
 	if (OwnerActor->HasAuthority())
 	{
-		return EquipInventorySlotToSkillSlot(SourceIndex, TargetInputID, TargetIndex);
+		return EquipInventorySlotToSkillSlot(SourceIndex, TargetSlotTag, TargetIndex);
 	}
 
-	ServerEquipInventorySlotToSkillSlot(SourceIndex, TargetInputID, TargetIndex);
+	ServerEquipInventorySlotToSkillSlot(SourceIndex, TargetSlotTag, TargetIndex);
 	return true;
 }
 
 bool UMASkillModuleInventoryComponent::RequestMoveSkillSlotToInventorySlot(
-	EMAAbilityInputID InputID,
+	FGameplayTag SlotTag,
 	int32 ModuleIndex,
 	int32 TargetSlotIndex)
 {
@@ -125,16 +125,16 @@ bool UMASkillModuleInventoryComponent::RequestMoveSkillSlotToInventorySlot(
 
 	if (OwnerActor->HasAuthority())
 	{
-		return MoveSkillSlotToInventorySlot(InputID, ModuleIndex, TargetSlotIndex);
+		return MoveSkillSlotToInventorySlot(SlotTag, ModuleIndex, TargetSlotIndex);
 	}
 
-	ServerMoveSkillSlotToInventorySlot(InputID, ModuleIndex, TargetSlotIndex);
+	ServerMoveSkillSlotToInventorySlot(SlotTag, ModuleIndex, TargetSlotIndex);
 	return true;
 }
 
 bool UMASkillModuleInventoryComponent::EquipInventorySlotToSkillSlot(
 	int32 SourceSlotIndex,
-	EMAAbilityInputID InputID,
+	FGameplayTag SlotTag,
 	int32 ModuleIndex)
 {
 	if (!CanMutateInventory()) return false;
@@ -147,7 +147,7 @@ bool UMASkillModuleInventoryComponent::EquipInventorySlotToSkillSlot(
 
 	UMASkillModuleInstance* PreviousModuleInstance = nullptr;
 	UMASkillModuleInstance* NewModuleInstance = Entries[SourceSlotIndex];
-	if (!SkillManager->ReplaceModuleInstanceAt(InputID, ModuleIndex, NewModuleInstance, PreviousModuleInstance)) return false;
+	if (!SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, NewModuleInstance, PreviousModuleInstance)) return false;
 
 	Entries[SourceSlotIndex] = PreviousModuleInstance;
 	OnInventoryChanged.Broadcast();
@@ -161,10 +161,10 @@ void UMASkillModuleInventoryComponent::ServerGrantModule_Implementation(UMASkill
 
 void UMASkillModuleInventoryComponent::ServerEquipInventorySlotToSkillSlot_Implementation(
 	int32 SourceSlotIndex,
-	EMAAbilityInputID InputID,
+	FGameplayTag SlotTag,
 	int32 ModuleIndex)
 {
-	EquipInventorySlotToSkillSlot(SourceSlotIndex, InputID, ModuleIndex);
+	EquipInventorySlotToSkillSlot(SourceSlotIndex, SlotTag, ModuleIndex);
 }
 
 void UMASkillModuleInventoryComponent::ServerSwapInventorySlots_Implementation(int32 SourceSlotIndex, int32 TargetSlotIndex)
@@ -173,11 +173,11 @@ void UMASkillModuleInventoryComponent::ServerSwapInventorySlots_Implementation(i
 }
 
 void UMASkillModuleInventoryComponent::ServerMoveSkillSlotToInventorySlot_Implementation(
-	EMAAbilityInputID InputID,
+	FGameplayTag SlotTag,
 	int32 ModuleIndex,
 	int32 TargetSlotIndex)
 {
-	MoveSkillSlotToInventorySlot(InputID, ModuleIndex, TargetSlotIndex);
+	MoveSkillSlotToInventorySlot(SlotTag, ModuleIndex, TargetSlotIndex);
 }
 
 const TArray<TObjectPtr<UMASkillModuleInstance>>* UMASkillModuleInventoryComponent::GetModuleSlotsForUI()
@@ -207,7 +207,7 @@ bool UMASkillModuleInventoryComponent::SwapInventorySlots(int32 SourceSlotIndex,
 }
 
 bool UMASkillModuleInventoryComponent::MoveSkillSlotToInventorySlot(
-	EMAAbilityInputID InputID,
+	FGameplayTag SlotTag,
 	int32 ModuleIndex,
 	int32 TargetSlotIndex)
 {
@@ -220,11 +220,11 @@ bool UMASkillModuleInventoryComponent::MoveSkillSlotToInventorySlot(
 	if (!SkillManager) return false;
 
 	UMASkillModuleInstance* PreviousSkillModuleInstance = nullptr;
-	if (!SkillManager->ReplaceModuleInstanceAt(InputID, ModuleIndex, Entries[TargetSlotIndex], PreviousSkillModuleInstance)) return false;
+	if (!SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, Entries[TargetSlotIndex], PreviousSkillModuleInstance)) return false;
 	if (!PreviousSkillModuleInstance)
 	{
 		UMASkillModuleInstance* IgnoredModuleInstance = nullptr;
-		SkillManager->ReplaceModuleInstanceAt(InputID, ModuleIndex, nullptr, IgnoredModuleInstance);
+		SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, nullptr, IgnoredModuleInstance);
 		return false;
 	}
 

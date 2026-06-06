@@ -9,7 +9,7 @@
 #include "Widget/Skill/MASkillIconWidget.h"
 #include "Widget/Skill/MASkillModuleSocketWidget.h"
 
-void UMASkillSlotRowWidget::InitializeSlot(UMASkillManagerComponent* InSkillManager, EMAAbilityInputID InInputID)
+void UMASkillSlotRowWidget::InitializeSlot(UMASkillManagerComponent* InSkillManager, FGameplayTag InSlotTag)
 {
 	if (SkillManager)
 	{
@@ -21,7 +21,7 @@ void UMASkillSlotRowWidget::InitializeSlot(UMASkillManagerComponent* InSkillMana
 	}
 
 	SkillManager = InSkillManager;
-	InputID = InInputID;
+	SlotTag = InSlotTag;
 
 	if (SkillManager)
 	{
@@ -54,12 +54,12 @@ void UMASkillSlotRowWidget::NativeDestruct()
 void UMASkillSlotRowWidget::Refresh()
 {
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleInstances = SkillManager
-		? SkillManager->GetModuleSlotsForUI(InputID)
+		? SkillManager->GetModuleSlotsForUI(SlotTag)
 		: nullptr;
 
 	if (SkillIconWidget)
 	{
-		SkillIconWidget->SetSkillDefinition(SkillManager ? SkillManager->GetAssembledDefinition(InputID) : nullptr);
+		SkillIconWidget->SetSkillDefinition(SkillManager ? SkillManager->GetAssembledDefinition(SlotTag) : nullptr);
 	}
 
 	RebuildModuleSockets(ModuleInstances);
@@ -83,9 +83,9 @@ void UMASkillSlotRowWidget::SetCollapsed(bool bCollapsed)
 	}
 }
 
-void UMASkillSlotRowWidget::HandleSkillSlotChanged(EMAAbilityInputID ChangedInputID)
+void UMASkillSlotRowWidget::HandleSkillSlotChanged(FGameplayTag ChangedSlotTag)
 {
-	if (ChangedInputID != InputID) return;
+	if (ChangedSlotTag != SlotTag) return;
 
 	Refresh();
 }
@@ -102,7 +102,7 @@ void UMASkillSlotRowWidget::RefreshHotkeyText()
 	SkillIconWidget->SetHotkeyText(FMAInputStatics::GetInputActionText(
 		PlayerController,
 		PlayerCharacter ? PlayerCharacter->GetGameplayInputMappingContext() : nullptr,
-		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(InputID) : nullptr));
+		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(SlotTag) : nullptr));
 }
 
 void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillModuleInstance>>* InModuleInstances)

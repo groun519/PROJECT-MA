@@ -65,6 +65,8 @@ FString UMASkillStep::GetSequenceSectionKey() const
 
 bool UMASkillStep::PrepareStepPreview(float PreviewBlendInTime)
 {
+	constexpr float PreviewPlayRate = 0.01f;
+
 	if (PreparedStepPreviewMontage) return false;
 
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
@@ -75,7 +77,7 @@ bool UMASkillStep::PrepareStepPreview(float PreviewBlendInTime)
 	if (AnimInstance->Montage_PlayWithBlendSettings(
 			StepPreviewMontage,
 			FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)),
-			KINDA_SMALL_NUMBER) <= 0.f)
+			PreviewPlayRate) <= 0.f)
 	{
 		return false;
 	}

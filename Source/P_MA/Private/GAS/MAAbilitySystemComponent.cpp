@@ -24,8 +24,6 @@ static AMAPlayerController* ResolvePlayerControllerFromActor(AActor* Actor)
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
-	GenericConfirmInputID = (int32)EMAAbilityInputID::Confirm;
-	GenericCancelInputID = (int32)EMAAbilityInputID::Cancel;
 }
 
 void UMAAbilitySystemComponent::ApplyInitialEffects()
@@ -46,30 +44,26 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
-	for (const TPair<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
+	for (const TSubclassOf<UGameplayAbility>& Ability : Abilities)
 	{
-		if (!AbilityPair.Value)
+		if (!Ability)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid initial ability. Owner=%s InputID=%d"),
-				*GetNameSafe(GetOwner()),
-				static_cast<int32>(AbilityPair.Key));
+			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid initial ability. Owner=%s"), *GetNameSafe(GetOwner()));
 			continue;
 		}
 
-		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 0, (int32)AbilityPair.Key, nullptr));
+		GiveAbility(FGameplayAbilitySpec(Ability, 0, INDEX_NONE, nullptr));
 	}
 
-	for (const TPair<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
+	for (const TSubclassOf<UGameplayAbility>& Ability : BasicAbilities)
 	{
-		if (!AbilityPair.Value)
+		if (!Ability)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid basic ability. Owner=%s InputID=%d"),
-				*GetNameSafe(GetOwner()),
-				static_cast<int32>(AbilityPair.Key));
+			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid basic ability. Owner=%s"), *GetNameSafe(GetOwner()));
 			continue;
 		}
 
-		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
+		GiveAbility(FGameplayAbilitySpec(Ability, 1, INDEX_NONE, nullptr));
 	}
 
 	if (!AbilitySystemGenerics) return;
@@ -96,17 +90,6 @@ void UMAAbilitySystemComponent::ApplyReviveStatEffect()
 {
 	if (!AbilitySystemGenerics) return;
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetReviveStatEffect());
-}
-
-void UMAAbilitySystemComponent::TryActivateAbilitiesByInputID(EMAAbilityInputID InputID)
-{
-	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
-	{
-		if (AbilitySpec.InputID != static_cast<int32>(InputID)) continue;
-		if (AbilitySpec.IsActive()) continue;
-
-		TryActivateAbility(AbilitySpec.Handle);
-	}
 }
 
 void UMAAbilitySystemComponent::NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data)

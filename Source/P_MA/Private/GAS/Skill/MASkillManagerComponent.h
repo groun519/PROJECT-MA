@@ -2,8 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GameplayAbilitySpecHandle.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "MASkillManagerComponent.generated.h"
 
 class UMASkillAbility;
@@ -14,46 +13,7 @@ class UActorChannel;
 class FOutBunch;
 struct FReplicationFlags;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, EMAAbilityInputID);
-
-USTRUCT()
-struct FMASkillSlotRuntimeState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
-	EMAAbilityInputID InputID = EMAAbilityInputID::None;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMASkillModuleInstance>> SourceModuleInstances;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> AssembledModuleInstance = nullptr;
-
-	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle AbilityHandle;
-};
-
-USTRUCT(BlueprintType)
-struct FMASkillSlotStack
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Skill")
-	EMAAbilityInputID InputID = EMAAbilityInputID::None;
-};
-
-USTRUCT()
-struct FMASkillReplicatedSlotRuntimeState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(Transient)
-	EMAAbilityInputID InputID = EMAAbilityInputID::None;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMASkillModuleInstance>> ModuleInstances;
-};
+DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, FGameplayTag);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class P_MA_API UMASkillManagerComponent : public UActorComponent
@@ -70,20 +30,20 @@ public:
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
 	bool ReplaceDefinitionAt(
-		EMAAbilityInputID InputID,
+		FGameplayTag SlotTag,
 		int32 ModuleIndex,
 		UMASkillDefinition* NewDefinition,
 		UMASkillDefinition*& OutPreviousDefinition);
 	bool ReplaceModuleInstanceAt(
-		EMAAbilityInputID InputID,
+		FGameplayTag SlotTag,
 		int32 ModuleIndex,
 		UMASkillModuleInstance* NewModuleInstance,
 		UMASkillModuleInstance*& OutPreviousModuleInstance);
 
 	bool RequestSwapModuleSlotsBetween(
-		EMAAbilityInputID InputIDA,
+		FGameplayTag SlotTagA,
 		int32 IndexA,
-		EMAAbilityInputID InputIDB,
+		FGameplayTag SlotTagB,
 		int32 IndexB);
 	bool RequestMoveModuleSlot(
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
@@ -92,46 +52,51 @@ public:
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 		int32 TargetIndex);
 
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(EMAAbilityInputID InputID);
-	bool FindInputIDForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, EMAAbilityInputID& OutInputID) const;
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(FGameplayTag SlotTag);
+	bool FindSlotTagForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, FGameplayTag& OutSlotTag) const;
+	FGameplayTag GetActivePreviewElementalTag() const { return ActivePreviewElementalTag; }
 
-	TArray<EMAAbilityInputID> GetSkillSlotInputIDs() const
+	TArray<FGameplayTag> GetSkillSlotTags() const
 	{
-		return GatherUniqueSkillSlotInputIDs();
+		return GatherUniqueSkillSlotTags();
 	}
 
-	UMASkillDefinition* GetAssembledDefinition(EMAAbilityInputID InputID) const;
-	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const { return GenericSkillDataAsset; }
+	UMASkillDefinition* GetAssembledDefinition(FGameplayTag SlotTag) const;
+	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
 
-	bool RebuildSkill(EMAAbilityInputID InputID);
-	void RegisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
-	void UnregisterAbilityHandle(EMAAbilityInputID InputID, FGameplayAbilitySpecHandle AbilityHandle);
+	bool RebuildSkill(FGameplayTag SlotTag);
+	void RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
+	void UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle);
+	void ClearActivePreviewElementalTag();
+	bool TryActivateSkill(FGameplayTag SlotTag);
 
 private:
 	static constexpr int32 SkillModuleSlotCount = 8;
 
-	FMASkillSlotRuntimeState* FindSlotRuntimeState(EMAAbilityInputID InputID);
-	const FMASkillSlotRuntimeState* FindSlotRuntimeState(EMAAbilityInputID InputID) const;
-	FMASkillSlotRuntimeState& FindOrAddSlotRuntimeState(EMAAbilityInputID InputID);
-	FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID);
-	const FMASkillSlotStack* FindSkillSlotStack(EMAAbilityInputID InputID) const;
-	bool IsConfiguredSkillSlotInputID(EMAAbilityInputID InputID) const;
+	FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag);
+	const FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag) const;
+	FMASkillSlotRuntimeState& FindOrAddSlotRuntimeState(FGameplayTag SlotTag);
+	FMASkillSlotStack* FindSkillSlotStack(FGameplayTag SlotTag);
+	const FMASkillSlotStack* FindSkillSlotStack(FGameplayTag SlotTag) const;
+	bool IsKnownSkillSlotTag(FGameplayTag SlotTag) const;
 	static bool IsValidModuleSlotIndex(int32 Index);
 	static void NormalizeModuleInstanceSlots(TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	static bool HasAnyModuleInstance(const TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
-	TArray<EMAAbilityInputID> GatherUniqueSkillSlotInputIDs() const;
+	TArray<FGameplayTag> GatherUniqueSkillSlotTags() const;
 	bool CanMutateSkillSlots() const;
 	bool SwapModuleSlotsBetween(
-		EMAAbilityInputID InputIDA,
+		FGameplayTag SlotTagA,
 		int32 IndexA,
-		EMAAbilityInputID InputIDB,
+		FGameplayTag SlotTagB,
 		int32 IndexB);
+	bool EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState);
+	void SetActivePreviewElementalTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapModuleSlotsBetween(
-		EMAAbilityInputID InputIDA,
+		FGameplayTag SlotTagA,
 		int32 IndexA,
-		EMAAbilityInputID InputIDB,
+		FGameplayTag SlotTagB,
 		int32 IndexB);
 
 	UFUNCTION()
@@ -153,4 +118,7 @@ private:
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotRuntimeStates)
 	TArray<FMASkillReplicatedSlotRuntimeState> ReplicatedSkillSlotRuntimeStates;
+
+	UPROPERTY(Transient, Replicated)
+	FGameplayTag ActivePreviewElementalTag;
 };

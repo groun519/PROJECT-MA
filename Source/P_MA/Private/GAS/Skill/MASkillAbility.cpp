@@ -14,6 +14,7 @@
 #include "GAS/Skill/Event/Publish/MASkillEventSource.h"
 #include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
 
@@ -42,7 +43,7 @@ void UMASkillAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, 
 	{
 		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
 		{
-			SkillManager->RegisterAbilityHandle(static_cast<EMAAbilityInputID>(Spec.InputID), Spec.Handle, GetClass());
+			SkillManager->RegisterAbilityHandle(FMASkillSystemStatics::ResolveSlotTagFromAbilitySpec(Spec), Spec.Handle, GetClass());
 		}
 	}
 }
@@ -55,7 +56,7 @@ void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo
 	{
 		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
 		{
-			SkillManager->UnregisterAbilityHandle(static_cast<EMAAbilityInputID>(Spec.InputID), Spec.Handle);
+			SkillManager->UnregisterAbilityHandle(FMASkillSystemStatics::ResolveSlotTagFromAbilitySpec(Spec), Spec.Handle);
 		}
 	}
 
@@ -176,6 +177,11 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	UnregisterCancelTriggers();
 	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo()))
 	{
+		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
+		{
+			SkillManager->ClearActivePreviewElementalTag();
+		}
+
 		if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
 		{
 			ImpulseComponent->StopOwnedActionImpulses(this);

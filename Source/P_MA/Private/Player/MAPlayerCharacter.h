@@ -2,8 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Character/MACharacter.h"
+#include "GameplayTagContainer.h"
 #include "InputActionValue.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -66,7 +66,7 @@ public:
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 
 	/** Input **/
-	UInputAction* GetGameplayAbilityInputAction(EMAAbilityInputID InputID) const;
+	UInputAction* GetGameplayAbilityInputAction(FGameplayTag SlotTag) const;
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
 	UMAInteractorComponent* GetInteractorComponent() const { return InteractorComponent; }
 	UMACurrencyComponent* GetCurrencyComponent() const { return CurrencyComponent; }
@@ -121,7 +121,7 @@ private:
 	UInputAction* UseInventoryItemAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TMap<EMAAbilityInputID, UInputAction*> GameplayAbilityInputActions;
+	TMap<FGameplayTag, UInputAction*> GameplayAbilityInputActions;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* GameplayInputMappingContext;
@@ -137,11 +137,11 @@ private:
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
-	void HandleAbilityInputStarted(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
-	void HandleAbilityInputReleased(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
+	void HandleAbilityInputStarted(const FInputActionValue& InputActionValue, FGameplayTag SlotTag);
+	void HandleAbilityInputReleased(const FInputActionValue& InputActionValue, FGameplayTag SlotTag);
 	void TickHeldAbilityInputs();
-	void SetAbilityInputHeld(EMAAbilityInputID InputID, bool bHeld);
-	void TryActivateHeldAbilityInput(EMAAbilityInputID InputID);
+	void SetAbilityInputHeld(FGameplayTag SlotTag, bool bHeld);
+	void TryActivateHeldAbilityInput(FGameplayTag SlotTag);
 	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -214,6 +214,6 @@ public:
 	/** Inventory **/
 	class UInventoryComponent* InventoryComponent;
 
-	TSet<EMAAbilityInputID> HeldAbilityInputIDs;
+	TSet<FGameplayTag> HeldAbilitySlotTags;
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 };
