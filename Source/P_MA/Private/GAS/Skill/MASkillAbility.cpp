@@ -194,7 +194,11 @@ void UMASkillAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, con
 	const UMAAbilitySystemComponent* AbilitySystemComponent = Cast<UMAAbilitySystemComponent>(ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr);
 	const UPA_AbilitySystemGenerics* SystemGenerics = AbilitySystemComponent ? AbilitySystemComponent->GetSystemGenerics() : nullptr;
 	TSubclassOf<UGameplayEffect> CooldownEffect = SystemGenerics ? SystemGenerics->GetCooldownEffect() : nullptr;
-	check(CooldownEffect);
+	if (!ensureMsgf(CooldownEffect, TEXT("Cooldown effect is not configured for ASC owner %s."),
+		*GetNameSafe(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr)))
+	{
+		return;
+	}
 
 	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownEffect, GetAbilityLevel());
 	if (!SpecHandle.IsValid()) return;
