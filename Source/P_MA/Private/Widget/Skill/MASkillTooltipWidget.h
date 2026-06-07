@@ -18,8 +18,7 @@ class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
 public:
 	void SetSkillTooltip(
 		const UMASkillDefinition* SkillDefinition,
-		const FText& InCooldownText,
-		const FText& InWarningText);
+		const FText& InWarningText = FText());
 
 protected:
 	UPROPERTY(meta=(BindWidget))
@@ -37,8 +36,15 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> WarningIconImage;
 
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	FLinearColor PositiveCooldownColor = FLinearColor::White;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	FLinearColor NegativeCooldownColor = FLinearColor(0.25f, 0.75f, 1.f, 1.f);
+
 private:
 	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon);
-	void SetCooldownText(const FText& InCooldownText);
+	void SetCooldown(const UMASkillDefinition* SkillDefinition);
 	void SetWarningText(const FText& InWarningText);
+	FText ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const;
 };

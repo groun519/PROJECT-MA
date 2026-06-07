@@ -20,13 +20,12 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 	const ESlateVisibility EntryVisibility = InEntry ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	const ESlateVisibility BuyVisibility = InEntry ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
-	const FMASkillDefinitionIconData* IconData = InEntry && InEntry->SkillDefinition ? &InEntry->SkillDefinition->GetDisplayData().IconData : nullptr;
-	UTexture2D* Icon = IconData ? IconData->Icon : nullptr;
+	UTexture2D* Icon = InEntry ? InEntry->Icon : nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ItemIconImage->GetDynamicMaterial())
 	{
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, Icon);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData ? IconData->IconColor : FLinearColor::White);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, InEntry ? InEntry->IconColor : FLinearColor::White);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, InEntry ? InEntry->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
 		ItemIconImage->SetVisibility(Icon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
 	else if (Icon)
@@ -41,6 +40,10 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 
 	NameText->SetText(InEntry && InEntry->SkillDefinition ? InEntry->SkillDefinition->GetDisplayData().DisplayName : FText());
 	NameText->SetVisibility(EntryVisibility);
+
+	QualityText->SetText(InEntry ? InEntry->QualityText : FText());
+	QualityText->SetColorAndOpacity(FSlateColor(InEntry ? InEntry->QualityColor : FLinearColor::White));
+	QualityText->SetVisibility(InEntry && !InEntry->QualityText.IsEmpty() ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 
 	DescriptionText->SetText(InEntry && InEntry->SkillDefinition ? InEntry->SkillDefinition->GetDisplayData().Description : FText());
 	DescriptionText->SetVisibility(EntryVisibility);

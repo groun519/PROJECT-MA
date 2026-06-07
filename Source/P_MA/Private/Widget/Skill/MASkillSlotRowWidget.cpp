@@ -3,6 +3,7 @@
 #include "Components/HorizontalBox.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "Input/MAInputStatics.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
@@ -22,6 +23,10 @@ void UMASkillSlotRowWidget::InitializeSlot(UMASkillManagerComponent* InSkillMana
 
 	SkillManager = InSkillManager;
 	SlotTag = InSlotTag;
+	if (SkillIconWidget)
+	{
+		SkillIconWidget->SetCooldownTag(FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(SlotTag));
+	}
 
 	if (SkillManager)
 	{

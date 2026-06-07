@@ -51,6 +51,7 @@ struct P_MA_API FMASkillSystemStatics
 {
 	static int32 ResolveSlotInputID(const FGameplayTag& SlotTag);
 	static bool IsSkillSlotTag(const FGameplayTag& Tag);
+	static FGameplayTag ResolveCooldownTagFromSlotTag(const FGameplayTag& SlotTag);
 	static FGameplayTag ResolveSlotTagFromAbilitySpec(const FGameplayAbilitySpec& Spec);
 
 private:

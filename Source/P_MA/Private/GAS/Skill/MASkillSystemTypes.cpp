@@ -20,6 +20,14 @@ bool FMASkillSystemStatics::IsSkillSlotTag(const FGameplayTag& Tag)
 	return ResolveSlotInputID(Tag) != INDEX_NONE;
 }
 
+FGameplayTag FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(const FGameplayTag& SlotTag)
+{
+	const int32 SlotInputID = ResolveSlotInputID(SlotTag);
+	return SlotInputID == INDEX_NONE
+		? FGameplayTag()
+		: FGameplayTag::RequestGameplayTag(*FString::Printf(TEXT("Cooldown.Skill.Slot.%d"), SlotInputID));
+}
+
 FGameplayTag FMASkillSystemStatics::ResolveSlotTagFromAbilitySpec(const FGameplayAbilitySpec& Spec)
 {
 	TArray<FGameplayTag> SlotTags;

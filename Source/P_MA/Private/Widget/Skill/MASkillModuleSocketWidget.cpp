@@ -267,7 +267,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(CachedDefinition, FText(), ResolveInactiveReasonText(ResolveModuleInstance()));
+	TooltipWidget->SetSkillTooltip(CachedDefinition, ResolveInactiveReasonText(ResolveModuleInstance()));
 	SetToolTip(TooltipWidget);
 }
 

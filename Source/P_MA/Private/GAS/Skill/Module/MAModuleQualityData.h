@@ -5,14 +5,11 @@
 #include "MAModuleQualityData.generated.h"
 
 UENUM(BlueprintType)
-enum class EMAModuleGrade : uint8
+enum class EMAModuleType : uint8
 {
-	Grade1,
-	Grade2,
-	Grade3,
-	Grade4,
-	Grade5,
-	Grade6
+	Sequence,
+	Modifier,
+	Elemental
 };
 
 UENUM(BlueprintType)
@@ -33,25 +30,22 @@ struct FMAModuleQuality
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
-	EMAModuleGrade Grade = EMAModuleGrade::Grade1;
+	EMAModuleType Type = EMAModuleType::Modifier;
 
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
 	EMAModuleRarity Rarity = EMAModuleRarity::Rarity4;
 };
 
 USTRUCT(BlueprintType)
-struct FMAModuleGradeData
+struct FMAModuleTypeData
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category="Grade")
-	FText DisplayName;
+	UPROPERTY(EditDefaultsOnly, Category="Type")
+	FLinearColor IconColor = FLinearColor::White;
 
-	UPROPERTY(EditDefaultsOnly, Category="Grade")
-	FLinearColor Color = FLinearColor::White;
-
-	UPROPERTY(EditDefaultsOnly, Category="Price", meta=(ClampMin="0"))
-	int32 BasePrice = 0;
+	UPROPERTY(EditDefaultsOnly, Category="Type")
+	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
 };
 
 USTRUCT(BlueprintType)
@@ -65,11 +59,14 @@ struct FMAModuleRarityData
 	UPROPERTY(EditDefaultsOnly, Category="Rarity")
 	FLinearColor Color = FLinearColor::White;
 
+	UPROPERTY(EditDefaultsOnly, Category="Rarity", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float GlowAlpha = 0.f;
+
 	UPROPERTY(EditDefaultsOnly, Category="Rarity", meta=(ClampMin="0"))
 	float SelectionWeight = 1.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Price")
-	int32 PriceOffset = 0;
+	UPROPERTY(EditDefaultsOnly, Category="Price", meta=(ClampMin="0"))
+	int32 BasePrice = 0;
 };
 
 UCLASS(BlueprintType)
@@ -79,10 +76,12 @@ class P_MA_API UMAModuleQualityData : public UDataAsset
 
 public:
 	int32 ResolvePrice(const FMAModuleQuality& Quality) const;
+	const FMAModuleRarityData* FindRarityData(EMAModuleRarity Rarity) const { return RarityData.Find(Rarity); }
+	const FMAModuleTypeData* FindTypeData(EMAModuleType Type) const { return TypeData.Find(Type); }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
-	TMap<EMAModuleGrade, FMAModuleGradeData> GradeData;
+	TMap<EMAModuleType, FMAModuleTypeData> TypeData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
 	TMap<EMAModuleRarity, FMAModuleRarityData> RarityData;

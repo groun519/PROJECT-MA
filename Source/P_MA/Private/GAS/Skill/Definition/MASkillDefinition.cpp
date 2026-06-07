@@ -11,6 +11,7 @@ void UMASkillDefinition::ResetAssemblyData()
 	AssembledSubIcon = nullptr;
 	ExclusiveAssemblyTag = FGameplayTag();
 	ElementalTag = FGameplayTag();
+	CooldownSeconds = 0.f;
 	SkillSteps.Reset();
 	EventSources.Reset();
 	EventBindings.Reset();
@@ -28,6 +29,8 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 	{
 		ElementalTag = SourceDefinition->ElementalTag;
 	}
+
+	CooldownSeconds += SourceDefinition->CooldownSeconds;
 
 	for (UMASkillStep* SkillStep : SourceDefinition->SkillSteps)
 	{

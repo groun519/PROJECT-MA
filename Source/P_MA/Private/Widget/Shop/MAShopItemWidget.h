@@ -32,6 +32,9 @@ protected:
 	TObjectPtr<UImage> ItemIconImage;
 
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UImage> GlowImage;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> PriceText;
 
 private:
@@ -39,4 +42,5 @@ private:
 	void HandleItemButtonClicked();
 
 	int32 StockId = INDEX_NONE;
+	FLinearColor FrameColor = FLinearColor::White;
 };

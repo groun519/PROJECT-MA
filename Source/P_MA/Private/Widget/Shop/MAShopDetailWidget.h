@@ -31,6 +31,9 @@ protected:
 	TObjectPtr<UTextBlock> NameText;
 
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UTextBlock> QualityText;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<URichTextBlock> DescriptionText;
 
 	UPROPERTY(meta=(BindWidget))

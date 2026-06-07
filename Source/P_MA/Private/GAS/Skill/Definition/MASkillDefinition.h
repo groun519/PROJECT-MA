@@ -74,6 +74,7 @@ public:
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
 	const FGameplayTag& GetExclusiveAssemblyTag() const { return ExclusiveAssemblyTag; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
+	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
@@ -107,6 +108,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	float CooldownSeconds = 0.f;
 
 	/** Preferred step pipeline. Each step owns its own montage and runtime logic. **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Step")

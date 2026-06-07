@@ -311,6 +311,27 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 		Entry.VisualSeed = FMath::Rand();
 		Entry.SkillDefinition = Pool[Index];
 		Entry.Price = ResolveModulePrice(Pool[Index]);
+		Entry.Icon = Pool[Index]->GetDisplayData().IconData.Icon;
+		Entry.IconColor = Pool[Index]->GetDisplayData().IconData.IconColor;
+		Entry.InnerColor = Pool[Index]->GetDisplayData().IconData.InnerColor;
+		if (ModuleQualityData)
+		{
+			const FMAModuleQuality& Quality = Pool[Index]->GetModuleQuality();
+			if (const FMAModuleRarityData* RarityData = ModuleQualityData->FindRarityData(Quality.Rarity))
+			{
+				Entry.QualityText = RarityData->DisplayName;
+				Entry.QualityColor = RarityData->Color;
+				Entry.GlowAlpha = RarityData->GlowAlpha;
+			}
+			if (Quality.Type != EMAModuleType::Elemental)
+			{
+				if (const FMAModuleTypeData* TypeData = ModuleQualityData->FindTypeData(Quality.Type))
+				{
+					Entry.IconColor = TypeData->IconColor;
+					Entry.InnerColor = TypeData->InnerColor;
+				}
+			}
+		}
 		Stock.Add(Entry);
 	}
 	return Stock;

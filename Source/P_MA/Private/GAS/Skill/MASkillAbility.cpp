@@ -7,6 +7,8 @@
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Binding/MASkillGameplayEventBinding.h"
@@ -159,6 +161,49 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	}
 }
 
+bool UMASkillAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags)) return false;
+
+	const float CooldownSeconds = GetCooldownSeconds();
+	if (CooldownSeconds <= 0.f) return true;
+
+	const FGameplayTag CooldownTag = GetCooldownTagForSpec(Handle, ActorInfo);
+	if (!CooldownTag.IsValid()) return true;
+
+	UAbilitySystemComponent* AbilitySystemComponent = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (!AbilitySystemComponent || !AbilitySystemComponent->HasMatchingGameplayTag(CooldownTag)) return true;
+
+	if (OptionalRelevantTags)
+	{
+		OptionalRelevantTags->AddTag(CooldownTag);
+	}
+	return false;
+}
+
+void UMASkillAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	Super::ApplyCooldown(Handle, ActorInfo, ActivationInfo);
+
+	const float CooldownSeconds = GetCooldownSeconds();
+	if (CooldownSeconds <= 0.f) return;
+
+	const FGameplayTag CooldownTag = GetCooldownTagForSpec(Handle, ActorInfo);
+	if (!CooldownTag.IsValid()) return;
+
+	const UMAAbilitySystemComponent* AbilitySystemComponent = Cast<UMAAbilitySystemComponent>(ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr);
+	const UPA_AbilitySystemGenerics* SystemGenerics = AbilitySystemComponent ? AbilitySystemComponent->GetSystemGenerics() : nullptr;
+	TSubclassOf<UGameplayEffect> CooldownEffect = SystemGenerics ? SystemGenerics->GetCooldownEffect() : nullptr;
+	check(CooldownEffect);
+
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(CooldownEffect, GetAbilityLevel());
+	if (!SpecHandle.IsValid()) return;
+
+	SpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(TEXT("Data.Cooldown.Duration")), CooldownSeconds);
+	SpecHandle.Data->DynamicGrantedTags.AddTag(CooldownTag);
+	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+}
+
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
@@ -196,6 +241,21 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+float UMASkillAbility::GetCooldownSeconds() const
+{
+	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
+	return CurrentSkillDefinition ? CurrentSkillDefinition->GetCooldownSeconds() : 0.f;
+}
+
+FGameplayTag UMASkillAbility::GetCooldownTagForSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	UAbilitySystemComponent* AbilitySystemComponent = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	const FGameplayAbilitySpec* AbilitySpec = AbilitySystemComponent ? AbilitySystemComponent->FindAbilitySpecFromHandle(Handle) : nullptr;
+	return AbilitySpec
+		? FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(FMASkillSystemStatics::ResolveSlotTagFromAbilitySpec(*AbilitySpec))
+		: FGameplayTag();
 }
 
 const FGameplayTag& UMASkillAbility::GetElementalTag() const

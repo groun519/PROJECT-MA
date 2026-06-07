@@ -8,7 +8,6 @@
 
 void UMASkillTooltipWidget::SetSkillTooltip(
 	const UMASkillDefinition* SkillDefinition,
-	const FText& InCooldownText,
 	const FText& InWarningText)
 {
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
@@ -17,7 +16,7 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 
 	SetDescription(DisplayData.DisplayName, DisplayData.Description);
 	SetIconData(DisplayData.IconData, SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr);
-	SetCooldownText(InCooldownText);
+	SetCooldown(SkillDefinition);
 	SetWarningText(InWarningText);
 }
 
@@ -46,19 +45,28 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 	SkillIconImage->SetVisibility(IconData.Icon || AssembledSubIcon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 }
 
-void UMASkillTooltipWidget::SetCooldownText(const FText& InCooldownText)
+void UMASkillTooltipWidget::SetCooldown(const UMASkillDefinition* SkillDefinition)
 {
-	const ESlateVisibility CooldownVisibility = InCooldownText.IsEmpty()
+	const FText CooldownTextValue = ResolveCooldownText(SkillDefinition);
+	const ESlateVisibility CooldownVisibility = CooldownTextValue.IsEmpty()
 		? ESlateVisibility::Collapsed
 		: ESlateVisibility::SelfHitTestInvisible;
 
 	if (CooldownText)
 	{
-		CooldownText->SetText(InCooldownText);
+		CooldownText->SetText(CooldownTextValue);
+		if (SkillDefinition)
+		{
+			CooldownText->SetColorAndOpacity(FSlateColor(SkillDefinition->GetCooldownSeconds() >= 0.f ? PositiveCooldownColor : NegativeCooldownColor));
+		}
 		CooldownText->SetVisibility(CooldownVisibility);
 	}
 	if (CooldownIconImage)
 	{
+		if (SkillDefinition)
+		{
+			CooldownIconImage->SetColorAndOpacity(SkillDefinition->GetCooldownSeconds() >= 0.f ? PositiveCooldownColor : NegativeCooldownColor);
+		}
 		CooldownIconImage->SetVisibility(CooldownVisibility);
 	}
 }
@@ -74,3 +82,15 @@ void UMASkillTooltipWidget::SetWarningText(const FText& InWarningText)
 	WarningIconImage->SetVisibility(WarningVisibility);
 }
 
+FText UMASkillTooltipWidget::ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const
+{
+	if (!SkillDefinition || FMath::IsNearlyZero(SkillDefinition->GetCooldownSeconds())) return FText();
+
+	FNumberFormattingOptions FormattingOptions;
+	FormattingOptions.MinimumFractionalDigits = 0;
+	FormattingOptions.MaximumFractionalDigits = FMath::Abs(SkillDefinition->GetCooldownSeconds()) >= 1.f ? 1 : 2;
+
+	return FText::Format(
+		NSLOCTEXT("MASkillTooltipWidget", "CooldownSecondsFormat", "{0}s"),
+		FText::AsNumber(SkillDefinition->GetCooldownSeconds(), &FormattingOptions));
+}
