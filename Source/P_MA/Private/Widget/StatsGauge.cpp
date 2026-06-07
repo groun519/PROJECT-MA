@@ -11,7 +11,7 @@
 void UStatsGauge::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	Icon->SetBrushFromTexture(IconTexture);
+	Icon->SetBrushFromMaterial(IconMaterial);
 }
 
 void UStatsGauge::NativeConstruct()

@@ -2,7 +2,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "GAS/MAPlayerAttributeSet.h"
+#include "GAS/MAAttributeSet.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -40,7 +40,7 @@ float UInventoryComponent::GetCoin() const
 	bool bFound = false;
 	if (OwnerAbilitySystemComponent)
 	{
-		float Coin = OwnerAbilitySystemComponent->GetGameplayAttributeValue(UMAPlayerAttributeSet::GetCoinAttribute(), bFound);
+		float Coin = OwnerAbilitySystemComponent->GetGameplayAttributeValue(UMAAttributeSet::GetCoinAttribute(), bFound);
 		if (bFound) return Coin;
 	}
 	return 0.f;
@@ -150,7 +150,7 @@ void UInventoryComponent::Server_SellItem_Implementation(FInventoryItemHandle It
 	if (const FBaseItemData* Data = InventoryItem->GetBaseData())
 	{
 		float SellPrice = Data->Price / 2.f;
-		OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, SellPrice * InventoryItem->GetStackCount());
+		OwnerAbilitySystemComponent->ApplyModToAttribute(UMAAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, SellPrice * InventoryItem->GetStackCount());
 	}
 	RemoveItem(InventoryItem);
 }
@@ -248,7 +248,7 @@ void UInventoryComponent::Server_PurchaseItem_Implementation(FName ItemRowName, 
 	
 	if (IsFullFor(ItemRowName, SourceTable)) return;
 	
-	OwnerAbilitySystemComponent->ApplyModToAttribute(UMAPlayerAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, -Data->Price);
+	OwnerAbilitySystemComponent->ApplyModToAttribute(UMAAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, -Data->Price);
 	GrantItem(ItemRowName, SourceTable);
 }
 bool UInventoryComponent::Server_PurchaseItem_Validate(FName ItemRowName, UDataTable* SourceTable) { return true; }

@@ -68,6 +68,7 @@ public:
 	void UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle);
 	void ClearActivePreviewElementalTag();
 	bool TryActivateSkill(FGameplayTag SlotTag);
+	UMASkillAbility* GetSkillAbility(FGameplayTag SlotTag) const;
 
 private:
 	static constexpr int32 SkillModuleSlotCount = 8;

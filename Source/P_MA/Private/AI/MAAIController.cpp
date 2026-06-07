@@ -228,11 +228,20 @@ void AMAAIController::PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count)
 	}
 }
 
-void AMAAIController::PawnReactionTagUpdated(const FGameplayTag Tag, int32 Count)
+void AMAAIController::PawnReactionTagUpdated(const FGameplayTag /*Tag*/, int32 /*Count*/)
 {
 	if (bIsPawnDead) return;
-	
-	if (Count != 0)
+
+	FGameplayTagContainer OwnedTags;
+	if (UAbilitySystemComponent* PawnASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn()))
+	{
+		PawnASC->GetOwnedGameplayTags(OwnedTags);
+	}
+
+	OwnedTags.RemoveTag(UMAAbilitySystemStatics::GetKnockbackStatTag());
+	const bool bShouldReact = OwnedTags.HasTag(UMAAbilitySystemStatics::GetAnyReactionStateTag());
+
+	if (bShouldReact)
 	{
 		if (!bIsPawnReacting)
 		{

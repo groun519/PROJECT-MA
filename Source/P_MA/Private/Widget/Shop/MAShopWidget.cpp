@@ -5,7 +5,7 @@
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "GameplayEffectTypes.h"
-#include "GAS/MAPlayerAttributeSet.h"
+#include "GAS/MAAttributeSet.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
 #include "Player/Components/MACurrencyComponent.h"
@@ -62,7 +62,7 @@ void UMAShopWidget::BindCoinAttributeChanged()
 	if (!AbilitySystemComponent) return;
 
 	CoinAttributeChangedHandle = AbilitySystemComponent
-		->GetGameplayAttributeValueChangeDelegate(UMAPlayerAttributeSet::GetCoinAttribute())
+		->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetCoinAttribute())
 		.AddUObject(this, &UMAShopWidget::HandleCoinAttributeChanged);
 	BoundCoinAbilitySystemComponent = AbilitySystemComponent;
 }
@@ -72,7 +72,7 @@ void UMAShopWidget::UnbindCoinAttributeChanged()
 	if (BoundCoinAbilitySystemComponent && CoinAttributeChangedHandle.IsValid())
 	{
 		BoundCoinAbilitySystemComponent
-			->GetGameplayAttributeValueChangeDelegate(UMAPlayerAttributeSet::GetCoinAttribute())
+			->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetCoinAttribute())
 			.Remove(CoinAttributeChangedHandle);
 	}
 

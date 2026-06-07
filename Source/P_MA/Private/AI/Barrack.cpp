@@ -1,14 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "AI/Barrack.h"
+
 #include "AI/Golem/Monster.h"
 #include "GameFramework/PlayerStart.h"
 
 ABarrack::ABarrack()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 void ABarrack::BeginPlay()
@@ -23,7 +20,6 @@ void ABarrack::BeginPlay()
 void ABarrack::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 const APlayerStart* ABarrack::GetNextSpawnSpot()
@@ -64,7 +60,6 @@ void ABarrack::SpawnNewGroup()
 
 void ABarrack::SpawnNewMinions(int Amt)
 {
-	
 	for (int i = 0; i < Amt; i++)
 	{
 		FTransform SpawnTransfrom = GetActorTransform();
@@ -90,7 +85,5 @@ AMonster* ABarrack::GetNextAvaliableMonster() const
 			return Minion;
 		}
 	}
-
 	return nullptr;
 }
-

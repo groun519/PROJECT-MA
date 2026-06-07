@@ -8,6 +8,8 @@
 #include "AttributeSet.h"
 #include "StatsGauge.generated.h"
 
+class UMaterialInterface;
+
 /**
  * 
  */
@@ -30,7 +32,7 @@ private:
 	FGameplayAttribute Attribute;
 
 	UPROPERTY(EditAnywhere, Category = "Visual")
-	UTexture2D* IconTexture;
+	TObjectPtr<UMaterialInterface> IconMaterial;
 
 	void SetValue(float NewVal);
 	FNumberFormattingOptions NumberFormattingOptions;

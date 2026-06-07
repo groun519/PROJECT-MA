@@ -69,7 +69,6 @@ FMonsterBaseStats::FMonsterBaseStats()
 	BaseMoveSpeed{0.f},
 	BaseAttackSpeed{0.f},
 	BaseArmor{0.f},
-	BaseArmorPenetration{0.f},
-	BaseFuryMax{0.f}
+	BaseArmorPenetration{0.f}
 {
 }

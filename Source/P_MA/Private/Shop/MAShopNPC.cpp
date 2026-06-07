@@ -282,7 +282,6 @@ void AMAShopNPC::OpenShopFor(AMAPlayerCharacter* Interactor)
 	}
 
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(ActiveShopWidget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;

@@ -24,9 +24,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	UMAValueGauge* HealthBar;
 	
-	UPROPERTY(meta = (BindWidgetOptional))
-	UMAValueGauge* FuryBar;
-
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UMAStatusEffectDurationWidget> StatusEffectSlot0;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UMAStatusEffectDurationWidget> StatusEffectSlot1;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UMAStatusEffectDurationWidget> StatusEffectSlot2;

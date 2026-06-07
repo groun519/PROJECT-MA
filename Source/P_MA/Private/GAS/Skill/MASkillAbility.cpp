@@ -32,7 +32,6 @@ UMASkillAbility::UMASkillAbility()
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetAirborneStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetGrabStatTag());
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStaggerStatTag());
-	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetKnockbackStatTag());
 }
 
 void UMASkillAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)

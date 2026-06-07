@@ -3,7 +3,7 @@
 #include "GAS/GameplayCue/GCN_HitOverlay.h"
 
 #include "Character/MAOverlayComponent.h"
-#include "Materials/MaterialInterface.h"
+#include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 AGCN_HitOverlay::AGCN_HitOverlay()
@@ -16,7 +16,7 @@ void AGCN_HitOverlay::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Typ
 {
 	Super::HandleGameplayCue(MyTarget, EventType, Parameters);
 
-	if (EventType != EGameplayCueEvent::Executed || !OverlayMaterial) return;
+	if (EventType != EGameplayCueEvent::Executed) return;
 
 	StartFade(MyTarget, ResolveOverlayColor(Parameters));
 }
@@ -44,7 +44,7 @@ void AGCN_HitOverlay::Tick(float DeltaSeconds)
 
 		FadeState.Elapsed += DeltaSeconds;
 		const float Alpha = FMath::Clamp(FadeState.Elapsed / SafeFadeDuration, 0.f, 1.f);
-		OverlayMID->SetScalarParameterValue(AlphaParamName, 1.f - Alpha);
+		OverlayMID->SetScalarParameterValue(PARAM_Overlay_Alpha, 1.f - Alpha);
 
 		if (Alpha >= 1.f)
 		{
@@ -123,18 +123,22 @@ FLinearColor AGCN_HitOverlay::ResolveOverlayColor(const FGameplayCueParameters& 
 
 void AGCN_HitOverlay::StartFade(AActor* TargetActor, const FLinearColor& OverlayColor)
 {
-	if (!TargetActor || !OverlayMaterial) return;
+	if (!TargetActor) return;
 
 	UMAOverlayComponent* OverlayComponent = TargetActor->FindComponentByClass<UMAOverlayComponent>();
 	if (!OverlayComponent) return;
 
-	UMaterialInstanceDynamic* OverlayMID = OverlayComponent->AddTimedOverlay(OverlayMaterial, 1, FadeDuration);
+	UMaterialInstanceDynamic* OverlayMID = OverlayComponent->GetOrCreateOverlay();
 	if (!OverlayMID) return;
 
-	OverlayMID->SetScalarParameterValue(AlphaParamName, 1.f);
-	OverlayMID->SetVectorParameterValue(ColorParamName, OverlayColor);
+	OverlayMID->SetScalarParameterValue(PARAM_Overlay_Alpha, 1.f);
+	OverlayMID->SetVectorParameterValue(PARAM_Overlay_BaseColor, OverlayColor);
 
-	FActiveOverlayFade& FadeState = ActiveFades.AddDefaulted_GetRef();
+	FActiveOverlayFade* ExistingFade = ActiveFades.FindByPredicate([OverlayMID](const FActiveOverlayFade& FadeState)
+	{
+		return FadeState.OverlayMID == OverlayMID;
+	});
+	FActiveOverlayFade& FadeState = ExistingFade ? *ExistingFade : ActiveFades.AddDefaulted_GetRef();
 	FadeState.OverlayMID = OverlayMID;
 	FadeState.Elapsed = 0.f;
 	SetActorTickEnabled(true);

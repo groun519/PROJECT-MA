@@ -267,6 +267,7 @@ void AMACharacter::Respawn()
 		MAAbilitySystemComponent->ApplyReviveStatEffect();
 	}
 
+	RefreshMaxWalkSpeed();
 	OnRespawn();
 }
 

@@ -38,8 +38,6 @@ public:
 	void Deactivate();
 	
 	void SetEnvTag(const FGameplayTag& InEnvTag);
-	void SetDropCoin(int32 InCoin) { DropCoin = InCoin; }
-	int32 GetDropCoin() const { return DropCoin; }
 	void SetStatCoefficient(float InCoefficient) { StatCoefficient = InCoefficient; }
 	void SetSkillSlots(const TArray<FMonsterSkillSlotData>& InSkillSlots) { SkillSlots = InSkillSlots; }
 	bool SelectWeightedSkill();
@@ -60,9 +58,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Env")
 	TArray<FMonsterEnvData> EnvTagToMaterial;
-
-	UPROPERTY()
-	int32 DropCoin = 0;
 
 	UPROPERTY()
 	float StatCoefficient = 1.f;

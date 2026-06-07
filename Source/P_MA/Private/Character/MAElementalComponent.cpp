@@ -26,13 +26,6 @@ void UMAElementalComponent::BeginPlay()
 
 void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (OwnerCharacter && TemperatureOverlayMaterial)
-	{
-		if (UMAOverlayComponent* OverlayComponent = OwnerCharacter->GetOverlayComponent())
-		{
-			OverlayComponent->RemovePersistentOverlay(TemperatureOverlayMaterial);
-		}
-	}
 	RemoveTemperatureRecovery();
 	RemoveTemperatureSlow();
 	RemoveFrozenStatus();
@@ -65,18 +58,18 @@ void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeDat
 
 void UMAElementalComponent::RefreshTemperatureOverlay()
 {
-	if (!OwnerCharacter || !TemperatureOverlayMaterial) return;
+	if (!OwnerCharacter || OwnerCharacter->GetNetMode() == NM_DedicatedServer) return;
 
 	if (!TemperatureOverlayMID)
 	{
 		if (UMAOverlayComponent* OverlayComponent = OwnerCharacter->GetOverlayComponent())
 		{
-			TemperatureOverlayMID = OverlayComponent->AddPersistentOverlay(TemperatureOverlayMaterial, 2);
+			TemperatureOverlayMID = OverlayComponent->GetOrCreateOverlay();
 		}
 	}
 	if (!TemperatureOverlayMID) return;
 
-	TemperatureOverlayMID->SetScalarParameterValue(PARAM_TemperatureOverlay_TemperatureAlpha, CalculateTemperatureOverlayAlpha());
+	TemperatureOverlayMID->SetScalarParameterValue(PARAM_Overlay_TemperatureAlpha, CalculateTemperatureOverlayAlpha());
 }
 
 float UMAElementalComponent::CalculateTemperatureOverlayAlpha() const

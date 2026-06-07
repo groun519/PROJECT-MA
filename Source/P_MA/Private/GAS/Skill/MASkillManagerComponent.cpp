@@ -326,6 +326,12 @@ bool UMASkillManagerComponent::TryActivateSkill(FGameplayTag SlotTag)
 	return false;
 }
 
+UMASkillAbility* UMASkillManagerComponent::GetSkillAbility(FGameplayTag SlotTag) const
+{
+	const FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);
+	return SlotState ? ResolveSkillAbility(*SlotState) : nullptr;
+}
+
 void UMASkillManagerComponent::SetActivePreviewElementalTagFromSlot(const FMASkillSlotRuntimeState& SlotState)
 {
 	const UMASkillDefinition* SkillDefinition = SlotState.AssembledModuleInstance

@@ -107,9 +107,6 @@ private:
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;
 
-	UPROPERTY()
-	class UMAPlayerAttributeSet* PlayerAttributeSet;
-	
 	/** Input **/
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* MoveInputAction;

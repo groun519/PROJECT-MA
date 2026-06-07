@@ -9,7 +9,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAPlayerAttributeSet.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -64,8 +63,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	GetCharacterMovement()->RepulsionForce = 0.f;
 	GetCharacterMovement()->MaxDepenetrationWithPawn = 8.f;
 	GetCharacterMovement()->MaxDepenetrationWithPawnAsProxy = 4.f;
-
-	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
 	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");

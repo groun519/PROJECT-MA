@@ -5,6 +5,7 @@
 #include "AI/Golem/Monster.h"
 #include "AbilitySystemComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "AIController.h"
@@ -12,6 +13,7 @@
 UBTTask_SendInputToAbilitySystem::UBTTask_SendInputToAbilitySystem()
 {
 	NodeName = TEXT("Use Selected Monster Skill");
+	bCreateNodeInstance = true;
 }
 
 EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -34,8 +36,41 @@ EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::ExecuteTask(UBehaviorTreeC
 	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotTagToUse);
 	if (SlotInputID == INDEX_NONE) return EBTNodeResult::Failed;
 
+	AIC->StopMovement();
 	AbilitySystemComponent->AbilityLocalInputPressed(SlotInputID);
 	const bool bActivated = SkillManager->TryActivateSkill(SlotTagToUse);
 	AbilitySystemComponent->AbilityLocalInputReleased(SlotInputID);
-	return bActivated ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
+	if (!bActivated) return EBTNodeResult::Failed;
+
+	UMASkillAbility* SkillAbility = SkillManager->GetSkillAbility(SlotTagToUse);
+	if (!SkillAbility || !SkillAbility->IsActive()) return EBTNodeResult::Succeeded;
+
+	OwnerBehaviorTree = &OwnerComp;
+	ActiveSkillAbility = SkillAbility;
+	SkillDeactivatedHandle = SkillAbility->OnSkillDeactivated().AddUObject(this, &UBTTask_SendInputToAbilitySystem::HandleSkillDeactivated);
+	return EBTNodeResult::InProgress;
+}
+
+EBTNodeResult::Type UBTTask_SendInputToAbilitySystem::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	UnbindSkillDeactivated();
+	return Super::AbortTask(OwnerComp, NodeMemory);
+}
+
+void UBTTask_SendInputToAbilitySystem::HandleSkillDeactivated()
+{
+	UBehaviorTreeComponent* BehaviorTree = OwnerBehaviorTree.Get();
+	UnbindSkillDeactivated();
+	if (BehaviorTree) FinishLatentTask(*BehaviorTree, EBTNodeResult::Succeeded);
+}
+
+void UBTTask_SendInputToAbilitySystem::UnbindSkillDeactivated()
+{
+	if (UMASkillAbility* SkillAbility = ActiveSkillAbility.Get())
+	{
+		SkillAbility->OnSkillDeactivated().Remove(SkillDeactivatedHandle);
+	}
+	OwnerBehaviorTree.Reset();
+	ActiveSkillAbility.Reset();
+	SkillDeactivatedHandle.Reset();
 }

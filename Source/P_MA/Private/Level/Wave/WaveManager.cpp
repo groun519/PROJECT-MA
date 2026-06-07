@@ -4,6 +4,8 @@
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/MAAttributeSet.h"
 #include "Level/Environment/EnvironmentManager.h"
 
 AWaveManager::AWaveManager()
@@ -205,10 +207,10 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 		if (Spawned)
 		{
 			Spawned->SetEnvTag(CurEnvTag);
-			Spawned->SetDropCoin(Monster.Data.Gold);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
 			Spawned->SetSkillSlots(Monster.Data.SkillSlots);
 			Spawned->FinishSpawning(SpawnTransform);
+			Spawned->GetAbilitySystemComponent()->SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), Monster.Data.Gold);
 			Spawned->SetGoal(SpawnSpline);
 			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
 			AliveMonsterCount++;

@@ -1,8 +1,8 @@
 #include "GAS/MAGameplayAbility_Dead.h"
 
-#include "AI/Golem/Monster.h"
 #include "GAS/Passive/MAFloatingTextActor.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAAttributeSet.h"
 #include "Player/MAPlayerController.h"
 #include "Player/Feedback/MACoinRewardVFXActor.h"
 #include "AbilitySystemComponent.h"
@@ -46,19 +46,14 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 	if (!Killer || !UMAAbilitySystemStatics::IsPlayer(Killer)) Killer = nullptr;
 
 	TArray<AActor*> RewardTargets = GetRewardTargets();
+	RewardTargets.Remove(Killer);
 	if (RewardTargets.Num() == 0 && !Killer)
 	{
 		K2_EndAbility();
 		return;
 	}
 
-	if (Killer && !RewardTargets.Contains(Killer))
-	{
-		RewardTargets.Add(Killer);
-	}
-
-	const AMonster* DeadMonster = Cast<AMonster>(GetAvatarActorFromActorInfo());
-	float TotalCoinReward = DeadMonster ? DeadMonster->GetDropCoin() : 0.f;
+	const float TotalCoinReward = GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UMAAttributeSet::GetCoinAttribute());
 	if (TotalCoinReward <= 0.f)
 	{
 		K2_EndAbility();
@@ -66,17 +61,19 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 	}
 
 	TMap<AActor*, float> CoinRewards;
+	const float KillerRewardPortion = FMath::Clamp(CoinReward.KillerRewardPortion, 0.f, 1.f);
 	if (Killer)
 	{
-		const float KillerCoinReward = TotalCoinReward * FMath::Clamp(CoinReward.KillerRewardPortion, 0.f, 1.f);
-		CoinRewards.FindOrAdd(Killer) += KillerCoinReward;
-		TotalCoinReward -= KillerCoinReward;
+		CoinRewards.Add(Killer, TotalCoinReward * KillerRewardPortion);
 	}
 
-	const float CoinPerTarget = TotalCoinReward / RewardTargets.Num();
-	for (AActor* RewardTarget : RewardTargets)
+	if (RewardTargets.Num() > 0)
 	{
-		CoinRewards.FindOrAdd(RewardTarget) += CoinPerTarget;
+		const float CoinPerTarget = TotalCoinReward * (1.f - KillerRewardPortion) / RewardTargets.Num();
+		for (AActor* RewardTarget : RewardTargets)
+		{
+			CoinRewards.Add(RewardTarget, CoinPerTarget);
+		}
 	}
 
 	check(CoinReward.RewardEffect);

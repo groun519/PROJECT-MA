@@ -6,7 +6,6 @@
 #include "GameplayCueNotify_Actor.h"
 #include "GCN_HitOverlay.generated.h"
 
-class UMaterialInterface;
 class UMaterialInstanceDynamic;
 
 UCLASS()
@@ -21,15 +20,6 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	TObjectPtr<UMaterialInterface> OverlayMaterial;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	FName AlphaParamName = TEXT("Alpha");
-
-	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	FName ColorParamName = TEXT("BaseColor");
-
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
 	FLinearColor DefaultOverlayColor = FLinearColor::White;
 

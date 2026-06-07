@@ -18,5 +18,7 @@ inline const FName PARAM_ModuleIcon_UseSubIcon(TEXT("UseSubIcon"));
 inline const FName PARAM_DragDropIcon_IconTexture(TEXT("IconTexture"));
 inline const FName PARAM_DragDropIcon_IconColor(TEXT("IconColor"));
 
-/** TemperatureOverlay **/
-inline const FName PARAM_TemperatureOverlay_TemperatureAlpha(TEXT("TemperatureAlpha"));
+/** Overlay **/
+inline const FName PARAM_Overlay_Alpha(TEXT("Alpha"));
+inline const FName PARAM_Overlay_BaseColor(TEXT("BaseColor"));
+inline const FName PARAM_Overlay_TemperatureAlpha(TEXT("TemperatureAlpha"));

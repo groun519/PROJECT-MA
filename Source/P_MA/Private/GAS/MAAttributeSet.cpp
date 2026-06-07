@@ -40,11 +40,11 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Armor, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ArmorPenetration, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Fury, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxFury, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalChance, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalDamage, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Temperature, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Coin, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackRange, COND_None, REPNOTIFY_Always)
 }
 
 void UMAAttributeSet::OnAttributeAggregatorCreated(const FGameplayAttribute& Attribute, FAggregator* NewAggregator) const
@@ -96,8 +96,8 @@ DEFINE_REPNOTIFY(SlowMultiplier)
 DEFINE_REPNOTIFY(AttackSpeed)
 DEFINE_REPNOTIFY(Armor)
 DEFINE_REPNOTIFY(ArmorPenetration)
-DEFINE_REPNOTIFY(Fury)
-DEFINE_REPNOTIFY(MaxFury)
 DEFINE_REPNOTIFY(CriticalChance)
 DEFINE_REPNOTIFY(CriticalDamage)
 DEFINE_REPNOTIFY(Temperature)
+DEFINE_REPNOTIFY(Coin)
+DEFINE_REPNOTIFY(AttackRange)

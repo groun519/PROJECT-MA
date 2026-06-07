@@ -149,6 +149,7 @@ bool UMASkillModuleInventoryComponent::EquipInventorySlotToSkillSlot(
 	UMASkillModuleInstance* NewModuleInstance = Entries[SourceSlotIndex];
 	if (!SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, NewModuleInstance, PreviousModuleInstance)) return false;
 
+	if (PreviousModuleInstance) PreviousModuleInstance->SetActivationState(EMASkillModuleActivationState::Active);
 	Entries[SourceSlotIndex] = PreviousModuleInstance;
 	OnInventoryChanged.Broadcast();
 	return true;
@@ -228,6 +229,7 @@ bool UMASkillModuleInventoryComponent::MoveSkillSlotToInventorySlot(
 		return false;
 	}
 
+	PreviousSkillModuleInstance->SetActivationState(EMASkillModuleActivationState::Active);
 	Entries[TargetSlotIndex] = PreviousSkillModuleInstance;
 	OnInventoryChanged.Broadcast();
 	return true;
@@ -253,5 +255,9 @@ void UMASkillModuleInventoryComponent::EnsureSlotCount()
 
 void UMASkillModuleInventoryComponent::OnRep_Entries()
 {
+	for (UMASkillModuleInstance* Entry : Entries)
+	{
+		if (Entry) Entry->SetActivationState(EMASkillModuleActivationState::Active);
+	}
 	OnInventoryChanged.Broadcast();
 }

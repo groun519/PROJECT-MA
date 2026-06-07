@@ -6,7 +6,6 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAplayerAttributeSet.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerCharacter.h"
@@ -259,8 +258,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
-			SetNumericAttributeBase(UMAPlayerAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
-			SetNumericAttributeBase(UMAPlayerAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
+			SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalChanceAttribute(), BaseStats->BaseCriticalChance);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
 		}
@@ -291,8 +290,6 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
-			SetNumericAttributeBase(UMAAttributeSet::GetMaxFuryAttribute(), BaseStats->BaseFuryMax);
-
 			AppliedBaseTags = BaseStats->BaseImmunityTags;
 			AddLooseGameplayTags(BaseStats->BaseImmunityTags);
 		}
