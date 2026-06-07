@@ -5,7 +5,6 @@
 #include "MAGameplayAbility_Dead.generated.h"
 
 class UNiagaraSystem;
-class UGameplayEffect;
 class AMAFloatingTextActor;
 
 USTRUCT()
@@ -27,9 +26,6 @@ struct FMACoinRewardSettings
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	float RewardRange = 1000.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Reward")
-	TSubclassOf<UGameplayEffect> RewardEffect;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta=(ClampMin="0.0", ClampMax="1.0"))
 	float KillerRewardPortion = 0.5f;

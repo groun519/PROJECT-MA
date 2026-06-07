@@ -25,10 +25,6 @@ UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 
 	ActivationBlockedTags.RemoveTag(UMAAbilitySystemStatics::GetStunStatTag());
 
-	static ConstructorHelpers::FClassFinder<UGameplayEffect> RewardEffectFinder(TEXT("/Game/_WorkSpace/GameplayAbilities/GameplayEffects/GE_Kill_Reward"));
-	check(RewardEffectFinder.Succeeded());
-	CoinReward.RewardEffect = RewardEffectFinder.Class;
-
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> CoinRewardVFXFinder(TEXT("/Game/_WorkSpace/AI/Monsters/CoinDrop/NS_CoinDrop.NS_CoinDrop"));
 	check(CoinRewardVFXFinder.Succeeded());
 	CoinReward.VFX.System = CoinRewardVFXFinder.Object;
@@ -62,21 +58,24 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 
 	TMap<AActor*, float> CoinRewards;
 	const float KillerRewardPortion = FMath::Clamp(CoinReward.KillerRewardPortion, 0.f, 1.f);
+	const float SharedRewardPortion = 1.f - KillerRewardPortion;
 	if (Killer)
 	{
-		CoinRewards.Add(Killer, TotalCoinReward * KillerRewardPortion);
+		const float KillerReward = RewardTargets.Num() > 0
+			? TotalCoinReward * KillerRewardPortion
+			: TotalCoinReward;
+		CoinRewards.Add(Killer, KillerReward);
 	}
 
 	if (RewardTargets.Num() > 0)
 	{
-		const float CoinPerTarget = TotalCoinReward * (1.f - KillerRewardPortion) / RewardTargets.Num();
+		const float CoinPerTarget = TotalCoinReward * SharedRewardPortion / RewardTargets.Num();
 		for (AActor* RewardTarget : RewardTargets)
 		{
 			CoinRewards.Add(RewardTarget, CoinPerTarget);
 		}
 	}
 
-	check(CoinReward.RewardEffect);
 	const FVector RewardSourceLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
 	for (const TPair<AActor*, float>& RewardEntry : CoinRewards)
 	{
@@ -84,9 +83,10 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 		const float CoinAmount = RewardEntry.Value;
 		if (!RewardTarget || CoinAmount <= 0.f) continue;
 
-		FGameplayEffectSpecHandle EffectSpec = MakeOutgoingGameplayEffectSpec(this->CoinReward.RewardEffect);
-		EffectSpec.Data->SetSetByCallerMagnitude(UMAAbilitySystemStatics::GetCoinAttributeTag(), CoinAmount);
-		K2_ApplyGameplayEffectSpecToTarget(EffectSpec, UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(RewardTarget));
+		if (UAbilitySystemComponent* RewardASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(RewardTarget))
+		{
+			RewardASC->ApplyModToAttribute(UMAAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, CoinAmount);
+		}
 
 		if (const APawn* RewardPawn = Cast<APawn>(RewardTarget))
 		{
