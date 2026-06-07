@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "MAMaterialParams.h"
+#include "Setting/MAGameSettings.h"
 
 void UMAShopDetailWidget::NativeConstruct()
 {
@@ -17,6 +18,7 @@ void UMAShopDetailWidget::NativeConstruct()
 
 void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 {
+	const UMASkillDefinition* SkillDefinition = InEntry ? InEntry->SkillDefinition : nullptr;
 	const ESlateVisibility EntryVisibility = InEntry ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	const ESlateVisibility BuyVisibility = InEntry ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
@@ -38,15 +40,28 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 		ItemIconImage->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	NameText->SetText(InEntry && InEntry->SkillDefinition ? InEntry->SkillDefinition->GetDisplayData().DisplayName : FText());
+	NameText->SetText(SkillDefinition ? SkillDefinition->GetDisplayData().DisplayName : FText());
 	NameText->SetVisibility(EntryVisibility);
 
 	QualityText->SetText(InEntry ? InEntry->QualityText : FText());
 	QualityText->SetColorAndOpacity(FSlateColor(InEntry ? InEntry->QualityColor : FLinearColor::White));
 	QualityText->SetVisibility(InEntry && !InEntry->QualityText.IsEmpty() ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 
-	DescriptionText->SetText(InEntry && InEntry->SkillDefinition ? InEntry->SkillDefinition->GetDisplayData().Description : FText());
+	DescriptionText->SetText(SkillDefinition ? SkillDefinition->GetDisplayData().Description : FText());
 	DescriptionText->SetVisibility(EntryVisibility);
+
+	const float CooldownSeconds = SkillDefinition ? SkillDefinition->GetCooldownSeconds() : 0.f;
+	FNumberFormattingOptions CooldownFormatting;
+	CooldownFormatting.MinimumFractionalDigits = 0;
+	CooldownFormatting.MaximumFractionalDigits = FMath::Abs(CooldownSeconds) >= 1.f ? 1 : 2;
+	CooldownText->SetText(FText::Format(
+		NSLOCTEXT("MAShopDetailWidget", "CooldownSecondsFormat", "{0}s"),
+		FText::AsNumber(CooldownSeconds, &CooldownFormatting)));
+	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
+	CooldownText->SetColorAndOpacity(FSlateColor(CooldownSeconds >= 0.f
+		? GameSettings->PositiveCooldownColor
+		: GameSettings->NegativeCooldownColor));
+	CooldownText->SetVisibility(FMath::IsNearlyZero(CooldownSeconds) ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 
 	PriceText->SetText(InEntry ? FText::AsNumber(InEntry->Price) : FText());
 	PriceText->SetVisibility(EntryVisibility);

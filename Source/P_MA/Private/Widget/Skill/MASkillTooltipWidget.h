@@ -36,12 +36,6 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> WarningIconImage;
 
-	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
-	FLinearColor PositiveCooldownColor = FLinearColor::White;
-
-	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
-	FLinearColor NegativeCooldownColor = FLinearColor(0.25f, 0.75f, 1.f, 1.f);
-
 private:
 	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon);
 	void SetCooldown(const UMASkillDefinition* SkillDefinition);

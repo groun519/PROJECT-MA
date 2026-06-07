@@ -39,6 +39,29 @@ UMaterialInstanceDynamic* UMAOverlayComponent::GetOrCreateOverlay()
 	return OverlayMID;
 }
 
+void UMAOverlayComponent::ApplyTimedOverlay(const FLinearColor& BaseColor, float Alpha, float Duration)
+{
+	if (Duration <= 0.f) return;
+
+	UMaterialInstanceDynamic* MID = GetOrCreateOverlay();
+	if (!MID) return;
+
+	MID->SetVectorParameterValue(PARAM_Overlay_BaseColor, BaseColor);
+	MID->SetScalarParameterValue(PARAM_Overlay_Alpha, FMath::Clamp(Alpha, 0.f, 1.f));
+
+	GetWorld()->GetTimerManager().SetTimer(
+		TimedOverlayTimerHandle,
+		this,
+		&UMAOverlayComponent::ClearTimedOverlay,
+		Duration,
+		false);
+}
+
+void UMAOverlayComponent::ClearTimedOverlay()
+{
+	OverlayMID->SetScalarParameterValue(PARAM_Overlay_Alpha, 0.f);
+}
+
 USkeletalMeshComponent* UMAOverlayComponent::ResolveTargetMesh() const
 {
 	if (const ACharacter* Character = Cast<ACharacter>(GetOwner()))

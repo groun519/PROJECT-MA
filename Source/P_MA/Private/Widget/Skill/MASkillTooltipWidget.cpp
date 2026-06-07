@@ -5,6 +5,7 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Setting/MAGameSettings.h"
 
 void UMASkillTooltipWidget::SetSkillTooltip(
 	const UMASkillDefinition* SkillDefinition,
@@ -51,13 +52,17 @@ void UMASkillTooltipWidget::SetCooldown(const UMASkillDefinition* SkillDefinitio
 	const ESlateVisibility CooldownVisibility = CooldownTextValue.IsEmpty()
 		? ESlateVisibility::Collapsed
 		: ESlateVisibility::SelfHitTestInvisible;
+	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
+	const FLinearColor CooldownColor = SkillDefinition && SkillDefinition->GetCooldownSeconds() < 0.f
+		? GameSettings->NegativeCooldownColor
+		: GameSettings->PositiveCooldownColor;
 
 	if (CooldownText)
 	{
 		CooldownText->SetText(CooldownTextValue);
 		if (SkillDefinition)
 		{
-			CooldownText->SetColorAndOpacity(FSlateColor(SkillDefinition->GetCooldownSeconds() >= 0.f ? PositiveCooldownColor : NegativeCooldownColor));
+			CooldownText->SetColorAndOpacity(FSlateColor(CooldownColor));
 		}
 		CooldownText->SetVisibility(CooldownVisibility);
 	}
@@ -65,7 +70,7 @@ void UMASkillTooltipWidget::SetCooldown(const UMASkillDefinition* SkillDefinitio
 	{
 		if (SkillDefinition)
 		{
-			CooldownIconImage->SetColorAndOpacity(SkillDefinition->GetCooldownSeconds() >= 0.f ? PositiveCooldownColor : NegativeCooldownColor);
+			CooldownIconImage->SetColorAndOpacity(CooldownColor);
 		}
 		CooldownIconImage->SetVisibility(CooldownVisibility);
 	}

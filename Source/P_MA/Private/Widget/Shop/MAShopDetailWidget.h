@@ -37,6 +37,9 @@ protected:
 	TObjectPtr<URichTextBlock> DescriptionText;
 
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UTextBlock> CooldownText;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> PriceText;
 
 	UPROPERTY(meta=(BindWidget))

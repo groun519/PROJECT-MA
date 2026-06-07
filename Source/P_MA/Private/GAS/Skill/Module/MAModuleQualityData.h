@@ -9,6 +9,7 @@ enum class EMAModuleType : uint8
 {
 	Sequence,
 	Modifier,
+	DebuffModifier,
 	Elemental
 };
 

@@ -24,6 +24,12 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMASkillGenericDataAsset> DefaultSkillGenericDataAsset;
 
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
+	FLinearColor PositiveCooldownColor = FLinearColor::White;
+
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
+	FLinearColor NegativeCooldownColor = FLinearColor(0.25f, 0.75f, 1.f, 1.f);
+
 	UPROPERTY(Config, EditAnywhere, Category="Visual|Overlay")
 	TSoftObjectPtr<UMaterialInterface> OverlayMaterial;
 };
