@@ -2,14 +2,18 @@
 
 #include "Character/MACharacter.h"
 #include "Character/MAOverlayComponent.h"
+#include "GameplayEffectExtension.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Elemental/MAGameplayEffect_BurnDamage.h"
+#include "GAS/Elemental/MAElementalConfigData.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureRecovery.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureSlow.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Setting/MAGameSettings.h"
 
 UMAElementalComponent::UMAElementalComponent()
 {
@@ -28,8 +32,14 @@ void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	RemoveTemperatureRecovery();
 	RemoveTemperatureSlow();
+	RemoveBurnDamage();
 	RemoveFrozenStatus();
 	Super::EndPlay(EndPlayReason);
+}
+
+const UMAElementalConfigData* UMAElementalComponent::GetElementalConfigData() const
+{
+	return OverrideElementalConfigData ? OverrideElementalConfigData : UMAGameSettings::Get()->GetElementalConfigData();
 }
 
 void UMAElementalComponent::BindToASC()
@@ -44,6 +54,7 @@ void UMAElementalComponent::BindToASC()
 	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
+	RefreshBurnDamage();
 	RefreshTemperatureRecoveryEffect();
 }
 
@@ -53,6 +64,7 @@ void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeDat
 	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
+	RefreshBurnDamage(Data.GEModData ? Data.GEModData->EffectSpec.GetContext() : FGameplayEffectContextHandle());
 	RefreshTemperatureRecoveryEffect();
 }
 
@@ -142,6 +154,9 @@ void UMAElementalComponent::RefreshTemperatureSlow()
 
 float UMAElementalComponent::CalculateTemperatureSlowMultiplier() const
 {
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	const float FrozenEnterTemperature = ConfigData ? ConfigData->FrozenEnterTemperature : -100.f;
+	const float FrozenSlowMinMultiplier = ConfigData ? ConfigData->FrozenSlowMinMultiplier : 0.5f;
 	const float FrozenTemperatureRange = FMath::Max(FMath::Abs(FrozenEnterTemperature), KINDA_SMALL_NUMBER);
 	const float FrozenAlpha = FMath::Clamp(-CurrentTemperature / FrozenTemperatureRange, 0.f, 1.f);
 	return FMath::Lerp(1.f, FrozenSlowMinMultiplier, FrozenAlpha);
@@ -179,6 +194,58 @@ void UMAElementalComponent::RemoveTemperatureSlow()
 	CurrentTemperatureSlowMultiplier = 1.f;
 }
 
+void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext)
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+
+	if (CurrentTemperature <= 0.f)
+	{
+		RemoveBurnDamage();
+		return;
+	}
+
+	if (!IsBurnDamageActive())
+	{
+		ApplyBurnDamage(SourceContext);
+	}
+}
+
+float UMAElementalComponent::GetMaxBurnDamagePerTick() const
+{
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	return ConfigData ? ConfigData->MaxBurnDamagePerTick : 5.f;
+}
+
+bool UMAElementalComponent::IsBurnDamageActive() const
+{
+	return OwnerASC
+		&& BurnDamageEffectHandle.IsValid()
+		&& OwnerASC->GetActiveGameplayEffect(BurnDamageEffectHandle);
+}
+
+void UMAElementalComponent::ApplyBurnDamage(const FGameplayEffectContextHandle& SourceContext)
+{
+	if (!OwnerASC || IsBurnDamageActive()) return;
+
+	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(
+		GetDefault<UMAGameplayEffect_BurnDamage>(),
+		SourceContext.IsValid() ? SourceContext : OwnerASC->MakeEffectContext(),
+		1.f));
+	if (!SpecHandle.IsValid()) return;
+
+	SpecHandle.Data->SetSetByCallerMagnitude(UMAGameplayEffect_BurnDamage::GetMaxBurnDamageDataName(), GetMaxBurnDamagePerTick());
+	BurnDamageEffectHandle = OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
+
+void UMAElementalComponent::RemoveBurnDamage()
+{
+	if (OwnerASC && BurnDamageEffectHandle.IsValid())
+	{
+		OwnerASC->RemoveActiveGameplayEffect(BurnDamageEffectHandle);
+	}
+	BurnDamageEffectHandle.Invalidate();
+}
+
 bool UMAElementalComponent::IsFrozenStatusActive() const
 {
 	return OwnerASC
@@ -190,6 +257,9 @@ void UMAElementalComponent::RefreshFrozenStatus()
 {
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
 
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	const float FrozenEnterTemperature = ConfigData ? ConfigData->FrozenEnterTemperature : -100.f;
+	const float FrozenExitTemperature = ConfigData ? ConfigData->FrozenExitTemperature : -80.f;
 	if (IsFrozenStatusActive())
 	{
 		if (CurrentTemperature >= FrozenExitTemperature)

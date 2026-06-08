@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "GAS/GameplayCue/GCN_HitOverlay.h"
 
 #include "Character/MAOverlayComponent.h"
@@ -117,6 +115,7 @@ FLinearColor AGCN_HitOverlay::ResolveOverlayColor(const FGameplayCueParameters& 
 	if (ColorName.Equals(TEXT("Green"), ESearchCase::IgnoreCase)) return FLinearColor::Green;
 	if (ColorName.Equals(TEXT("Cyan"), ESearchCase::IgnoreCase)) return FLinearColor(0.f, 1.f, 1.f);
 	if (ColorName.Equals(TEXT("Yellow"), ESearchCase::IgnoreCase)) return FLinearColor::Yellow;
+	if (ColorName.Equals(TEXT("Orange"), ESearchCase::IgnoreCase)) return FLinearColor(1.f, 0.5f, 0.f);
 
 	return DefaultOverlayColor;
 }

@@ -7,6 +7,7 @@
 
 class AMACharacter;
 class UMAAbilitySystemComponent;
+class UMAElementalConfigData;
 class UMaterialInstanceDynamic;
 
 UCLASS(ClassGroup=(Custom))
@@ -23,6 +24,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	const UMAElementalConfigData* GetElementalConfigData() const;
 	void BindToASC();
 	void HandleTemperatureChanged(const FOnAttributeChangeData& Data);
 	void RefreshTemperatureRecoveryEffect();
@@ -36,19 +38,18 @@ private:
 	bool IsTemperatureSlowActive() const;
 	void ApplyTemperatureSlow(float SlowMultiplier);
 	void RemoveTemperatureSlow();
+	void RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext = FGameplayEffectContextHandle());
+	float GetMaxBurnDamagePerTick() const;
+	bool IsBurnDamageActive() const;
+	void ApplyBurnDamage(const FGameplayEffectContextHandle& SourceContext);
+	void RemoveBurnDamage();
 	bool IsFrozenStatusActive() const;
 	void RefreshFrozenStatus();
 	void ApplyFrozenStatus();
 	void RemoveFrozenStatus();
 
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Frozen")
-	float FrozenEnterTemperature = -100.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Frozen")
-	float FrozenExitTemperature = -80.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Slow", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float FrozenSlowMinMultiplier = 0.5f;
+	UPROPERTY(EditDefaultsOnly, Category="Elemental")
+	TObjectPtr<UMAElementalConfigData> OverrideElementalConfigData;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMACharacter> OwnerCharacter;
@@ -63,5 +64,6 @@ private:
 	FActiveGameplayEffectHandle TemperatureRecoveryEffectHandle;
 	FActiveGameplayEffectHandle TemperatureSlowEffectHandle;
 	float CurrentTemperatureSlowMultiplier = 1.f;
+	FActiveGameplayEffectHandle BurnDamageEffectHandle;
 	FActiveGameplayEffectHandle FrozenStatusEffectHandle;
 };

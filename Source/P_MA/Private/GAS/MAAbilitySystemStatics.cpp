@@ -126,6 +126,11 @@ FGameplayTag UMAAbilitySystemStatics::GetDamageVarianceTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.Variance");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.AttackSpeedMultiplier");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageDealtEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageDealt");
@@ -139,6 +144,11 @@ FGameplayTag UMAAbilitySystemStatics::GetDefaultDamageTypeTag()
 FGameplayTag UMAAbilitySystemStatics::GetHealDamageTypeTag()
 {
 	return FGameplayTag::RequestGameplayTag("DamageType.Heal");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetFireDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Fire");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetIceDamageTypeTag()

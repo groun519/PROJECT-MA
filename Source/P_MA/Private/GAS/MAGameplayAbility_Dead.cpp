@@ -72,16 +72,16 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 	AActor* DeadActor = GetAvatarActorFromActorInfo();
 	AActor* OriginalInstigator = TriggerEventData->ContextHandle.GetOriginalInstigator();
 	AActor* EffectCauser = TriggerEventData->ContextHandle.GetEffectCauser();
-	if (IsSelfCausedDeath(OriginalInstigator, DeadActor) || IsSelfCausedDeath(EffectCauser, DeadActor))
-	{
-		K2_EndAbility();
-		return;
-	}
-
 	AActor* Killer = ResolveRewardPlayerActor(OriginalInstigator);
 	if (!Killer)
 	{
 		Killer = ResolveRewardPlayerActor(EffectCauser);
+	}
+
+	if (!Killer && (IsSelfCausedDeath(OriginalInstigator, DeadActor) || IsSelfCausedDeath(EffectCauser, DeadActor)))
+	{
+		K2_EndAbility();
+		return;
 	}
 
 	TArray<AActor*> RewardTargets = GetRewardTargets();

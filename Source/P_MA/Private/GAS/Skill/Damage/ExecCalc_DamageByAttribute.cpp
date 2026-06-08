@@ -131,6 +131,22 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return;
 	}
 
+	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetFireDamageTypeTag()))
+	{
+		const float FinalFireDamage = FMath::RoundToFloat(BaseDamage);
+		if (FinalFireDamage <= 0.f) return;
+
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetDisplayMagnitude(FinalFireDamage);
+		}
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			UMAAttributeSet::GetTemperatureAttribute(),
+			EGameplayModOp::Additive,
+			FinalFireDamage));
+		return;
+	}
+
 	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetIceDamageTypeTag()))
 	{
 		const float FinalIceDamage = FMath::RoundToFloat(BaseDamage);
