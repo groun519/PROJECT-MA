@@ -14,14 +14,21 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
 		? SkillDefinition->GetDisplayData()
 		: FMASkillDefinitionDisplayData();
+	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
+	const FMASkillDefinitionIconData IconData = SkillDefinition
+		? SkillDefinition->ResolveIconData(ModuleQualityData)
+		: DisplayData.IconData;
 
 	SetDescription(DisplayData.DisplayName, DisplayData.Description);
-	SetIconData(DisplayData.IconData, SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr);
+	SetIconData(
+		IconData,
+		SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr,
+		SkillDefinition ? SkillDefinition->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
 	SetCooldown(SkillDefinition);
 	SetWarningText(InWarningText);
 }
 
-void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon)
+void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)
 {
 	if (!SkillIconImage) return;
 
@@ -31,6 +38,7 @@ void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconDa
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, AssembledSubIcon);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, FrameColor);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData.Icon ? 1.f : 0.f);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, AssembledSubIcon ? 1.f : 0.f);
 	}

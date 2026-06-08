@@ -25,6 +25,8 @@ GAMEPLAYATTRIBUTE_REPNOTIFY(UMAAttributeSet, PropertyName, OldValue); \
 
 UMAAttributeSet::UMAAttributeSet()
 	: SlowMultiplier(1.f)
+	, CriticalDamage(1.5f)
+	, ReverseCriticalDamage(0.5f)
 {
 }
 
@@ -40,8 +42,9 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Armor, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ArmorPenetration, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalChance, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Focus, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalDamage, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ReverseCriticalDamage, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Temperature, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Coin, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackRange, COND_None, REPNOTIFY_Always)
@@ -63,6 +66,8 @@ void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, fl
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
 	else if (Attribute == GetSlowMultiplierAttribute())
 		NewValue = FMath::Clamp(NewValue, 0.f, 1.f);
+	else if (Attribute == GetFocusAttribute())
+		NewValue = FMath::Clamp(NewValue, -1.f, 1.f);
 	else if (Attribute == GetTemperatureAttribute())
 		NewValue = FMath::Clamp(NewValue, -100.f, 100.f);
 }
@@ -96,8 +101,9 @@ DEFINE_REPNOTIFY(SlowMultiplier)
 DEFINE_REPNOTIFY(AttackSpeed)
 DEFINE_REPNOTIFY(Armor)
 DEFINE_REPNOTIFY(ArmorPenetration)
-DEFINE_REPNOTIFY(CriticalChance)
+DEFINE_REPNOTIFY(Focus)
 DEFINE_REPNOTIFY(CriticalDamage)
+DEFINE_REPNOTIFY(ReverseCriticalDamage)
 DEFINE_REPNOTIFY(Temperature)
 DEFINE_REPNOTIFY(Coin)
 DEFINE_REPNOTIFY(AttackRange)

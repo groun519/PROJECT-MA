@@ -11,6 +11,8 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	UMASkillDefinition* AssembledDefinition = nullptr;
 	TMap<int32, FText> NameKeywordsByPriority;
 	TSet<FGameplayTag> UsedExclusiveAssemblyTags;
+	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
+	const FGameplayTag UniqueAssemblyTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Assembly.Exclusive.Unique"), false);
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
@@ -27,16 +29,47 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 		if (!Definition) continue;
 
-		const FGameplayTag& ExclusiveAssemblyTag = Definition->GetExclusiveAssemblyTag();
-		if (ExclusiveAssemblyTag.IsValid())
+		FGameplayTag BlockingAssemblyTag;
+		for (const FGameplayTag& ExclusiveAssemblyTag : Definition->GetExclusiveAssemblyTags())
 		{
-			if (UsedExclusiveAssemblyTags.Contains(ExclusiveAssemblyTag))
+			if (!ExclusiveAssemblyTag.IsValid()) continue;
+
+			if (ExclusiveAssemblyTag.MatchesTag(UniqueAssemblyTag))
 			{
-				ModuleInstance->SetActivationState(EMASkillModuleActivationState::Inactive, ExclusiveAssemblyTag);
+				if (const TSet<const UMASkillDefinition*>* UsedDefinitions = UsedUniqueDefinitionsByTag.Find(ExclusiveAssemblyTag);
+					UsedDefinitions && UsedDefinitions->Contains(Definition))
+				{
+					BlockingAssemblyTag = ExclusiveAssemblyTag;
+					break;
+				}
 				continue;
 			}
 
-			UsedExclusiveAssemblyTags.Add(ExclusiveAssemblyTag);
+			if (UsedExclusiveAssemblyTags.Contains(ExclusiveAssemblyTag))
+			{
+				BlockingAssemblyTag = ExclusiveAssemblyTag;
+				break;
+			}
+		}
+
+		if (BlockingAssemblyTag.IsValid())
+		{
+			ModuleInstance->SetActivationState(EMASkillModuleActivationState::Inactive, BlockingAssemblyTag);
+			continue;
+		}
+
+		for (const FGameplayTag& ExclusiveAssemblyTag : Definition->GetExclusiveAssemblyTags())
+		{
+			if (!ExclusiveAssemblyTag.IsValid()) continue;
+
+			if (ExclusiveAssemblyTag.MatchesTag(UniqueAssemblyTag))
+			{
+				UsedUniqueDefinitionsByTag.FindOrAdd(ExclusiveAssemblyTag).Add(Definition);
+			}
+			else
+			{
+				UsedExclusiveAssemblyTags.Add(ExclusiveAssemblyTag);
+			}
 		}
 
 		if (!AssembledDefinition)

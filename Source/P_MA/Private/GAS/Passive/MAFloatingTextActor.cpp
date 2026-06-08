@@ -15,13 +15,10 @@ AMAFloatingTextActor::AMAFloatingTextActor()
 	FloatingTextWidgetComp->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
-void AMAFloatingTextActor::PlayText(const FText& Text, const FLinearColor& Color)
+void AMAFloatingTextActor::PlayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor)
 {
-	if (FloatingTextWidgetComp)
+	if (UMAFloatingTextWidget* FloatingTextWidget = Cast<UMAFloatingTextWidget>(FloatingTextWidgetComp->GetUserWidgetObject()))
 	{
-		if (UMAFloatingTextWidget* FloatingTextWidget = Cast<UMAFloatingTextWidget>(FloatingTextWidgetComp->GetUserWidgetObject()))
-		{
-			FloatingTextWidget->SetDisplayText(Text, Color);
-		}
+		FloatingTextWidget->SetDisplayText(Text, Color, OutlineColor);
 	}
 }

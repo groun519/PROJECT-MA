@@ -17,7 +17,7 @@ struct FMADamageAppliedEvent
 	FHitResult HitResult;
 	float DisplayMagnitude = 0.f;
 	FGameplayTag DamageTypeTag;
-	bool bIsCriticalHit = false;
+	EMADamageCriticalResult CriticalResult = EMADamageCriticalResult::None;
 };
 
 UCLASS()

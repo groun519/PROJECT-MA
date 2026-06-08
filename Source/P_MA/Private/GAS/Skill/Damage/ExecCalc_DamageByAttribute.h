@@ -24,8 +24,9 @@ private:
 	FGameplayEffectAttributeCaptureDefinition SourceAttackSpeedDef;
 	FGameplayEffectAttributeCaptureDefinition SourceArmorDef;
 	FGameplayEffectAttributeCaptureDefinition SourceArmorPenetrationDef;
-	FGameplayEffectAttributeCaptureDefinition SourceCriticalChanceDef;
+	FGameplayEffectAttributeCaptureDefinition SourceFocusDef;
 	FGameplayEffectAttributeCaptureDefinition SourceCriticalDamageDef;
+	FGameplayEffectAttributeCaptureDefinition SourceReverseCriticalDamageDef;
 
 	FGameplayEffectAttributeCaptureDefinition TargetHealthDef;
 	FGameplayEffectAttributeCaptureDefinition TargetMaxHealthDef;
@@ -34,8 +35,9 @@ private:
 	FGameplayEffectAttributeCaptureDefinition TargetAttackSpeedDef;
 	FGameplayEffectAttributeCaptureDefinition TargetArmorDef;
 	FGameplayEffectAttributeCaptureDefinition TargetArmorPenetrationDef;
-	FGameplayEffectAttributeCaptureDefinition TargetCriticalChanceDef;
+	FGameplayEffectAttributeCaptureDefinition TargetFocusDef;
 	FGameplayEffectAttributeCaptureDefinition TargetCriticalDamageDef;
+	FGameplayEffectAttributeCaptureDefinition TargetReverseCriticalDamageDef;
 
 	FGameplayTag BehaviorModifierTag;
 	FGameplayTag DamageVarianceTag;

@@ -10,6 +10,7 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillModuleDragDropOperation.h"
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
 #include "Widget/Skill/MASkillTooltipWidget.h"
@@ -88,19 +89,24 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 {
 	if (!ModuleIconImage) return;
 
-	const FMASkillDefinitionIconData* IconData = Definition ? &Definition->GetDisplayData().IconData : nullptr;
+	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
+	const FMASkillDefinitionIconData IconData = Definition
+		? Definition->ResolveIconData(ModuleQualityData)
+		: FMASkillDefinitionIconData();
+	const bool bHasIcon = IconData.Icon != nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
-		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData ? IconData->Icon : nullptr);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, nullptr);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData ? IconData->IconColor : FLinearColor::White);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData ? IconData->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
-		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData && IconData->Icon ? 1.f : 0.f);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, Definition ? Definition->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, bHasIcon ? 1.f : 0.f);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, 0.f);
 	}
-	else if (IconData && IconData->Icon)
+	else if (bHasIcon)
 	{
-		ModuleIconImage->SetBrushFromTexture(IconData->Icon);
+		ModuleIconImage->SetBrushFromTexture(IconData.Icon);
 	}
 	else
 	{
@@ -167,7 +173,7 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	RefreshHoverVisual();
 	SetDraggedSourceVisual(true);
 
-	const FMASkillDefinitionIconData& IconData = CachedDefinition->GetDisplayData().IconData;
+	const FMASkillDefinitionIconData IconData = CachedDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
 	if (DragVisualWidgetClass && IconData.Icon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);

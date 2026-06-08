@@ -7,11 +7,42 @@
 #include "Player/Feedback/MACoinRewardVFXActor.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "Engine/OverlapResult.h"
+#include "EngineUtils.h"
+#include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
 #include "NiagaraSystem.h"
+#include "Player/MAPlayerCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+
+static AActor* ResolveRewardPlayerActor(AActor* Actor)
+{
+	if (UMAAbilitySystemStatics::IsPlayer(Actor)) return Actor;
+
+	if (const AController* Controller = Cast<AController>(Actor))
+	{
+		APawn* Pawn = Controller->GetPawn();
+		return UMAAbilitySystemStatics::IsPlayer(Pawn) ? Pawn : nullptr;
+	}
+
+	APawn* InstigatorPawn = Actor ? Actor->GetInstigator() : nullptr;
+	return UMAAbilitySystemStatics::IsPlayer(InstigatorPawn) ? InstigatorPawn : nullptr;
+}
+
+static bool IsSelfCausedDeath(AActor* CauseActor, AActor* DeadActor)
+{
+	if (!CauseActor || !DeadActor) return false;
+	if (CauseActor == DeadActor) return true;
+
+	if (const AController* Controller = Cast<AController>(CauseActor))
+	{
+		if (Controller->GetPawn() == DeadActor) return true;
+	}
+
+	AActor* CauseRewardActor = ResolveRewardPlayerActor(CauseActor);
+	AActor* DeadRewardActor = ResolveRewardPlayerActor(DeadActor);
+	return CauseRewardActor && CauseRewardActor == DeadRewardActor;
+}
 
 UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 {
@@ -38,8 +69,20 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 {
 	check(TriggerEventData);
 
-	AActor* Killer = TriggerEventData->ContextHandle.GetEffectCauser();
-	if (!Killer || !UMAAbilitySystemStatics::IsPlayer(Killer)) Killer = nullptr;
+	AActor* DeadActor = GetAvatarActorFromActorInfo();
+	AActor* OriginalInstigator = TriggerEventData->ContextHandle.GetOriginalInstigator();
+	AActor* EffectCauser = TriggerEventData->ContextHandle.GetEffectCauser();
+	if (IsSelfCausedDeath(OriginalInstigator, DeadActor) || IsSelfCausedDeath(EffectCauser, DeadActor))
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	AActor* Killer = ResolveRewardPlayerActor(OriginalInstigator);
+	if (!Killer)
+	{
+		Killer = ResolveRewardPlayerActor(EffectCauser);
+	}
 
 	TArray<AActor*> RewardTargets = GetRewardTargets();
 	RewardTargets.Remove(Killer);
@@ -58,7 +101,6 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 
 	TMap<AActor*, float> CoinRewards;
 	const float KillerRewardPortion = FMath::Clamp(CoinReward.KillerRewardPortion, 0.f, 1.f);
-	const float SharedRewardPortion = 1.f - KillerRewardPortion;
 	if (Killer)
 	{
 		const float KillerReward = RewardTargets.Num() > 0
@@ -69,6 +111,7 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 
 	if (RewardTargets.Num() > 0)
 	{
+		const float SharedRewardPortion = Killer ? 1.f - KillerRewardPortion : 1.f;
 		const float CoinPerTarget = TotalCoinReward * SharedRewardPortion / RewardTargets.Num();
 		for (AActor* RewardTarget : RewardTargets)
 		{
@@ -109,34 +152,23 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 
 TArray<AActor*> UMAGameplayAbility_Dead::GetRewardTargets() const
 {
-	TSet<AActor*> OutActors;
+	TArray<AActor*> OutActors;
 
 	AActor* AvatarActor = GetAvatarActorFromActorInfo();
 	if (!AvatarActor || !GetWorld())
 	{
-		return OutActors.Array();
+		return OutActors;
 	}
 
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-	FCollisionShape CollisionShape;
-	CollisionShape.SetSphere(CoinReward.RewardRange);
-
-	TArray<FOverlapResult> OverlapResults;
-	if (GetWorld()->OverlapMultiByObjectType(OverlapResults, AvatarActor->GetActorLocation(), FQuat::Identity, ObjectQueryParams, CollisionShape))
+	const float RewardRangeSquared = FMath::Square(CoinReward.RewardRange);
+	for (TActorIterator<AMAPlayerCharacter> It(GetWorld()); It; ++It)
 	{
-		for (const FOverlapResult& OverlapResult : OverlapResults)
-		{
-			const IGenericTeamAgentInterface* OtherTeamInterface = Cast<IGenericTeamAgentInterface>(OverlapResult.GetActor());
-			if (!OtherTeamInterface || OtherTeamInterface->GetTeamAttitudeTowards(*AvatarActor) != ETeamAttitude::Hostile)
-				continue;
-			
-			if (!UMAAbilitySystemStatics::IsPlayer(OverlapResult.GetActor()))
-				continue;
+		AMAPlayerCharacter* PlayerCharacter = *It;
+		if (!PlayerCharacter) continue;
+		if (FVector::DistSquared(PlayerCharacter->GetActorLocation(), AvatarActor->GetActorLocation()) > RewardRangeSquared) continue;
 
-			OutActors.Add(OverlapResult.GetActor());
-		}
+		OutActors.Add(PlayerCharacter);
 	}
 
-	return OutActors.Array();
+	return OutActors;
 }

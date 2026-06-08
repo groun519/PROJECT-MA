@@ -8,13 +8,21 @@
 
 struct FMAGameplayEffectContext;
 
+UENUM(BlueprintType)
+enum class EMADamageCriticalResult : uint8
+{
+	None,
+	Critical,
+	ReverseCritical
+};
+
 USTRUCT()
 struct FMAGameplayEffectContext : public FGameplayEffectContext
 {
 	GENERATED_BODY()
 
-	bool IsCriticalHit() const {return bIsCriticalHit;}
-	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
+	EMADamageCriticalResult GetCriticalResult() const { return CriticalResult; }
+	void SetCriticalResult(EMADamageCriticalResult InCriticalResult) { CriticalResult = InCriticalResult; }
 	const FGameplayTag& GetDamageTypeTag() const { return DamageTypeTag; }
 	void SetDamageTypeTag(const FGameplayTag& InDamageTypeTag) { DamageTypeTag = InDamageTypeTag; }
 	float GetDisplayMagnitude() const { return DisplayMagnitude; }
@@ -34,7 +42,7 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 
 protected:
 	UPROPERTY()
-	bool bIsCriticalHit = false;
+	EMADamageCriticalResult CriticalResult = EMADamageCriticalResult::None;
 
 	UPROPERTY()
 	FGameplayTag DamageTypeTag;
@@ -76,8 +84,9 @@ enum class EMADamageAttribute : uint8
 	AttackSpeed,
 	Armor,
 	ArmorPenetration,
-	CriticalChance,
-	CriticalDamage
+	Focus,
+	CriticalDamage,
+	ReverseCriticalDamage
 };
 
 UENUM(BlueprintType)
@@ -226,10 +235,13 @@ FPlayerBaseStats();
 	float BaseAttackSpeed;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseCriticalChance;
+	float BaseFocus;
 
 	UPROPERTY(EditAnywhere)
 	float BaseCriticalDamage;
+
+	UPROPERTY(EditAnywhere)
+	float BaseReverseCriticalDamage;
 	
 	UPROPERTY(EditAnywhere)
 	float BaseAttackRange;

@@ -6,6 +6,7 @@
 
 class UUserWidget;
 class UMASkillGenericDataAsset;
+class UMAModuleQualityData;
 class UMaterialInterface;
 
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="MA Game Settings"))
@@ -16,6 +17,7 @@ class P_MA_API UMAGameSettings : public UDeveloperSettings
 public:
 	static const UMAGameSettings* Get() { return GetDefault<UMAGameSettings>(); }
 	const UMASkillGenericDataAsset* GetDefaultSkillGenericDataAsset() const;
+	const UMAModuleQualityData* GetModuleQualityData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
 
 	UPROPERTY(Config, EditAnywhere, Category="Interact")
@@ -23,6 +25,9 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMASkillGenericDataAsset> DefaultSkillGenericDataAsset;
+
+	UPROPERTY(Config, EditAnywhere, Category="Skill")
+	TSoftObjectPtr<UMAModuleQualityData> ModuleQualityData;
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
 	FLinearColor PositiveCooldownColor = FLinearColor::White;

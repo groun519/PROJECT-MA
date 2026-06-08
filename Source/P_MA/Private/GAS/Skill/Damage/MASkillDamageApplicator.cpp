@@ -161,7 +161,7 @@ bool MASkillDamageApplicator::ApplyDamageSpecToTargetASC(
 	DamageAppliedEvent.HitResult = HitResult;
 	DamageAppliedEvent.DisplayMagnitude = MAContext->GetDisplayMagnitude();
 	DamageAppliedEvent.DamageTypeTag = DamageTypeTag;
-	DamageAppliedEvent.bIsCriticalHit = MAContext->IsCriticalHit();
+	DamageAppliedEvent.CriticalResult = MAContext->GetCriticalResult();
 
 	OutDamageAppliedEvent = DamageAppliedEvent;
 	return true;

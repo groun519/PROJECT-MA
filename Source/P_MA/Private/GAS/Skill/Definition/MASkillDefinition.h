@@ -71,13 +71,16 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 public:
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
 	const FMAModuleQuality& GetModuleQuality() const { return ModuleQuality; }
+	FMASkillDefinitionIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
+	FLinearColor ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const;
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
-	const FGameplayTag& GetExclusiveAssemblyTag() const { return ExclusiveAssemblyTag; }
+	const FGameplayTagContainer& GetExclusiveAssemblyTags() const { return ExclusiveAssemblyTags; }
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
+	virtual void PostLoad() override;
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
 	{
@@ -104,7 +107,13 @@ private:
 	TObjectPtr<UTexture2D> AssembledSubIcon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category="Assembly", meta=(Categories="Module.Assembly.Exclusive"))
-	FGameplayTag ExclusiveAssemblyTag;
+	FGameplayTagContainer ExclusiveAssemblyTags;
+
+	UPROPERTY()
+	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;
+
+	UPROPERTY()
+	FGameplayTag UniqueModuleEffectTag_DEPRECATED;
 
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
 	FGameplayTag ElementalTag;

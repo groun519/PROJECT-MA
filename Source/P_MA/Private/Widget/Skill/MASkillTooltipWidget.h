@@ -37,7 +37,7 @@ protected:
 	TObjectPtr<UImage> WarningIconImage;
 
 private:
-	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon);
+	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
 	void SetCooldown(const UMASkillDefinition* SkillDefinition);
 	void SetWarningText(const FText& InWarningText);
 	FText ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const;

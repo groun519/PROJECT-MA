@@ -31,8 +31,9 @@ public:
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, AttackSpeed)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Armor)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, ArmorPenetration)
-	ATTRIBUTE_ACCESSORS(UMAAttributeSet, CriticalChance)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Focus)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, CriticalDamage)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, ReverseCriticalDamage)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Temperature)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Coin)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, AttackRange)
@@ -46,8 +47,9 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)		FGameplayAttributeData AttackSpeed;
 	UPROPERTY(ReplicatedUsing = OnRep_Armor)			FGameplayAttributeData Armor;
 	UPROPERTY(ReplicatedUsing = OnRep_ArmorPenetration)	FGameplayAttributeData ArmorPenetration;
-	UPROPERTY(ReplicatedUsing = OnRep_CriticalChance)	FGameplayAttributeData CriticalChance;
+	UPROPERTY(ReplicatedUsing = OnRep_Focus)			FGameplayAttributeData Focus;
 	UPROPERTY(ReplicatedUsing = OnRep_CriticalDamage)	FGameplayAttributeData CriticalDamage;
+	UPROPERTY(ReplicatedUsing = OnRep_ReverseCriticalDamage) FGameplayAttributeData ReverseCriticalDamage;
 	UPROPERTY(ReplicatedUsing = OnRep_Temperature)		FGameplayAttributeData Temperature;
 	UPROPERTY(ReplicatedUsing = OnRep_Coin)				FGameplayAttributeData Coin;
 	UPROPERTY(ReplicatedUsing = OnRep_AttackRange)		FGameplayAttributeData AttackRange;
@@ -60,8 +62,9 @@ private:
 	UFUNCTION() void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Armor(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_ArmorPenetration(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_CriticalChance(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Focus(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_CriticalDamage(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_ReverseCriticalDamage(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Temperature(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Coin(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_AttackRange(const FGameplayAttributeData& OldValue);

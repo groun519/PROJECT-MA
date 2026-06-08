@@ -104,7 +104,7 @@ void UMAAbilitySystemComponent::NotifyDamageAppliedFromGameplayEffect(const FGam
 	DamageAppliedEvent.DamageTypeTag = MAContext->GetDamageTypeTag().IsValid()
 		? MAContext->GetDamageTypeTag()
 		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
-	DamageAppliedEvent.bIsCriticalHit = MAContext->IsCriticalHit();
+	DamageAppliedEvent.CriticalResult = MAContext->GetCriticalResult();
 	if (const FHitResult* HitResult = ContextHandle.GetHitResult())
 	{
 		DamageAppliedEvent.HitResult = *HitResult;
@@ -135,7 +135,7 @@ void UMAAbilitySystemComponent::ShowDamageText(const FMADamageAppliedEvent& Dama
 		PlayerController->ClientShowDamageNumber(
 			DamageAppliedEvent.DisplayMagnitude,
 			TargetActor,
-			DamageAppliedEvent.bIsCriticalHit,
+			DamageAppliedEvent.CriticalResult,
 			bIsIncoming,
 			DamageAppliedEvent.DamageTypeTag);
 	}
@@ -260,8 +260,9 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
 			SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
-			SetNumericAttributeBase(UMAAttributeSet::GetCriticalChanceAttribute(), BaseStats->BaseCriticalChance);
+			SetNumericAttributeBase(UMAAttributeSet::GetFocusAttribute(), BaseStats->BaseFocus);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
+			SetNumericAttributeBase(UMAAttributeSet::GetReverseCriticalDamageAttribute(), BaseStats->BaseReverseCriticalDamage);
 		}
 	}
 	//몬스터인 경우 몬스터 데이터 테이블로 초기화

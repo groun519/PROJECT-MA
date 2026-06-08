@@ -24,8 +24,9 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 	InitCaptureDef(SourceAttackSpeedDef, UMAAttributeSet::GetAttackSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Source);
 	InitCaptureDef(SourceArmorDef, UMAAttributeSet::GetArmorAttribute(), EGameplayEffectAttributeCaptureSource::Source);
 	InitCaptureDef(SourceArmorPenetrationDef, UMAAttributeSet::GetArmorPenetrationAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceCriticalChanceDef, UMAAttributeSet::GetCriticalChanceAttribute(), EGameplayEffectAttributeCaptureSource::Source);
+	InitCaptureDef(SourceFocusDef, UMAAttributeSet::GetFocusAttribute(), EGameplayEffectAttributeCaptureSource::Source);
 	InitCaptureDef(SourceCriticalDamageDef, UMAAttributeSet::GetCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Source);
+	InitCaptureDef(SourceReverseCriticalDamageDef, UMAAttributeSet::GetReverseCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Source);
 
 	InitCaptureDef(TargetHealthDef, UMAAttributeSet::GetHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetMaxHealthDef, UMAAttributeSet::GetMaxHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
@@ -34,8 +35,9 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 	InitCaptureDef(TargetAttackSpeedDef, UMAAttributeSet::GetAttackSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetArmorDef, UMAAttributeSet::GetArmorAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetArmorPenetrationDef, UMAAttributeSet::GetArmorPenetrationAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetCriticalChanceDef, UMAAttributeSet::GetCriticalChanceAttribute(), EGameplayEffectAttributeCaptureSource::Target);
+	InitCaptureDef(TargetFocusDef, UMAAttributeSet::GetFocusAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetCriticalDamageDef, UMAAttributeSet::GetCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Target);
+	InitCaptureDef(TargetReverseCriticalDamageDef, UMAAttributeSet::GetReverseCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 
 	BehaviorModifierTag = UMAAbilitySystemStatics::GetBehaviorMultiplierTag();
 	DamageVarianceTag = UMAAbilitySystemStatics::GetDamageVarianceTag();
@@ -70,8 +72,9 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		case EMADamageAttribute::AttackSpeed: return bSource ? SourceAttackSpeedDef : TargetAttackSpeedDef;
 		case EMADamageAttribute::Armor: return bSource ? SourceArmorDef : TargetArmorDef;
 		case EMADamageAttribute::ArmorPenetration: return bSource ? SourceArmorPenetrationDef : TargetArmorPenetrationDef;
-		case EMADamageAttribute::CriticalChance: return bSource ? SourceCriticalChanceDef : TargetCriticalChanceDef;
+		case EMADamageAttribute::Focus: return bSource ? SourceFocusDef : TargetFocusDef;
 		case EMADamageAttribute::CriticalDamage: return bSource ? SourceCriticalDamageDef : TargetCriticalDamageDef;
+		case EMADamageAttribute::ReverseCriticalDamage: return bSource ? SourceReverseCriticalDamageDef : TargetReverseCriticalDamageDef;
 		}
 
 		return bSource ? SourceAttackDef : TargetAttackDef;
@@ -83,7 +86,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	for (int32 SideIndex = 0; SideIndex < 2; ++SideIndex)
 	{
 		const EMADamageAttributeSide Side = SideIndex == 0 ? EMADamageAttributeSide::Source : EMADamageAttributeSide::Target;
-		for (int32 AttributeIndex = 0; AttributeIndex <= static_cast<int32>(EMADamageAttribute::CriticalDamage); ++AttributeIndex)
+		for (int32 AttributeIndex = 0; AttributeIndex <= static_cast<int32>(EMADamageAttribute::ReverseCriticalDamage); ++AttributeIndex)
 		{
 			const EMADamageAttribute Attribute = static_cast<EMADamageAttribute>(AttributeIndex);
 			const float Coefficient = Spec.GetSetByCallerMagnitude(
@@ -110,6 +113,8 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	const FGameplayTag DamageTypeTag = MAContext && MAContext->GetDamageTypeTag().IsValid()
 		? MAContext->GetDamageTypeTag()
 		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	const bool bCanCriticalHit = DamageTypeTag == UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	const bool bIsFixedDamage = DamageTypeTag == UMAAbilitySystemStatics::GetFixedDamageTypeTag();
 	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag()))
 	{
 		const float FinalHeal = FMath::RoundToFloat(BaseDamage);
@@ -142,29 +147,52 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return;
 	}
 
+	const float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag, false, 1.f);
+	const float FinalDamageMultiplier = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(), false, 1.f);
+	if (bIsFixedDamage)
+	{
+		const float FinalDamage = FMath::RoundToFloat(BaseDamage * BehaviorBonus * FinalDamageMultiplier);
+		if (FinalDamage <= 0.f) return;
+
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetCriticalResult(EMADamageCriticalResult::None);
+			MutableMAContext->SetDisplayMagnitude(FinalDamage);
+		}
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			UMAAttributeSet::GetHealthAttribute(),
+			EGameplayModOp::Additive,
+			-FinalDamage));
+		return;
+	}
+
 	const float Armor = CaptureMagnitude(TargetArmorDef);
 	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
 	const float DamageVariance = FMath::Max(0.f, Spec.GetSetByCallerMagnitude(DamageVarianceTag, false, 0.f));
-	const float CriticalChance = CaptureMagnitude(SourceCriticalChanceDef);
+	const float Focus = FMath::Clamp(CaptureMagnitude(SourceFocusDef), -1.f, 1.f);
 	const float CriticalDamage = CaptureMagnitude(SourceCriticalDamageDef);
-
-	const float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag, false, 1.f);
-	const float FinalDamageMultiplier = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(), false, 1.f);
+	const float ReverseCriticalDamage = CaptureMagnitude(SourceReverseCriticalDamageDef);
 
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);
 	const float MinMultiplier = 1.f - DamageVariance;
 	const float MaxMultiplier = 1.f + DamageVariance;
 	float RandomizedDamage = FMath::RandRange(MinMultiplier, MaxMultiplier) * BaseDamage;
 
-	bool bIsCriticalHit = FMath::FRand() <= CriticalChance;
-	if (bIsCriticalHit)
+	EMADamageCriticalResult CriticalResult = EMADamageCriticalResult::None;
+	if (bCanCriticalHit && Focus > 0.f && FMath::FRand() <= Focus)
 	{
+		CriticalResult = EMADamageCriticalResult::Critical;
 		RandomizedDamage *= CriticalDamage;
+	}
+	else if (bCanCriticalHit && Focus < 0.f && FMath::FRand() <= -Focus)
+	{
+		CriticalResult = EMADamageCriticalResult::ReverseCritical;
+		RandomizedDamage *= ReverseCriticalDamage;
 	}
 
 	if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 	{
-		MutableMAContext->SetIsCriticalHit(bIsCriticalHit);
+		MutableMAContext->SetCriticalResult(CriticalResult);
 	}
 
 	const float DamageAfterArmor = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));

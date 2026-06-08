@@ -146,6 +146,11 @@ FGameplayTag UMAAbilitySystemStatics::GetIceDamageTypeTag()
 	return FGameplayTag::RequestGameplayTag("DamageType.Ice");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetFixedDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Fixed");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
 {
 	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
@@ -160,8 +165,9 @@ FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamage
 	case EMADamageAttribute::AttackSpeed: AttributeName = TEXT("AttackSpeed"); break;
 	case EMADamageAttribute::Armor: AttributeName = TEXT("Armor"); break;
 	case EMADamageAttribute::ArmorPenetration: AttributeName = TEXT("ArmorPenetration"); break;
-	case EMADamageAttribute::CriticalChance: AttributeName = TEXT("CriticalChance"); break;
+	case EMADamageAttribute::Focus: AttributeName = TEXT("Focus"); break;
 	case EMADamageAttribute::CriticalDamage: AttributeName = TEXT("CriticalDamage"); break;
+	case EMADamageAttribute::ReverseCriticalDamage: AttributeName = TEXT("ReverseCriticalDamage"); break;
 	}
 
 	return FGameplayTag::RequestGameplayTag(*FString::Printf(TEXT("Data.Damage.Coeff.%s.%s"), SideName, AttributeName));

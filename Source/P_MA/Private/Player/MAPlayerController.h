@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GenericTeamAgentInterface.h"
 #include "GameplayTagContainer.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
@@ -50,7 +51,7 @@ public:
 	void NotifyInputBindingsChanged();
 	void SetGameplayWidgetVisible(bool bVisible);
 	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
-	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color);
+	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent);
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
@@ -76,7 +77,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<class AMAFloatingTextActor> FloatingTextActorClass;
 	UFUNCTION(Client, Unreliable)
-	void ClientShowDamageNumber(float Amount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit, FGameplayTag DamageTypeTag);
+	void ClientShowDamageNumber(float Amount, AActor* TargetActor, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit, FGameplayTag DamageTypeTag);
 	UFUNCTION(Client, Unreliable)
 	void ClientPlayCoinRewardFeedback(const FMACoinRewardFeedbackParams& Params);
 	

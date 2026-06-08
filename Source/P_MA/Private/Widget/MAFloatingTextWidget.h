@@ -12,7 +12,7 @@ class UMAFloatingTextWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetDisplayText(const FText& Text, const FLinearColor& Color);
+	void SetDisplayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent);
 
 protected:
 	UPROPERTY(meta=(BindWidget))

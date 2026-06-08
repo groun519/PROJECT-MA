@@ -96,12 +96,15 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
-void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit, FGameplayTag DamageTypeTag)
+void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AActor* TargetActor, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit, FGameplayTag DamageTypeTag)
 {
 	if (!TargetActor) return;
 
 	const bool bIsHeal = DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag());
+	const bool bIsDefaultDamage = DamageTypeTag == UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	const bool bIsFixedDamage = DamageTypeTag == UMAAbilitySystemStatics::GetFixedDamageTypeTag();
 	FLinearColor DamageColor = FLinearColor::White;
+	FLinearColor OutlineColor = FLinearColor::Transparent;
 	if (bIsHeal)
 	{
 		DamageColor = FLinearColor::Green;
@@ -110,13 +113,22 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AA
 	{
 		DamageColor = FLinearColor(0.f, 1.f, 1.f);
 	}
+	else if (bIsDefaultDamage && CriticalResult == EMADamageCriticalResult::Critical)
+	{
+		DamageColor = FLinearColor(1.f, 0.82f, 0.15f, 1.f);
+	}
+	else if (bIsDefaultDamage && CriticalResult == EMADamageCriticalResult::ReverseCritical)
+	{
+		DamageColor = FLinearColor(0.25f, 0.25f, 0.25f, 1.f);
+	}
 	else if (bIsPlayerHit)
 	{
 		DamageColor = FLinearColor::Red;
 	}
-	else if (bIsCriticalHit)
+
+	if (bIsFixedDamage)
 	{
-		DamageColor = FLinearColor::Yellow;
+		OutlineColor = FLinearColor(0.82f, 0.82f, 0.78f, 1.f);
 	}
 
 	FVector TextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, bIsHeal ? 130.f : 100.f);
@@ -126,17 +138,18 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AA
 	ShowFloatingText(
 		FText::AsNumber(FMath::RoundToInt(Amount)),
 		TextLocation,
-		DamageColor);
+		DamageColor,
+		OutlineColor);
 }
 
-void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color)
+void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor)
 {
 	if (!FloatingTextActorClass) return;
 
 	AMAFloatingTextActor* FloatingTextActor = GetWorld()->SpawnActor<AMAFloatingTextActor>(FloatingTextActorClass, WorldLocation, FRotator::ZeroRotator);
 	if (FloatingTextActor)
 	{
-		FloatingTextActor->PlayText(Text, Color);
+		FloatingTextActor->PlayText(Text, Color, OutlineColor);
 	}
 }
 

@@ -5,11 +5,48 @@
 #include "GAS/Skill/Event/Publish/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
+FMASkillDefinitionIconData UMASkillDefinition::ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const
+{
+	FMASkillDefinitionIconData IconData = DisplayData.IconData;
+	if (!ModuleQualityData || ModuleQuality.Type == EMAModuleType::Elemental) return IconData;
+
+	if (const FMAModuleTypeData* TypeData = ModuleQualityData->FindTypeData(ModuleQuality.Type))
+	{
+		IconData.IconColor = TypeData->IconColor;
+		IconData.InnerColor = TypeData->InnerColor;
+	}
+	return IconData;
+}
+
+FLinearColor UMASkillDefinition::ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const
+{
+	const FMAModuleRarityData* RarityData = ModuleQualityData
+		? ModuleQualityData->FindRarityData(ModuleQuality.Rarity)
+		: nullptr;
+	return RarityData ? RarityData->Color : FLinearColor::White;
+}
+
+void UMASkillDefinition::PostLoad()
+{
+	Super::PostLoad();
+
+	if (ExclusiveAssemblyTag_DEPRECATED.IsValid())
+	{
+		ExclusiveAssemblyTags.AddTag(ExclusiveAssemblyTag_DEPRECATED);
+	}
+	if (UniqueModuleEffectTag_DEPRECATED.IsValid())
+	{
+		ExclusiveAssemblyTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
+	}
+}
+
 void UMASkillDefinition::ResetAssemblyData()
 {
 	DisplayData = FMASkillDefinitionDisplayData();
 	AssembledSubIcon = nullptr;
-	ExclusiveAssemblyTag = FGameplayTag();
+	ExclusiveAssemblyTags.Reset();
+	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
+	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	ElementalTag = FGameplayTag();
 	CooldownSeconds = 0.f;
 	SkillSteps.Reset();
