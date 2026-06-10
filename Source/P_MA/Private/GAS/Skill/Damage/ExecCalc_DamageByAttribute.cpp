@@ -30,6 +30,7 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 
 	InitCaptureDef(TargetHealthDef, UMAAttributeSet::GetHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetMaxHealthDef, UMAAttributeSet::GetMaxHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
+	InitCaptureDef(TargetShieldDef, UMAAttributeSet::GetShieldAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetAttackDef, UMAAttributeSet::GetAttackAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetMoveSpeedDef, UMAAttributeSet::GetMoveSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Target);
 	InitCaptureDef(TargetAttackSpeedDef, UMAAttributeSet::GetAttackSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Target);
@@ -165,6 +166,33 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 
 	const float BehaviorBonus = Spec.GetSetByCallerMagnitude(BehaviorModifierTag, false, 1.f);
 	const float FinalDamageMultiplier = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(), false, 1.f);
+
+	auto ApplyHealthDamage = [&](float FinalDamage)
+	{
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetDisplayMagnitude(FinalDamage);
+		}
+
+		const float CurrentShield = FMath::Max(0.f, CaptureMagnitude(TargetShieldDef));
+		const float ShieldDamage = FMath::Min(CurrentShield, FinalDamage);
+		const float HealthDamage = FinalDamage - ShieldDamage;
+		if (ShieldDamage > 0.f)
+		{
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+				UMAAttributeSet::GetShieldAttribute(),
+				EGameplayModOp::Additive,
+				-ShieldDamage));
+		}
+		if (HealthDamage > 0.f)
+		{
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+				UMAAttributeSet::GetHealthAttribute(),
+				EGameplayModOp::Additive,
+				-HealthDamage));
+		}
+	};
+
 	if (bIsFixedDamage)
 	{
 		const float FinalDamage = FMath::RoundToFloat(BaseDamage * BehaviorBonus * FinalDamageMultiplier);
@@ -173,12 +201,8 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 		{
 			MutableMAContext->SetCriticalResult(EMADamageCriticalResult::None);
-			MutableMAContext->SetDisplayMagnitude(FinalDamage);
 		}
-		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
-			UMAAttributeSet::GetHealthAttribute(),
-			EGameplayModOp::Additive,
-			-FinalDamage));
+		ApplyHealthDamage(FinalDamage);
 		return;
 	}
 
@@ -215,12 +239,5 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	const float FinalDamage = FMath::RoundToFloat(DamageAfterArmor * BehaviorBonus * FinalDamageMultiplier);
 	if (FinalDamage <= 0.f) return;
 
-	if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
-	{
-		MutableMAContext->SetDisplayMagnitude(FinalDamage);
-	}
-	OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
-		UMAAttributeSet::GetHealthAttribute(),
-		EGameplayModOp::Additive,
-		-FinalDamage));
+	ApplyHealthDamage(FinalDamage);
 }

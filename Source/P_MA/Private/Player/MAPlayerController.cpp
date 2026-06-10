@@ -11,9 +11,9 @@
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Passive/MAFloatingTextActor.h"
 #include "Input/MAInputStatics.h"
+#include "Setting/MAGameSettings.h"
 #include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
 
@@ -100,50 +100,17 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AA
 {
 	if (!TargetActor) return;
 
-	const bool bIsHeal = DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag());
-	const bool bIsDefaultDamage = DamageTypeTag == UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
-	const bool bIsFixedDamage = DamageTypeTag == UMAAbilitySystemStatics::GetFixedDamageTypeTag();
-	FLinearColor DamageColor = FLinearColor::White;
-	FLinearColor OutlineColor = FLinearColor::Transparent;
-	if (bIsHeal)
-	{
-		DamageColor = FLinearColor::Green;
-	}
-	else if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetFireDamageTypeTag()))
-	{
-		DamageColor = FLinearColor(1.f, 0.35f, 0.05f, 1.f);
-	}
-	else if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetIceDamageTypeTag()))
-	{
-		DamageColor = FLinearColor(0.f, 1.f, 1.f);
-	}
-	else if (bIsDefaultDamage && CriticalResult == EMADamageCriticalResult::Critical)
-	{
-		DamageColor = FLinearColor(1.f, 0.82f, 0.15f, 1.f);
-	}
-	else if (bIsDefaultDamage && CriticalResult == EMADamageCriticalResult::ReverseCritical)
-	{
-		DamageColor = FLinearColor(0.25f, 0.25f, 0.25f, 1.f);
-	}
-	else if (bIsPlayerHit)
-	{
-		DamageColor = FLinearColor::Red;
-	}
+	const FMADamageTextStyle DamageTextStyle = UMAGameSettings::Get()->GetDamageTextStyle(DamageTypeTag, CriticalResult, bIsPlayerHit);
 
-	if (bIsFixedDamage)
-	{
-		OutlineColor = FLinearColor(0.82f, 0.82f, 0.78f, 1.f);
-	}
-
-	FVector TextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, bIsHeal ? 130.f : 100.f);
+	FVector TextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, DamageTextStyle.ZOffset);
 	TextLocation.X += FMath::RandRange(-40.f, 40.f);
 	TextLocation.Y += FMath::RandRange(-40.f, 40.f);
 
 	ShowFloatingText(
 		FText::AsNumber(FMath::RoundToInt(Amount)),
 		TextLocation,
-		DamageColor,
-		OutlineColor);
+		DamageTextStyle.Color,
+		DamageTextStyle.OutlineColor);
 }
 
 void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor)

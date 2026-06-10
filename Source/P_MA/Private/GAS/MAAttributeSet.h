@@ -25,6 +25,7 @@ public:
 	
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Health)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MaxHealth)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Shield)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Attack)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MoveSpeed)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, SlowMultiplier)
@@ -41,6 +42,7 @@ public:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Health)			FGameplayAttributeData Health;
 	UPROPERTY(ReplicatedUsing = OnRep_MaxHealth)		FGameplayAttributeData MaxHealth;
+	UPROPERTY(ReplicatedUsing = OnRep_Shield)			FGameplayAttributeData Shield;
 	UPROPERTY(ReplicatedUsing = OnRep_Attack)			FGameplayAttributeData Attack;
 	UPROPERTY(ReplicatedUsing = OnRep_MoveSpeed)		FGameplayAttributeData MoveSpeed;
 	UPROPERTY(ReplicatedUsing = OnRep_SlowMultiplier)	FGameplayAttributeData SlowMultiplier;
@@ -56,6 +58,7 @@ private:
 	
 	UFUNCTION()	void OnRep_Health(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_Shield(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Attack(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_SlowMultiplier(const FGameplayAttributeData& OldValue);

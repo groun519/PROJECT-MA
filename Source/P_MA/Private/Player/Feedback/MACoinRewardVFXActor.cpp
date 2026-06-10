@@ -1,7 +1,6 @@
 #include "Player/Feedback/MACoinRewardVFXActor.h"
 
 #include "Components/SceneComponent.h"
-#include "GAS/Passive/MAFloatingTextActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 
@@ -43,24 +42,7 @@ void AMACoinRewardVFXActor::Play(const FMACoinRewardFeedbackParams& Params)
 	NiagaraComponent->OnSystemFinished.AddUniqueDynamic(this, &AMACoinRewardVFXActor::HandleVFXFinished);
 	NiagaraComponent->Activate(true);
 
-	SpawnFloatingText();
 	SetActorTickEnabled(true);
-}
-
-void AMACoinRewardVFXActor::SpawnFloatingText() const
-{
-	if (!FeedbackParams.FloatingTextActorClass || !FeedbackParams.TargetActor) return;
-
-	AMAFloatingTextActor* FloatingTextActor = GetWorld()->SpawnActor<AMAFloatingTextActor>(
-		FeedbackParams.FloatingTextActorClass,
-		FeedbackParams.TargetActor->GetActorLocation() + FVector(0.f, 0.f, 120.f),
-		FRotator::ZeroRotator);
-	if (FloatingTextActor)
-	{
-		FloatingTextActor->PlayText(
-			FText::Format(NSLOCTEXT("CoinReward", "CoinRewardText", "+{0} C"), FText::AsNumber(FMath::RoundToInt(FeedbackParams.CoinAmount))),
-			FLinearColor(1.f, 0.72f, 0.08f));
-	}
 }
 
 void AMACoinRewardVFXActor::Tick(float DeltaTime)

@@ -1,6 +1,5 @@
 #include "GAS/MAGameplayAbility_Dead.h"
 
-#include "GAS/Passive/MAFloatingTextActor.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAAttributeSet.h"
 #include "Player/MAPlayerController.h"
@@ -29,21 +28,6 @@ static AActor* ResolveRewardPlayerActor(AActor* Actor)
 	return UMAAbilitySystemStatics::IsPlayer(InstigatorPawn) ? InstigatorPawn : nullptr;
 }
 
-static bool IsSelfCausedDeath(AActor* CauseActor, AActor* DeadActor)
-{
-	if (!CauseActor || !DeadActor) return false;
-	if (CauseActor == DeadActor) return true;
-
-	if (const AController* Controller = Cast<AController>(CauseActor))
-	{
-		if (Controller->GetPawn() == DeadActor) return true;
-	}
-
-	AActor* CauseRewardActor = ResolveRewardPlayerActor(CauseActor);
-	AActor* DeadRewardActor = ResolveRewardPlayerActor(DeadActor);
-	return CauseRewardActor && CauseRewardActor == DeadRewardActor;
-}
-
 UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
@@ -60,9 +44,6 @@ UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 	check(CoinRewardVFXFinder.Succeeded());
 	CoinReward.VFX.System = CoinRewardVFXFinder.Object;
 
-	static ConstructorHelpers::FClassFinder<AMAFloatingTextActor> FloatingTextActorFinder(TEXT("/Game/_WorkSpace/GameplayAbilities/Needs/BP_DamageNumber"));
-	check(FloatingTextActorFinder.Succeeded());
-	CoinReward.FloatingTextActorClass = FloatingTextActorFinder.Class;
 }
 
 void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -78,7 +59,7 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 		Killer = ResolveRewardPlayerActor(EffectCauser);
 	}
 
-	if (!Killer && (IsSelfCausedDeath(OriginalInstigator, DeadActor) || IsSelfCausedDeath(EffectCauser, DeadActor)))
+	if (Killer && Killer == ResolveRewardPlayerActor(DeadActor))
 	{
 		K2_EndAbility();
 		return;
@@ -138,7 +119,6 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 				FMACoinRewardFeedbackParams FeedbackParams;
 				FeedbackParams.RewardVFX = this->CoinReward.VFX.System;
 				FeedbackParams.TargetActor = RewardTarget;
-				FeedbackParams.FloatingTextActorClass = this->CoinReward.FloatingTextActorClass;
 				FeedbackParams.SourceLocation = RewardSourceLocation;
 				FeedbackParams.CoinAmount = CoinAmount;
 				FeedbackParams.AbsorbDelay = this->CoinReward.VFX.AbsorbDelay;

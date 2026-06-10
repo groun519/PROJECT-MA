@@ -12,8 +12,6 @@
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
-	AbilityTags.AddTag(UMAAbilitySystemStatics::GetSkillAttackTag());
-
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
@@ -195,37 +193,10 @@ void UMAGameplayAbility_Skill::ApplyDamageToTargetData(const FGameplayAbilityTar
 /********************************************************************************************/
 void UMAGameplayAbility_Skill::ExecuteSkillAction(FGameplayEventData& Payload, float BehaviorMultiplier)
 {
-	const FSkillData& SkillData = GetSkillData();
-	float FinalMultiplier = SkillData.BaseDamageMultiplier * BehaviorMultiplier;
-
-	bool bIsMeleeDamageEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageDamageTag();
-	bool bIsProjectileEvent = Payload.EventTag == UMAAbilitySystemStatics::GetMontageProjectileTag();
-
-	//Melee 공격에 Montage.Damage 노티파이만 작동하도록
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
-	{
-		if (!Payload.EventTag.IsValid() || bIsMeleeDamageEvent)
-		{
-			PerformMeleeAttack(Payload, FinalMultiplier);
-		}
-	}
-	//Projectile 공격에는 Montage.SpawnProjectile 노티파이만 작동하도록
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Projectile")))
-	{
-		if (bIsProjectileEvent)
-		{
-			SpawnProjectile(Payload, FinalMultiplier);
-		}
-		else if (bIsMeleeDamageEvent && !SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Melee")))
-		{
-			SpawnProjectile(Payload, FinalMultiplier);
-		}
-	}
-	if (SkillData.ActionTags.HasTag(FGameplayTag::RequestGameplayTag("Ability.Action.Targeting")))
-	{
-		SpawnTargetingProjectile(Payload, FinalMultiplier);
-	}
+	(void)Payload;
+	(void)BehaviorMultiplier;
 }
+
 
 void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, float FinalMultiplier)
 {

@@ -17,7 +17,11 @@ void UMAGameplayWidget::NativeConstruct()
     UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
     if (OwnerAbilitySystemComponent && HealthBar)
     {
-        HealthBar->SetAndBoundToGameplayAttribute(OwnerAbilitySystemComponent, UMAAttributeSet::GetHealthAttribute(), UMAAttributeSet::GetMaxHealthAttribute());
+        HealthBar->Bind3Attributes(
+            OwnerAbilitySystemComponent,
+            UMAAttributeSet::GetHealthAttribute(),
+            UMAAttributeSet::GetMaxHealthAttribute(),
+            UMAAttributeSet::GetShieldAttribute());
     }
 
     if (SkillSlotWidget)

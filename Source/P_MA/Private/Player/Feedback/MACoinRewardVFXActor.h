@@ -6,7 +6,6 @@
 
 class UNiagaraComponent;
 class UNiagaraSystem;
-class AMAFloatingTextActor;
 
 USTRUCT()
 struct FMACoinRewardFeedbackParams
@@ -18,9 +17,6 @@ struct FMACoinRewardFeedbackParams
 
 	UPROPERTY()
 	TObjectPtr<AActor> TargetActor = nullptr;
-
-	UPROPERTY()
-	TSubclassOf<AMAFloatingTextActor> FloatingTextActorClass;
 
 	UPROPERTY()
 	FVector SourceLocation = FVector::ZeroVector;
@@ -48,8 +44,6 @@ protected:
 private:
 	UFUNCTION()
 	void HandleVFXFinished(UNiagaraComponent* FinishedComponent);
-
-	void SpawnFloatingText() const;
 
 	UPROPERTY(VisibleDefaultsOnly)
 	TObjectPtr<USceneComponent> SceneRoot;

@@ -17,10 +17,11 @@ void UMAOverHeadStatsGauge::ConfigureWithASC(UAbilitySystemComponent* AbilitySys
 {
 	if (!AbilitySystemComponent) return;
 
-	HealthBar->SetAndBoundToGameplayAttribute(
+	HealthBar->Bind3Attributes(
 		AbilitySystemComponent,
 		UMAAttributeSet::GetHealthAttribute(),
-		UMAAttributeSet::GetMaxHealthAttribute());
+		UMAAttributeSet::GetMaxHealthAttribute(),
+		UMAAttributeSet::GetShieldAttribute());
 }
 
 void UMAOverHeadStatsGauge::ConfigureWithStatusEffectComponent(UMAStatusEffectComponent* StatusEffectComponent)

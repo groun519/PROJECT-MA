@@ -6,11 +6,6 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Setting/MASkillSubsystem.h"
 
-FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");
-}
-
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Dead");
@@ -64,21 +59,6 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 FGameplayTag UMAAbilitySystemStatics::GetCoinAttributeTag()
 {
 	return FGameplayTag::RequestGameplayTag("attr.coin");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMeleeActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Melee");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetProjectileActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Projectile");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetTargetingActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Targeting");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetDefaultElementalTag()

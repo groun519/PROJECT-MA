@@ -5,7 +5,6 @@
 #include "MAGameplayAbility_Dead.generated.h"
 
 class UNiagaraSystem;
-class AMAFloatingTextActor;
 
 USTRUCT()
 struct FMACoinRewardVFXSettings
@@ -32,9 +31,6 @@ struct FMACoinRewardSettings
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	FMACoinRewardVFXSettings VFX;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Reward")
-	TSubclassOf<AMAFloatingTextActor> FloatingTextActorClass;
 };
 
 UCLASS()

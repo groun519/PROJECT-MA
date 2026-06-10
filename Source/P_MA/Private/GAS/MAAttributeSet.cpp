@@ -1,6 +1,5 @@
 #include "GAS/MAAttributeSet.h"
 
-#include "Abilities/GameplayAbilityTypes.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayEffectAggregatorLibrary.h"
@@ -27,8 +26,7 @@ UMAAttributeSet::UMAAttributeSet()
 	: SlowMultiplier(1.f)
 	, CriticalDamage(1.5f)
 	, ReverseCriticalDamage(0.5f)
-{
-}
+{}
 
 void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -36,6 +34,7 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Shield, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Attack, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, SlowMultiplier, COND_None, REPNOTIFY_Always);
@@ -64,6 +63,8 @@ void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, fl
 {
 	if (Attribute == GetHealthAttribute())
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
+	else if (Attribute == GetShieldAttribute())
+		NewValue = FMath::Max(NewValue, 0.f);
 	else if (Attribute == GetSlowMultiplierAttribute())
 		NewValue = FMath::Clamp(NewValue, 0.f, 1.f);
 	else if (Attribute == GetFocusAttribute())
@@ -72,20 +73,22 @@ void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, fl
 		NewValue = FMath::Clamp(NewValue, -100.f, 100.f);
 }
 
-void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
+void UMAAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
 		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
 	}
+	else if (Data.EvaluatedData.Attribute == GetShieldAttribute())
+	{
+		SetShield(FMath::Max(GetShield(), 0.f));
+		return;
+	}
 	else if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
 	{
 		SetTemperature(FMath::Clamp(GetTemperature(), -100.f, 100.f));
 	}
-	else
-	{
-		return;
-	}
+	else return;
 
 	if (UMAAbilitySystemComponent* TargetASC = Cast<UMAAbilitySystemComponent>(&Data.Target))
 	{
@@ -95,6 +98,7 @@ void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 
 DEFINE_REPNOTIFY(Health)
 DEFINE_REPNOTIFY(MaxHealth)
+DEFINE_REPNOTIFY(Shield)
 DEFINE_REPNOTIFY(Attack)
 DEFINE_REPNOTIFY(MoveSpeed)
 DEFINE_REPNOTIFY(SlowMultiplier)

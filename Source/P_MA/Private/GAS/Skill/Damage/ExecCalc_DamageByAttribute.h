@@ -30,6 +30,7 @@ private:
 
 	FGameplayEffectAttributeCaptureDefinition TargetHealthDef;
 	FGameplayEffectAttributeCaptureDefinition TargetMaxHealthDef;
+	FGameplayEffectAttributeCaptureDefinition TargetShieldDef;
 	FGameplayEffectAttributeCaptureDefinition TargetAttackDef;
 	FGameplayEffectAttributeCaptureDefinition TargetMoveSpeedDef;
 	FGameplayEffectAttributeCaptureDefinition TargetAttackSpeedDef;

@@ -12,6 +12,7 @@
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
+class UMAAttributeFeedbackComponent;
 class UMAElementalComponent;
 class UMAImpulseComponent;
 class UMAOverlayComponent;
@@ -75,6 +76,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Overlay")
 	TObjectPtr<UMAOverlayComponent> OverlayComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Feedback")
+	TObjectPtr<UMAAttributeFeedbackComponent> AttributeFeedbackComponent;
 
 	/** UI **/
 private:

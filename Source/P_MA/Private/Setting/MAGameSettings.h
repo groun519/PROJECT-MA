@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAGameSettings.generated.h"
 
 class UUserWidget;
@@ -10,17 +11,34 @@ class UMAModuleQualityData;
 class UMAElementalConfigData;
 class UMaterialInterface;
 
+USTRUCT(BlueprintType)
+struct FMADamageTextStyle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Damage Text")
+	FLinearColor Color = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, Category="Damage Text")
+	FLinearColor OutlineColor = FLinearColor::Transparent;
+
+	UPROPERTY(EditAnywhere, Category="Damage Text")
+	float ZOffset = 100.f;
+};
+
 UCLASS(Config=Game, DefaultConfig, meta=(DisplayName="MA Game Settings"))
 class P_MA_API UMAGameSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
+	UMAGameSettings();
 	static const UMAGameSettings* Get() { return GetDefault<UMAGameSettings>(); }
 	const UMASkillGenericDataAsset* GetDefaultSkillGenericDataAsset() const;
 	const UMAModuleQualityData* GetModuleQualityData() const;
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
+	FMADamageTextStyle GetDamageTextStyle(const FGameplayTag& DamageTypeTag, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit) const;
 
 	UPROPERTY(Config, EditAnywhere, Category="Interact")
 	TSoftClassPtr<UUserWidget> DefaultInteractKeyWidgetClass;
@@ -39,6 +57,36 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
 	FLinearColor NegativeCooldownColor = FLinearColor(0.25f, 0.75f, 1.f, 1.f);
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle DefaultDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle PlayerHitDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle CriticalDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle ReverseCriticalDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle HealDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle FireDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FMADamageTextStyle IceDamageTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Damage Text")
+	FLinearColor FixedDamageOutlineColor = FLinearColor(0.82f, 0.82f, 0.78f, 1.f);
+
+	UPROPERTY(Config, EditAnywhere, Category="Attribute Feedback")
+	FMADamageTextStyle ShieldAttributeFeedbackTextStyle;
+
+	UPROPERTY(Config, EditAnywhere, Category="Attribute Feedback")
+	FMADamageTextStyle CoinAttributeFeedbackTextStyle;
 
 	UPROPERTY(Config, EditAnywhere, Category="Visual|Overlay")
 	TSoftObjectPtr<UMaterialInterface> OverlayMaterial;
