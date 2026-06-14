@@ -1,7 +1,7 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
+#include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "MASkillEventSource_Activate.generated.h"
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)

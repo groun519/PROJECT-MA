@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -7,10 +7,12 @@
 
 class UMASkillAbility;
 class UMASkillDefinition;
+class UMASkillEventRouter;
 class UMASkillGenericDataAsset;
 class UMASkillModuleInstance;
 class UActorChannel;
 class FOutBunch;
+struct FMASkillEvent;
 struct FReplicationFlags;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, FGameplayTag);
@@ -22,6 +24,8 @@ class P_MA_API UMASkillManagerComponent : public UActorComponent
 
 public:
 	UMASkillManagerComponent();
+	virtual void InitializeComponent() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	void InitializeGrantedAbilities();
@@ -69,6 +73,8 @@ public:
 	void ClearActivePreviewElementalTag();
 	bool TryActivateSkill(FGameplayTag SlotTag);
 	UMASkillAbility* GetSkillAbility(FGameplayTag SlotTag) const;
+	bool TryRouteEvent(FMASkillEvent Event, UMASkillAbility* ExecutorAbility);
+	void DispatchEvent(const FMASkillEvent& Event, UMASkillAbility* ExecutorAbility);
 
 private:
 	static constexpr int32 SkillModuleSlotCount = 8;
@@ -121,4 +127,7 @@ private:
 
 	UPROPERTY(Transient, Replicated)
 	FGameplayTag ActivePreviewElementalTag;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillEventRouter> EventRouter;
 };

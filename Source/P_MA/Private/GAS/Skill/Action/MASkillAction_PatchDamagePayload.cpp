@@ -1,19 +1,20 @@
-#include "GAS/Skill/Action/MASkillAction_PatchDamagePayload.h"
+﻿#include "GAS/Skill/Action/MASkillAction_PatchDamagePayload.h"
 
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_PatchDamagePayload::Execute(
 	UMASkillAbility&,
-	const FGameplayEventData&,
-	const FMASkillEventScopes& Scopes)
+	const FMASkillEvent& Event,
+	const FMASkillScopes& Scopes)
 {
-	if (!Scopes.EventScope || !DamagePayloadTag.IsValid()) return;
+	if (!DamagePayloadTag.IsValid()) return;
 
-	FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
+	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	if (!Payloads.IsValid()) return;
 
 	TArray<TPair<FGameplayTag, FMASkillDamageConfig>> DamagePayloads;
-	PayloadStore.FindStructsByTag(DamagePayloadTag, bExactPayloadTagMatch, DamagePayloads);
+	Payloads.FindStructsByTag(DamagePayloadTag, bExactPayloadTagMatch, DamagePayloads);
 	if (DamagePayloads.IsEmpty()) return;
 	if (bOverrideDamageType && !DamageTypeTag.IsValid()) return;
 
@@ -55,6 +56,6 @@ void UMASkillAction_PatchDamagePayload::Execute(
 			break;
 		}
 
-		PayloadStore.SetStruct(DamagePayload.Key, DamageConfig);
+		Payloads.SetStruct(EMASkillPayloadWriteScope::Skill, DamagePayload.Key, DamageConfig);
 	}
 }

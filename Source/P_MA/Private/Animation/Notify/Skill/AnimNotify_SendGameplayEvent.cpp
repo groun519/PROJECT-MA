@@ -1,8 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿#include "Animation/Notify/Skill/AnimNotify_SendGameplayEvent.h"
 
-
-#include "Animation/Notify/Skill/AnimNotify_SendGameplayEvent.h"
 #include "Animation/MAAnimInstance.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameplayTagsManager.h"
 
@@ -29,9 +28,10 @@ void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAn
 
 	if (UMASkillAbility* SkillAbility = ResolveGameplayEventOwnerSkillAbility(MeshComp, Animation))
 	{
-		FGameplayEventData Data;
-		Data.EventTag = MontageEventTag;
-		SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
+		UMASkillEventRoutingStatics::TryNotifySkillEvent(
+			SkillAbility,
+			FMASkillEvent(MontageEventTag),
+			SkillAbility->GetCurrentBindingScope());
 	}
 }
 

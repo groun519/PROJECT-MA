@@ -124,11 +124,11 @@ void UMASkillStepManager::AdvanceOrEnd(int32 NextStepIndex, float MontageBlendOu
 	TransitionToStep(NextStepIndex, EMASkillStepStartMode::Fresh, MontageBlendOutTime);
 }
 
-void UMASkillStepManager::HandleRuntimeEvent(const FGameplayEventData& EventData) const
+void UMASkillStepManager::HandleRuntimeEvent(const FMASkillEvent& Event) const
 {
 	if (UMASkillStep* CurrentStep = GetCurrentRuntimeSkillStep())
 	{
-		CurrentStep->HandleRuntimeEvent(EventData);
+		CurrentStep->HandleRuntimeEvent(Event);
 	}
 }
 

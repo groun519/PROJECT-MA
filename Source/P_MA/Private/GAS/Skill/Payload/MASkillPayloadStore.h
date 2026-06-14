@@ -111,6 +111,17 @@ public:
 	}
 
 	template <typename StructType>
+	const StructType* FindStruct(const FGameplayTag& Key) const
+	{
+		if (!Key.IsValid()) return nullptr;
+
+		const FInstancedStruct* StructValue = Structs.Find(Key);
+		return StructValue && StructValue->GetScriptStruct() == StructType::StaticStruct()
+			? StructValue->GetPtr<StructType>()
+			: nullptr;
+	}
+
+	template <typename StructType>
 	void FindStructsByTag(
 		const FGameplayTag& Key,
 		bool bExactTagMatch,
@@ -156,4 +167,3 @@ private:
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, FInstancedStruct> Structs;
 };
-

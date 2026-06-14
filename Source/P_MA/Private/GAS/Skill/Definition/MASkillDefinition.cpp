@@ -1,8 +1,8 @@
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+﻿#include "GAS/Skill/Definition/MASkillDefinition.h"
 
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Action/MASkillAction.h"
-#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
+#include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
 FMASkillDefinitionIconData UMASkillDefinition::ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const
@@ -37,6 +37,15 @@ void UMASkillDefinition::PostLoad()
 	if (UniqueModuleEffectTag_DEPRECATED.IsValid())
 	{
 		ExclusiveAssemblyTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
+	}
+
+	for (FMASkillEventBinding& EventBinding : EventBindings)
+	{
+		if (EventBinding.bUseLocalBinding)
+		{
+			EventBinding.BindingScope = EMASkillEventBindingScope::Module;
+		}
+		EventBinding.bUseLocalBinding = false;
 	}
 }
 
@@ -85,16 +94,14 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 		UMASkillEventSource* NewEventSource = DuplicateObject<UMASkillEventSource>(EventSource, this);
 		if (!NewEventSource) continue;
 
-		NewEventSource->SetBindingScope(SourceModuleInstance);
 		EventSources.Add(NewEventSource);
 	}
 
-	for (const FMASkillGameplayEventBinding& EventBinding : SourceDefinition->EventBindings)
+	for (const FMASkillEventBinding& EventBinding : SourceDefinition->EventBindings)
 	{
-		FMASkillGameplayEventBinding NewEventBinding = EventBinding;
-		NewEventBinding.BindingScope = EventBinding.bUseLocalBinding
-			? SourceModuleInstance
-			: nullptr;
+		FMASkillEventBinding NewEventBinding = EventBinding;
+		NewEventBinding.BindingScopes.Module = SourceModuleInstance;
+		NewEventBinding.BindingScopes.Skill = Cast<UMASkillModuleInstance>(GetOuter());
 		NewEventBinding.Action = EventBinding.Action
 			? DuplicateObject<UMASkillAction>(EventBinding.Action, this)
 			: nullptr;

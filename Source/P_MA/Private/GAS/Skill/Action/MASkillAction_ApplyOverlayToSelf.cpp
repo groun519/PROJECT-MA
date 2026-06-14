@@ -1,12 +1,12 @@
-#include "GAS/Skill/Action/MASkillAction_ApplyOverlayToSelf.h"
+﻿#include "GAS/Skill/Action/MASkillAction_ApplyOverlayToSelf.h"
 
 #include "Character/MAOverlayComponent.h"
 #include "GAS/Skill/MASkillAbility.h"
 
 void UMASkillAction_ApplyOverlayToSelf::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData&,
-	const FMASkillEventScopes&)
+	const FMASkillEvent& Event,
+	const FMASkillScopes&)
 {
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
 	if (!AvatarActor || AvatarActor->GetNetMode() == NM_DedicatedServer) return;

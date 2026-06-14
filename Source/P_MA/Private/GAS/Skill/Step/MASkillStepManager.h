@@ -7,7 +7,7 @@
 
 class UMASkillAbility;
 class UMASkillModuleInstance;
-struct FGameplayEventData;
+struct FMASkillEvent;
 
 UCLASS()
 class P_MA_API UMASkillStepManager : public UObject
@@ -25,7 +25,7 @@ public:
 	bool TransitionToStep(int32 TargetStepIndex, EMASkillStepStartMode StartMode, float MontageBlendOutTime);
 	bool TryTransitionToPreparedStep(int32 TargetStepIndex);
 	void AdvanceOrEnd(int32 NextStepIndex, float MontageBlendOutTime);
-	void HandleRuntimeEvent(const FGameplayEventData& EventData) const;
+	void HandleRuntimeEvent(const FMASkillEvent& Event) const;
 	void SetDesiredMontagePlayRate(float NewPlayRate);
 	float GetDesiredMontagePlayRate() const { return DesiredMontagePlayRate; }
 	void ApplyDesiredMontagePlayRate() const;

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "AttributeSet.h"
@@ -21,7 +21,8 @@ class P_MA_API UMASkillAction_ApplyAttribute : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& EventData, const FMASkillEventScopes& Scopes) override;
+	virtual void PostLoad() override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Target")
@@ -38,6 +39,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Attribute")
 	float BaseValue = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Attribute")
+	float EventMagnitudeCoefficient = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Attribute")
 	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;

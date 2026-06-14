@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/Event/MASkillEventTypes.h"
 #include "MAProjectileTypes.generated.h"
 
 class AActor;
@@ -83,5 +84,5 @@ struct P_MA_API FMAProjectileParams
 	FMAProjectileElementalSettings ElementalSettings;
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
 	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;
-	TWeakObjectPtr<UMASkillModuleInstance> EventScope;
+	FMASkillScopes EventScopes;
 };

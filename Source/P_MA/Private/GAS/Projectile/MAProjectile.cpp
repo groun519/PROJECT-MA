@@ -88,7 +88,7 @@ void AMAProjectile::OnRep_ProjectileVisuals()
 void AMAProjectile::InitializeProjectile(const FMAProjectileParams& InProjectileParams)
 {
 	ProjectileParams = InProjectileParams;
-	EventScope = ProjectileParams.EventScope.Get();
+	EventScopes = ProjectileParams.EventScopes;
 	bRep_HasElementalVisualData = ProjectileParams.ElementalSettings.bHasElementalData;
 	Rep_MainVFX = ProjectileParams.ElementalSettings.MainVFX;
 	Rep_TrailVFX = ProjectileParams.ElementalSettings.TrailVFX;
@@ -159,7 +159,8 @@ void AMAProjectile::ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, cons
 	MASkillDamageApplicator::FMASkillDamageApplicationContext ApplicationContext;
 	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
 	ApplicationContext.EffectCauser = this;
-	ApplicationContext.SkillEventScope = EventScope;
+	ApplicationContext.EventExecutorAbility = ProjectileParams.EventExecutorAbility.Get();
+	ApplicationContext.EventScopes = EventScopes;
 	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
 	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedDamage, ApplicationContext);
 }

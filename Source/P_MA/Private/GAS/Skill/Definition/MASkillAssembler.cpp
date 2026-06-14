@@ -2,6 +2,7 @@
 
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 
 UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
 {
@@ -76,6 +77,8 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 		{
 			AssembledModuleInstance = NewObject<UMASkillModuleInstance>(Outer);
 			if (!AssembledModuleInstance) return nullptr;
+			AssembledModuleInstance->RuntimeRegistry = NewObject<UMASkillRuntimeRegistry>(AssembledModuleInstance);
+			if (!AssembledModuleInstance->RuntimeRegistry) return nullptr;
 
 			AssembledDefinition = NewObject<UMASkillDefinition>(AssembledModuleInstance);
 			if (!AssembledDefinition) return nullptr;

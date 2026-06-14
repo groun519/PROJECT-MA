@@ -1,4 +1,4 @@
-#include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
+﻿#include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
 
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -9,16 +9,17 @@
 
 void UMASkillAction_MeleeOverlap::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData& EventData,
-	const FMASkillEventScopes& Scopes)
+	const FMASkillEvent& Event,
+	const FMASkillScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
-	if (!Scopes.EventScope) return;
 
-	const FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
-	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(PayloadStore, DamagePayloadTag);
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
-	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEventData(OwnerAbility, EventData, ResolvedDamage.TargetRelationMask);
-	const FVector StatusEffectCenterPoint = MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(OwnerAbility, EventData);
-	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes.EventScope, HitResults, ResolvedDamage, StatusEffectCenterPoint);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	if (!Payloads.IsValid()) return;
+
+	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
+	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
+	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEvent(OwnerAbility, Event, ResolvedDamage.TargetRelationMask);
+	const FVector StatusEffectCenterPoint = MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(OwnerAbility, Event);
+	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes, HitResults, ResolvedDamage, StatusEffectCenterPoint);
 }

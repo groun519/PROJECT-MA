@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GAS/Skill/Action/MASkillAction.h"
@@ -12,8 +12,8 @@ class P_MA_API UMASkillAction_AddDamageVariance : public UMASkillAction
 public:
 	virtual void Execute(
 		UMASkillAbility& OwnerAbility,
-		const FGameplayEventData& EventData,
-		const FMASkillEventScopes& Scopes) override;
+		const FMASkillEvent& Event,
+		const FMASkillScopes& Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(ClampMin="-1.0", UIMin="-1.0"))

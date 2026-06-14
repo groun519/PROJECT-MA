@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "DebugShapeHelper.h"
@@ -45,7 +45,7 @@ class P_MA_API UMASkillAction_MeleeOverlapShape : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FGameplayEventData& EventData, const FMASkillEventScopes& Scopes) override;
+	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Action")

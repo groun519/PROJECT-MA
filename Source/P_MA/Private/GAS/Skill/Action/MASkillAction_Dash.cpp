@@ -1,4 +1,4 @@
-#include "GAS/Skill/Action/MASkillAction_Dash.h"
+﻿#include "GAS/Skill/Action/MASkillAction_Dash.h"
 
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
@@ -14,8 +14,8 @@ namespace
 
 void UMASkillAction_Dash::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData&,
-	const FMASkillEventScopes&)
+	const FMASkillEvent&,
+	const FMASkillScopes&)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 

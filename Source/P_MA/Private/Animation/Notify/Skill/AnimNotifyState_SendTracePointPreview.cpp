@@ -1,4 +1,4 @@
-#include "Animation/Notify/Skill/AnimNotifyState_SendTracePointPreview.h"
+﻿#include "Animation/Notify/Skill/AnimNotifyState_SendTracePointPreview.h"
 
 #include "Animation/MAAnimInstance.h"
 #include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
@@ -9,6 +9,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MAOverlapDecalData.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -151,11 +152,9 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 	UMASkillAbility* SkillAbility = ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
-	FGameplayEventData Data;
-	Data.EventTag = EventTag;
+	FMASkillEvent Event(EventTag);
 	MATracePointNotify::AppendTargetData(
-		Data,
-		Owner,
+		Event,
 		Shape,
 		LocalOffset,
 		LocalRotation,
@@ -169,7 +168,7 @@ void UAnimNotifyState_SendTracePointPreview::NotifyEnd(USkeletalMeshComponent* M
 		bDrawDebug,
 		WorldLocation);
 
-	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
+	UMASkillEventRoutingStatics::TryNotifySkillEvent(SkillAbility, MoveTemp(Event), SkillAbility->GetCurrentBindingScope());
 }
 
 void UAnimNotifyState_SendTracePointPreview::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,

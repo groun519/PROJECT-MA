@@ -1,20 +1,22 @@
-#include "GAS/Skill/Action/MASkillAction_AddDamageVariance.h"
+﻿#include "GAS/Skill/Action/MASkillAction_AddDamageVariance.h"
 
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_AddDamageVariance::Execute(
 	UMASkillAbility&,
-	const FGameplayEventData&,
-	const FMASkillEventScopes& Scopes)
+	const FMASkillEvent& Event,
+	const FMASkillScopes& Scopes)
 {
-	if (!Scopes.EventScope) return;
-
-	FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
+	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	if (!Payloads.IsValid()) return;
 	const FGameplayTag DamageVarianceTag = UMAAbilitySystemStatics::GetDamageVarianceTag();
 
 	float CurrentVariance = 0.f;
-	PayloadStore.TryGetScalar(DamageVarianceTag, CurrentVariance);
-	PayloadStore.SetScalar(DamageVarianceTag, FMath::Max(0.f, CurrentVariance + VarianceAdditive));
+	Payloads.TryGetScalar(DamageVarianceTag, CurrentVariance);
+	Payloads.SetScalar(
+		EMASkillPayloadWriteScope::Skill,
+		DamageVarianceTag,
+		FMath::Max(0.f, CurrentVariance + VarianceAdditive));
 }

@@ -1,15 +1,17 @@
-#include "GAS/Skill/Action/MASkillAction_ApplyAttribute.h"
+﻿#include "GAS/Skill/Action/MASkillAction_ApplyAttribute.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GameFramework/Actor.h"
 
 namespace
 {
+	const FName LostHealthPayloadTagName(TEXT("Data.Health.Lost"));
+
 	FGameplayAttribute ResolveAttribute(EMADamageAttribute Attribute)
 	{
 		switch (Attribute)
@@ -32,12 +34,12 @@ namespace
 		const FMADamageAttributeCoefficient& Coefficient,
 		UAbilitySystemComponent& SourceASC,
 		UAbilitySystemComponent& TargetASC,
-		const FMASkillPayloadStore* PayloadStore)
+		const FMASkillPayloadAccessor& Payloads)
 	{
 		if (Coefficient.Side == EMADamageAttributeSide::Payload)
 		{
 			float PayloadValue = 0.f;
-			return PayloadStore && PayloadStore->TryGetScalar(Coefficient.PayloadTag, PayloadValue)
+			return Payloads.TryGetScalar(Coefficient.PayloadTag, PayloadValue)
 				? PayloadValue * Coefficient.Coefficient
 				: 0.f;
 		}
@@ -49,33 +51,51 @@ namespace
 	}
 }
 
+void UMASkillAction_ApplyAttribute::PostLoad()
+{
+	Super::PostLoad();
+
+	for (int32 Index = AttributeCoefficients.Num() - 1; Index >= 0; --Index)
+	{
+		const FMADamageAttributeCoefficient& Coefficient = AttributeCoefficients[Index];
+		if (Coefficient.Side != EMADamageAttributeSide::Payload
+			|| Coefficient.PayloadTag.GetTagName() != LostHealthPayloadTagName)
+		{
+			continue;
+		}
+
+		EventMagnitudeCoefficient += Coefficient.Coefficient;
+		AttributeCoefficients.RemoveAt(Index);
+	}
+}
+
 void UMASkillAction_ApplyAttribute::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData&,
-	const FMASkillEventScopes& Scopes)
+	const FMASkillEvent& Event,
+	const FMASkillScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority() || !Attribute.IsValid()) return;
 
 	UAbilitySystemComponent* SourceASC = OwnerAbility.GetAbilitySystemComponentFromActorInfo();
 	if (!SourceASC) return;
 
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
 	UAbilitySystemComponent* TargetASC = SourceASC;
 	if (Target == EMASkillAttributeApplyTarget::TargetPayload)
 	{
-		if (!Scopes.EventScope || !TargetPayloadTag.IsValid()) return;
+		if (!TargetPayloadTag.IsValid()) return;
 
 		UObject* TargetObject = nullptr;
-		if (!Scopes.EventScope->GetPayloadStore().TryGetObject(TargetPayloadTag, TargetObject)) return;
+		if (!Payloads.TryGetObject(TargetPayloadTag, TargetObject)) return;
 
 		TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Cast<AActor>(TargetObject));
 		if (!TargetASC) return;
 	}
 
-	const FMASkillPayloadStore* PayloadStore = Scopes.EventScope ? &Scopes.EventScope->GetPayloadStore() : nullptr;
-	float FinalValue = BaseValue;
+	float FinalValue = BaseValue + Event.GetMagnitude() * EventMagnitudeCoefficient;
 	for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
 	{
-		FinalValue += ResolveAttributeCoefficientValue(Coefficient, *SourceASC, *TargetASC, PayloadStore);
+		FinalValue += ResolveAttributeCoefficientValue(Coefficient, *SourceASC, *TargetASC, Payloads);
 	}
 	if (FMath::IsNearlyZero(FinalValue)) return;
 

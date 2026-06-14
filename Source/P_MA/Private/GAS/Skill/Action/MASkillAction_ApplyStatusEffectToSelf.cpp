@@ -1,13 +1,14 @@
-#include "GAS/Skill/Action/MASkillAction_ApplyStatusEffectToSelf.h"
+﻿#include "GAS/Skill/Action/MASkillAction_ApplyStatusEffectToSelf.h"
 
 #include "AbilitySystemComponent.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
 void UMASkillAction_ApplyStatusEffectToSelf::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData&,
-	const FMASkillEventScopes&)
+	const FMASkillEvent&,
+	const FMASkillScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
@@ -27,7 +28,9 @@ void UMASkillAction_ApplyStatusEffectToSelf::Execute(
 	{
 		if (ResolvedEffect.SpecHandle.IsValid())
 		{
-			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*ResolvedEffect.SpecHandle.Data.Get());
+			const FActiveGameplayEffectHandle EffectHandle =
+				AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*ResolvedEffect.SpecHandle.Data.Get());
+			Scopes.GetRuntimeRegistry().Register(AbilitySystemComponent, EffectHandle);
 		}
 	}
 }

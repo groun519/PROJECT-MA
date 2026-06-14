@@ -4,10 +4,9 @@
 #include "GameplayEffectTypes.h"
 #include "DebugShapeHelper.h"
 
-class AActor;
 class USkeletalMeshComponent;
 class UWorld;
-struct FGameplayEventData;
+struct FMASkillEvent;
 
 namespace MATracePointNotify
 {
@@ -27,8 +26,7 @@ namespace MATracePointNotify
 		FVector& OutMeshForward);
 
 	void AppendTargetData(
-		FGameplayEventData& OutData,
-		AActor* Owner,
+		FMASkillEvent& OutEvent,
 		EVA_Shape Shape,
 		const FVector2D& LocalOffset,
 		const FRotator& LocalRotation,

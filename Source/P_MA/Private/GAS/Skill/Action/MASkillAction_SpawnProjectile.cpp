@@ -1,4 +1,4 @@
-#include "GAS/Skill/Action/MASkillAction_SpawnProjectile.h"
+﻿#include "GAS/Skill/Action/MASkillAction_SpawnProjectile.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
@@ -7,8 +7,8 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
 
 static bool TryResolveLocationFromObject(UObject* Object, FName SocketName, FVector& OutLocation)
@@ -49,7 +49,7 @@ static bool TryResolveLocationFromObject(UObject* Object, FName SocketName, FVec
 	return false;
 }
 
-static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadStore& PayloadStore, const FMASkillActionConfig_SpawnProjectile& Config, FVector& OutLocation)
+static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, FVector& OutLocation)
 {
 	if (Config.StartObjectSource == EMASkillProjectileStartObjectSource::Self)
 	{
@@ -57,7 +57,7 @@ static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadSt
 	}
 
 	UObject* PayloadObject = nullptr;
-	if (!PayloadStore.TryGetObject(Config.StartObjectPayloadTag, PayloadObject))
+	if (!Payloads.TryGetObject(Config.StartObjectPayloadTag, PayloadObject))
 	{
 		return false;
 	}
@@ -65,7 +65,7 @@ static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadSt
 	return TryResolveLocationFromObject(PayloadObject, Config.SpawnSocketName, OutLocation);
 }
 
-static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayloadStore& PayloadStore, const FMASkillActionConfig_SpawnProjectile& Config, const FVector& SpawnLocation, FRotator& OutRotation)
+static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, const FVector& SpawnLocation, FRotator& OutRotation)
 {
 	if (Config.DirectionSource == EMASkillProjectileDirectionSource::Forward)
 	{
@@ -75,7 +75,7 @@ static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayl
 
 	UObject* DirectionObject = &AvatarActor;
 	if (Config.DirectionSource == EMASkillProjectileDirectionSource::ObjectPayload
-		&& !PayloadStore.TryGetObject(Config.DirectionObjectPayloadTag, DirectionObject))
+		&& !Payloads.TryGetObject(Config.DirectionObjectPayloadTag, DirectionObject))
 	{
 		return false;
 	}
@@ -93,14 +93,14 @@ static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayl
 	return true;
 }
 
-static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadStore& PayloadStore, const FMASkillActionConfig_SpawnProjectile& Config, AActor*& OutTargetActor)
+static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, AActor*& OutTargetActor)
 {
 	OutTargetActor = nullptr;
 	if (!Config.bUseTargetTracking) return true;
 
 	UObject* TargetObject = &AvatarActor;
 	if (Config.TargetTracking.TargetSource == EMASkillProjectileTrackingTargetSource::ObjectPayload
-		&& !PayloadStore.TryGetObject(Config.TargetTracking.TargetObjectPayloadTag, TargetObject))
+		&& !Payloads.TryGetObject(Config.TargetTracking.TargetObjectPayloadTag, TargetObject))
 	{
 		return false;
 	}
@@ -111,23 +111,24 @@ static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadStor
 
 void UMASkillAction_SpawnProjectile::Execute(
 	UMASkillAbility& OwnerAbility,
-	const FGameplayEventData&,
-	const FMASkillEventScopes& Scopes)
+	const FMASkillEvent& Event,
+	const FMASkillScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
-	if (!Scopes.EventScope) return;
 
 	UWorld* World = OwnerAbility.GetWorld();
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
 	if (!World || !AvatarActor) return;
 
-	const FMASkillPayloadStore& PayloadStore = Scopes.EventScope->GetPayloadStore();
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	if (!Payloads.IsValid()) return;
+
 	FVector SpawnLocation = FVector::ZeroVector;
-	if (!TryResolveSpawnLocation(*AvatarActor, PayloadStore, Config, SpawnLocation)) return;
+	if (!TryResolveSpawnLocation(*AvatarActor, Payloads, Config, SpawnLocation)) return;
 	FRotator SpawnRotation = FRotator::ZeroRotator;
-	if (!TryResolveProjectileRotation(*AvatarActor, PayloadStore, Config, SpawnLocation, SpawnRotation)) return;
+	if (!TryResolveProjectileRotation(*AvatarActor, Payloads, Config, SpawnLocation, SpawnRotation)) return;
 	AActor* TargetActor = nullptr;
-	if (!TryResolveTargetActor(*AvatarActor, PayloadStore, Config, TargetActor)) return;
+	if (!TryResolveTargetActor(*AvatarActor, Payloads, Config, TargetActor)) return;
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = AvatarActor;
@@ -142,16 +143,16 @@ void UMASkillAction_SpawnProjectile::Execute(
 	if (!Projectile) return;
 
 	FMASkillDamageConfig DamageConfig;
-	PayloadStore.TryGetStruct(DamagePayloadTag, DamageConfig);
+	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
-	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, PayloadStore);
+	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;
 	ProjectileParams.TargetSettings.bHitOnlyTarget = Config.bUseTargetTracking && Config.TargetTracking.bHitOnlyTarget;
 	ProjectileParams.EventExecutorAbility = &OwnerAbility;
-	ProjectileParams.EventScope = Scopes.EventScope;
+	ProjectileParams.EventScopes = Scopes;
 
 	const FGameplayTag ElementalTag = OwnerAbility.GetElementalTag();
 	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
@@ -172,4 +173,5 @@ void UMASkillAction_SpawnProjectile::Execute(
 	}
 
 	Projectile->InitializeProjectile(ProjectileParams);
+	Scopes.GetRuntimeRegistry().Register(Projectile);
 }

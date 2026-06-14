@@ -1,4 +1,4 @@
-#include "Character/MAImpulseComponent.h"
+﻿#include "Character/MAImpulseComponent.h"
 
 #include "Character/MACharacter.h"
 #include "Components/CapsuleComponent.h"
@@ -64,7 +64,12 @@ void UMAImpulseComponent::ApplyStatusEffectImpulse(EStatusEffectImpulseMode Impu
 	ApplyImpulseVelocityInternal(StatusEffectTag, StatusEffectDirection * Magnitude, !bImpulseMovementOverrideActive);
 }
 
-void UMAImpulseComponent::ApplyActionImpulseVelocity(UObject* OwnerObject, const FGameplayTag& ImpulseTag, const FVector& Velocity, float Duration, bool bStopMovementImmediately)
+void UMAImpulseComponent::ApplyActionImpulseVelocity(
+	UObject* OwnerObject,
+	const FGameplayTag& ImpulseTag,
+	const FVector& Velocity,
+	float Duration,
+	bool bStopMovementImmediately)
 {
 	AMACharacter* Character = ResolveOwnerCharacter();
 	if (!Character || Character->IsDead()) return;
@@ -81,8 +86,10 @@ void UMAImpulseComponent::ApplyActionImpulseVelocity(UObject* OwnerObject, const
 void UMAImpulseComponent::RemoveImpulse(const FGameplayTag& StatusEffectTag)
 {
 	if (ActiveImpulseContributions.Remove(StatusEffectTag) == 0) return;
+
 	ActiveActionImpulseOwners.Remove(StatusEffectTag);
 	ClearActionImpulseTimer(StatusEffectTag);
+
 	if (ActiveImpulseContributions.IsEmpty())
 	{
 		ClearImpulseState();

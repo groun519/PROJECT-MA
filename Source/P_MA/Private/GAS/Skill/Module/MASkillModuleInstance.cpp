@@ -1,5 +1,6 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "Net/UnrealNetwork.h"
 
 UMASkillModuleInstance* UMASkillModuleInstance::Create(UObject* Outer, UMASkillDefinition* InDefinition)
@@ -9,7 +10,7 @@ UMASkillModuleInstance* UMASkillModuleInstance::Create(UObject* Outer, UMASkillD
 	UMASkillModuleInstance* Instance = NewObject<UMASkillModuleInstance>(Outer);
 	if (!Instance) return nullptr;
 
-	Instance->Definition = InDefinition;
+	Instance->SetDefinition(InDefinition);
 	return Instance;
 }
 
@@ -20,8 +21,19 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(UMASkillModuleInstance, Definition);
 }
 
-void UMASkillModuleInstance::BroadcastScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData)
+void UMASkillModuleInstance::SetDefinition(UMASkillDefinition* InDefinition)
 {
-	if (!SourceEventTag.IsValid()) return;
-	ScopedEventDelegate.Broadcast(SourceEventTag, EventData);
+	Definition = InDefinition;
+	InitializePayloadStore();
+}
+
+void UMASkillModuleInstance::OnRep_Definition()
+{
+	InitializePayloadStore();
+}
+
+void UMASkillModuleInstance::InitializePayloadStore()
+{
+	PayloadStore.Reset();
+	if (Definition) Definition->ApplyPayloadsTo(PayloadStore);
 }

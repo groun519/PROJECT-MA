@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "GAS/Skill/Event/Binding/MASkillGameplayEventBinding.h"
+#include "GAS/Skill/Event/Binding/MASkillEventBinding.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
 #include "GAS/Skill/Step/MASkillStep.h"
@@ -78,7 +78,7 @@ public:
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
-	const TArray<FMASkillGameplayEventBinding>& GetEventBindings() const { return EventBindings; }
+	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	virtual void PostLoad() override;
 
@@ -131,7 +131,7 @@ private:
 
 	/** Event **/
 	UPROPERTY(EditDefaultsOnly, Category="Event", meta=(DisplayName="Event Bindings"))
-	TArray<FMASkillGameplayEventBinding> EventBindings;
+	TArray<FMASkillEventBinding> EventBindings;
 
 	UPROPERTY(EditDefaultsOnly, Category="Payload")
 	TArray<FMASkillPayloadEntry> Payloads;

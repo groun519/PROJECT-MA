@@ -5,7 +5,7 @@
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamage.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamageOverTime.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
 void MASkillDamageResolver::ApplyDamageOverTimeConfig(FGameplayEffectSpecHandle& SpecHandle, const FMASkillDamageOverTimeConfig& DamageOverTime)
@@ -22,6 +22,15 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 	const FMASkillDamageConfig& DamageConfig,
 	const FMASkillPayloadStore& PayloadStore)
 {
+	return ResolveExecutionConfig(
+		DamageConfig,
+		FMASkillPayloadAccessor(nullptr, &PayloadStore, nullptr));
+}
+
+FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadAccessor& Payloads)
+{
 	FMADamageExecutionConfig Result;
 	Result.BaseDamage = DamageConfig.BaseDamage;
 	Result.DamageTypeTag = DamageConfig.DamageTypeTag;
@@ -33,7 +42,7 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 		if (Coefficient.Side == EMADamageAttributeSide::Payload)
 		{
 			float PayloadValue = 0.f;
-			if (PayloadStore.TryGetScalar(Coefficient.PayloadTag, PayloadValue))
+			if (Payloads.TryGetScalar(Coefficient.PayloadTag, PayloadValue))
 			{
 				Result.BaseDamage += PayloadValue * Coefficient.Coefficient;
 			}
@@ -89,12 +98,23 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	const FMASkillDamageConfig& DamageConfig,
 	const FMASkillPayloadStore& PayloadStore)
 {
+	return Resolve(
+		OwnerAbility,
+		DamageConfig,
+		FMASkillPayloadAccessor(nullptr, &PayloadStore, nullptr));
+}
+
+FResolvedSkillDamage MASkillDamageResolver::Resolve(
+	UMASkillAbility& OwnerAbility,
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadAccessor& Payloads)
+{
 	FResolvedSkillDamage ResolvedDamage;
 	ResolvedDamage.TargetRelationMask = DamageConfig.TargetRelationMask;
 	ResolvedDamage.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
 	AppendElementalHitGameplayCueTag(OwnerAbility, ResolvedDamage.TargetGameplayCueTags);
 
-	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, PayloadStore);
+	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, Payloads);
 	if (ExecutionConfig.HasValues())
 	{
 		const bool bApplyDamageOverTime = DamageConfig.ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime;
@@ -110,7 +130,7 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 			&AppliedExecutionConfig);
 
 		float FinalDamageMultiplier = 1.f;
-		if (PayloadStore.TryGetScalar(
+		if (Payloads.TryGetScalar(
 			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
 			FinalDamageMultiplier)
 			&& !FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
@@ -123,7 +143,7 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 		}
 
 		float DamageVariance = 0.f;
-		if (PayloadStore.TryGetScalar(
+		if (Payloads.TryGetScalar(
 			UMAAbilitySystemStatics::GetDamageVarianceTag(),
 			DamageVariance)
 			&& !FMath::IsNearlyZero(DamageVariance)

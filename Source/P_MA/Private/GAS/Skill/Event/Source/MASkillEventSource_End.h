@@ -1,7 +1,7 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Skill/Event/Publish/MASkillEventSource.h"
+#include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "MASkillEventSource_End.generated.h"
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
@@ -14,11 +14,4 @@ public:
 	{
 		EmittedTag = FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.End"));
 	}
-
-	virtual void StartSource(UMASkillAbility* SkillAbility) override;
-	virtual void StopSource() override;
-
-private:
-	UPROPERTY(Transient)
-	bool bStarted = false;
 };

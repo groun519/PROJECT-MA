@@ -1,16 +1,15 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GAS/MAGameplayAbility.h"
+#include "GAS/Skill/Event/MASkillEventTypes.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
 class UDataTable;
-class UAbilityTask_WaitGameplayEvent;
 class UMASkillDefinition;
-class UMASkillEventSource;
 class UMASkillGenericDataAsset;
+class UMASkillManagerComponent;
 class UMASkillModuleInstance;
 class UMASkillStepManager;
 struct FGameplayEventData;
@@ -38,10 +37,6 @@ public:
 	const UDataTable* GetOverlapDecalDataTable() const;
 	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
-	UFUNCTION()
-	void HandleExternalGameplayEvent(FGameplayEventData EventData);
-	void ExecuteScopedGameplayEvent(UMASkillModuleInstance* EventScope, FGameplayEventData EventData, UMASkillModuleInstance* BindingScope);
-	void SendSkillGameplayEvent(const FGameplayEventData& EventData, UMASkillModuleInstance* BindingScope = nullptr);
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;
 	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
@@ -51,6 +46,7 @@ public:
 	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
 	void EndSkill() { K2_EndAbility(); }
 	bool CanPlaySkillMontageLocally() const;
+	UMASkillManagerComponent* GetSkillManagerComponent() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
@@ -59,30 +55,15 @@ protected:
 
 private:
 	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
-	void ApplyCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
-	void BindGameplayEvents();
-	void UnbindGameplayEvents();
-	void EnsureEventSources();
 	void EnsureStepManager();
 	float GetCooldownSeconds() const;
 	FGameplayTag GetCooldownTagForSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModuleInstance> CurrentSkillModuleInstance;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> CachedSkillModuleInstance;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> PendingSkillModuleInstance;
-
-	bool bHasPendingSkillModuleInstanceUpdate = false;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UAbilityTask_WaitGameplayEvent>> EventTasks;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillStepManager> StepManager;

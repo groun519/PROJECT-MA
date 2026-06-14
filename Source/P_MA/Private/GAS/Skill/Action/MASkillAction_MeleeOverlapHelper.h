@@ -3,24 +3,24 @@
 #include "CoreMinimal.h"
 
 struct FGameplayTag;
-struct FGameplayEventData;
 struct FHitResult;
 struct FMASkillDamageConfig;
-struct FMASkillPayloadStore;
+struct FMASkillEvent;
+struct FMASkillPayloadAccessor;
 struct FResolvedSkillDamage;
 class UMASkillAbility;
 
 class P_MA_API MASkillActionMeleeOverlap final
 {
 public:
-	static FMASkillDamageConfig ResolveDamageConfig(const FMASkillPayloadStore& PayloadStore, const FGameplayTag& DamagePayloadTag);
-	static TArray<FHitResult> ResolveHitResultsFromEventData(
+	static FMASkillDamageConfig ResolveDamageConfig(const FMASkillPayloadAccessor& Payloads, const FGameplayTag& DamagePayloadTag);
+	static TArray<FHitResult> ResolveHitResultsFromEvent(
 		UMASkillAbility& OwnerAbility,
-		const FGameplayEventData& EventData,
+		const FMASkillEvent& Event,
 		int32 TargetRelationMask);
 	static FVector ResolveStatusEffectCenterPoint(
 		UMASkillAbility& OwnerAbility,
-		const FGameplayEventData& EventData);
+		const FMASkillEvent& Event);
 
 private:
 	MASkillActionMeleeOverlap() = delete;

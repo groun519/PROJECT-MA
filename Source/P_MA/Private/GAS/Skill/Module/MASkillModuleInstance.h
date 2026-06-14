@@ -7,9 +7,7 @@
 #include "MASkillModuleInstance.generated.h"
 
 class UMASkillDefinition;
-struct FGameplayEventData;
-
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMASkillScopedEventSignature, const FGameplayTag&, const FGameplayEventData&);
+class UMASkillRuntimeRegistry;
 
 UENUM(BlueprintType)
 enum class EMASkillModuleActivationState : uint8
@@ -30,7 +28,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UMASkillDefinition* GetDefinition() const { return Definition; }
-	void SetDefinition(UMASkillDefinition* InDefinition) { Definition = InDefinition; }
+	void SetDefinition(UMASkillDefinition* InDefinition);
 	bool IsValid() const { return Definition != nullptr; }
 	bool IsActive() const { return ActivationState == EMASkillModuleActivationState::Active; }
 	void SetActivationState(EMASkillModuleActivationState InActivationState, const FGameplayTag& InInactiveReasonTag = FGameplayTag())
@@ -39,14 +37,17 @@ public:
 		InactiveReasonTag = IsActive() ? FGameplayTag() : InInactiveReasonTag;
 	}
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
-	FMASkillScopedEventSignature& OnScopedEvent() { return ScopedEventDelegate; }
-	void BroadcastScopedEvent(const FGameplayTag& SourceEventTag, const FGameplayEventData& EventData);
 	// Add a const getter when a const module instance needs read-only payload access.
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	void ResetPayloadStore() { PayloadStore.Reset(); }
+	UMASkillRuntimeRegistry* GetRuntimeRegistry() const { return RuntimeRegistry; }
 
 private:
-	UPROPERTY(Replicated)
+	UFUNCTION()
+	void OnRep_Definition();
+	void InitializePayloadStore();
+
+	UPROPERTY(ReplicatedUsing=OnRep_Definition)
 	TObjectPtr<UMASkillDefinition> Definition;
 
 	UPROPERTY(Transient)
@@ -58,5 +59,8 @@ private:
 	UPROPERTY(Transient)
 	FMASkillPayloadStore PayloadStore;
 
-	FMASkillScopedEventSignature ScopedEventDelegate;
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillRuntimeRegistry> RuntimeRegistry;
+
+	friend struct FMASkillAssembler;
 };

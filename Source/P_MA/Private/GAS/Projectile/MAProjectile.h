@@ -77,7 +77,7 @@ private:
 	FMAProjectileParams ProjectileParams;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInstance> EventScope;
+	FMASkillScopes EventScopes;
 
 	bool bPendingDestroy = false;
 	FVector PreviousHitCheckLocation = FVector::ZeroVector;

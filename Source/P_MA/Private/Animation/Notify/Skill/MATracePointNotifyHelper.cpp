@@ -1,10 +1,10 @@
 #include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
 
 #include "Abilities/GameplayAbilityTargetTypes.h"
-#include "Abilities/GameplayAbilityTypes.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "GAS/Skill/Event/MASkillEventTypes.h"
 #include "VirtualSocketTargetData.h"
 
 namespace MATracePointNotify
@@ -53,8 +53,7 @@ namespace MATracePointNotify
 	}
 
 	void AppendTargetData(
-		FGameplayEventData& OutData,
-		AActor* Owner,
+		FMASkillEvent& OutEvent,
 		EVA_Shape Shape,
 		const FVector2D& LocalOffset,
 		const FRotator& LocalRotation,
@@ -68,26 +67,29 @@ namespace MATracePointNotify
 		bool bDrawDebug,
 		const FVector& WorldLocation)
 	{
+		FGameplayAbilityTargetDataHandle TargetData;
 		auto* LocationInfo = new FGameplayAbilityTargetData_LocationInfo();
 		LocationInfo->SourceLocation.LiteralTransform.SetLocation(WorldLocation);
-		OutData.TargetData.Add(LocationInfo);
-		OutData.Instigator = Owner;
+		TargetData.Add(LocationInfo);
 
-		if (Shape == EVA_Shape::Line || Shape == EVA_Shape::None) return;
+		if (Shape != EVA_Shape::Line && Shape != EVA_Shape::None)
+		{
+			auto* VirtualSocketData = new FGameplayAbilityTargetData_VirtualSocket();
+			VirtualSocketData->Shape = Shape;
+			VirtualSocketData->LocalOffset = FVector(LocalOffset.X, LocalOffset.Y, 0.f);
+			VirtualSocketData->LocalRotation = LocalRotation;
+			VirtualSocketData->SphereRadius = Radius;
+			VirtualSocketData->BoxHalfSize =
+				Shape == EVA_Shape::Rect ? FVector(Height, Width, 100.f)
+				: FVector::ZeroVector;
+			VirtualSocketData->bUseSector = bUseSector;
+			VirtualSocketData->SectorAngle = SectorAngle;
+			VirtualSocketData->bIgnoreOwner = bIgnoreOwner;
+			VirtualSocketData->bDrawDebug = bDrawDebug;
+			TargetData.Add(VirtualSocketData);
+		}
 
-		auto* VirtualSocketData = new FGameplayAbilityTargetData_VirtualSocket();
-		VirtualSocketData->Shape = Shape;
-		VirtualSocketData->LocalOffset = FVector(LocalOffset.X, LocalOffset.Y, 0.f);
-		VirtualSocketData->LocalRotation = LocalRotation;
-		VirtualSocketData->SphereRadius = Radius;
-		VirtualSocketData->BoxHalfSize =
-			Shape == EVA_Shape::Rect ? FVector(Height, Width, 100.f)
-			: FVector::ZeroVector;
-		VirtualSocketData->bUseSector = bUseSector;
-		VirtualSocketData->SectorAngle = SectorAngle;
-		VirtualSocketData->bIgnoreOwner = bIgnoreOwner;
-		VirtualSocketData->bDrawDebug = bDrawDebug;
-		OutData.TargetData.Add(VirtualSocketData);
+		OutEvent.SetTargetData(TargetData);
 	}
 
 	bool IsEditorPreviewWorldNoPIE(const UWorld* World)

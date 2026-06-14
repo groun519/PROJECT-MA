@@ -1,7 +1,8 @@
-#include "Animation/Notify/Skill/AnimNotify_SendTracePoint.h"
+﻿#include "Animation/Notify/Skill/AnimNotify_SendTracePoint.h"
 
 #include "Animation/MAAnimInstance.h"
 #include "Animation/Notify/Skill/MATracePointNotifyHelper.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 
 namespace
@@ -43,11 +44,9 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 	UMASkillAbility* SkillAbility = ResolveTracePointOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
-	FGameplayEventData Data;
-	Data.EventTag = EventTag;
+	FMASkillEvent Event(EventTag);
 	MATracePointNotify::AppendTargetData(
-		Data,
-		Owner,
+		Event,
 		Shape,
 		LocalOffset,
 		LocalRotation,
@@ -61,5 +60,5 @@ void UAnimNotify_SendTracePoint::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		bDrawDebug,
 		ShapeWorldLocation);
 
-	SkillAbility->SendSkillGameplayEvent(Data, SkillAbility->GetCurrentBindingScope());
+	UMASkillEventRoutingStatics::TryNotifySkillEvent(SkillAbility, MoveTemp(Event), SkillAbility->GetCurrentBindingScope());
 }
