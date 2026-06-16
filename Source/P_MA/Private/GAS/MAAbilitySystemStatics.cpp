@@ -111,9 +111,24 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.AttackSpeedMultiplier");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillFocusOffsetTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.FocusOffset");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageDealtEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageDealt");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.MovementStart");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMovementHandleTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Event.MovementHandle");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetDefaultDamageTypeTag()

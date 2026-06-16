@@ -22,6 +22,9 @@ class AMonster : public AMACharacter
 {
 	GENERATED_BODY()
 
+public:
+	AMonster();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

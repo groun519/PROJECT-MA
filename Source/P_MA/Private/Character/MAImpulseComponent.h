@@ -9,6 +9,20 @@ class AMACharacter;
 class UCharacterMovementComponent;
 class UCapsuleComponent;
 
+USTRUCT(BlueprintType)
+struct P_MA_API FMAActionImpulseHandle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	FGameplayTag Tag;
+
+	UPROPERTY(Transient)
+	uint32 InstanceId = 0;
+
+	bool IsValid() const { return Tag.IsValid() && InstanceId != 0; }
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class UMAImpulseComponent : public UActorComponent
 {
@@ -21,12 +35,13 @@ public:
 	UMAImpulseComponent();
 
 	void ApplyStatusEffectImpulse(EStatusEffectImpulseMode ImpulseMode, float Magnitude, const FVector& SourcePoint, const FGameplayTag& StatusEffectTag);
-	void ApplyActionImpulseVelocity(
+	FMAActionImpulseHandle ApplyActionImpulseVelocity(
 		UObject* OwnerObject,
 		const FGameplayTag& ImpulseTag,
 		const FVector& Velocity,
 		float Duration,
 		bool bStopMovementImmediately = true);
+	bool IsActionImpulseActive(const FMAActionImpulseHandle& Handle) const;
 	void RemoveImpulse(const FGameplayTag& StatusEffectTag);
 	void StopOwnedActionImpulses(UObject* OwnerObject);
 	void CancelInterruptibleActionImpulses();
@@ -36,8 +51,7 @@ private:
 	struct FActionImpulseOwner
 	{
 		TWeakObjectPtr<UObject> Object;
-
-		bool Matches(UObject* InObject) const { return Object.Get() == InObject; }
+		uint32 InstanceId = 0;
 	};
 
 	AMACharacter* ResolveOwnerCharacter();
@@ -68,4 +82,5 @@ private:
 	TMap<FGameplayTag, FTimerHandle> ActiveActionImpulseTimers;
 
 	TMap<FGameplayTag, FActionImpulseOwner> ActiveActionImpulseOwners;
+	uint32 NextActionImpulseInstanceId = 0;
 };

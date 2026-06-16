@@ -27,12 +27,12 @@ void UExecCalc_BurnDamage::Execute_Implementation(
 	float Temperature = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(TargetTemperatureDef, EvalParams, Temperature);
 
-	const float BurnDamage = FMath::RoundToFloat(FMath::Clamp(Temperature / 100.f, 0.f, 1.f) * MaxBurnDamage);
+	const float BurnDamage = FMath::Clamp(Temperature / 100.f, 0.f, 1.f) * MaxBurnDamage;
 	if (BurnDamage <= 0.f) return;
 
 	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 	{
-		MAContext->SetDamageTypeTag(UMAAbilitySystemStatics::GetFireDamageTypeTag());
+		MAContext->SetDamageTypeTag(UMAAbilitySystemStatics::GetDefaultDamageTypeTag());
 		MAContext->SetDisplayMagnitude(BurnDamage);
 	}
 
@@ -44,9 +44,7 @@ void UExecCalc_BurnDamage::Execute_Implementation(
 
 UMAGameplayEffect_BurnDamage::UMAGameplayEffect_BurnDamage()
 {
-	DurationPolicy = EGameplayEffectDurationType::Infinite;
-	Period = FScalableFloat(0.5f);
-	bExecutePeriodicEffectOnApplication = false;
+	DurationPolicy = EGameplayEffectDurationType::Instant;
 
 	FGameplayEffectExecutionDefinition& ExecutionDefinition = Executions.AddDefaulted_GetRef();
 	ExecutionDefinition.CalculationClass = UExecCalc_BurnDamage::StaticClass();

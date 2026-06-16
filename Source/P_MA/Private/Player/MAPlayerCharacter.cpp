@@ -108,11 +108,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
         MinimapCapture->SetupAttachment(MinimapCameraBoom);
         MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
         MinimapCapture->OrthoWidth = 7000.0f;
-    	
-        if (MinimapSprite)
-        {
-            MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
-        }
     }
 
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/_Widget/Gameplay/MiniMap/CRT_MiniMap.CRT_MiniMap"));

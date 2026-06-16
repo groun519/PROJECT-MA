@@ -28,6 +28,7 @@ private:
 	void BindToASC();
 	void HandleTemperatureChanged(const FOnAttributeChangeData& Data);
 	void RefreshTemperatureRecoveryEffect();
+	void DelayTemperatureRecovery();
 	void RefreshTemperatureOverlay();
 	float CalculateTemperatureOverlayAlpha() const;
 	bool IsTemperatureRecoveryActive() const;
@@ -41,8 +42,10 @@ private:
 	void RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext = FGameplayEffectContextHandle());
 	float GetMaxBurnDamagePerTick() const;
 	bool IsBurnDamageActive() const;
-	void ApplyBurnDamage(const FGameplayEffectContextHandle& SourceContext);
+	void StartBurnDamage(float TickInterval);
+	void ApplyBurnDamageTick();
 	void RemoveBurnDamage();
+	void TriggerOverheatExplosion(const FGameplayEffectContextHandle& SourceContext);
 	bool IsFrozenStatusActive() const;
 	void RefreshFrozenStatus();
 	void ApplyFrozenStatus();
@@ -61,9 +64,13 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> TemperatureOverlayMID;
 
 	float CurrentTemperature = 0.f;
+	FTimerHandle TemperatureRecoveryDelayTimerHandle;
 	FActiveGameplayEffectHandle TemperatureRecoveryEffectHandle;
 	FActiveGameplayEffectHandle TemperatureSlowEffectHandle;
 	float CurrentTemperatureSlowMultiplier = 1.f;
-	FActiveGameplayEffectHandle BurnDamageEffectHandle;
+	FTimerHandle BurnDamageTimerHandle;
+	FGameplayEffectContextHandle BurnDamageContext;
+	float CurrentBurnTickInterval = 0.f;
+	bool bOverheated = false;
 	FActiveGameplayEffectHandle FrozenStatusEffectHandle;
 };

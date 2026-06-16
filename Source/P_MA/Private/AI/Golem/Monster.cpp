@@ -10,6 +10,14 @@
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 
+AMonster::AMonster()
+{
+	bUseControllerRotationYaw = false;
+
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = true;
+}
+
 void AMonster::BeginPlay()
 {
 	Super::BeginPlay();

@@ -209,7 +209,11 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	const float Armor = CaptureMagnitude(TargetArmorDef);
 	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
 	const float DamageVariance = FMath::Max(0.f, Spec.GetSetByCallerMagnitude(DamageVarianceTag, false, 0.f));
-	const float Focus = FMath::Clamp(CaptureMagnitude(SourceFocusDef), -1.f, 1.f);
+	const float Focus = FMath::Clamp(
+		CaptureMagnitude(SourceFocusDef)
+		+ Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetSkillFocusOffsetTag(), false, 0.f),
+		-1.f,
+		1.f);
 	const float CriticalDamage = CaptureMagnitude(SourceCriticalDamageDef);
 	const float ReverseCriticalDamage = CaptureMagnitude(SourceReverseCriticalDamageDef);
 

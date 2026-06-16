@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "MAElementalConfigData.generated.h"
 
 UCLASS(BlueprintType)
@@ -10,6 +11,8 @@ class P_MA_API UMAElementalConfigData : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	UMAElementalConfigData();
+
 	UPROPERTY(EditDefaultsOnly, Category="Frozen")
 	float FrozenEnterTemperature = -100.f;
 
@@ -21,4 +24,22 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category="Burn", meta=(ClampMin="0.0"))
 	float MaxBurnDamagePerTick = 5.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn", meta=(ClampMin="0.01"))
+	float BurnTickInterval = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn|Overheat")
+	float OverheatEnterTemperature = 100.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn|Overheat")
+	float OverheatExitTemperature = 80.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn|Overheat", meta=(ClampMin="0.01"))
+	float OverheatedBurnTickInterval = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn|Overheat", meta=(ClampMin="0.0"))
+	float OverheatExplosionRadius = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Burn|Overheat")
+	TArray<FMASkillDamageConfig> OverheatExplosionDamages;
 };

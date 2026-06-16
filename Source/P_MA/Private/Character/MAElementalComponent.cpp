@@ -2,6 +2,7 @@
 
 #include "Character/MACharacter.h"
 #include "Character/MAOverlayComponent.h"
+#include "Engine/World.h"
 #include "GameplayEffectExtension.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -10,10 +11,15 @@
 #include "GAS/Elemental/MAGameplayEffect_TemperatureRecovery.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureSlow.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
+#include "TimerManager.h"
 
 UMAElementalComponent::UMAElementalComponent()
 {
@@ -30,6 +36,10 @@ void UMAElementalComponent::BeginPlay()
 
 void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TemperatureRecoveryDelayTimerHandle);
+	}
 	RemoveTemperatureRecovery();
 	RemoveTemperatureSlow();
 	RemoveBurnDamage();
@@ -55,7 +65,7 @@ void UMAElementalComponent::BindToASC()
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
 	RefreshBurnDamage();
-	RefreshTemperatureRecoveryEffect();
+	DelayTemperatureRecovery();
 }
 
 void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeData& Data)
@@ -64,8 +74,22 @@ void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeDat
 	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
-	RefreshBurnDamage(Data.GEModData ? Data.GEModData->EffectSpec.GetContext() : FGameplayEffectContextHandle());
-	RefreshTemperatureRecoveryEffect();
+	RefreshBurnDamage(
+		Data.NewValue > Data.OldValue && Data.GEModData
+			? Data.GEModData->EffectSpec.GetContext()
+			: FGameplayEffectContextHandle());
+
+	const bool bFromTemperatureRecovery = Data.GEModData
+		&& Data.GEModData->EffectSpec.Def
+		&& Data.GEModData->EffectSpec.Def->IsA<UMAGameplayEffect_TemperatureRecovery>();
+	if (bFromTemperatureRecovery)
+	{
+		RefreshTemperatureRecoveryEffect();
+	}
+	else
+	{
+		DelayTemperatureRecovery();
+	}
 }
 
 void UMAElementalComponent::RefreshTemperatureOverlay()
@@ -95,6 +119,7 @@ void UMAElementalComponent::RefreshTemperatureRecoveryEffect()
 
 	if (FMath::IsNearlyZero(CurrentTemperature))
 	{
+		GetWorld()->GetTimerManager().ClearTimer(TemperatureRecoveryDelayTimerHandle);
 		RemoveTemperatureRecovery();
 		return;
 	}
@@ -103,6 +128,25 @@ void UMAElementalComponent::RefreshTemperatureRecoveryEffect()
 	{
 		ApplyTemperatureRecovery();
 	}
+}
+
+void UMAElementalComponent::DelayTemperatureRecovery()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	World->GetTimerManager().ClearTimer(TemperatureRecoveryDelayTimerHandle);
+	RemoveTemperatureRecovery();
+	if (FMath::IsNearlyZero(CurrentTemperature)) return;
+
+	World->GetTimerManager().SetTimer(
+		TemperatureRecoveryDelayTimerHandle,
+		this,
+		&UMAElementalComponent::RefreshTemperatureRecoveryEffect,
+		GetDefault<UMAGameplayEffect_TemperatureRecovery>()->GetRecoveryDelay(),
+		false);
 }
 
 bool UMAElementalComponent::IsTemperatureRecoveryActive() const
@@ -200,13 +244,39 @@ void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle
 
 	if (CurrentTemperature <= 0.f)
 	{
+		bOverheated = false;
 		RemoveBurnDamage();
 		return;
 	}
 
-	if (!IsBurnDamageActive())
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	const float OverheatEnterTemperature = ConfigData ? ConfigData->OverheatEnterTemperature : 100.f;
+	const float OverheatExitTemperature = ConfigData ? ConfigData->OverheatExitTemperature : 80.f;
+	const bool bShouldOverheat = bOverheated
+		? CurrentTemperature > OverheatExitTemperature
+		: CurrentTemperature >= OverheatEnterTemperature;
+	const bool bOverheatChanged = bOverheated != bShouldOverheat;
+
+	if (SourceContext.IsValid())
 	{
-		ApplyBurnDamage(SourceContext);
+		BurnDamageContext = SourceContext;
+	}
+
+	if (bOverheatChanged)
+	{
+		bOverheated = bShouldOverheat;
+		if (bOverheated)
+		{
+			TriggerOverheatExplosion(BurnDamageContext);
+		}
+	}
+
+	const float TickInterval = ConfigData
+		? (bOverheated ? ConfigData->OverheatedBurnTickInterval : ConfigData->BurnTickInterval)
+		: (bOverheated ? 0.5f : 1.f);
+	if (!IsBurnDamageActive() || !FMath::IsNearlyEqual(CurrentBurnTickInterval, TickInterval))
+	{
+		StartBurnDamage(TickInterval);
 	}
 }
 
@@ -218,32 +288,69 @@ float UMAElementalComponent::GetMaxBurnDamagePerTick() const
 
 bool UMAElementalComponent::IsBurnDamageActive() const
 {
-	return OwnerASC
-		&& BurnDamageEffectHandle.IsValid()
-		&& OwnerASC->GetActiveGameplayEffect(BurnDamageEffectHandle);
+	const UWorld* World = GetWorld();
+	return World && World->GetTimerManager().IsTimerActive(BurnDamageTimerHandle);
 }
 
-void UMAElementalComponent::ApplyBurnDamage(const FGameplayEffectContextHandle& SourceContext)
+void UMAElementalComponent::StartBurnDamage(float TickInterval)
 {
-	if (!OwnerASC || IsBurnDamageActive()) return;
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	CurrentBurnTickInterval = FMath::Max(TickInterval, 0.01f);
+	World->GetTimerManager().SetTimer(
+		BurnDamageTimerHandle,
+		this,
+		&UMAElementalComponent::ApplyBurnDamageTick,
+		CurrentBurnTickInterval,
+		true);
+}
+
+void UMAElementalComponent::ApplyBurnDamageTick()
+{
+	if (!OwnerASC) return;
 
 	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(
 		GetDefault<UMAGameplayEffect_BurnDamage>(),
-		SourceContext.IsValid() ? SourceContext : OwnerASC->MakeEffectContext(),
+		BurnDamageContext.IsValid() ? BurnDamageContext : OwnerASC->MakeEffectContext(),
 		1.f));
 	if (!SpecHandle.IsValid()) return;
 
 	SpecHandle.Data->SetSetByCallerMagnitude(UMAGameplayEffect_BurnDamage::GetMaxBurnDamageDataName(), GetMaxBurnDamagePerTick());
-	BurnDamageEffectHandle = OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
 void UMAElementalComponent::RemoveBurnDamage()
 {
-	if (OwnerASC && BurnDamageEffectHandle.IsValid())
+	if (UWorld* World = GetWorld())
 	{
-		OwnerASC->RemoveActiveGameplayEffect(BurnDamageEffectHandle);
+		World->GetTimerManager().ClearTimer(BurnDamageTimerHandle);
 	}
-	BurnDamageEffectHandle.Invalidate();
+	BurnDamageContext = FGameplayEffectContextHandle();
+	CurrentBurnTickInterval = 0.f;
+}
+
+void UMAElementalComponent::TriggerOverheatExplosion(const FGameplayEffectContextHandle& SourceContext)
+{
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	if (!ConfigData || ConfigData->OverheatExplosionRadius <= 0.f) return;
+
+	UMASkillAbility* SourceAbility = const_cast<UMASkillAbility*>(
+		Cast<UMASkillAbility>(SourceContext.GetAbilityInstance_NotReplicated()));
+	if (!SourceAbility) return;
+
+	FMASkillAreaShape AreaConfig;
+	AreaConfig.Shape = EMASkillAreaShape::Circle;
+	AreaConfig.Radius = ConfigData->OverheatExplosionRadius;
+	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(OwnerCharacter->GetActorTransform());
+
+	const FMASkillScopes Scopes(nullptr, SourceAbility->GetCurrentSkillModuleInstance());
+	MASkillDamageApplicator::ApplyArea(
+		*SourceAbility,
+		Scopes,
+		Area,
+		ConfigData->OverheatExplosionDamages,
+		Scopes.GetPayloadAccess());
 }
 
 bool UMAElementalComponent::IsFrozenStatusActive() const

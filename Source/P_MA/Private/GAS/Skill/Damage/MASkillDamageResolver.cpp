@@ -155,6 +155,19 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 				DamageVariance);
 		}
 
+		float FocusOffset = 0.f;
+		if (Payloads.TryGetScalar(
+			UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
+			FocusOffset)
+			&& !FMath::IsNearlyZero(FocusOffset)
+			&& ResolvedDamage.DamageSpec.IsValid()
+			&& ResolvedDamage.DamageSpec.Data.IsValid())
+		{
+			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
+				FocusOffset);
+		}
+
 		if (bApplyDamageOverTime)
 		{
 			ApplyDamageOverTimeConfig(ResolvedDamage.DamageSpec, DamageConfig.DamageOverTime);

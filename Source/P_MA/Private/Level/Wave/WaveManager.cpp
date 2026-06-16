@@ -17,7 +17,7 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!InitCachedMAGameMode())
+	if (HasAuthority() && !InitCachedMAGameMode())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WaveManager: MAGameMode not Found"));
 	}

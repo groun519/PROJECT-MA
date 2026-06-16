@@ -3,6 +3,9 @@
 #include "Character/MACharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "P_MA/P_MA.h"
 
@@ -64,7 +67,7 @@ void UMAImpulseComponent::ApplyStatusEffectImpulse(EStatusEffectImpulseMode Impu
 	ApplyImpulseVelocityInternal(StatusEffectTag, StatusEffectDirection * Magnitude, !bImpulseMovementOverrideActive);
 }
 
-void UMAImpulseComponent::ApplyActionImpulseVelocity(
+FMAActionImpulseHandle UMAImpulseComponent::ApplyActionImpulseVelocity(
 	UObject* OwnerObject,
 	const FGameplayTag& ImpulseTag,
 	const FVector& Velocity,
@@ -72,15 +75,36 @@ void UMAImpulseComponent::ApplyActionImpulseVelocity(
 	bool bStopMovementImmediately)
 {
 	AMACharacter* Character = ResolveOwnerCharacter();
-	if (!Character || Character->IsDead()) return;
+	if (!Character || Character->IsDead()) return {};
 	// TODO: Add an explicit policy flag for movement-lock-immune hard movement skills.
-	if (Character->IsMovementBlocked()) return;
-	if (!OwnerObject) return;
-	if (!ImpulseTag.IsValid() || Velocity.IsNearlyZero() || Duration <= 0.f) return;
+	if (Character->IsMovementBlocked()) return {};
+	if (!OwnerObject) return {};
+	if (!ImpulseTag.IsValid() || Velocity.IsNearlyZero() || Duration <= 0.f) return {};
 	CancelInterruptibleActionImpulses();
 	ApplyImpulseVelocityInternal(ImpulseTag, Velocity, bStopMovementImmediately);
-	ActiveActionImpulseOwners.FindOrAdd(ImpulseTag) = FActionImpulseOwner{ OwnerObject };
+
+	if (++NextActionImpulseInstanceId == 0) ++NextActionImpulseInstanceId;
+	const FMAActionImpulseHandle Handle{ ImpulseTag, NextActionImpulseInstanceId };
+	ActiveActionImpulseOwners.FindOrAdd(ImpulseTag) = FActionImpulseOwner{ OwnerObject, Handle.InstanceId };
 	ScheduleActionImpulseStop(ImpulseTag, Duration);
+
+	if (UMASkillAbility* SkillAbility = Cast<UMASkillAbility>(OwnerObject))
+	{
+		FMASkillEvent Event(UMAAbilitySystemStatics::GetMovementStartEventTag());
+		Event.Payloads.SetStruct(UMAAbilitySystemStatics::GetMovementHandleTag(), Handle);
+		UMASkillEventRoutingStatics::TryNotifySkillEvent(
+			SkillAbility,
+			MoveTemp(Event),
+			SkillAbility->GetCurrentBindingScope());
+	}
+
+	return Handle;
+}
+
+bool UMAImpulseComponent::IsActionImpulseActive(const FMAActionImpulseHandle& Handle) const
+{
+	const FActionImpulseOwner* ActionImpulseOwner = ActiveActionImpulseOwners.Find(Handle.Tag);
+	return Handle.IsValid() && ActionImpulseOwner && ActionImpulseOwner->InstanceId == Handle.InstanceId;
 }
 
 void UMAImpulseComponent::RemoveImpulse(const FGameplayTag& StatusEffectTag)
@@ -106,7 +130,7 @@ void UMAImpulseComponent::StopOwnedActionImpulses(UObject* OwnerObject)
 	TArray<FGameplayTag> OwnedImpulseTags;
 	for (const TPair<FGameplayTag, FActionImpulseOwner>& OwnerPair : ActiveActionImpulseOwners)
 	{
-		if (!OwnerPair.Value.Matches(OwnerObject)) continue;
+		if (OwnerPair.Value.Object.Get() != OwnerObject) continue;
 		OwnedImpulseTags.Add(OwnerPair.Key);
 	}
 

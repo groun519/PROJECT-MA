@@ -26,9 +26,9 @@ void UExecCalc_TemperatureRecovery::Execute_Implementation(
 	if (FMath::IsNearlyZero(Temperature)) return;
 
 	const float AbsTemperature = FMath::Abs(Temperature);
-	const float Delta = AbsTemperature <= RecoveryEffect->GetSnapThreshold()
-		? -Temperature
-		: -Temperature * RecoveryEffect->GetRecoveryRatioPerTick();
+	const float RecoveryAmount = AbsTemperature * RecoveryEffect->GetRecoveryRatioPerTick()
+		+ RecoveryEffect->GetRecoveryAmountPerTick();
+	const float Delta = -FMath::Sign(Temperature) * FMath::Min(AbsTemperature, RecoveryAmount);
 	if (FMath::IsNearlyZero(Delta)) return;
 
 	OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
