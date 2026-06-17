@@ -341,7 +341,7 @@ void UMAElementalComponent::TriggerOverheatExplosion(const FGameplayEffectContex
 
 	FMASkillAreaShape AreaConfig;
 	AreaConfig.Shape = EMASkillAreaShape::Circle;
-	AreaConfig.Radius = ConfigData->OverheatExplosionRadius;
+	AreaConfig.Circle.Radius = ConfigData->OverheatExplosionRadius;
 	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(OwnerCharacter->GetActorTransform());
 
 	const FMASkillScopes Scopes(nullptr, SourceAbility->GetCurrentSkillModuleInstance());

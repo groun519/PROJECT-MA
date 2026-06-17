@@ -1,18 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAGameplayAbility.h"
+
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
-#include "DebugShapeHelper.h"
-#include "Engine/OverlapResult.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "P_MA/P_MA.h"
-#include "VirtualSocketTargetData.h"
-
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 
 UMAGameplayAbility::UMAGameplayAbility()
 {
@@ -23,192 +18,27 @@ UMAGameplayAbility::UMAGameplayAbility()
 UAnimInstance* UMAGameplayAbility::GetOwnerAnimInstance() const
 {
 	USkeletalMeshComponent* OwnerSkeletalMeshComp = GetOwningComponentFromActorInfo();
-	if (OwnerSkeletalMeshComp)
-	{
-		return OwnerSkeletalMeshComp->GetAnimInstance();
-	}
+	if (OwnerSkeletalMeshComp) return OwnerSkeletalMeshComp->GetAnimInstance();
 	return nullptr;
 }
 
-TArray<FHitResult> UMAGameplayAbility::GetHitResultFromSweepLocationTargetData(
-	const FGameplayAbilityTargetDataHandle& TargetDataHandle,
-	FVector HalfSize, FRotator BoxRot,
-	bool bUseSector, float SectorAngle,
-	int32 TargetRelationMask,
-	EVA_Shape TraceObjType,
-	bool bDrawDebug, bool bIgnoreSelf)
-{
-	TArray<FOverlapResult> OutResults;
-	TSet<AActor*> HitActors;
-
-	AActor* SourceActor = GetAvatarActorFromActorInfo();
-	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
-
-	const TSharedPtr<FGameplayAbilityTargetData>& TargetData = TargetDataHandle.Data[0];
-
-	FVector Center = TargetData->GetOrigin().GetTranslation();
-
-	FCollisionObjectQueryParams ObjParams;
-	ObjParams.AddObjectTypesToQuery(ECC_Hitbox);
-
-	FCollisionQueryParams QueryParams;
-	if (bIgnoreSelf && !MATargetRelation::IncludesSelf(TargetRelationMask) && SourceActor)
-	{
-		QueryParams.AddIgnoredActor(SourceActor);
-	}
-	const bool bDoSectorFilter = bUseSector && SectorAngle > 0.f;
-	FVector SectorForward = FVector::ForwardVector;
-	float SectorCosThreshold = -1.f;
-	if (bDoSectorFilter)
-	{
-		if (AActor* AvatarActor = GetAvatarActorFromActorInfo())
-		{
-			SectorForward = AvatarActor->GetActorForwardVector();
-		}
-		SectorForward.Z = 0.f;
-		if (!SectorForward.Normalize())
-		{
-			SectorForward = FVector::ForwardVector;
-		}
-		SectorCosThreshold = FMath::Cos(FMath::DegreesToRadians(SectorAngle * 0.5f));
-	}
-
-
-	TArray<FOverlapResult> OverlapResults;
-	if (TraceObjType == EVA_Shape::None)
-	{
-		return {};
-	}
-	else if (TraceObjType == EVA_Shape::Circle)
-	{
-		if (!bUseSector) // 원
-		{
-			GetWorld()->OverlapMultiByObjectType(
-				OverlapResults, Center, FQuat::Identity, ObjParams,
-				FCollisionShape::MakeSphere(HalfSize.X), QueryParams);
-
-			if (bDrawDebug)
-				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 32,
-					false, 0.f, GetAvatarActorFromActorInfo()->GetActorForwardVector(),
-					FColor::White, 1.f);
-		}
-		else // 부채꼴
-		{
-			GetWorld()->OverlapMultiByObjectType(
-				OverlapResults, Center, FQuat::Identity, ObjParams,
-				FCollisionShape::MakeSphere(HalfSize.X), QueryParams);
-
-			if (bDrawDebug)
-			{
-				FDebugShapeHelper::DrawDebugSectorableCircle(GetWorld(), Center, HalfSize.X, 360,
-					true, SectorAngle/2, GetAvatarActorFromActorInfo()->GetActorRotation().Vector(),
-					FColor::White, 1.f);
-			}
-		}
-	}
-	else if (TraceObjType == EVA_Shape::Rect) // 사각형
-	{
-		FQuat WorldQuat = GetAvatarActorFromActorInfo()->GetActorRotation().Quaternion();
-		FQuat LocalQuat = BoxRot.Quaternion();
-		FQuat FinalQuat = WorldQuat * LocalQuat;
-		
-		GetWorld()->OverlapMultiByObjectType(
-			OverlapResults, Center, FinalQuat, ObjParams,
-			FCollisionShape::MakeBox(HalfSize), QueryParams);
-
-		if (bDrawDebug)
-		{
-			FDebugShapeHelper::DrawDebugRect(GetWorld(), Center, HalfSize.X, HalfSize.Y,
-				FinalQuat.Vector(), FColor::White, 1.f);
-		}
-	}
-	
-	for (const FOverlapResult& Result : OverlapResults)
-	{
-		AActor* HitActor = Result.GetActor();
-		if (!HitActor) continue;
-
-		if (HitActors.Contains(HitActor)) continue;
-
-		if (bDoSectorFilter)
-		{
-			FVector ToTarget = HitActor->GetActorLocation() - Center;
-			ToTarget.Z = 0.f;
-			if (!ToTarget.Normalize()) continue;
-
-			const float Dot = FVector::DotProduct(SectorForward, ToTarget);
-			if (Dot < SectorCosThreshold) continue;
-		}
-
-		// 중복 피격 방지
-		if (HitActors.Contains(Result.GetActor())) continue;
-
-		if (OwnerTeamInterface)
-		{
-			const ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
-			if (!MATargetRelation::MatchesTarget(TargetRelationMask, SourceActor, HitActor, OtherActorTeamAttitude)) continue;
-		}
-		else if (MATargetRelation::IsSelfTarget(SourceActor, HitActor) && !MATargetRelation::IncludesSelf(TargetRelationMask))
-		{
-			continue;
-		}
-
-		HitActors.Add(HitActor);
-		OutResults.Add(Result);
-	}
-	TArray<FHitResult> OutHits;
-	FDebugShapeHelper::ConvertOverlapsToHitResults(OutResults, OutHits);
-	
-	return OutHits;
-}
-
-TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
+TArray<FHitResult> UMAGameplayAbility::GetHitResultsFromAreaTargetData(
 	const FGameplayAbilityTargetDataHandle& Handle)
 {
-	return GetHitResultFromVirtualSocketTargetData(Handle, MATargetRelation::GetDefaultMask());
+	return GetHitResultsFromAreaTargetData(Handle, MATargetRelation::GetDefaultMask());
 }
 
-TArray<FHitResult> UMAGameplayAbility::GetHitResultFromVirtualSocketTargetData(
+TArray<FHitResult> UMAGameplayAbility::GetHitResultsFromAreaTargetData(
 	const FGameplayAbilityTargetDataHandle& Handle,
 	int32 OverrideTargetRelationMask)
 {
-	// 1) Virtual socket target data and location data extraction
-	const FGameplayAbilityTargetData_VirtualSocket* VS = nullptr;
-	const FGameplayAbilityTargetData_LocationInfo*  Loc= nullptr;
-	
-	for (const TSharedPtr<FGameplayAbilityTargetData>& TD : Handle.Data)
-	{
-		if (!VS && TD->GetScriptStruct() == FGameplayAbilityTargetData_VirtualSocket::StaticStruct())
-			VS = static_cast<const FGameplayAbilityTargetData_VirtualSocket*>(TD.Get());
-		if (!Loc && TD->GetScriptStruct() == FGameplayAbilityTargetData_LocationInfo::StaticStruct())
-			Loc = static_cast<const FGameplayAbilityTargetData_LocationInfo*>(TD.Get());
-	}
-	if (!VS || !Loc) return {};
+	const FMASkillWorldAreaShape* Area = MASkillAreaStatics::FindWorldShape(Handle);
+	UWorld* World = GetWorld();
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+	if (!Area || !World || !AvatarActor) return {};
 
-	FGameplayAbilityTargetDataHandle LocHandle;
-	{
-		auto* Copy = new FGameplayAbilityTargetData_LocationInfo(*Loc);
-		LocHandle.Data.Add(TSharedPtr<FGameplayAbilityTargetData>(Copy));
-	}
-	
-	// 2) Reuse the shared sweep helper with an overridden target team
-	TArray<FHitResult> OutHits;
-	if (VS->Shape == EVA_Shape::Circle)
-	{
-		OutHits = GetHitResultFromSweepLocationTargetData(
-			LocHandle, FVector(VS->SphereRadius,0,0),
-			VS->LocalRotation, VS->bUseSector, VS->SectorAngle,
-			OverrideTargetRelationMask, EVA_Shape::Circle, VS->bDrawDebug, VS->bIgnoreOwner);
-	}
-	else if (VS->Shape == EVA_Shape::Rect)
-	{
-		OutHits = GetHitResultFromSweepLocationTargetData(
-			LocHandle, VS->BoxHalfSize,
-			VS->LocalRotation, false, 0,
-			OverrideTargetRelationMask, EVA_Shape::Rect, VS->bDrawDebug, VS->bIgnoreOwner);
-	}
-
-	return OutHits;
+	if (Area->bDrawDebug) MASkillAreaStatics::DrawWorldPreview(*World, *Area);
+	return MASkillAreaStatics::ResolveHitResults(*World, AvatarActor, *Area, OverrideTargetRelationMask);
 }
 
 void UMAGameplayAbility::StopMontageAfterCurrentSection(UAnimMontage* Montage)

@@ -1,20 +1,9 @@
-﻿#include "Animation/Notify/Skill/AnimNotify_SendGameplayEvent.h"
+#include "Animation/Notify/Skill/AnimNotify_SendGameplayEvent.h"
 
-#include "Animation/MAAnimInstance.h"
+#include "Animation/Notify/Skill/MASkillAnimNotifyStatics.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameplayTagsManager.h"
-
-namespace
-{
-	UMASkillAbility* ResolveGameplayEventOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
-	{
-		if (!MeshComp || !Animation) return nullptr;
-
-		const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
-		return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
-	}
-}
 
 void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                              const FAnimNotifyEventReference& EventReference)
@@ -26,7 +15,7 @@ void UAnimNotify_SendGameplayEvent::Notify(USkeletalMeshComponent* MeshComp, UAn
 	UWorld* World = MeshComp->GetWorld();
 	if (!World || World->IsPreviewWorld()) return;
 
-	if (UMASkillAbility* SkillAbility = ResolveGameplayEventOwnerSkillAbility(MeshComp, Animation))
+	if (UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation))
 	{
 		UMASkillEventRoutingStatics::TryNotifySkillEvent(
 			SkillAbility,

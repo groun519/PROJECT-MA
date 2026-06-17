@@ -1,148 +1,13 @@
 ﻿#include "GAS/Skill/Action/MASkillAction_MeleeOverlapShape.h"
 
-#include "DebugShapeHelper.h"
-#include "Engine/OverlapResult.h"
-#include "Engine/World.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
-#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
-#include "GAS/Skill/Damage/MASkillDamageResolver.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GenericTeamAgentInterface.h"
-#include "P_MA/P_MA.h"
+#include "GAS/Skill/MASkillAbility.h"
 
-static TArray<FHitResult> ResolveShapeHitResults(
-	UMASkillAbility& OwnerAbility,
-	const FMASkillActionConfig_MeleeOverlapShape& Config,
-	const int32 TargetRelationMask,
-	FVector& OutCenter)
+UMASkillAction_MeleeOverlapShape::UMASkillAction_MeleeOverlapShape()
 {
-	UWorld* World = OwnerAbility.GetWorld();
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!World || !AvatarActor)
-	{
-		OutCenter = FVector::ZeroVector;
-		return {};
-	}
-
-	const FTransform AvatarTransform = AvatarActor->GetActorTransform();
-	OutCenter = AvatarTransform.TransformPosition(Config.LocalOffset);
-	const FQuat FinalQuat = AvatarTransform.GetRotation() * Config.LocalRotation.Quaternion();
-
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Hitbox);
-
-	FCollisionQueryParams QueryParams;
-	if (Config.bIgnoreOwner && !MATargetRelation::IncludesSelf(TargetRelationMask))
-	{
-		QueryParams.AddIgnoredActor(AvatarActor);
-	}
-
-	const bool bUseSectorFilter = Config.Shape == EVA_Shape::Circle && Config.bUseSector && Config.SectorAngle > 0.f;
-	FVector SectorForward = FinalQuat.Vector();
-	SectorForward.Z = 0.f;
-	if (!SectorForward.Normalize())
-	{
-		SectorForward = FVector::ForwardVector;
-	}
-
-	const float SectorCosThreshold = bUseSectorFilter
-		? FMath::Cos(FMath::DegreesToRadians(Config.SectorAngle * 0.5f))
-		: -1.f;
-
-	TArray<FOverlapResult> OverlapResults;
-	switch (Config.Shape)
-	{
-	case EVA_Shape::Circle:
-		World->OverlapMultiByObjectType(
-			OverlapResults,
-			OutCenter,
-			FQuat::Identity,
-			ObjectQueryParams,
-			FCollisionShape::MakeSphere(Config.SphereRadius),
-			QueryParams);
-
-		if (Config.bDrawDebug)
-		{
-			FDebugShapeHelper::DrawDebugSectorableCircle(
-				World,
-				OutCenter,
-				Config.SphereRadius,
-				32,
-				bUseSectorFilter,
-				Config.SectorAngle * 0.5f,
-				SectorForward,
-				FColor::White,
-				1.f);
-		}
-		break;
-	case EVA_Shape::Rect:
-		World->OverlapMultiByObjectType(
-			OverlapResults,
-			OutCenter,
-			FinalQuat,
-			ObjectQueryParams,
-			FCollisionShape::MakeBox(Config.BoxHalfSize),
-			QueryParams);
-
-		if (Config.bDrawDebug)
-		{
-			FDebugShapeHelper::DrawDebugRect(
-				World,
-				OutCenter,
-				Config.BoxHalfSize.X,
-				Config.BoxHalfSize.Y,
-				FinalQuat.Vector(),
-				FColor::White,
-				1.f);
-		}
-		break;
-	default:
-		return {};
-	}
-
-	TArray<FOverlapResult> FilteredResults;
-	TSet<AActor*> SeenActors;
-	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(AvatarActor);
-	for (const FOverlapResult& OverlapResult : OverlapResults)
-	{
-		AActor* HitActor = OverlapResult.GetActor();
-		if (!HitActor || SeenActors.Contains(HitActor))
-			continue;
-
-		if (bUseSectorFilter)
-		{
-			FVector ToTarget = HitActor->GetActorLocation() - OutCenter;
-			ToTarget.Z = 0.f;
-			if (!ToTarget.Normalize())
-				continue;
-
-			if (FVector::DotProduct(SectorForward, ToTarget) < SectorCosThreshold)
-				continue;
-		}
-
-		if (OwnerTeamInterface)
-		{
-			const ETeamAttitude::Type TeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor);
-			if (!MATargetRelation::MatchesTarget(TargetRelationMask, AvatarActor, HitActor, TeamAttitude))
-			{
-				continue;
-			}
-		}
-		else if (MATargetRelation::IsSelfTarget(AvatarActor, HitActor) && !MATargetRelation::IncludesSelf(TargetRelationMask))
-		{
-			continue;
-		}
-
-		SeenActors.Add(HitActor);
-		FilteredResults.Add(OverlapResult);
-	}
-
-	TArray<FHitResult> HitResults;
-	FDebugShapeHelper::ConvertOverlapsToHitResults(FilteredResults, HitResults);
-	return HitResults;
+	Config.Shape = EMASkillAreaShape::Circle;
 }
 
 void UMASkillAction_MeleeOverlapShape::Execute(
@@ -150,15 +15,11 @@ void UMASkillAction_MeleeOverlapShape::Execute(
 	const FMASkillEvent& Event,
 	const FMASkillScopes& Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority()) return;
+	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
+	if (!AvatarActor) return;
 
+	const FMASkillWorldAreaShape Area = Config.ResolveWorld(AvatarActor->GetActorTransform());
 	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
-	if (!Payloads.IsValid()) return;
-
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
-
-	FVector CenterPoint = FVector::ZeroVector;
-	const TArray<FHitResult> HitResults = ResolveShapeHitResults(OwnerAbility, Config, ResolvedDamage.TargetRelationMask, CenterPoint);
-	MASkillDamageApplicator::ApplyHitResults(OwnerAbility, Scopes, HitResults, ResolvedDamage, CenterPoint);
+	MASkillDamageApplicator::ApplyArea(OwnerAbility, Scopes, Area, DamageConfig, Payloads);
 }

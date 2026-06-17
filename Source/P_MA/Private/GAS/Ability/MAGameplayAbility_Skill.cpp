@@ -202,7 +202,7 @@ void UMAGameplayAbility_Skill::PerformMeleeAttack(FGameplayEventData& Payload, f
 {
 	if (Payload.TargetData.Num() >0)
 	{
-		TArray<FHitResult> HitResults = GetHitResultFromVirtualSocketTargetData(Payload.TargetData);
+		TArray<FHitResult> HitResults = GetHitResultsFromAreaTargetData(Payload.TargetData);
 		if (HitResults.Num() > 0)
 		{
 			ApplyDamageToHitResults(HitResults, FinalMultiplier);

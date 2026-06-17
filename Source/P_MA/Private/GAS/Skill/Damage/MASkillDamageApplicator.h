@@ -12,6 +12,9 @@ struct FMADamageAppliedEvent;
 struct FActiveGameplayEffectHandle;
 struct FGameplayEffectSpecHandle;
 struct FHitResult;
+struct FMASkillDamageConfig;
+struct FMASkillPayloadAccessor;
+struct FMASkillWorldAreaShape;
 struct FResolvedSkillDamage;
 struct FResolvedStatusEffect;
 
@@ -26,6 +29,20 @@ public:
 		FMASkillScopes EventScopes;
 		FVector StatusEffectSourcePoint = FVector::ZeroVector;
 	};
+
+	static void ApplyArea(
+		UMASkillAbility& OwnerAbility,
+		const FMASkillScopes& EventScopes,
+		const FMASkillWorldAreaShape& Area,
+		const FMASkillDamageConfig& DamageConfig,
+		const FMASkillPayloadAccessor& Payloads);
+
+	static void ApplyArea(
+		UMASkillAbility& OwnerAbility,
+		const FMASkillScopes& EventScopes,
+		const FMASkillWorldAreaShape& Area,
+		TConstArrayView<FMASkillDamageConfig> DamageConfigs,
+		const FMASkillPayloadAccessor& Payloads);
 
 	static void ApplyHitResults(
 		UMASkillAbility& OwnerAbility,

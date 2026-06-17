@@ -27,3 +27,12 @@ inline const FName PARAM_ShopGlow_BaseColor(TEXT("BaseColor"));
 inline const FName PARAM_Overlay_Alpha(TEXT("Alpha"));
 inline const FName PARAM_Overlay_BaseColor(TEXT("BaseColor"));
 inline const FName PARAM_Overlay_TemperatureAlpha(TEXT("TemperatureAlpha"));
+
+/** AreaDecal **/
+inline const FName PARAM_AreaDecal_Opacity(TEXT("_Opacity"));
+inline const FName PARAM_AreaDecal_BaseColor(TEXT("BaseColor"));
+inline const FName PARAM_AreaDecal_BaseAngle(TEXT("_BaseAngle"));
+inline const FName PARAM_AreaDecal_EndAngle(TEXT("_EndAngle"));
+inline const FName PARAM_AreaDecal_Width(TEXT("_Width"));
+inline const FName PARAM_AreaDecal_Height(TEXT("_Height"));
+inline const FName PARAM_AreaDecal_InnerAlpha(TEXT("_InnerAlpha"));

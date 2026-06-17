@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
-#include "MAOverlapDecalData.generated.h"
+#include "MAAreaDecalData.generated.h"
 
 class UMaterialInterface;
 
 USTRUCT(BlueprintType)
-struct P_MA_API FMAOverlapDecalDataRow : public FTableRowBase
+struct P_MA_API FMAAreaDecalDataRow : public FTableRowBase
 {
 	GENERATED_BODY()
 

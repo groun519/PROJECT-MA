@@ -4,6 +4,8 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 
 FMASkillDamageConfig MASkillActionMeleeOverlap::ResolveDamageConfig(const FMASkillPayloadAccessor& Payloads, const FGameplayTag& DamagePayloadTag)
 {
@@ -19,7 +21,7 @@ TArray<FHitResult> MASkillActionMeleeOverlap::ResolveHitResultsFromEvent(
 {
 	const FGameplayAbilityTargetDataHandle* TargetData = Event.GetTargetData();
 	return TargetData
-		? OwnerAbility.GetHitResultFromVirtualSocketTargetData(*TargetData, TargetRelationMask)
+		? OwnerAbility.GetHitResultsFromAreaTargetData(*TargetData, TargetRelationMask)
 		: TArray<FHitResult>();
 }
 
@@ -28,9 +30,12 @@ FVector MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(
 	const FMASkillEvent& Event)
 {
 	const FGameplayAbilityTargetDataHandle* TargetData = Event.GetTargetData();
-	if (TargetData && TargetData->Num() > 0 && TargetData->Data[0].IsValid())
+	if (TargetData)
 	{
-		return TargetData->Data[0]->GetOrigin().GetTranslation();
+		if (const FMASkillWorldAreaShape* Area = MASkillAreaStatics::FindWorldShape(*TargetData))
+		{
+			return Area->Center;
+		}
 	}
 
 	if (const AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo())

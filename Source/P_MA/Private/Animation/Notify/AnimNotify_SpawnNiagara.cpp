@@ -1,6 +1,6 @@
 #include "Animation/Notify/AnimNotify_SpawnNiagara.h"
 
-#include "Animation/MAAnimInstance.h"
+#include "Animation/Notify/Skill/MASkillAnimNotifyStatics.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/SceneComponent.h"
@@ -10,9 +10,7 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Weapon/WeaponComponent.h"
 
-namespace
-{
-USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const EMANiagaraAttachTarget AttachTarget)
+static USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const EMANiagaraAttachTarget AttachTarget)
 {
 	if (!MeshComp) return nullptr;
 	if (AttachTarget != EMANiagaraAttachTarget::WeaponMesh) return MeshComp;
@@ -28,35 +26,26 @@ USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const 
 	return MeshComp;
 }
 
-	const UMASkillAbility* ResolveSpawnNiagaraAnimationOwnerSkillAbility(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation)
-	{
-		if (!MeshComp || !Animation) return nullptr;
+static bool ResolveElementalColor(const UMASkillAbility* SkillAbility, FLinearColor& OutColor)
+{
+	if (!SkillAbility) return false;
 
-		const UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComp->GetAnimInstance());
-		return AnimInstance ? AnimInstance->FindAnimationOwner(Animation) : nullptr;
+	const UDataTable* ElementalDataTable = SkillAbility->GetElementalDataTable();
+	const FGameplayTag& ElementalTag = SkillAbility->GetElementalTag();
+	if (!ElementalDataTable || !ElementalTag.IsValid()) return false;
+
+	FString UnusedRoot;
+	FString RowNameString;
+	if (!ElementalTag.ToString().Split(TEXT("."), &UnusedRoot, &RowNameString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+	{
+		return false;
 	}
 
-	bool ResolveElementalColor(const UMASkillAbility* SkillAbility, FLinearColor& OutColor)
-	{
-		if (!SkillAbility) return false;
+	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(FName(*RowNameString), TEXT("AnimNotify_SpawnNiagara"));
+	if (!ElementRow) return false;
 
-		const UDataTable* ElementalDataTable = SkillAbility->GetElementalDataTable();
-		const FGameplayTag& ElementalTag = SkillAbility->GetElementalTag();
-		if (!ElementalDataTable || !ElementalTag.IsValid()) return false;
-
-		FString UnusedRoot;
-		FString RowNameString;
-		if (!ElementalTag.ToString().Split(TEXT("."), &UnusedRoot, &RowNameString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
-		{
-			return false;
-		}
-
-		const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(FName(*RowNameString), TEXT("AnimNotify_SpawnNiagara"));
-		if (!ElementRow) return false;
-
-		OutColor = ElementRow->ElementColor;
-		return true;
-	}
+	OutColor = ElementRow->ElementColor;
+	return true;
 }
 
 void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -139,7 +128,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 
 	if (!SpawnedVFX || !bApplyElementalColor || ColorParamName == NAME_None) return;
 
-	const UMASkillAbility* SkillAbility = ResolveSpawnNiagaraAnimationOwnerSkillAbility(MeshComp, Animation);
+	const UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
 	FLinearColor ElementalColor = FLinearColor::White;

@@ -1,4 +1,4 @@
-﻿#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -9,9 +9,59 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
+#include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GameplayEffect.h"
+
+void MASkillDamageApplicator::ApplyArea(
+	UMASkillAbility& OwnerAbility,
+	const FMASkillScopes& EventScopes,
+	const FMASkillWorldAreaShape& Area,
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadAccessor& Payloads)
+{
+	ApplyArea(OwnerAbility, EventScopes, Area, MakeArrayView(&DamageConfig, 1), Payloads);
+}
+
+void MASkillDamageApplicator::ApplyArea(
+	UMASkillAbility& OwnerAbility,
+	const FMASkillScopes& EventScopes,
+	const FMASkillWorldAreaShape& Area,
+	TConstArrayView<FMASkillDamageConfig> DamageConfigs,
+	const FMASkillPayloadAccessor& Payloads)
+{
+	if (!Area.IsValid() || DamageConfigs.IsEmpty()) return;
+
+	MASkillAreaDecalStatics::SpawnImpact(OwnerAbility, Area);
+	if (!OwnerAbility.K2_HasAuthority()) return;
+
+	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
+	UWorld* World = OwnerAbility.GetWorld();
+	if (!AvatarActor || !World || !Payloads.IsValid()) return;
+
+	if (Area.bDrawDebug) MASkillAreaStatics::DrawWorldPreview(*World, Area);
+
+	TMap<int32, TArray<FHitResult>> HitResultsByTargetRelation;
+	for (const FMASkillDamageConfig& DamageConfig : DamageConfigs)
+	{
+		if (!DamageConfig.HasValues()) continue;
+
+		const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
+		TArray<FHitResult>* HitResults = HitResultsByTargetRelation.Find(ResolvedDamage.TargetRelationMask);
+		if (!HitResults)
+		{
+			HitResults = &HitResultsByTargetRelation.Add(
+				ResolvedDamage.TargetRelationMask,
+				MASkillAreaStatics::ResolveHitResults(*World, AvatarActor, Area, ResolvedDamage.TargetRelationMask));
+		}
+
+		ApplyHitResults(OwnerAbility, EventScopes, *HitResults, ResolvedDamage, Area.Center);
+	}
+}
 
 MASkillDamageApplicator::FMASkillDamageApplicationContext MASkillDamageApplicator::MakeApplicationContext(
 	UMASkillAbility& OwnerAbility,

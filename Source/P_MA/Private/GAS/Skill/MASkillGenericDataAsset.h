@@ -13,15 +13,15 @@ class P_MA_API UMASkillGenericDataAsset : public UDataAsset
 
 public:
 	const UDataTable* GetElementalDataTable() const { return ElementalDataTable; }
-	const UDataTable* GetOverlapDecalDataTable() const { return OverlapDecalDataTable; }
+	const UDataTable* GetAreaDecalDataTable() const { return AreaDecalDataTable; }
 	const UDataTable* GetWarningTextDataTable() const { return WarningTextDataTable; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
 	TObjectPtr<UDataTable> ElementalDataTable;
 
-	UPROPERTY(EditDefaultsOnly, Category="Effect", meta=(RowType="/Script/P_MA.MAOverlapDecalDataRow"))
-	TObjectPtr<UDataTable> OverlapDecalDataTable;
+	UPROPERTY(EditDefaultsOnly, Category="Effect", meta=(RowType="/Script/P_MA.MAAreaDecalDataRow"))
+	TObjectPtr<UDataTable> AreaDecalDataTable;
 
 	UPROPERTY(EditDefaultsOnly, Category="Warning", meta=(RowType="/Script/P_MA.MASkillWarningTextDataRow"))
 	TObjectPtr<UDataTable> WarningTextDataTable;

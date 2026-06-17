@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GAS/MAGameplayAbility.h"
@@ -34,7 +34,7 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	const FGameplayTag& GetElementalTag() const;
 	const UDataTable* GetElementalDataTable() const;
-	const UDataTable* GetOverlapDecalDataTable() const;
+	const UDataTable* GetAreaDecalDataTable() const;
 	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;

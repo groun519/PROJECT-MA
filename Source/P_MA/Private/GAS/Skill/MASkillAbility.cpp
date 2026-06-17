@@ -1,4 +1,4 @@
-﻿#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillAbility.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.h"
@@ -236,10 +236,10 @@ const UDataTable* UMASkillAbility::GetElementalDataTable() const
 	return GenericSkillDataAsset ? GenericSkillDataAsset->GetElementalDataTable() : nullptr;
 }
 
-const UDataTable* UMASkillAbility::GetOverlapDecalDataTable() const
+const UDataTable* UMASkillAbility::GetAreaDecalDataTable() const
 {
 	const UMASkillGenericDataAsset* GenericSkillDataAsset = GetGenericSkillDataAsset();
-	return GenericSkillDataAsset ? GenericSkillDataAsset->GetOverlapDecalDataTable() : nullptr;
+	return GenericSkillDataAsset ? GenericSkillDataAsset->GetAreaDecalDataTable() : nullptr;
 }
 
 const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() const

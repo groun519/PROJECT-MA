@@ -1,17 +1,27 @@
-﻿#include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
+#include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
 
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
+#include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 
 void UMASkillAction_MeleeOverlap::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillEvent& Event,
 	const FMASkillScopes& Scopes)
 {
+	if (const FGameplayAbilityTargetDataHandle* TargetData = Event.GetTargetData())
+	{
+		if (const FMASkillWorldAreaShape* Area = MASkillAreaStatics::FindWorldShape(*TargetData))
+		{
+			MASkillAreaDecalStatics::SpawnImpact(OwnerAbility, *Area);
+		}
+	}
+
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
