@@ -8,6 +8,7 @@
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "MACharacter.generated.h"
 
@@ -147,6 +148,10 @@ public:
 	//월드에 VFX 출력
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AttachNiagaraToSelf(UNiagaraSystem* NS, FName SocketName, float LifeSpan);
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnSkillAreaImpact(FMASkillWorldAreaShape Area);
 	UFUNCTION(NetMulticast, Reliable)
 	// Kept on AMACharacter because the actor already owns the replication entrypoint.
 	// If status-effect impulse RPCs grow, move this multicast into UMAStatusEffectComponent.

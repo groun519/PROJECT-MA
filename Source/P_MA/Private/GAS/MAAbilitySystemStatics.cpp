@@ -116,6 +116,11 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillFocusOffsetTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.FocusOffset");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillAreaScaleTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.AreaScale");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetDamageDealtEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageDealt");

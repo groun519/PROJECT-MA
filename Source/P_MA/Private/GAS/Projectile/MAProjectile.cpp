@@ -78,6 +78,7 @@ void AMAProjectile::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 	DOREPLIFETIME(AMAProjectile, Rep_MainVFX);
 	DOREPLIFETIME(AMAProjectile, Rep_TrailVFX);
 	DOREPLIFETIME(AMAProjectile, Rep_ElementalColor);
+	DOREPLIFETIME(AMAProjectile, Rep_SkillAreaScale);
 }
 
 void AMAProjectile::OnRep_ProjectileVisuals()
@@ -85,14 +86,22 @@ void AMAProjectile::OnRep_ProjectileVisuals()
 	ApplyProjectileVisuals();
 }
 
+void AMAProjectile::OnRep_ProjectileScale()
+{
+	ApplySkillAreaScale();
+	ApplyProjectileVisuals();
+}
+
 void AMAProjectile::InitializeProjectile(const FMAProjectileParams& InProjectileParams)
 {
 	ProjectileParams = InProjectileParams;
 	EventScopes = ProjectileParams.EventScopes;
+	Rep_SkillAreaScale = ProjectileParams.SkillAreaScale;
 	bRep_HasElementalVisualData = ProjectileParams.ElementalSettings.bHasElementalData;
 	Rep_MainVFX = ProjectileParams.ElementalSettings.MainVFX;
 	Rep_TrailVFX = ProjectileParams.ElementalSettings.TrailVFX;
 	Rep_ElementalColor = ProjectileParams.ElementalSettings.ElementalColor;
+	ApplySkillAreaScale();
 	ApplyProjectileVisuals();
 	BindHomingTarget();
 
@@ -267,6 +276,17 @@ void AMAProjectile::CheckContinuousHit()
 			if (TryApplyHitToActor(SweepHit.GetActor(), SweepHit) && bPendingDestroy) return;
 		}
 	}
+}
+
+void AMAProjectile::ApplySkillAreaScale()
+{
+	if (!bCapturedBaseActorScale)
+	{
+		BaseActorScale = GetActorScale3D();
+		bCapturedBaseActorScale = true;
+	}
+
+	SetActorScale3D(BaseActorScale * FMath::Max(Rep_SkillAreaScale, KINDA_SMALL_NUMBER));
 }
 
 void AMAProjectile::ApplyProjectileVisuals()

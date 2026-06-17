@@ -9,12 +9,15 @@
 
 bool UAnimNotifyState_SendSkillAreaPreview::ResolveWorldArea(
 	USkeletalMeshComponent* MeshComp,
+	const UAnimSequenceBase* Animation,
 	FMASkillWorldAreaShape& OutArea) const
 {
 	FTransform OriginTransform;
 	if (!MASkillAreaNotifyStatics::ResolveOriginTransform(MeshComp, OriginTransform)) return false;
 
-	OutArea = Area.ResolveWorld(OriginTransform);
+	OutArea = Area.ResolveWorld(
+		OriginTransform,
+		MASkillAnimNotifyStatics::ResolveSkillAreaScale(MeshComp, Animation));
 	return OutArea.IsValid();
 }
 
@@ -30,7 +33,7 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyBegin(
 	if (!World) return;
 
 	FMASkillWorldAreaShape WorldArea;
-	if (!ResolveWorldArea(MeshComp, WorldArea)) return;
+	if (!ResolveWorldArea(MeshComp, Animation, WorldArea)) return;
 
 	MASkillAreaNotifyStatics::DrawEditorPreview(World, WorldArea);
 	if (World->GetNetMode() == NM_DedicatedServer || MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)) return;
@@ -53,7 +56,7 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyEnd(
 	if (!EventTag.IsValid()) return;
 
 	FMASkillWorldAreaShape WorldArea;
-	if (!ResolveWorldArea(MeshComp, WorldArea)) return;
+	if (!ResolveWorldArea(MeshComp, Animation, WorldArea)) return;
 
 	UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
@@ -81,7 +84,7 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyTick(
 	}
 
 	FMASkillWorldAreaShape WorldArea;
-	if (ResolveWorldArea(MeshComp, WorldArea)) UpdatePreviewDecalTransform(MeshComp, WorldArea);
+	if (ResolveWorldArea(MeshComp, Animation, WorldArea)) UpdatePreviewDecalTransform(MeshComp, WorldArea);
 }
 
 FString UAnimNotifyState_SendSkillAreaPreview::GetNotifyName_Implementation() const

@@ -70,8 +70,14 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_ProjectileVisuals)
 	FLinearColor Rep_ElementalColor = FLinearColor::White;
 
+	UPROPERTY(ReplicatedUsing = OnRep_ProjectileScale)
+	float Rep_SkillAreaScale = 1.f;
+
 	UFUNCTION()
 	void OnRep_ProjectileVisuals();
+
+	UFUNCTION()
+	void OnRep_ProjectileScale();
 
 private:
 	FMAProjectileParams ProjectileParams;
@@ -84,9 +90,12 @@ private:
 	float LaunchSpeed = 0.f;
 	float LaunchSpeedDecayElapsed = 0.f;
 	bool bLaunchSpeedDecayFinished = false;
+	FVector BaseActorScale = FVector::OneVector;
+	bool bCapturedBaseActorScale = false;
 
 	FHitResult BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const;
 	void ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult);
+	void ApplySkillAreaScale();
 	void ApplyProjectileVisuals();
 	void BindHomingTarget();
 	void ApplyLaunchSpeedDecay(float DeltaTime);

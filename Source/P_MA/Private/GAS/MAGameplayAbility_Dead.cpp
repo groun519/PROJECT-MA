@@ -28,6 +28,12 @@ static AActor* ResolveRewardPlayerActor(AActor* Actor)
 	return UMAAbilitySystemStatics::IsPlayer(InstigatorPawn) ? InstigatorPawn : nullptr;
 }
 
+static bool IsValidRewardTarget(AActor* Actor)
+{
+	const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(Actor);
+	return PlayerCharacter && !PlayerCharacter->IsDead();
+}
+
 UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
@@ -57,6 +63,10 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 	if (!Killer)
 	{
 		Killer = ResolveRewardPlayerActor(EffectCauser);
+	}
+	if (!IsValidRewardTarget(Killer))
+	{
+		Killer = nullptr;
 	}
 
 	if (Killer && Killer == ResolveRewardPlayerActor(DeadActor))
@@ -145,6 +155,7 @@ TArray<AActor*> UMAGameplayAbility_Dead::GetRewardTargets() const
 	{
 		AMAPlayerCharacter* PlayerCharacter = *It;
 		if (!PlayerCharacter) continue;
+		if (PlayerCharacter->IsDead()) continue;
 		if (FVector::DistSquared(PlayerCharacter->GetActorLocation(), AvatarActor->GetActorLocation()) > RewardRangeSquared) continue;
 
 		OutActors.Add(PlayerCharacter);

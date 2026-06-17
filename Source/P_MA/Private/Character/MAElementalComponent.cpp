@@ -14,6 +14,7 @@
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
 #include "MAMaterialParams.h"
@@ -342,9 +343,11 @@ void UMAElementalComponent::TriggerOverheatExplosion(const FGameplayEffectContex
 	FMASkillAreaShape AreaConfig;
 	AreaConfig.Shape = EMASkillAreaShape::Circle;
 	AreaConfig.Circle.Radius = ConfigData->OverheatExplosionRadius;
-	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(OwnerCharacter->GetActorTransform());
 
 	const FMASkillScopes Scopes(nullptr, SourceAbility->GetCurrentSkillModuleInstance());
+	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(
+		OwnerCharacter->GetActorTransform(),
+		MASkillAreaStatics::ResolveAreaScale(Scopes.GetPayloadAccess()));
 	MASkillDamageApplicator::ApplyArea(
 		*SourceAbility,
 		Scopes,

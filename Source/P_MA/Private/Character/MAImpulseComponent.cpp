@@ -72,7 +72,8 @@ FMAActionImpulseHandle UMAImpulseComponent::ApplyActionImpulseVelocity(
 	const FGameplayTag& ImpulseTag,
 	const FVector& Velocity,
 	float Duration,
-	bool bStopMovementImmediately)
+	bool bStopMovementImmediately,
+	UMASkillModuleInstance* EventModuleScope)
 {
 	AMACharacter* Character = ResolveOwnerCharacter();
 	if (!Character || Character->IsDead()) return {};
@@ -95,7 +96,7 @@ FMAActionImpulseHandle UMAImpulseComponent::ApplyActionImpulseVelocity(
 		UMASkillEventRoutingStatics::TryNotifySkillEvent(
 			SkillAbility,
 			MoveTemp(Event),
-			SkillAbility->GetCurrentBindingScope());
+			EventModuleScope ? EventModuleScope : SkillAbility->GetCurrentBindingScope());
 	}
 
 	return Handle;

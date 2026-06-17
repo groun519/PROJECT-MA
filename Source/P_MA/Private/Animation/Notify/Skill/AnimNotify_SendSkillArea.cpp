@@ -18,14 +18,16 @@ void UAnimNotify_SendSkillArea::Notify(
 	FTransform OriginTransform;
 	if (!MASkillAreaNotifyStatics::ResolveOriginTransform(MeshComp, OriginTransform)) return;
 
-	const FMASkillWorldAreaShape WorldArea = Area.ResolveWorld(OriginTransform);
+	UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	const FMASkillWorldAreaShape WorldArea = Area.ResolveWorld(
+		OriginTransform,
+		MASkillAnimNotifyStatics::ResolveSkillAreaScale(SkillAbility));
 	if (!WorldArea.IsValid()) return;
 
 	MASkillAreaNotifyStatics::DrawEditorPreview(World, WorldArea);
 	if (World->IsPreviewWorld() || MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)) return;
 	if (!EventTag.IsValid()) return;
 
-	UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
 	FMASkillEvent Event(EventTag);

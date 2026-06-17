@@ -26,6 +26,13 @@ FLinearColor UMASkillDefinition::ResolveFrameColor(const UMAModuleQualityData* M
 	return RarityData ? RarityData->Color : FLinearColor::White;
 }
 
+FGameplayTagContainer UMASkillDefinition::GetTooltipTags() const
+{
+	FGameplayTagContainer TooltipTags;
+	TooltipTags.AppendTags(ExclusiveAssemblyTags);
+	return TooltipTags;
+}
+
 void UMASkillDefinition::PostLoad()
 {
 	Super::PostLoad();

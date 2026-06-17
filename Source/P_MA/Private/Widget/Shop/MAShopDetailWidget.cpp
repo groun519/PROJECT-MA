@@ -2,11 +2,14 @@
 
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "Components/PanelWidget.h"
 #include "Components/RichTextBlock.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "MAMaterialParams.h"
 #include "Setting/MAGameSettings.h"
+#include "Widget/Skill/MASkillTagBadgeWidget.h"
 
 void UMAShopDetailWidget::NativeConstruct()
 {
@@ -62,6 +65,16 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 		? GameSettings->PositiveCooldownColor
 		: GameSettings->NegativeCooldownColor));
 	CooldownText->SetVisibility(FMath::IsNearlyZero(CooldownSeconds) ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = GameSettings->GetDefaultSkillGenericDataAsset();
+	const UDataTable* WarningTextDataTable = GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
+	const FGameplayTagContainer TooltipTags = SkillDefinition ? SkillDefinition->GetTooltipTags() : FGameplayTagContainer();
+	UMASkillTagBadgeWidget::RefreshTagBadges(
+		this,
+		TagBadgePanel,
+		TagBadgeWidgetClass,
+		TooltipTags,
+		WarningTextDataTable);
 
 	PriceText->SetText(InEntry ? FText::AsNumber(InEntry->Price) : FText());
 	PriceText->SetVisibility(EntryVisibility);

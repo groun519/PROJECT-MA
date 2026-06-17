@@ -161,6 +161,9 @@ struct P_MA_API FMASkillAreaShape
 	FVector2D LocalOffset = FVector2D::ZeroVector;
 
 	UPROPERTY(EditAnywhere, Category="Shape")
+	bool bScaleLocalOffset = false;
+
+	UPROPERTY(EditAnywhere, Category="Shape")
 	float LocalYaw = 0.f;
 
 	UPROPERTY(EditAnywhere, Category="Targeting")
@@ -175,5 +178,5 @@ struct P_MA_API FMASkillAreaShape
 	UPROPERTY(EditAnywhere, Category="Debug", meta=(EditCondition="bDrawDebug", EditConditionHides, ClampMin="0.1"))
 	float DebugThickness = 1.f;
 
-	FMASkillWorldAreaShape ResolveWorld(const FTransform& OriginTransform) const;
+	FMASkillWorldAreaShape ResolveWorld(const FTransform& OriginTransform, float AreaScale = 1.f) const;
 };

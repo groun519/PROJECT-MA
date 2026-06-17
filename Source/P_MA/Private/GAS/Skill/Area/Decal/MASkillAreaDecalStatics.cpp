@@ -175,10 +175,18 @@ void MASkillAreaDecalStatics::SpawnImpact(
 	const FMASkillWorldAreaShape& Area)
 {
 	AActor* AvatarActor = SkillAbility.GetAvatarActorFromActorInfo();
+	SpawnImpact(AvatarActor, &SkillAbility, Area);
+}
+
+void MASkillAreaDecalStatics::SpawnImpact(
+	AActor* ComponentOwner,
+	const UMASkillAbility* SkillAbility,
+	const FMASkillWorldAreaShape& Area)
+{
 	UDecalComponent* Decal = Spawn(
-		AvatarActor,
+		ComponentOwner,
 		nullptr,
-		&SkillAbility,
+		SkillAbility,
 		Area);
 	if (!Decal) return;
 
@@ -188,7 +196,7 @@ void MASkillAreaDecalStatics::SpawnImpact(
 	}
 
 	Decal->SetFadeOut(0.f, ImpactFadeDuration, false);
-	if (UWorld* World = AvatarActor ? AvatarActor->GetWorld() : nullptr)
+	if (UWorld* World = ComponentOwner ? ComponentOwner->GetWorld() : nullptr)
 	{
 		FTimerHandle DestroyTimerHandle;
 		TWeakObjectPtr<UDecalComponent> WeakDecal = Decal;

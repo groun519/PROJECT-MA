@@ -15,4 +15,10 @@ struct P_MA_API FMASkillWarningTextDataRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, Category="Warning", meta=(MultiLine=true))
 	FText WarningText;
+
+	UPROPERTY(EditAnywhere, Category="Warning")
+	FLinearColor TagBackgroundColor = FLinearColor(0.2f, 0.2f, 0.2f, 1.f);
+
+	UPROPERTY(EditAnywhere, Category="Warning")
+	FLinearColor TagTextColor = FLinearColor::White;
 };

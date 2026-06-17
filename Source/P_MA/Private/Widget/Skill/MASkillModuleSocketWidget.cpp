@@ -54,12 +54,13 @@ UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
 	return ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 }
 
-FText UMASkillModuleSocketWidget::ResolveInactiveReasonText(const UMASkillModuleInstance* ModuleInstance) const
+FText UMASkillModuleSocketWidget::ResolveInactiveReasonText(
+	const UMASkillModuleInstance* ModuleInstance,
+	const UDataTable* WarningTextDataTable) const
 {
 	static const FGameplayTag EmptyTag;
 	const FGameplayTag& InactiveReasonTag = ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : EmptyTag;
-	const UDataTable* WarningTextDataTable = InactiveReasonTag.IsValid() ? ResolveWarningTextDataTable() : nullptr;
-	if (!WarningTextDataTable) return FText();
+	if (!InactiveReasonTag.IsValid() || !WarningTextDataTable) return FText();
 
 	TArray<FMASkillWarningTextDataRow*> TextRows;
 	WarningTextDataTable->GetAllRows(TEXT("SkillModuleSocketInactiveReasonLookup"), TextRows);
@@ -75,7 +76,13 @@ FText UMASkillModuleSocketWidget::ResolveInactiveReasonText(const UMASkillModule
 
 const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
 {
-	const UMASkillManagerComponent* SkillManager = Cast<UMASkillManagerComponent>(SlotOwner.Get());
+	const UActorComponent* OwnerComponent = SlotOwner.Get();
+	const UMASkillManagerComponent* SkillManager = Cast<UMASkillManagerComponent>(OwnerComponent);
+	if (!SkillManager && OwnerComponent && OwnerComponent->GetOwner())
+	{
+		SkillManager = OwnerComponent->GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
+	}
+
 	const UMASkillGenericDataAsset* GenericSkillDataAsset = SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
 	return GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
 }
@@ -273,7 +280,8 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(CachedDefinition, ResolveInactiveReasonText(ResolveModuleInstance()));
+	const UDataTable* WarningTextDataTable = ResolveWarningTextDataTable();
+	TooltipWidget->SetSkillTooltip(CachedDefinition, ResolveInactiveReasonText(ResolveModuleInstance(), WarningTextDataTable), WarningTextDataTable);
 	SetToolTip(TooltipWidget);
 }
 

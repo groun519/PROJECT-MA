@@ -60,6 +60,13 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	USceneComponent* AttachComponent = ResolveAttachComponent(MeshComp, AttachTarget);
 	if (!AttachComponent) return;
 
+	UMASkillAbility* SkillAbility = (bApplySkillAreaScale || bApplyElementalColor)
+		? MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation)
+		: nullptr;
+	const FVector SpawnScale = bApplySkillAreaScale
+		? Scale * MASkillAnimNotifyStatics::ResolveSkillAreaScale(SkillAbility)
+		: Scale;
+
 	UNiagaraComponent* SpawnedVFX = nullptr;
 #if WITH_EDITOR
 	if (World->WorldType == EWorldType::EditorPreview)
@@ -69,7 +76,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 			const FTransform SocketTransform = (SocketName != NAME_None)
 				? AttachComponent->GetSocketTransform(SocketName)
 				: AttachComponent->GetComponentTransform();
-			const FTransform OffsetTransform(RotationOffset, LocationOffset, Scale);
+			const FTransform OffsetTransform(RotationOffset, LocationOffset, SpawnScale);
 			const FTransform SpawnTransform = OffsetTransform * SocketTransform;
 
 			SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
@@ -87,7 +94,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 				SocketName,
 				LocationOffset,
 				RotationOffset,
-				Scale,
+				SpawnScale,
 				EAttachLocation::KeepRelativeOffset,
 				true,
 				ENCPoolMethod::None,
@@ -101,7 +108,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 		const FTransform SocketTransform = (SocketName != NAME_None)
 			? AttachComponent->GetSocketTransform(SocketName)
 			: AttachComponent->GetComponentTransform();
-		const FTransform OffsetTransform(RotationOffset, LocationOffset, Scale);
+		const FTransform OffsetTransform(RotationOffset, LocationOffset, SpawnScale);
 		const FTransform SpawnTransform = OffsetTransform * SocketTransform;
 
 		SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
@@ -119,7 +126,7 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 			SocketName,
 			LocationOffset,
 			RotationOffset,
-			Scale,
+			SpawnScale,
 			EAttachLocation::KeepRelativeOffset,
 			true,
 			ENCPoolMethod::None,
@@ -127,8 +134,6 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	}
 
 	if (!SpawnedVFX || !bApplyElementalColor || ColorParamName == NAME_None) return;
-
-	const UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	if (!SkillAbility) return;
 
 	FLinearColor ElementalColor = FLinearColor::White;

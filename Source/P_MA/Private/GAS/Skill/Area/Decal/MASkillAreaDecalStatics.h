@@ -21,6 +21,11 @@ public:
 		UMASkillAbility& SkillAbility,
 		const FMASkillWorldAreaShape& Area);
 
+	static void SpawnImpact(
+		AActor* ComponentOwner,
+		const UMASkillAbility* SkillAbility,
+		const FMASkillWorldAreaShape& Area);
+
 	static void SetAreaTransform(
 		UDecalComponent& Decal,
 		const FMASkillWorldAreaShape& Area);

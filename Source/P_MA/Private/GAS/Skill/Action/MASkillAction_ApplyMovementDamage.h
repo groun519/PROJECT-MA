@@ -25,11 +25,14 @@ public:
 		const FMASkillScopes& InScopes,
 		const FMAActionImpulseHandle& InMovementHandle,
 		const FResolvedSkillDamage& InResolvedDamage,
-		float InCapsuleRadiusScale,
-		float InCapsuleHalfHeightScale);
+		float InCapsuleRadiusMultiplier,
+		float InCapsuleHalfHeightMultiplier,
+		bool bInDrawTrailDecal,
+		float InMinTrailDecalDistance);
 
 private:
 	void SweepMovement(const FVector& Start, const FVector& End);
+	void SpawnTrailDecal(const FVector& Start, const FVector& End, float Radius) const;
 
 	TWeakObjectPtr<UMASkillAbility> OwnerAbility;
 	TWeakObjectPtr<AMACharacter> OwnerCharacter;
@@ -41,6 +44,8 @@ private:
 	FVector PreviousLocation = FVector::ZeroVector;
 	float CapsuleRadiusScale = 1.f;
 	float CapsuleHalfHeightScale = 1.f;
+	bool bDrawTrailDecal = true;
+	float MinTrailDecalDistance = 80.f;
 };
 
 UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
@@ -58,9 +63,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Damage"))
 	FGameplayTag DamagePayloadTag;
 
-	UPROPERTY(EditDefaultsOnly, Category="Collision", meta=(ClampMin="0.01"))
+	UPROPERTY(EditDefaultsOnly, Category="Collision", meta=(ClampMin="0.01", DisplayName="Capsule Radius Multiplier"))
 	float CapsuleRadiusScale = 1.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Collision", meta=(ClampMin="0.01"))
+	UPROPERTY(EditDefaultsOnly, Category="Collision", meta=(ClampMin="0.01", DisplayName="Capsule Half Height Multiplier"))
 	float CapsuleHalfHeightScale = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Visual")
+	bool bDrawTrailDecal = true;
+
+	UPROPERTY(EditDefaultsOnly, Category="Visual", meta=(ClampMin="0.0", EditCondition="bDrawTrailDecal", EditConditionHides))
+	float MinTrailDecalDistance = 80.f;
 };

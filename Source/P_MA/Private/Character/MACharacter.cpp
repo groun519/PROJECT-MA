@@ -15,6 +15,7 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -350,6 +351,48 @@ void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTra
 	{
 		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
 	}
+}
+
+void AMACharacter::Multicast_AttachNiagaraToSelf_Implementation(UNiagaraSystem* NS, FName SocketName, float LifeSpan)
+{
+	if (GetNetMode() == NM_DedicatedServer || !NS) return;
+
+	USceneComponent* AttachComponent = GetMesh() ? static_cast<USceneComponent*>(GetMesh()) : GetRootComponent();
+	if (!AttachComponent) return;
+
+	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		NS,
+		AttachComponent,
+		SocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		FVector::OneVector,
+		EAttachLocation::SnapToTarget,
+		true,
+		ENCPoolMethod::None,
+		true);
+	if (!SpawnedVFX || LifeSpan <= 0.f) return;
+
+	FTimerHandle DestroyTimerHandle;
+	TWeakObjectPtr<UNiagaraComponent> WeakVFX = SpawnedVFX;
+	GetWorldTimerManager().SetTimer(
+		DestroyTimerHandle,
+		[WeakVFX]()
+		{
+			if (UNiagaraComponent* VFX = WeakVFX.Get())
+			{
+				VFX->DestroyComponent();
+			}
+		},
+		LifeSpan,
+		false);
+}
+
+void AMACharacter::Multicast_SpawnSkillAreaImpact_Implementation(FMASkillWorldAreaShape Area)
+{
+	if (GetNetMode() == NM_DedicatedServer) return;
+
+	MASkillAreaDecalStatics::SpawnImpact(this, nullptr, Area);
 }
 
 /** Status Effect **/

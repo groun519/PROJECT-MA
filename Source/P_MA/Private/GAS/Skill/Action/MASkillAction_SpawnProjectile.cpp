@@ -3,6 +3,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GAS/Projectile/MAProjectile.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
@@ -147,6 +148,7 @@ void UMASkillAction_SpawnProjectile::Execute(
 
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
+	ProjectileParams.SkillAreaScale = MASkillAreaStatics::ResolveAreaScale(Payloads);
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;

@@ -6,9 +6,11 @@
 #include "MAShopDetailWidget.generated.h"
 
 class UImage;
+class UPanelWidget;
 class URichTextBlock;
 class UButton;
 class UTextBlock;
+class UMASkillTagBadgeWidget;
 
 DECLARE_MULTICAST_DELEGATE(FMAShopBuyRequestedSignature);
 
@@ -40,10 +42,16 @@ protected:
 	TObjectPtr<UTextBlock> CooldownText;
 
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UPanelWidget> TagBadgePanel;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> PriceText;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> BuyButton;
+
+	UPROPERTY(EditDefaultsOnly, Category="Shop")
+	TSubclassOf<UMASkillTagBadgeWidget> TagBadgeWidgetClass;
 
 private:
 	UFUNCTION()

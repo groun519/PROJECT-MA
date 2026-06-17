@@ -32,7 +32,7 @@ private:
 
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<UDecalComponent>> ActiveDecals;
 
-	bool ResolveWorldArea(USkeletalMeshComponent* MeshComp, FMASkillWorldAreaShape& OutArea) const;
+	bool ResolveWorldArea(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation, FMASkillWorldAreaShape& OutArea) const;
 	void DestroyPreviewDecal(USkeletalMeshComponent* MeshComp);
 	void SpawnPreviewDecal(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation, const FMASkillWorldAreaShape& WorldArea);
 	void UpdatePreviewDecalTransform(USkeletalMeshComponent* MeshComp, const FMASkillWorldAreaShape& WorldArea);

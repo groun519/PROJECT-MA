@@ -1,15 +1,18 @@
 ﻿#include "Widget/Skill/MASkillTooltipWidget.h"
 
 #include "Components/Image.h"
+#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
+#include "Widget/Skill/MASkillTagBadgeWidget.h"
 
 void UMASkillTooltipWidget::SetSkillTooltip(
 	const UMASkillDefinition* SkillDefinition,
-	const FText& InWarningText)
+	const FText& InWarningText,
+	const UDataTable* WarningTextDataTable)
 {
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
 		? SkillDefinition->GetDisplayData()
@@ -25,6 +28,7 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr,
 		SkillDefinition ? SkillDefinition->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
 	SetCooldown(SkillDefinition);
+	SetTooltipTags(SkillDefinition ? SkillDefinition->GetTooltipTags() : FGameplayTagContainer(), WarningTextDataTable);
 	SetWarningText(InWarningText);
 }
 
@@ -82,6 +86,11 @@ void UMASkillTooltipWidget::SetCooldown(const UMASkillDefinition* SkillDefinitio
 		}
 		CooldownIconImage->SetVisibility(CooldownVisibility);
 	}
+}
+
+void UMASkillTooltipWidget::SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable)
+{
+	UMASkillTagBadgeWidget::RefreshTagBadges(this, TagBadgePanel, TagBadgeWidgetClass, TooltipTags, WarningTextDataTable);
 }
 
 void UMASkillTooltipWidget::SetWarningText(const FText& InWarningText)

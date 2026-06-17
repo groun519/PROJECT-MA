@@ -78,6 +78,7 @@ struct P_MA_API FMAProjectileParams
 	GENERATED_BODY()
 
 	FResolvedSkillDamage ResolvedDamage;
+	float SkillAreaScale = 1.f;
 
 	FMAProjectileTargetSettings TargetSettings;
 	FMAProjectilePenetratingSettings PenetratingSettings;

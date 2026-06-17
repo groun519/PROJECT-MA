@@ -15,7 +15,7 @@ namespace
 void UMASkillAction_Dash::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillEvent&,
-	const FMASkillScopes&)
+	const FMASkillScopes& Scopes)
 {
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
@@ -31,7 +31,7 @@ void UMASkillAction_Dash::Execute(
 	{
 		if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
 		{
-			ImpulseComponent->ApplyActionImpulseVelocity(&OwnerAbility, DashImpulseTag, DashVelocity, DashDuration);
+			ImpulseComponent->ApplyActionImpulseVelocity(&OwnerAbility, DashImpulseTag, DashVelocity, DashDuration, true, Scopes.Module);
 		}
 	}
 }

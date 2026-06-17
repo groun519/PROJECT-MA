@@ -1,13 +1,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Widget/MADescriptionTooltipWidget.h"
 #include "MASkillTooltipWidget.generated.h"
 
 class UImage;
+class UPanelWidget;
 class UTextBlock;
 class UTexture2D;
+class UDataTable;
 class UMASkillDefinition;
+class UMASkillTagBadgeWidget;
 struct FMASkillDefinitionIconData;
 
 UCLASS()
@@ -18,7 +22,8 @@ class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
 public:
 	void SetSkillTooltip(
 		const UMASkillDefinition* SkillDefinition,
-		const FText& InWarningText = FText());
+		const FText& InWarningText = FText(),
+		const UDataTable* WarningTextDataTable = nullptr);
 
 protected:
 	UPROPERTY(meta=(BindWidget))
@@ -36,9 +41,16 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> WarningIconImage;
 
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UPanelWidget> TagBadgePanel;
+
+	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
+	TSubclassOf<UMASkillTagBadgeWidget> TagBadgeWidgetClass;
+
 private:
 	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
 	void SetCooldown(const UMASkillDefinition* SkillDefinition);
+	void SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable);
 	void SetWarningText(const FText& InWarningText);
 	FText ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const;
 };

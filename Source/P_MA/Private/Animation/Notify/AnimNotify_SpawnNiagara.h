@@ -45,7 +45,10 @@ private:
 	FVector Scale = FVector(1.f);
 
 	UPROPERTY(EditAnywhere, Category = "Niagara")
-	bool bApplyElementalColor = false;
+	bool bApplySkillAreaScale = true;
+
+	UPROPERTY(EditAnywhere, Category = "Niagara")
+	bool bApplyElementalColor = true;
 
 	UPROPERTY(EditAnywhere, Category = "Niagara", meta=(EditCondition="bApplyElementalColor", EditConditionHides))
 	FName ColorParamName = TEXT("User.BaseColor");

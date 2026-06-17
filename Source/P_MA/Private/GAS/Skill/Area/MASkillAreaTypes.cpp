@@ -2,23 +2,23 @@
 
 static constexpr float HitAreaDepth = 110.f;
 
-static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillCircleArea& Source)
+static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillCircleArea& Source, float AreaScale)
 {
-	Result.Circle.Radius = Source.Radius;
+	Result.Circle.Radius = Source.Radius * AreaScale;
 	Result.Circle.bUseSector = Source.bUseSector;
 	Result.Circle.SectorAngle = Source.SectorAngle;
 }
 
-static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillRectArea& Source)
+static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillRectArea& Source, float AreaScale)
 {
-	Result.Rect.Width = Source.Width;
-	Result.Rect.Height = Source.Height;
+	Result.Rect.Width = Source.Width * AreaScale;
+	Result.Rect.Height = Source.Height * AreaScale;
 	Result.Rect.Depth = HitAreaDepth;
 }
 
-static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillLineArea& Source)
+static void ResolveWorldArea(FMASkillWorldAreaShape& Result, const FMASkillLineArea& Source, float AreaScale)
 {
-	Result.Line.Width = Source.Width;
+	Result.Line.Width = Source.Width * AreaScale;
 	Result.Line.Length = Source.Length;
 	Result.Center += Result.GetForward() * (Result.Line.Length * 0.5f);
 }
@@ -38,11 +38,13 @@ bool FMASkillWorldAreaShape::IsValid() const
 	}
 }
 
-FMASkillWorldAreaShape FMASkillAreaShape::ResolveWorld(const FTransform& OriginTransform) const
+FMASkillWorldAreaShape FMASkillAreaShape::ResolveWorld(const FTransform& OriginTransform, float AreaScale) const
 {
+	const float SafeAreaScale = FMath::Max(AreaScale, 0.f);
+
 	FMASkillWorldAreaShape Result;
 	Result.Shape = Shape;
-	Result.Center = OriginTransform.TransformPosition(FVector(LocalOffset, 0.f));
+	Result.Center = OriginTransform.TransformPosition(FVector(bScaleLocalOffset ? LocalOffset * SafeAreaScale : LocalOffset, 0.f));
 	Result.Rotation = FRotator(0.f, OriginTransform.Rotator().Yaw + LocalYaw + 90.f, 0.f);
 	Result.bIgnoreOwner = bIgnoreOwner;
 	Result.bDrawDebug = bDrawDebug;
@@ -52,13 +54,13 @@ FMASkillWorldAreaShape FMASkillAreaShape::ResolveWorld(const FTransform& OriginT
 	switch (Shape)
 	{
 	case EMASkillAreaShape::Circle:
-		ResolveWorldArea(Result, Circle);
+		ResolveWorldArea(Result, Circle, SafeAreaScale);
 		break;
 	case EMASkillAreaShape::Rect:
-		ResolveWorldArea(Result, Rect);
+		ResolveWorldArea(Result, Rect, SafeAreaScale);
 		break;
 	case EMASkillAreaShape::Line:
-		ResolveWorldArea(Result, Line);
+		ResolveWorldArea(Result, Line, SafeAreaScale);
 		break;
 	default:
 		break;

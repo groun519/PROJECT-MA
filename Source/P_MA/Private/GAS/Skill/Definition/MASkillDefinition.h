@@ -75,6 +75,7 @@ public:
 	FLinearColor ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const;
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
 	const FGameplayTagContainer& GetExclusiveAssemblyTags() const { return ExclusiveAssemblyTags; }
+	FGameplayTagContainer GetTooltipTags() const;
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }

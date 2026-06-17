@@ -193,9 +193,12 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 			SkillManager->ClearActivePreviewElementalTag();
 		}
 
-		if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
+		if (bWasCancelled)
 		{
-			ImpulseComponent->StopOwnedActionImpulses(this);
+			if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
+			{
+				ImpulseComponent->StopOwnedActionImpulses(this);
+			}
 		}
 	}
 

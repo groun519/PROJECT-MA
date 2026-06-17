@@ -13,6 +13,11 @@ public:
 		USkeletalMeshComponent* MeshComp,
 		const UAnimSequenceBase* Animation);
 
+	static float ResolveSkillAreaScale(UMASkillAbility* SkillAbility);
+	static float ResolveSkillAreaScale(
+		USkeletalMeshComponent* MeshComp,
+		const UAnimSequenceBase* Animation);
+
 private:
 	MASkillAnimNotifyStatics() = delete;
 };

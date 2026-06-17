@@ -1,6 +1,7 @@
 ﻿#include "GAS/Skill/Action/MASkillAction_MeleeOverlapShape.h"
 
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
+#include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -18,8 +19,10 @@ void UMASkillAction_MeleeOverlapShape::Execute(
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
 	if (!AvatarActor) return;
 
-	const FMASkillWorldAreaShape Area = Config.ResolveWorld(AvatarActor->GetActorTransform());
 	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillWorldAreaShape Area = Config.ResolveWorld(
+		AvatarActor->GetActorTransform(),
+		MASkillAreaStatics::ResolveAreaScale(Payloads));
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
 	MASkillDamageApplicator::ApplyArea(OwnerAbility, Scopes, Area, DamageConfig, Payloads);
 }

@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -27,8 +28,10 @@ bool AMASkillMovementDamageRuntime::Initialize(
 	const FMASkillScopes& InScopes,
 	const FMAActionImpulseHandle& InMovementHandle,
 	const FResolvedSkillDamage& InResolvedDamage,
-	float InCapsuleRadiusScale,
-	float InCapsuleHalfHeightScale)
+	float InCapsuleRadiusMultiplier,
+	float InCapsuleHalfHeightMultiplier,
+	bool bInDrawTrailDecal,
+	float InMinTrailDecalDistance)
 {
 	AMACharacter* Character = Cast<AMACharacter>(InOwnerAbility.GetAvatarActorFromActorInfo());
 	UMAImpulseComponent* CharacterImpulseComponent = Character ? Character->GetImpulseComponent() : nullptr;
@@ -43,8 +46,10 @@ bool AMASkillMovementDamageRuntime::Initialize(
 	Scopes = InScopes;
 	MovementHandle = InMovementHandle;
 	ResolvedDamage = InResolvedDamage;
-	CapsuleRadiusScale = FMath::Max(InCapsuleRadiusScale, 0.01f);
-	CapsuleHalfHeightScale = FMath::Max(InCapsuleHalfHeightScale, 0.01f);
+	CapsuleRadiusScale = FMath::Max(InCapsuleRadiusMultiplier, 0.01f);
+	CapsuleHalfHeightScale = FMath::Max(InCapsuleHalfHeightMultiplier, 0.01f);
+	bDrawTrailDecal = bInDrawTrailDecal;
+	MinTrailDecalDistance = FMath::Max(InMinTrailDecalDistance, 0.f);
 	PreviousLocation = Character->GetActorLocation();
 	SweepMovement(PreviousLocation, PreviousLocation);
 	return true;
@@ -84,6 +89,7 @@ void AMASkillMovementDamageRuntime::SweepMovement(const FVector& Start, const FV
 	const float HalfHeight = FMath::Max(
 		Radius,
 		Capsule->GetScaledCapsuleHalfHeight() * CapsuleHalfHeightScale);
+	SpawnTrailDecal(Start, End, Radius);
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Hitbox);
@@ -143,6 +149,27 @@ void AMASkillMovementDamageRuntime::SweepMovement(const FVector& Start, const FV
 	}
 }
 
+void AMASkillMovementDamageRuntime::SpawnTrailDecal(const FVector& Start, const FVector& End, float Radius) const
+{
+	AMACharacter* Character = OwnerCharacter.Get();
+	if (!bDrawTrailDecal || !Character) return;
+
+	const FVector MovementDelta = End - Start;
+	const FVector MovementDirection = MovementDelta.GetSafeNormal2D();
+	const float Distance = MovementDelta.Size2D();
+	if (Distance < MinTrailDecalDistance || MovementDirection.IsNearlyZero()) return;
+
+	FMASkillWorldAreaShape Area;
+	Area.Shape = EMASkillAreaShape::Rect;
+	Area.Center = (Start + End) * 0.5f;
+	Area.Rotation = MovementDirection.Rotation();
+	Area.Rect.Width = Radius * 2.f;
+	Area.Rect.Height = Distance;
+	Area.Rect.Depth = Radius * 2.f;
+
+	Character->Multicast_SpawnSkillAreaImpact(Area);
+}
+
 void UMASkillAction_ApplyMovementDamage::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillEvent& Event,
@@ -183,7 +210,9 @@ void UMASkillAction_ApplyMovementDamage::Execute(
 		MovementHandle,
 		MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads),
 		CapsuleRadiusScale,
-		CapsuleHalfHeightScale))
+		CapsuleHalfHeightScale,
+		bDrawTrailDecal,
+		MinTrailDecalDistance))
 	{
 		Runtime->Destroy();
 		return;

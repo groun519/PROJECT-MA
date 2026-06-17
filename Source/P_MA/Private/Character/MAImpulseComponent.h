@@ -8,6 +8,7 @@
 class AMACharacter;
 class UCharacterMovementComponent;
 class UCapsuleComponent;
+class UMASkillModuleInstance;
 
 USTRUCT(BlueprintType)
 struct P_MA_API FMAActionImpulseHandle
@@ -40,7 +41,8 @@ public:
 		const FGameplayTag& ImpulseTag,
 		const FVector& Velocity,
 		float Duration,
-		bool bStopMovementImmediately = true);
+		bool bStopMovementImmediately = true,
+		UMASkillModuleInstance* EventModuleScope = nullptr);
 	bool IsActionImpulseActive(const FMAActionImpulseHandle& Handle) const;
 	void RemoveImpulse(const FGameplayTag& StatusEffectTag);
 	void StopOwnedActionImpulses(UObject* OwnerObject);
