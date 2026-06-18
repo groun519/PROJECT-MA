@@ -6,6 +6,8 @@
 #include "MAGameSettings.generated.h"
 
 class UUserWidget;
+class UDataTable;
+class UPA_AbilitySystemGenerics;
 class UMASkillGenericDataAsset;
 class UMAModuleQualityData;
 class UMAElementalConfigData;
@@ -35,6 +37,9 @@ public:
 	UMAGameSettings();
 	static const UMAGameSettings* Get() { return GetDefault<UMAGameSettings>(); }
 	const UMASkillGenericDataAsset* GetDefaultSkillGenericDataAsset() const;
+	const UPA_AbilitySystemGenerics* GetAbilitySystemGenerics() const;
+	const UDataTable* GetPlayerBaseStatDataTable() const;
+	const UDataTable* GetMonsterBaseStatDataTable() const;
 	const UMAModuleQualityData* GetModuleQualityData() const;
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
@@ -45,6 +50,15 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMASkillGenericDataAsset> DefaultSkillGenericDataAsset;
+
+	UPROPERTY(Config, EditAnywhere, Category="Gameplay Ability")
+	TSoftObjectPtr<UPA_AbilitySystemGenerics> AbilitySystemGenerics;
+
+	UPROPERTY(Config, EditAnywhere, Category="Base Stats")
+	TSoftObjectPtr<UDataTable> PlayerBaseStatDataTable;
+
+	UPROPERTY(Config, EditAnywhere, Category="Base Stats")
+	TSoftObjectPtr<UDataTable> MonsterBaseStatDataTable;
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMAModuleQualityData> ModuleQualityData;

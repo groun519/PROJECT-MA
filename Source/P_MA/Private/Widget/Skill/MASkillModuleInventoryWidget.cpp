@@ -4,6 +4,12 @@
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "Widget/Skill/MASkillModuleSocketWidget.h"
 
+void UMASkillModuleInventoryWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	bIsCollapsed = GetVisibility() == ESlateVisibility::Collapsed;
+}
+
 void UMASkillModuleInventoryWidget::InitializeInventory(UMASkillModuleInventoryComponent* InInventory)
 {
 	UnbindInventory();
@@ -35,10 +41,48 @@ void UMASkillModuleInventoryWidget::RefreshSlots()
 	}
 }
 
+void UMASkillModuleInventoryWidget::ToggleCollapsed()
+{
+	SetCollapsed(!bIsCollapsed);
+}
+
+void UMASkillModuleInventoryWidget::SetCollapsed(bool bCollapsed)
+{
+	if (bIsCollapsed == bCollapsed) return;
+
+	bIsCollapsed = bCollapsed;
+	if (!InventoryCollapse)
+	{
+		SetVisibility(bIsCollapsed ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		return;
+	}
+
+	StopAnimation(InventoryCollapse);
+	SetVisibility(ESlateVisibility::Visible);
+	if (bIsCollapsed)
+	{
+		PlayAnimationForward(InventoryCollapse);
+	}
+	else
+	{
+		PlayAnimationReverse(InventoryCollapse);
+	}
+}
+
 void UMASkillModuleInventoryWidget::NativeDestruct()
 {
 	UnbindInventory();
 	Super::NativeDestruct();
+}
+
+void UMASkillModuleInventoryWidget::OnAnimationFinished_Implementation(const UWidgetAnimation* Animation)
+{
+	Super::OnAnimationFinished_Implementation(Animation);
+
+	if (Animation == InventoryCollapse && bIsCollapsed)
+	{
+		SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UMASkillModuleInventoryWidget::UnbindInventory()

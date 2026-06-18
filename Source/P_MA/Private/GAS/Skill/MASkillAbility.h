@@ -8,7 +8,6 @@
 
 class UDataTable;
 class UMASkillDefinition;
-class UMASkillGenericDataAsset;
 class UMASkillManagerComponent;
 class UMASkillModuleInstance;
 class UMASkillStepManager;
@@ -54,7 +53,6 @@ protected:
 	FGameplayTagContainer CancelTriggerTags;
 
 private:
-	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);

@@ -15,7 +15,6 @@ void UExecCalc_TemperatureRecovery::Execute_Implementation(
 	FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
 {
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
-	const UMAGameplayEffect_TemperatureRecovery* RecoveryEffect = CastChecked<UMAGameplayEffect_TemperatureRecovery>(Spec.Def);
 
 	FAggregatorEvaluateParameters EvalParams;
 	EvalParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
@@ -25,9 +24,16 @@ void UExecCalc_TemperatureRecovery::Execute_Implementation(
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(TargetTemperatureDef, EvalParams, Temperature);
 	if (FMath::IsNearlyZero(Temperature)) return;
 
+	const float RecoveryRatioPerTick = Spec.GetSetByCallerMagnitude(
+		UMAGameplayEffect_TemperatureRecovery::GetRecoveryRatioDataName(),
+		false,
+		0.01f);
+	const float RecoveryAmountPerTick = Spec.GetSetByCallerMagnitude(
+		UMAGameplayEffect_TemperatureRecovery::GetRecoveryAmountDataName(),
+		false,
+		0.1f);
 	const float AbsTemperature = FMath::Abs(Temperature);
-	const float RecoveryAmount = AbsTemperature * RecoveryEffect->GetRecoveryRatioPerTick()
-		+ RecoveryEffect->GetRecoveryAmountPerTick();
+	const float RecoveryAmount = AbsTemperature * RecoveryRatioPerTick + RecoveryAmountPerTick;
 	const float Delta = -FMath::Sign(Temperature) * FMath::Min(AbsTemperature, RecoveryAmount);
 	if (FMath::IsNearlyZero(Delta)) return;
 
@@ -45,4 +51,16 @@ UMAGameplayEffect_TemperatureRecovery::UMAGameplayEffect_TemperatureRecovery()
 
 	FGameplayEffectExecutionDefinition& ExecutionDefinition = Executions.AddDefaulted_GetRef();
 	ExecutionDefinition.CalculationClass = UExecCalc_TemperatureRecovery::StaticClass();
+}
+
+FName UMAGameplayEffect_TemperatureRecovery::GetRecoveryRatioDataName()
+{
+	static const FName DataName(TEXT("Data.Elemental.TemperatureRecoveryRatio"));
+	return DataName;
+}
+
+FName UMAGameplayEffect_TemperatureRecovery::GetRecoveryAmountDataName()
+{
+	static const FName DataName(TEXT("Data.Elemental.TemperatureRecoveryAmount"));
+	return DataName;
 }

@@ -26,9 +26,12 @@ void UExecCalc_BurnDamage::Execute_Implementation(
 
 	float Temperature = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(TargetTemperatureDef, EvalParams, Temperature);
+	if (Temperature <= 0.f) return;
 
-	const float BurnDamage = FMath::Clamp(Temperature / 100.f, 0.f, 1.f) * MaxBurnDamage;
-	if (BurnDamage <= 0.f) return;
+	const float BurnDamage = FMath::Lerp(
+		1.f,
+		FMath::Max(MaxBurnDamage, 1.f),
+		FMath::Clamp(Temperature / 100.f, 0.f, 1.f));
 
 	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 	{

@@ -2,8 +2,10 @@
 
 #include "GAS/Elemental/MAElementalConfigData.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
+#include "Engine/DataTable.h"
 #include "Materials/MaterialInterface.h"
 
 UMAGameSettings::UMAGameSettings()
@@ -23,6 +25,21 @@ UMAGameSettings::UMAGameSettings()
 const UMASkillGenericDataAsset* UMAGameSettings::GetDefaultSkillGenericDataAsset() const
 {
 	return DefaultSkillGenericDataAsset.LoadSynchronous();
+}
+
+const UPA_AbilitySystemGenerics* UMAGameSettings::GetAbilitySystemGenerics() const
+{
+	return AbilitySystemGenerics.LoadSynchronous();
+}
+
+const UDataTable* UMAGameSettings::GetPlayerBaseStatDataTable() const
+{
+	return PlayerBaseStatDataTable.LoadSynchronous();
+}
+
+const UDataTable* UMAGameSettings::GetMonsterBaseStatDataTable() const
+{
+	return MonsterBaseStatDataTable.LoadSynchronous();
 }
 
 const UMAModuleQualityData* UMAGameSettings::GetModuleQualityData() const

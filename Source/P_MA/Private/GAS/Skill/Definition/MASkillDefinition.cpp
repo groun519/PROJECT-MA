@@ -28,9 +28,7 @@ FLinearColor UMASkillDefinition::ResolveFrameColor(const UMAModuleQualityData* M
 
 FGameplayTagContainer UMASkillDefinition::GetTooltipTags() const
 {
-	FGameplayTagContainer TooltipTags;
-	TooltipTags.AppendTags(ExclusiveAssemblyTags);
-	return TooltipTags;
+	return ModuleTags;
 }
 
 void UMASkillDefinition::PostLoad()
@@ -39,11 +37,11 @@ void UMASkillDefinition::PostLoad()
 
 	if (ExclusiveAssemblyTag_DEPRECATED.IsValid())
 	{
-		ExclusiveAssemblyTags.AddTag(ExclusiveAssemblyTag_DEPRECATED);
+		ModuleTags.AddTag(ExclusiveAssemblyTag_DEPRECATED);
 	}
 	if (UniqueModuleEffectTag_DEPRECATED.IsValid())
 	{
-		ExclusiveAssemblyTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
+		ModuleTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
 	}
 
 	for (FMASkillEventBinding& EventBinding : EventBindings)
@@ -60,7 +58,7 @@ void UMASkillDefinition::ResetAssemblyData()
 {
 	DisplayData = FMASkillDefinitionDisplayData();
 	AssembledSubIcon = nullptr;
-	ExclusiveAssemblyTags.Reset();
+	ModuleTags.Reset();
 	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	ElementalTag = FGameplayTag();

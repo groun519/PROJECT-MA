@@ -29,17 +29,6 @@ class P_MA_API UMAGameplayEffect_TemperatureRecovery : public UGameplayEffect
 public:
 	UMAGameplayEffect_TemperatureRecovery();
 
-	float GetRecoveryRatioPerTick() const { return RecoveryRatioPerTick; }
-	float GetRecoveryAmountPerTick() const { return RecoveryAmountPerTick; }
-	float GetRecoveryDelay() const { return RecoveryDelay; }
-
-private:
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Temperature", meta=(ClampMin="0.0", AllowPrivateAccess="true"))
-	float RecoveryDelay = 1.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Temperature", meta=(ClampMin="0.0", ClampMax="1.0", AllowPrivateAccess="true"))
-	float RecoveryRatioPerTick = 0.01f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Elemental|Temperature", meta=(ClampMin="0.0", AllowPrivateAccess="true"))
-	float RecoveryAmountPerTick = 0.1f;
+	static FName GetRecoveryRatioDataName();
+	static FName GetRecoveryAmountDataName();
 };

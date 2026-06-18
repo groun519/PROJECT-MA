@@ -17,6 +17,7 @@ public:
 	void InitializeSkillSlots(UMASkillManagerComponent* InSkillManager);
 	void ToggleRowsCollapsed();
 	void SetRowsCollapsed(bool bCollapsed);
+	bool AreRowsCollapsed() const { return bRowsCollapsed; }
 
 protected:
 	UPROPERTY(meta=(BindWidget))

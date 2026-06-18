@@ -63,8 +63,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
 	class UMAAbilitySystemComponent* MAAbilitySystemComponent;
-	UPROPERTY()
-	class UMAAttributeSet* MAAttributeSet;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Gameplay Ability")
+	TObjectPtr<class UMAAttributeSet> MAAttributeSet;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Status Effect")
 	UMAStatusEffectComponent* StatusEffectComponent;

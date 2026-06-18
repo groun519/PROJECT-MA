@@ -51,7 +51,7 @@ public:
 	void NotifyInputBindingsChanged();
 	void SetGameplayWidgetVisible(bool bVisible);
 	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
-	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent);
+	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent, float Scale = 1.f);
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)

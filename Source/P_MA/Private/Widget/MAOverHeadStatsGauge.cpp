@@ -5,6 +5,7 @@
 #include "Character/MAStatusEffectComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "Widget/MAStatusEffectDurationWidget.h"
+#include "Widget/MATemperatureGauge.h"
 #include "Widget/MAValueGauge.h"
 
 void UMAOverHeadStatsGauge::InitializeFromCharacter(AMACharacter* OwnerCharacter)
@@ -22,6 +23,11 @@ void UMAOverHeadStatsGauge::ConfigureWithASC(UAbilitySystemComponent* AbilitySys
 		UMAAttributeSet::GetHealthAttribute(),
 		UMAAttributeSet::GetMaxHealthAttribute(),
 		UMAAttributeSet::GetShieldAttribute());
+
+	if (TemperatureBar)
+	{
+		TemperatureBar->BindTemperatureAttribute(AbilitySystemComponent);
+	}
 }
 
 void UMAOverHeadStatsGauge::ConfigureWithStatusEffectComponent(UMAStatusEffectComponent* StatusEffectComponent)

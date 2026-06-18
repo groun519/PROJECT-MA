@@ -12,7 +12,6 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
-#include "Setting/MAGameSettings.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 
@@ -284,14 +283,6 @@ UMASkillDefinition* UMASkillManagerComponent::GetAssembledDefinition(FGameplayTa
 	const FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);
 	const UMASkillModuleInstance* AssembledModuleInstance = SlotState ? SlotState->AssembledModuleInstance : nullptr;
 	return AssembledModuleInstance ? AssembledModuleInstance->GetDefinition() : nullptr;
-}
-
-const UMASkillGenericDataAsset* UMASkillManagerComponent::GetGenericSkillDataAsset() const
-{
-	if (GenericSkillDataAsset) return GenericSkillDataAsset;
-
-	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
-	return GameSettings ? GameSettings->GetDefaultSkillGenericDataAsset() : nullptr;
 }
 
 bool UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)

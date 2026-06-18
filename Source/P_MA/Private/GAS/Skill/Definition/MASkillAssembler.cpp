@@ -11,9 +11,10 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
 	UMASkillDefinition* AssembledDefinition = nullptr;
 	TMap<int32, FText> NameKeywordsByPriority;
-	TSet<FGameplayTag> UsedExclusiveAssemblyTags;
+	TSet<FGameplayTag> UsedExclusiveModuleTags;
 	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
-	const FGameplayTag UniqueAssemblyTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Assembly.Exclusive.Unique"), false);
+	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
+	const FGameplayTag UniqueModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive.Unique"), false);
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
@@ -31,24 +32,24 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 		if (!Definition) continue;
 
 		FGameplayTag BlockingAssemblyTag;
-		for (const FGameplayTag& ExclusiveAssemblyTag : Definition->GetExclusiveAssemblyTags())
+		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())
 		{
-			if (!ExclusiveAssemblyTag.IsValid()) continue;
+			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
-			if (ExclusiveAssemblyTag.MatchesTag(UniqueAssemblyTag))
+			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
-				if (const TSet<const UMASkillDefinition*>* UsedDefinitions = UsedUniqueDefinitionsByTag.Find(ExclusiveAssemblyTag);
+				if (const TSet<const UMASkillDefinition*>* UsedDefinitions = UsedUniqueDefinitionsByTag.Find(ModuleTag);
 					UsedDefinitions && UsedDefinitions->Contains(Definition))
 				{
-					BlockingAssemblyTag = ExclusiveAssemblyTag;
+					BlockingAssemblyTag = ModuleTag;
 					break;
 				}
 				continue;
 			}
 
-			if (UsedExclusiveAssemblyTags.Contains(ExclusiveAssemblyTag))
+			if (UsedExclusiveModuleTags.Contains(ModuleTag))
 			{
-				BlockingAssemblyTag = ExclusiveAssemblyTag;
+				BlockingAssemblyTag = ModuleTag;
 				break;
 			}
 		}
@@ -59,17 +60,17 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 			continue;
 		}
 
-		for (const FGameplayTag& ExclusiveAssemblyTag : Definition->GetExclusiveAssemblyTags())
+		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())
 		{
-			if (!ExclusiveAssemblyTag.IsValid()) continue;
+			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
-			if (ExclusiveAssemblyTag.MatchesTag(UniqueAssemblyTag))
+			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
-				UsedUniqueDefinitionsByTag.FindOrAdd(ExclusiveAssemblyTag).Add(Definition);
+				UsedUniqueDefinitionsByTag.FindOrAdd(ModuleTag).Add(Definition);
 			}
 			else
 			{
-				UsedExclusiveAssemblyTags.Add(ExclusiveAssemblyTag);
+				UsedExclusiveModuleTags.Add(ModuleTag);
 			}
 		}
 

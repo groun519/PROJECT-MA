@@ -4,14 +4,16 @@
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Definition/MASkillWarningTextData.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillTagBadgeWidget.h"
+#include "Widget/Skill/MASkillTooltipMessageWidget.h"
 
 void UMASkillTooltipWidget::SetSkillTooltip(
 	const UMASkillDefinition* SkillDefinition,
-	const FText& InWarningText,
+	const FGameplayTag& InactiveReasonTag,
 	const UDataTable* WarningTextDataTable)
 {
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
@@ -28,8 +30,11 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr,
 		SkillDefinition ? SkillDefinition->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
 	SetCooldown(SkillDefinition);
-	SetTooltipTags(SkillDefinition ? SkillDefinition->GetTooltipTags() : FGameplayTagContainer(), WarningTextDataTable);
-	SetWarningText(InWarningText);
+	const FGameplayTagContainer TooltipTags = SkillDefinition
+		? SkillDefinition->GetTooltipTags()
+		: FGameplayTagContainer();
+	SetTooltipTags(TooltipTags, WarningTextDataTable);
+	SetTooltipMessages(TooltipTags, InactiveReasonTag, WarningTextDataTable);
 }
 
 void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)
@@ -93,15 +98,40 @@ void UMASkillTooltipWidget::SetTooltipTags(const FGameplayTagContainer& TooltipT
 	UMASkillTagBadgeWidget::RefreshTagBadges(this, TagBadgePanel, TagBadgeWidgetClass, TooltipTags, WarningTextDataTable);
 }
 
-void UMASkillTooltipWidget::SetWarningText(const FText& InWarningText)
+void UMASkillTooltipWidget::SetTooltipMessages(
+	const FGameplayTagContainer& TooltipTags,
+	const FGameplayTag& InactiveReasonTag,
+	const UDataTable* WarningTextDataTable)
 {
-	const ESlateVisibility WarningVisibility = InWarningText.IsEmpty()
-		? ESlateVisibility::Collapsed
-		: ESlateVisibility::SelfHitTestInvisible;
+	MessagePanel->ClearChildren();
+	if (!MessageWidgetClass || !WarningTextDataTable)
+	{
+		MessagePanel->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
 
-	WarningText->SetText(InWarningText);
-	WarningText->SetVisibility(WarningVisibility);
-	WarningIconImage->SetVisibility(WarningVisibility);
+	TArray<FMASkillWarningTextDataRow*> TextRows;
+	WarningTextDataTable->GetAllRows(TEXT("SkillTooltipMessageLookup"), TextRows);
+	for (const FMASkillWarningTextDataRow* TextRow : TextRows)
+	{
+		if (!TextRow || TextRow->WarningText.IsEmpty()) continue;
+
+		const bool bShouldDisplay = TextRow->TextType == EMASkillTooltipTextType::Normal
+			? TooltipTags.HasTagExact(TextRow->ReasonTag)
+			: InactiveReasonTag.IsValid() && TextRow->ReasonTag == InactiveReasonTag;
+		if (!bShouldDisplay) continue;
+
+		UMASkillTooltipMessageWidget* MessageWidget =
+			CreateWidget<UMASkillTooltipMessageWidget>(this, MessageWidgetClass);
+		if (!MessageWidget) continue;
+
+		MessageWidget->SetMessage(TextRow->WarningText, TextRow->TextType);
+		MessagePanel->AddChild(MessageWidget);
+	}
+
+	MessagePanel->SetVisibility(MessagePanel->GetChildrenCount() > 0
+		? ESlateVisibility::SelfHitTestInvisible
+		: ESlateVisibility::Collapsed);
 }
 
 FText UMASkillTooltipWidget::ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const

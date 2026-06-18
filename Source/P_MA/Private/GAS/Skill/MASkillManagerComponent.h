@@ -8,7 +8,6 @@
 class UMASkillAbility;
 class UMASkillDefinition;
 class UMASkillEventRouter;
-class UMASkillGenericDataAsset;
 class UMASkillModuleInstance;
 class UActorChannel;
 class FOutBunch;
@@ -65,7 +64,6 @@ public:
 	}
 
 	UMASkillDefinition* GetAssembledDefinition(FGameplayTag SlotTag) const;
-	const UMASkillGenericDataAsset* GetGenericSkillDataAsset() const;
 
 	bool RebuildSkill(FGameplayTag SlotTag);
 	void RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
@@ -118,9 +116,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TArray<FMASkillSlotStack> SkillSlotStacks;
-
-	UPROPERTY(EditDefaultsOnly, Category="Skill")
-	TObjectPtr<UMASkillGenericDataAsset> GenericSkillDataAsset;
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedSkillSlotRuntimeStates)
 	TArray<FMASkillReplicatedSlotRuntimeState> ReplicatedSkillSlotRuntimeStates;

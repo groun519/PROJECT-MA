@@ -6,8 +6,10 @@
 
 class UMAValueGauge;
 class ULoopReadyWidget;
+class UButton;
 class UMASkillModuleInventoryWidget;
 class UMASkillSlotWidget;
+class UMATemperatureGauge;
 
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
@@ -16,7 +18,10 @@ class UMAGameplayWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	
+
+	UFUNCTION()
+	void ToggleModuleInventory();
+
 	void ToggleSkillSlotsCollapsed();
 
 	// Loop Ready UI
@@ -26,6 +31,9 @@ public:
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UMATemperatureGauge> TemperatureBar;
 
 	UPROPERTY(meta=(BindWidget))
 	class UInventoryWidget* InventoryWidget;
@@ -38,6 +46,9 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UMASkillModuleInventoryWidget> SkillModuleInventoryWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UButton> ModuleInventoryToggleButton;
 	
 	bool bLoopReadyInitialized = false;
 };

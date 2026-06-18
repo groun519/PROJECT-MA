@@ -5,6 +5,7 @@
 #include "MAOverHeadStatsGauge.generated.h"
 
 class UMAValueGauge;
+class UMATemperatureGauge;
 
 UCLASS()
 class UMAOverHeadStatsGauge : public UUserWidget
@@ -23,6 +24,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	UMAValueGauge* HealthBar;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UMATemperatureGauge> TemperatureBar;
 	
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UMAStatusEffectDurationWidget> StatusEffectSlot0;
 	UPROPERTY(meta = (BindWidget)) TObjectPtr<UMAStatusEffectDurationWidget> StatusEffectSlot1;

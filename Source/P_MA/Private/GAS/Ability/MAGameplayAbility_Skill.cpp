@@ -3,12 +3,14 @@
 
 #include "GAS/Ability/MAGameplayAbility_Skill.h"
 
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Character/MACharacter.h"
-#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Setting/MASkillSubsystem.h"
+#include "Setting/MAGameSettings.h"
 
 UMAGameplayAbility_Skill::UMAGameplayAbility_Skill()
 {
@@ -104,10 +106,8 @@ const FGameplayTagContainer* UMAGameplayAbility_Skill::GetCooldownTags() const
 
 TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseCooldownEffect() const
 {
-	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
-	if (ASC && ASC->GetSystemGenerics())
-		return ASC->GetSystemGenerics()->GetCooldownEffect();
-	return nullptr;
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+	return SystemGenerics ? SystemGenerics->GetCooldownEffect() : nullptr;
 }
 
 /********************************************************************************************/
@@ -116,12 +116,8 @@ TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseCooldownEffect() c
 
 TSubclassOf<UGameplayEffect> UMAGameplayAbility_Skill::GetBaseDamageEffect() const
 {
-	UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponentFromActorInfo());
-	if (ASC && ASC->GetSystemGenerics())
-	{
-		return ASC->GetSystemGenerics()->GetDamageEffect();
-	}
-	return nullptr;
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+	return SystemGenerics ? SystemGenerics->GetDamageEffect() : nullptr;
 }
 FGameplayEffectSpecHandle UMAGameplayAbility_Skill::MakeSkillDamageSpec(float BehaviorMultiplier)
 {

@@ -5,12 +5,22 @@
 #include "GameplayTagContainer.h"
 #include "MASkillWarningTextData.generated.h"
 
+UENUM(BlueprintType)
+enum class EMASkillTooltipTextType : uint8
+{
+	Normal,
+	Warning
+};
+
 USTRUCT(BlueprintType)
 struct P_MA_API FMASkillWarningTextDataRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category="Warning", meta=(Categories="Module.Assembly.Exclusive"))
+	UPROPERTY(EditAnywhere, Category="Warning")
+	EMASkillTooltipTextType TextType = EMASkillTooltipTextType::Warning;
+
+	UPROPERTY(EditAnywhere, Category="Warning", meta=(Categories="Module"))
 	FGameplayTag ReasonTag;
 
 	UPROPERTY(EditAnywhere, Category="Warning", meta=(MultiLine=true))

@@ -4,7 +4,6 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
-#include "PA_AbilitySystemGenerics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
@@ -32,13 +31,11 @@ public:
 	void ApplyFullStatEffect();
 	void ApplyReviveStatEffect();
 	void NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data);
-	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
 
 	UPROPERTY(Transient)
 	FGameplayTagContainer AppliedBaseTags;
 	
 private:
-	void ApplyInitialEffects();
 	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
@@ -49,7 +46,4 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TArray<TSubclassOf<UGameplayAbility>> BasicAbilities;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	UPA_AbilitySystemGenerics* AbilitySystemGenerics;
 };

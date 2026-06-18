@@ -2,7 +2,7 @@
 
 #include "Components/TextBlock.h"
 
-void UMAFloatingTextWidget::SetDisplayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor)
+void UMAFloatingTextWidget::SetDisplayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor, float Scale)
 {
 	if (DamageText)
 	{
@@ -10,6 +10,7 @@ void UMAFloatingTextWidget::SetDisplayText(const FText& Text, const FLinearColor
 		DamageText->SetColorAndOpacity(FSlateColor(Color));
 
 		FSlateFontInfo FontInfo = DamageText->GetFont();
+		FontInfo.Size = FMath::Max(1, FMath::RoundToInt(FontInfo.Size * Scale));
 		FontInfo.OutlineSettings.OutlineSize = OutlineColor.A > 0.f ? 1 : 0;
 		FontInfo.OutlineSettings.OutlineColor = OutlineColor;
 		DamageText->SetFont(FontInfo);

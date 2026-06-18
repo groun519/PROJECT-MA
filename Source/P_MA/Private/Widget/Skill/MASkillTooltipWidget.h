@@ -12,6 +12,7 @@ class UTexture2D;
 class UDataTable;
 class UMASkillDefinition;
 class UMASkillTagBadgeWidget;
+class UMASkillTooltipMessageWidget;
 struct FMASkillDefinitionIconData;
 
 UCLASS()
@@ -22,7 +23,7 @@ class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
 public:
 	void SetSkillTooltip(
 		const UMASkillDefinition* SkillDefinition,
-		const FText& InWarningText = FText(),
+		const FGameplayTag& InactiveReasonTag = FGameplayTag(),
 		const UDataTable* WarningTextDataTable = nullptr);
 
 protected:
@@ -36,10 +37,10 @@ protected:
 	TObjectPtr<UImage> CooldownIconImage;
 
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UTextBlock> WarningText;
+	TObjectPtr<UPanelWidget> MessagePanel;
 
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UImage> WarningIconImage;
+	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
+	TSubclassOf<UMASkillTooltipMessageWidget> MessageWidgetClass;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> TagBadgePanel;
@@ -51,6 +52,9 @@ private:
 	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
 	void SetCooldown(const UMASkillDefinition* SkillDefinition);
 	void SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable);
-	void SetWarningText(const FText& InWarningText);
+	void SetTooltipMessages(
+		const FGameplayTagContainer& TooltipTags,
+		const FGameplayTag& InactiveReasonTag,
+		const UDataTable* WarningTextDataTable);
 	FText ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const;
 };

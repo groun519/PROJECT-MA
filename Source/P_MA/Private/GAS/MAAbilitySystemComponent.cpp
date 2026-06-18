@@ -9,6 +9,7 @@
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Setting/MAGameSettings.h"
 
 static AMAPlayerController* ResolvePlayerControllerFromActor(AActor* Actor)
 {
@@ -23,20 +24,6 @@ static AMAPlayerController* ResolvePlayerControllerFromActor(AActor* Actor)
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
-}
-
-void UMAAbilitySystemComponent::ApplyInitialEffects()
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
-
-	if (!AbilitySystemGenerics)
-		return;
-
-	for (const TSubclassOf<UGameplayEffect>& EffectClass : AbilitySystemGenerics->GetInitialEffects())
-	{
-		FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingSpec(EffectClass, 1, MakeEffectContext());
-		ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
-	}
 }
 
 void UMAAbilitySystemComponent::GiveInitialAbilities()
@@ -65,30 +52,23 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 		GiveAbility(FGameplayAbilitySpec(Ability, 1, INDEX_NONE, nullptr));
 	}
 
-	if (!AbilitySystemGenerics) return;
-
-	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+	if (SystemGenerics && SystemGenerics->GetDeadAbility())
 	{
-		if (!PassiveAbility)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Skipped invalid passive ability. Owner=%s"), *GetNameSafe(GetOwner()));
-			continue;
-		}
-
-		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
+		GiveAbility(FGameplayAbilitySpec(SystemGenerics->GetDeadAbility(), 1, INDEX_NONE, nullptr));
 	}
 }
 
 void UMAAbilitySystemComponent::ApplyFullStatEffect()
 {
-	if (!AbilitySystemGenerics) return;
-	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+	if (SystemGenerics) AuthApplyGameplayEffect(SystemGenerics->GetFullStatEffect());
 }
 
 void UMAAbilitySystemComponent::ApplyReviveStatEffect()
 {
-	if (!AbilitySystemGenerics) return;
-	AuthApplyGameplayEffect(AbilitySystemGenerics->GetReviveStatEffect());
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+	if (SystemGenerics) AuthApplyGameplayEffect(SystemGenerics->GetReviveStatEffect());
 }
 
 void UMAAbilitySystemComponent::NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data)
@@ -204,8 +184,9 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 			AddLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
 
 			// 죽음 효과는 반드시 체력이 0 이하일 때만 적용
-			if(AbilitySystemGenerics && AbilitySystemGenerics->GetDeathEffect())
-				AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
+			const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
+			if (SystemGenerics && SystemGenerics->GetDeathEffect())
+				AuthApplyGameplayEffect(SystemGenerics->GetDeathEffect());
 
 			FGameplayEventData DeadAbilityEventData;
 			if(ChangeData.GEModData)
@@ -225,26 +206,21 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 void UMAAbilitySystemComponent::InitializeBaseAttributes()
 {
 	AActor* Owner = GetOwner();
-	if (!AbilitySystemGenerics || !GetOwner())
-	{
-		return;
-	}
-	
-	const UDataTable* TableToUse = nullptr;
+	if (!Owner) return;
 	
 	//플레이어인 경우 플레이어 데이터 테이블로 초기화
 	if (Cast<AMAPlayerCharacter>(Owner))
 	{
-		if (!AbilitySystemGenerics->GetPlayerBaseStatDataTable())
-			return;
-		TableToUse = AbilitySystemGenerics->GetPlayerBaseStatDataTable();
-		
+		const UDataTable* BaseStatTable = UMAGameSettings::Get()->GetPlayerBaseStatDataTable();
+		if (!BaseStatTable) return;
+
 		const FPlayerBaseStats* BaseStats = nullptr;
-		for (const TPair<FName, uint8*>& DataPair : TableToUse->GetRowMap())
+		for (const TPair<FName, uint8*>& DataPair : BaseStatTable->GetRowMap())
 		{
-			BaseStats = TableToUse->FindRow<FPlayerBaseStats>(DataPair.Key, "");
-			if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+			const FPlayerBaseStats* Candidate = BaseStatTable->FindRow<FPlayerBaseStats>(DataPair.Key, "");
+			if (Candidate && Candidate->Class == Owner->GetClass())
 			{
+				BaseStats = Candidate;
 				break;
 			}
 		}
@@ -268,16 +244,16 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 	//몬스터인 경우 몬스터 데이터 테이블로 초기화
 	else
 	{
-		if (!AbilitySystemGenerics->GetMonsterBaseStatDataTable())
-			return;
-		TableToUse = AbilitySystemGenerics->GetMonsterBaseStatDataTable();
+		const UDataTable* BaseStatTable = UMAGameSettings::Get()->GetMonsterBaseStatDataTable();
+		if (!BaseStatTable) return;
 
 		const FMonsterBaseStats* BaseStats = nullptr;
-		for (const TPair<FName, uint8*>& DataPair : TableToUse->GetRowMap())
+		for (const TPair<FName, uint8*>& DataPair : BaseStatTable->GetRowMap())
 		{
-			BaseStats = TableToUse->FindRow<FMonsterBaseStats>(DataPair.Key, "");
-			if (BaseStats && BaseStats->Class == GetOwner()->GetClass())
+			const FMonsterBaseStats* Candidate = BaseStatTable->FindRow<FMonsterBaseStats>(DataPair.Key, "");
+			if (Candidate && Candidate->Class == Owner->GetClass())
 			{
+				BaseStats = Candidate;
 				break;
 			}
 		}
@@ -300,6 +276,6 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 void UMAAbilitySystemComponent::ServerSideInit()
 {
 	InitializeBaseAttributes();
-	ApplyInitialEffects();
+	ApplyFullStatEffect();
 	GiveInitialAbilities();
 }

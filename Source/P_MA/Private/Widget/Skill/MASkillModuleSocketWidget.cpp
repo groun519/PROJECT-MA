@@ -3,7 +3,6 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/Definition/MASkillWarningTextData.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -54,36 +53,9 @@ UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
 	return ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 }
 
-FText UMASkillModuleSocketWidget::ResolveInactiveReasonText(
-	const UMASkillModuleInstance* ModuleInstance,
-	const UDataTable* WarningTextDataTable) const
-{
-	static const FGameplayTag EmptyTag;
-	const FGameplayTag& InactiveReasonTag = ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : EmptyTag;
-	if (!InactiveReasonTag.IsValid() || !WarningTextDataTable) return FText();
-
-	TArray<FMASkillWarningTextDataRow*> TextRows;
-	WarningTextDataTable->GetAllRows(TEXT("SkillModuleSocketInactiveReasonLookup"), TextRows);
-	for (const FMASkillWarningTextDataRow* TextRow : TextRows)
-	{
-		if (!TextRow || TextRow->ReasonTag != InactiveReasonTag) continue;
-
-		return TextRow->WarningText;
-	}
-
-	return FText();
-}
-
 const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
 {
-	const UActorComponent* OwnerComponent = SlotOwner.Get();
-	const UMASkillManagerComponent* SkillManager = Cast<UMASkillManagerComponent>(OwnerComponent);
-	if (!SkillManager && OwnerComponent && OwnerComponent->GetOwner())
-	{
-		SkillManager = OwnerComponent->GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
-	}
-
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
 	return GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
 }
 
@@ -281,7 +253,11 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 	}
 
 	const UDataTable* WarningTextDataTable = ResolveWarningTextDataTable();
-	TooltipWidget->SetSkillTooltip(CachedDefinition, ResolveInactiveReasonText(ResolveModuleInstance(), WarningTextDataTable), WarningTextDataTable);
+	const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
+	TooltipWidget->SetSkillTooltip(
+		CachedDefinition,
+		ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : FGameplayTag(),
+		WarningTextDataTable);
 	SetToolTip(TooltipWidget);
 }
 

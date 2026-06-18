@@ -42,6 +42,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
+	MAAbilitySystemComponent->AddAttributeSetSubobject(MAAttributeSet.Get());
 	StatusEffectComponent = CreateDefaultSubobject<UMAStatusEffectComponent>("Reaction Component");
 	ElementalComponent = CreateDefaultSubobject<UMAElementalComponent>("Elemental Component");
 	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");

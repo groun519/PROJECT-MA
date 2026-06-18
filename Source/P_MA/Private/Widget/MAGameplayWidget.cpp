@@ -1,11 +1,13 @@
 #include "Widget/MAGameplayWidget.h"
 
 #include "Widget/MAValueGauge.h"
+#include "Widget/MATemperatureGauge.h"
 #include "Widget/Skill/MASkillSlotWidget.h"
 #include "Widget/Skill/MASkillModuleInventoryWidget.h"
 #include "Widget/Loop/LoopReadyWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Components/Button.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -13,6 +15,8 @@
 void UMAGameplayWidget::NativeConstruct()
 {
     Super::NativeConstruct();
+
+    ModuleInventoryToggleButton->OnClicked.AddUniqueDynamic(this, &UMAGameplayWidget::ToggleModuleInventory);
     
     UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
     if (OwnerAbilitySystemComponent && HealthBar)
@@ -22,6 +26,11 @@ void UMAGameplayWidget::NativeConstruct()
             UMAAttributeSet::GetHealthAttribute(),
             UMAAttributeSet::GetMaxHealthAttribute(),
             UMAAttributeSet::GetShieldAttribute());
+    }
+
+    if (OwnerAbilitySystemComponent && TemperatureBar)
+    {
+        TemperatureBar->BindTemperatureAttribute(OwnerAbilitySystemComponent);
     }
 
     if (SkillSlotWidget)
@@ -44,11 +53,17 @@ void UMAGameplayWidget::NativeConstruct()
     }
 }
 
+void UMAGameplayWidget::ToggleModuleInventory()
+{
+	SkillModuleInventoryWidget->ToggleCollapsed();
+}
+
 void UMAGameplayWidget::ToggleSkillSlotsCollapsed()
 {
 	if (SkillSlotWidget)
 	{
 		SkillSlotWidget->ToggleRowsCollapsed();
+		SkillModuleInventoryWidget->SetCollapsed(SkillSlotWidget->AreRowsCollapsed());
 	}
 }
 

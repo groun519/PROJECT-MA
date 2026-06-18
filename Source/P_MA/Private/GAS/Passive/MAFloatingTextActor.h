@@ -14,7 +14,7 @@ class AMAFloatingTextActor : public AActor
 public:
 	AMAFloatingTextActor();
 
-	void PlayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent);
+	void PlayText(const FText& Text, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent, float Scale = 1.f);
 
 protected:
 	UPROPERTY(VisibleAnywhere)

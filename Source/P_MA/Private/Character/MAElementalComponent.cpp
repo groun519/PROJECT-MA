@@ -142,11 +142,12 @@ void UMAElementalComponent::DelayTemperatureRecovery()
 	RemoveTemperatureRecovery();
 	if (FMath::IsNearlyZero(CurrentTemperature)) return;
 
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
 	World->GetTimerManager().SetTimer(
 		TemperatureRecoveryDelayTimerHandle,
 		this,
 		&UMAElementalComponent::RefreshTemperatureRecoveryEffect,
-		GetDefault<UMAGameplayEffect_TemperatureRecovery>()->GetRecoveryDelay(),
+		ConfigData ? ConfigData->TemperatureRecoveryDelay : 1.f,
 		false);
 }
 
@@ -167,6 +168,14 @@ void UMAElementalComponent::ApplyTemperatureRecovery()
 		1.f));
 	if (!SpecHandle.IsValid()) return;
 
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	SpecHandle.Data->Period = ConfigData ? FMath::Max(ConfigData->TemperatureRecoveryTickInterval, 0.01f) : 0.1f;
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UMAGameplayEffect_TemperatureRecovery::GetRecoveryRatioDataName(),
+		ConfigData ? ConfigData->TemperatureRecoveryRatioPerTick : 0.01f);
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UMAGameplayEffect_TemperatureRecovery::GetRecoveryAmountDataName(),
+		ConfigData ? ConfigData->TemperatureRecoveryAmountPerTick : 0.1f);
 	TemperatureRecoveryEffectHandle = OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
@@ -284,7 +293,8 @@ void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle
 float UMAElementalComponent::GetMaxBurnDamagePerTick() const
 {
 	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
-	return ConfigData ? ConfigData->MaxBurnDamagePerTick : 5.f;
+	if (!ConfigData) return bOverheated ? 10.f : 5.f;
+	return bOverheated ? ConfigData->OverheatedBurnDamagePerTick : ConfigData->MaxBurnDamagePerTick;
 }
 
 bool UMAElementalComponent::IsBurnDamageActive() const
@@ -319,6 +329,31 @@ void UMAElementalComponent::ApplyBurnDamageTick()
 
 	SpecHandle.Data->SetSetByCallerMagnitude(UMAGameplayEffect_BurnDamage::GetMaxBurnDamageDataName(), GetMaxBurnDamagePerTick());
 	OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	ExecuteBurnGameplayCues();
+}
+
+void UMAElementalComponent::ExecuteBurnGameplayCues() const
+{
+	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
+	if (!OwnerASC || !OwnerCharacter || !ConfigData || ConfigData->BurnGameplayCueTags.IsEmpty()) return;
+
+	FGameplayCueParameters CueParams;
+	CueParams.Location = OwnerCharacter->GetActorLocation();
+	CueParams.Instigator = BurnDamageContext.IsValid() ? BurnDamageContext.GetInstigator() : OwnerCharacter;
+	CueParams.EffectCauser = BurnDamageContext.IsValid() && BurnDamageContext.GetEffectCauser()
+		? BurnDamageContext.GetEffectCauser()
+		: CueParams.Instigator;
+
+	for (const FGameplayTag& GameplayCueTag : ConfigData->BurnGameplayCueTags)
+	{
+		if (!GameplayCueTag.IsValid()) continue;
+
+		FGameplayCueParameters CueParamsForTag = CueParams;
+		CueParamsForTag.OriginalTag = GameplayCueTag;
+		CueParamsForTag.AggregatedSourceTags.AddTag(GameplayCueTag);
+		CueParamsForTag.AggregatedTargetTags.AddTag(GameplayCueTag);
+		OwnerASC->ExecuteGameplayCue(GameplayCueTag, CueParamsForTag);
+	}
 }
 
 void UMAElementalComponent::RemoveBurnDamage()

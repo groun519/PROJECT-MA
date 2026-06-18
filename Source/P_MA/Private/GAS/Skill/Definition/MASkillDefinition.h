@@ -74,7 +74,7 @@ public:
 	FMASkillDefinitionIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
 	FLinearColor ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const;
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
-	const FGameplayTagContainer& GetExclusiveAssemblyTags() const { return ExclusiveAssemblyTags; }
+	const FGameplayTagContainer& GetModuleTags() const { return ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const;
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
@@ -107,8 +107,8 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UTexture2D> AssembledSubIcon = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, Category="Assembly", meta=(Categories="Module.Assembly.Exclusive"))
-	FGameplayTagContainer ExclusiveAssemblyTags;
+	UPROPERTY(EditDefaultsOnly, Category="Tags", meta=(Categories="Module"))
+	FGameplayTagContainer ModuleTags;
 
 	UPROPERTY()
 	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;

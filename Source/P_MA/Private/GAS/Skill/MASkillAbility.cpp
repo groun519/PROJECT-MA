@@ -5,7 +5,6 @@
 #include "Character/MACharacter.h"
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
@@ -14,6 +13,7 @@
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Step/MASkillStepManager.h"
+#include "Setting/MAGameSettings.h"
 
 UMASkillAbility::UMASkillAbility()
 {
@@ -157,8 +157,7 @@ void UMASkillAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, con
 	const FGameplayTag CooldownTag = GetCooldownTagForSpec(Handle, ActorInfo);
 	if (!CooldownTag.IsValid()) return;
 
-	const UMAAbilitySystemComponent* AbilitySystemComponent = Cast<UMAAbilitySystemComponent>(ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr);
-	const UPA_AbilitySystemGenerics* SystemGenerics = AbilitySystemComponent ? AbilitySystemComponent->GetSystemGenerics() : nullptr;
+	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
 	TSubclassOf<UGameplayEffect> CooldownEffect = SystemGenerics ? SystemGenerics->GetCooldownEffect() : nullptr;
 	if (!ensureMsgf(CooldownEffect, TEXT("Cooldown effect is not configured for ASC owner %s."),
 		*GetNameSafe(ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr)))
@@ -235,23 +234,14 @@ const FGameplayTag& UMASkillAbility::GetElementalTag() const
 
 const UDataTable* UMASkillAbility::GetElementalDataTable() const
 {
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = GetGenericSkillDataAsset();
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
 	return GenericSkillDataAsset ? GenericSkillDataAsset->GetElementalDataTable() : nullptr;
 }
 
 const UDataTable* UMASkillAbility::GetAreaDecalDataTable() const
 {
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = GetGenericSkillDataAsset();
+	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
 	return GenericSkillDataAsset ? GenericSkillDataAsset->GetAreaDecalDataTable() : nullptr;
-}
-
-const UMASkillGenericDataAsset* UMASkillAbility::GetGenericSkillDataAsset() const
-{
-	const AMACharacter* OwnerCharacter = Cast<AMACharacter>(GetAvatarActorFromActorInfo());
-	if (!OwnerCharacter) return nullptr;
-
-	const UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent();
-	return SkillManager ? SkillManager->GetGenericSkillDataAsset() : nullptr;
 }
 
 UMASkillModuleInstance* UMASkillAbility::GetCurrentBindingScope() const

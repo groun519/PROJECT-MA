@@ -44,6 +44,7 @@ private:
 	bool IsBurnDamageActive() const;
 	void StartBurnDamage(float TickInterval);
 	void ApplyBurnDamageTick();
+	void ExecuteBurnGameplayCues() const;
 	void RemoveBurnDamage();
 	void TriggerOverheatExplosion(const FGameplayEffectContextHandle& SourceContext);
 	bool IsFrozenStatusActive() const;

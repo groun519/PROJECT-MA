@@ -51,7 +51,6 @@ private:
 	static constexpr float HighlightedIconScaleMultiplier = 0.75f;
 	UMASkillModuleInstance* ResolveModuleInstance() const;
 	UMASkillDefinition* ResolveDefinition() const;
-	FText ResolveInactiveReasonText(const UMASkillModuleInstance* ModuleInstance, const UDataTable* WarningTextDataTable) const;
 	const UDataTable* ResolveWarningTextDataTable() const;
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);

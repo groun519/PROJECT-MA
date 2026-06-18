@@ -110,17 +110,18 @@ void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AA
 		FText::AsNumber(FMath::RoundToInt(Amount)),
 		TextLocation,
 		DamageTextStyle.Color,
-		DamageTextStyle.OutlineColor);
+		DamageTextStyle.OutlineColor,
+		FMath::GetMappedRangeValueClamped(FVector2D(10.f, 1000.f), FVector2D(0.75f, 2.f), Amount));
 }
 
-void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor)
+void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor, float Scale)
 {
 	if (!FloatingTextActorClass) return;
 
 	AMAFloatingTextActor* FloatingTextActor = GetWorld()->SpawnActor<AMAFloatingTextActor>(FloatingTextActorClass, WorldLocation, FRotator::ZeroRotator);
 	if (FloatingTextActor)
 	{
-		FloatingTextActor->PlayText(Text, Color, OutlineColor);
+		FloatingTextActor->PlayText(Text, Color, OutlineColor, Scale);
 	}
 }
 
