@@ -11,15 +11,15 @@
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
-#include "GAS/Passive/MAFloatingTextActor.h"
 #include "Input/MAInputStatics.h"
-#include "Setting/MAGameSettings.h"
+#include "Player/Feedback/MAFloatingTextComponent.h"
 #include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
 {
 	TeamID = FGenericTeamId(0);
+	FloatingTextComponent = CreateDefaultSubobject<UMAFloatingTextComponent>("Floating Text Component");
 }
 
 void AMAPlayerController::BeginPlay()
@@ -66,6 +66,7 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 		}
 		MAPlayerCharacter->ServerSideInit();
 		MAPlayerCharacter->SetGenericTeamId(TeamID);
+		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
 	}
 }
 
@@ -76,6 +77,7 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	if (MAPlayerCharacter)
 	{
 		MAPlayerCharacter->ClientSideInit();
+		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
 		SpawnGameplayWidget();
 	}
 }
@@ -94,35 +96,6 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMAPlayerController, TeamID);
-}
-
-void AMAPlayerController::ClientShowDamageNumber_Implementation(float Amount, AActor* TargetActor, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit, FGameplayTag DamageTypeTag)
-{
-	if (!TargetActor) return;
-
-	const FMADamageTextStyle DamageTextStyle = UMAGameSettings::Get()->GetDamageTextStyle(DamageTypeTag, CriticalResult, bIsPlayerHit);
-
-	FVector TextLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, DamageTextStyle.ZOffset);
-	TextLocation.X += FMath::RandRange(-40.f, 40.f);
-	TextLocation.Y += FMath::RandRange(-40.f, 40.f);
-
-	ShowFloatingText(
-		FText::AsNumber(FMath::RoundToInt(Amount)),
-		TextLocation,
-		DamageTextStyle.Color,
-		DamageTextStyle.OutlineColor,
-		FMath::GetMappedRangeValueClamped(FVector2D(10.f, 1000.f), FVector2D(0.75f, 2.f), Amount));
-}
-
-void AMAPlayerController::ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor, float Scale)
-{
-	if (!FloatingTextActorClass) return;
-
-	AMAFloatingTextActor* FloatingTextActor = GetWorld()->SpawnActor<AMAFloatingTextActor>(FloatingTextActorClass, WorldLocation, FRotator::ZeroRotator);
-	if (FloatingTextActor)
-	{
-		FloatingTextActor->PlayText(Text, Color, OutlineColor, Scale);
-	}
 }
 
 void AMAPlayerController::ClientPlayCoinRewardFeedback_Implementation(const FMACoinRewardFeedbackParams& Params)

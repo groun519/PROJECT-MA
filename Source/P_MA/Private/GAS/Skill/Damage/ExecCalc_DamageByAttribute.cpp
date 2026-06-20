@@ -49,6 +49,11 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
 {
 	const FGameplayEffectSpec& Spec = ExecutionParams.GetOwningSpec();
+	if (FMAGameplayEffectContext* MutableMAContext =
+		static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+	{
+		MutableMAContext->SetDisplayMagnitude(0.f);
+	}
 
 	FAggregatorEvaluateParameters EvalParams;
 	EvalParams.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
@@ -107,15 +112,26 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return;
 	}
 
-	BaseDamage = FMath::Max(0.f, BaseDamage);
-	if (BaseDamage <= 0.f) return;
-
 	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(Spec.GetContext().Get());
-	const FGameplayTag DamageTypeTag = MAContext && MAContext->GetDamageTypeTag().IsValid()
-		? MAContext->GetDamageTypeTag()
-		: UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
+	if (!MAContext || !MAContext->GetDamageTypeTag().IsValid()) return;
+
+	const FGameplayTag DamageTypeTag = MAContext->GetDamageTypeTag();
 	const bool bCanCriticalHit = DamageTypeTag == UMAAbilitySystemStatics::GetDefaultDamageTypeTag();
 	const bool bIsFixedDamage = DamageTypeTag == UMAAbilitySystemStatics::GetFixedDamageTypeTag();
+	auto EmitZeroDamage = [&]()
+	{
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			UMAAttributeSet::GetHealthAttribute(),
+			EGameplayModOp::Additive,
+			0.f));
+	};
+
+	BaseDamage = FMath::Max(0.f, BaseDamage);
+	if (BaseDamage <= 0.f)
+	{
+		if (bCanCriticalHit) EmitZeroDamage();
+		return;
+	}
 	if (DamageTypeTag.MatchesTag(UMAAbilitySystemStatics::GetHealDamageTypeTag()))
 	{
 		const float FinalHeal = FMath::RoundToFloat(BaseDamage);
@@ -241,7 +257,11 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 
 	const float DamageAfterArmor = RandomizedDamage * (1.f - (EffectiveArmor / (EffectiveArmor + 100.f)));
 	const float FinalDamage = FMath::RoundToFloat(DamageAfterArmor * BehaviorBonus * FinalDamageMultiplier);
-	if (FinalDamage <= 0.f) return;
+	if (FinalDamage <= 0.f)
+	{
+		EmitZeroDamage();
+		return;
+	}
 
 	ApplyHealthDamage(FinalDamage);
 }

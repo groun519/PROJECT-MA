@@ -11,6 +11,7 @@
 #include "MAPlayerController.generated.h"
 
 class AMAShopNPC;
+class UMAFloatingTextComponent;
 
 UENUM(BlueprintType)
 enum class EChatType : uint8
@@ -51,7 +52,7 @@ public:
 	void NotifyInputBindingsChanged();
 	void SetGameplayWidgetVisible(bool bVisible);
 	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
-	void ShowFloatingText(const FText& Text, const FVector& WorldLocation, const FLinearColor& Color, const FLinearColor& OutlineColor = FLinearColor::Transparent, float Scale = 1.f);
+	UMAFloatingTextComponent* GetFloatingTextComponent() const { return FloatingTextComponent; }
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
@@ -74,10 +75,6 @@ public:
 	UFUNCTION(Client, Reliable, Category = "Chat")
 	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
-	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<class AMAFloatingTextActor> FloatingTextActorClass;
-	UFUNCTION(Client, Unreliable)
-	void ClientShowDamageNumber(float Amount, AActor* TargetActor, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit, FGameplayTag DamageTypeTag);
 	UFUNCTION(Client, Unreliable)
 	void ClientPlayCoinRewardFeedback(const FMACoinRewardFeedbackParams& Params);
 	
@@ -89,6 +86,9 @@ private:
 
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Feedback")
+	TObjectPtr<UMAFloatingTextComponent> FloatingTextComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;

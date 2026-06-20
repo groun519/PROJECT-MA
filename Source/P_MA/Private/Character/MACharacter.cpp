@@ -7,7 +7,6 @@
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Character/MAAttributeFeedbackComponent.h"
 #include "Character/MAElementalComponent.h"
 #include "Character/MAImpulseComponent.h"
 #include "Character/MAOverlayComponent.h"
@@ -47,7 +46,6 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	ElementalComponent = CreateDefaultSubobject<UMAElementalComponent>("Elemental Component");
 	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");
 	OverlayComponent = CreateDefaultSubobject<UMAOverlayComponent>("Overlay Component");
-	AttributeFeedbackComponent = CreateDefaultSubobject<UMAAttributeFeedbackComponent>("Attribute Feedback Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");

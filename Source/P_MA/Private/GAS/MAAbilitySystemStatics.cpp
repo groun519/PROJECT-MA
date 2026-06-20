@@ -208,9 +208,7 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 	FGameplayEffectContextHandle ContextHandle = SpecHandle.Data->GetContext();
 	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
 	{
-		MAContext->SetDamageTypeTag(DamageConfig.DamageTypeTag.IsValid()
-			? DamageConfig.DamageTypeTag
-			: GetDefaultDamageTypeTag());
+		MAContext->SetDamageTypeTag(DamageConfig.DamageTypeTag);
 	}
 }
 
