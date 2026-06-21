@@ -58,7 +58,7 @@ public:
 	static FGameplayTag GetSkillAttackSpeedMultiplierTag();
 	static FGameplayTag GetSkillFocusOffsetTag();
 	static FGameplayTag GetSkillAreaScaleTag();
-	static FGameplayTag GetDamageDealtEventTag();
+	static FGameplayTag GetHitEventTag();
 	static FGameplayTag GetMovementStartEventTag();
 	static FGameplayTag GetMovementHandleTag();
 	static FGameplayTag GetDefaultDamageTypeTag();

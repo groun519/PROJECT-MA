@@ -63,6 +63,7 @@ void UMASkillDefinition::ResetAssemblyData()
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	ElementalTag = FGameplayTag();
 	CooldownSeconds = 0.f;
+	ModuleCooldown = FMASkillModuleCooldownConfig();
 	SkillSteps.Reset();
 	EventSources.Reset();
 	EventBindings.Reset();

@@ -45,3 +45,8 @@ const FGameplayAbilityTargetDataHandle* FMASkillEvent::GetTargetData() const
 {
 	return Payloads.FindStruct<FGameplayAbilityTargetDataHandle>(EventTargetDataTag);
 }
+
+FMASkillPayloadAccessor FMASkillEvent::GetPayloadAccess(const FMASkillScopes& BindingScopes) const
+{
+	return BindingScopes.GetPayloadAccess(Payloads);
+}

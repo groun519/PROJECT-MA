@@ -130,7 +130,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
 		}
 
-		return StatusEffects.Num() > 0 || !TargetGameplayCueTags.IsEmpty();
+		return StatusEffects.Num() > 0;
 	}
 
 };
@@ -139,6 +139,9 @@ USTRUCT()
 struct P_MA_API FResolvedSkillDamage
 {
 	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	EMASkillDamageApplicationMode ApplicationMode = EMASkillDamageApplicationMode::Instant;
 
 	UPROPERTY(Transient)
 	int32 TargetRelationMask = MATargetRelation::ToMask(EMATargetRelation::None);

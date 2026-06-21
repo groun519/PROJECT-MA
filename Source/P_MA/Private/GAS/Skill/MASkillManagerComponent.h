@@ -7,6 +7,7 @@
 
 class UMASkillAbility;
 class UMASkillDefinition;
+class UMASkillEventDispatcher;
 class UMASkillEventRouter;
 class UMASkillModuleInstance;
 class UActorChannel;
@@ -71,8 +72,8 @@ public:
 	void ClearActivePreviewElementalTag();
 	bool TryActivateSkill(FGameplayTag SlotTag);
 	UMASkillAbility* GetSkillAbility(FGameplayTag SlotTag) const;
-	bool TryRouteEvent(FMASkillEvent Event, UMASkillAbility* ExecutorAbility);
-	void DispatchEvent(const FMASkillEvent& Event, UMASkillAbility* ExecutorAbility);
+	UMASkillEventRouter* GetEventRouter() const { return Router; }
+	UMASkillEventDispatcher* GetEventDispatcher() const { return Dispatcher; }
 
 private:
 	static constexpr int32 SkillModuleSlotCount = 8;
@@ -124,5 +125,8 @@ private:
 	FGameplayTag ActivePreviewElementalTag;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillEventRouter> EventRouter;
+	TObjectPtr<UMASkillEventRouter> Router;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillEventDispatcher> Dispatcher;
 };

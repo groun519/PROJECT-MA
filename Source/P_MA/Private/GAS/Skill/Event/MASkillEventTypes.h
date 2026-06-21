@@ -58,8 +58,5 @@ struct P_MA_API FMASkillEvent
 	float GetMagnitude() const;
 	void SetTargetData(const FGameplayAbilityTargetDataHandle& TargetData);
 	const FGameplayAbilityTargetDataHandle* GetTargetData() const;
-	FMASkillPayloadAccessor GetPayloadAccess(const FMASkillScopes& BindingScopes) const
-	{
-		return BindingScopes.GetPayloadAccess(Payloads);
-	}
+	FMASkillPayloadAccessor GetPayloadAccess(const FMASkillScopes& BindingScopes) const;
 };

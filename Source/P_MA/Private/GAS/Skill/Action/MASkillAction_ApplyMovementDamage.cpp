@@ -114,6 +114,7 @@ void AMASkillMovementDamageRuntime::SweepMovement(const FVector& Start, const FV
 		return;
 	}
 
+	TArray<FHitResult> ValidHits;
 	IGenericTeamAgentInterface* SourceTeam = Cast<IGenericTeamAgentInterface>(Character);
 	for (const FHitResult& SweepHit : SweepHits)
 	{
@@ -139,13 +140,18 @@ void AMASkillMovementDamageRuntime::SweepMovement(const FVector& Start, const FV
 			continue;
 		}
 
-		MASkillDamageApplicator::ApplyHitResult(
+		ValidHits.Add(SweepHit);
+		HitActors.Add(HitActorKey);
+	}
+
+	if (!ValidHits.IsEmpty())
+	{
+		MASkillDamageApplicator::ApplyHitResults(
 			*SkillAbility,
 			Scopes,
-			SweepHit,
+			ValidHits,
 			ResolvedDamage,
 			Character->GetActorLocation());
-		HitActors.Add(HitActorKey);
 	}
 }
 

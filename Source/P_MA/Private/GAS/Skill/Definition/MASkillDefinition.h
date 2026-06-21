@@ -63,6 +63,21 @@ struct FMASkillDefinitionDisplayData
 	FMASkillDefinitionNameData NameData;
 };
 
+USTRUCT(BlueprintType)
+struct FMASkillModuleCooldownConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown")
+	EMASkillEventBindingScope BindingScope = EMASkillEventBindingScope::Skill;
+
+	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown", meta=(Categories="Event"))
+	FGameplayTagContainer TriggerEventTags;
+
+	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown", meta=(ClampMin="0.0", UIMin="0.0"))
+	float DurationSeconds = 0.f;
+};
+
 UCLASS(BlueprintType)
 class P_MA_API UMASkillDefinition : public UDataAsset
 {
@@ -78,6 +93,7 @@ public:
 	FGameplayTagContainer GetTooltipTags() const;
 	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
+	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
@@ -121,6 +137,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
 	float CooldownSeconds = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown")
+	FMASkillModuleCooldownConfig ModuleCooldown;
 
 	/** Preferred step pipeline. Each step owns its own montage and runtime logic. **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Step")

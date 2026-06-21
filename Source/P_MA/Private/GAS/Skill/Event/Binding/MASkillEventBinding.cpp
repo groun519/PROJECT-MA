@@ -1,5 +1,14 @@
 #include "GAS/Skill/Event/Binding/MASkillEventBinding.h"
 
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
+
+bool FMASkillEventBinding::CanExecute() const
+{
+	const UMASkillModuleInstance* ModuleInstance = BindingScopes.Module.Get();
+	return !ModuleInstance
+		|| (ModuleInstance->IsActive() && !ModuleInstance->IsCooldownActive());
+}
+
 bool FMASkillEventBinding::TryResolveScopes(
 	const FMASkillScopes& SourceScopes,
 	FMASkillScopes& OutScopes) const

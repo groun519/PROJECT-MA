@@ -4,7 +4,6 @@
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_ApplyDamageToPayloadTarget::Execute(
@@ -12,7 +11,7 @@ void UMASkillAction_ApplyDamageToPayloadTarget::Execute(
 	const FMASkillEvent& Event,
 	const FMASkillScopes& Scopes)
 {
-		if (!OwnerAbility.K2_HasAuthority()) return;
+	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
 	if (!Payloads.IsValid()) return;

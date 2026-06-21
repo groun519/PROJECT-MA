@@ -8,7 +8,9 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
-void MASkillDamageResolver::ApplyDamageOverTimeConfig(FGameplayEffectSpecHandle& SpecHandle, const FMASkillDamageOverTimeConfig& DamageOverTime)
+void MASkillDamageResolver::ApplyDamageOverTimeConfig(
+	FGameplayEffectSpecHandle& SpecHandle,
+	const FMASkillDamageOverTimeConfig& DamageOverTime)
 {
 	if (!SpecHandle.IsValid()) return;
 
@@ -67,21 +69,24 @@ FMADamageExecutionConfig MASkillDamageResolver::ScaleDamageConfigForTick(const F
 	return Result;
 }
 
-void MASkillDamageResolver::AppendElementalHitGameplayCueTag(UMASkillAbility& OwnerAbility, FGameplayTagContainer& TargetGameplayCueTags)
+void MASkillDamageResolver::AppendElementalHitGameplayCueTag(
+	UMASkillAbility& OwnerAbility,
+	const FGameplayTag& DamageTypeTag,
+	FGameplayTagContainer& TargetGameplayCueTags)
 {
-	const FGameplayTag ElementalTag = OwnerAbility.GetElementalTag();
 	const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
-	if (!ElementalDataTable || !ElementalTag.IsValid())
+	if (!ElementalDataTable || !DamageTypeTag.IsValid())
 	{
 		return;
 	}
 
-	FString ElementalRowNameString = ElementalTag.GetTagName().ToString();
+	FString ElementalRowNameString = DamageTypeTag.GetTagName().ToString();
 	ElementalRowNameString.Split(TEXT("."), nullptr, &ElementalRowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
 	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(
 		FName(*ElementalRowNameString),
-		TEXT("SkillDamageElementalHitCueLookup"));
+		TEXT("SkillDamageElementalHitCueLookup"),
+		false);
 	if (ElementRow && ElementRow->HitGameplayCueTag.IsValid())
 	{
 		TargetGameplayCueTags.AddTag(ElementRow->HitGameplayCueTag);
@@ -110,9 +115,10 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	const FMASkillPayloadAccessor& Payloads)
 {
 	FResolvedSkillDamage ResolvedDamage;
+	ResolvedDamage.ApplicationMode = DamageConfig.ApplicationMode;
 	ResolvedDamage.TargetRelationMask = DamageConfig.TargetRelationMask;
 	ResolvedDamage.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
-	AppendElementalHitGameplayCueTag(OwnerAbility, ResolvedDamage.TargetGameplayCueTags);
+	AppendElementalHitGameplayCueTag(OwnerAbility, DamageConfig.DamageTypeTag, ResolvedDamage.TargetGameplayCueTags);
 
 	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, Payloads);
 	if (ExecutionConfig.HasValues())

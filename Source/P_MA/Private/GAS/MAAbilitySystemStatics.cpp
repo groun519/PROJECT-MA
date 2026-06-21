@@ -121,9 +121,9 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillAreaScaleTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.AreaScale");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetDamageDealtEventTag()
+FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
 {
-	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageDealt");
+	return FGameplayTag::RequestGameplayTag("Event.Skill.Hit");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()

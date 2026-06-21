@@ -36,9 +36,10 @@ void UMASkillModuleSocketWidget::Refresh()
 	RefreshHoverVisual();
 
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
+	BindModuleState(ModuleInstance);
 	CachedDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 	ApplyDefinitionVisual(CachedDefinition);
-	ApplyActivationVisual(ModuleInstance);
+	ApplyModuleStateVisual(ModuleInstance);
 	RefreshTooltip();
 }
 
@@ -95,16 +96,48 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 	ModuleIconImage->SetVisibility(ESlateVisibility::Visible);
 }
 
-void UMASkillModuleSocketWidget::ApplyActivationVisual(const UMASkillModuleInstance* ModuleInstance)
+void UMASkillModuleSocketWidget::ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance)
 {
 	if (!ModuleIconImage) return;
 
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
+		const bool bIsAvailable = !ModuleInstance
+			|| (ModuleInstance->IsActive() && !ModuleInstance->IsCooldownActive());
 		IconMaterial->SetScalarParameterValue(
 			PARAM_ModuleIcon_SaturationAlpha,
-			!ModuleInstance || ModuleInstance->IsActive() ? 1.f : 0.f);
+			bIsAvailable ? 1.f : 0.f);
 	}
+}
+
+void UMASkillModuleSocketWidget::BindModuleState(UMASkillModuleInstance* ModuleInstance)
+{
+	if (BoundModuleInstance == ModuleInstance) return;
+
+	UnbindModuleState();
+	BoundModuleInstance = ModuleInstance;
+	if (ModuleInstance)
+	{
+		ModuleStateChangedHandle = ModuleInstance->OnStateChanged.AddUObject(
+			this,
+			&UMASkillModuleSocketWidget::HandleModuleStateChanged);
+	}
+}
+
+void UMASkillModuleSocketWidget::UnbindModuleState()
+{
+	if (UMASkillModuleInstance* ModuleInstance = BoundModuleInstance.Get())
+	{
+		ModuleInstance->OnStateChanged.Remove(ModuleStateChangedHandle);
+	}
+
+	ModuleStateChangedHandle.Reset();
+	BoundModuleInstance.Reset();
+}
+
+void UMASkillModuleSocketWidget::HandleModuleStateChanged()
+{
+	ApplyModuleStateVisual(BoundModuleInstance.Get());
 }
 
 void UMASkillModuleSocketWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -218,6 +251,7 @@ bool UMASkillModuleSocketWidget::NativeOnDrop(
 
 void UMASkillModuleSocketWidget::NativeDestruct()
 {
+	UnbindModuleState();
 	bIsHovered = false;
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();

@@ -3,15 +3,14 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "GAS/MAAbilitySystemComponent.h"
-#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRouter.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
-#include "GAS/Skill/Step/MASkillStepManager.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 
@@ -26,14 +25,18 @@ void UMASkillManagerComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	EventRouter = NewObject<UMASkillEventRouter>(this, TEXT("EventRouter"));
-	check(EventRouter);
+	Dispatcher = NewObject<UMASkillEventDispatcher>(this, TEXT("EventDispatcher"));
+	check(Dispatcher);
+	Router = NewObject<UMASkillEventRouter>(this, TEXT("EventRouter"));
+	check(Router);
 }
 
 void UMASkillManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	check(EventRouter);
-	EventRouter->Clear();
+	check(Router);
+	Router->Clear();
+	check(Dispatcher);
+	Dispatcher->Clear();
 	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
 	{
 		if (UMASkillRuntimeRegistry* RuntimeRegistry = SlotState.AssembledModuleInstance
@@ -301,7 +304,10 @@ bool UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 	EnsureAbilityForSlot(SlotState);
 	RefreshAbilityDefinition(SlotState);
 	UpdateReplicatedSkillSlotRuntimeState(SlotState);
-	EventRouter->Refresh(SkillSlotRuntimeStates);
+	check(Dispatcher);
+	Dispatcher->Refresh(SkillSlotRuntimeStates);
+	check(Router);
+	Router->Refresh(SkillSlotRuntimeStates);
 	if (UMASkillRuntimeRegistry* PreviousRuntimeRegistry = PreviousAssembledModuleInstance
 		? PreviousAssembledModuleInstance->GetRuntimeRegistry()
 		: nullptr)
@@ -327,7 +333,8 @@ void UMASkillManagerComponent::RegisterAbilityHandle(FGameplayTag SlotTag, FGame
 	}
 
 	RefreshAbilityDefinition(SlotState);
-	EventRouter->Refresh(SkillSlotRuntimeStates);
+	check(Dispatcher);
+	Dispatcher->Refresh(SkillSlotRuntimeStates);
 }
 
 void UMASkillManagerComponent::UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle)
@@ -336,7 +343,8 @@ void UMASkillManagerComponent::UnregisterAbilityHandle(FGameplayTag SlotTag, FGa
 	if (!SlotState) return;
 	if (SlotState->AbilityHandle != AbilityHandle) return;
 	SlotState->AbilityHandle = FGameplayAbilitySpecHandle();
-	EventRouter->Refresh(SkillSlotRuntimeStates);
+	check(Dispatcher);
+	Dispatcher->Refresh(SkillSlotRuntimeStates);
 }
 
 bool UMASkillManagerComponent::TryActivateSkill(FGameplayTag SlotTag)
@@ -365,63 +373,6 @@ UMASkillAbility* UMASkillManagerComponent::GetSkillAbility(FGameplayTag SlotTag)
 {
 	const FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);
 	return SlotState ? ResolveSkillAbility(*SlotState) : nullptr;
-}
-
-bool UMASkillManagerComponent::TryRouteEvent(FMASkillEvent Event, UMASkillAbility* ExecutorAbility)
-{
-	check(EventRouter);
-	return EventRouter->TryRoute(MoveTemp(Event), ExecutorAbility);
-}
-
-void UMASkillManagerComponent::DispatchEvent(const FMASkillEvent& Event, UMASkillAbility* ExecutorAbility)
-{
-	if (ExecutorAbility
-		&& ExecutorAbility->IsActive()
-		&& Event.SourceScopes.Skill == ExecutorAbility->GetCurrentSkillModuleInstance())
-	{
-		if (UMASkillStepManager* StepManager = ExecutorAbility->GetStepManager())
-		{
-			StepManager->HandleRuntimeEvent(Event);
-		}
-	}
-
-	struct FPendingEventAction
-	{
-		TObjectPtr<UMASkillAction> Action;
-		TWeakObjectPtr<UMASkillAbility> Ability;
-		FMASkillScopes Scopes;
-	};
-
-	TArray<FPendingEventAction> PendingActions;
-	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
-	{
-		const UMASkillDefinition* Definition = SlotState.AssembledModuleInstance
-			? SlotState.AssembledModuleInstance->GetDefinition()
-			: nullptr;
-		UMASkillAbility* BindingAbility = ResolveSkillAbility(SlotState);
-		if (!Definition || !BindingAbility) continue;
-
-		for (const FMASkillEventBinding& Binding : Definition->GetEventBindings())
-		{
-			if (Binding.EventTag != Event.Tag || !Binding.Action) continue;
-
-			FMASkillScopes ActionScopes;
-			if (!Binding.TryResolveScopes(Event.SourceScopes, ActionScopes)) continue;
-
-			FPendingEventAction& PendingAction = PendingActions.AddDefaulted_GetRef();
-			PendingAction.Action = Binding.Action;
-			PendingAction.Ability = BindingAbility;
-			PendingAction.Scopes = ActionScopes;
-		}
-	}
-
-	for (const FPendingEventAction& PendingAction : PendingActions)
-	{
-		if (UMASkillAbility* BindingAbility = PendingAction.Ability.Get())
-		{
-			PendingAction.Action->Execute(*BindingAbility, Event, PendingAction.Scopes);
-		}
-	}
 }
 
 void UMASkillManagerComponent::SetActivePreviewElementalTagFromSlot(const FMASkillSlotRuntimeState& SlotState)

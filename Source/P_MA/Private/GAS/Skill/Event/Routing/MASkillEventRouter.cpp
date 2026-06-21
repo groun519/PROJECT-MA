@@ -5,14 +5,6 @@
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-bool UMASkillEventRouter::TryRoute(FMASkillEvent Event, UMASkillAbility* ExecutorAbility)
-{
-	if (!Routes.Contains(Event.Tag)) return false;
-
-	GetSkillManager()->DispatchEvent(Event, ExecutorAbility);
-	return true;
-}
-
 void UMASkillEventRouter::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillSlotRuntimeStates)
 {
 	UMASkillManagerComponent* SkillManager = GetSkillManager();
@@ -43,11 +35,27 @@ void UMASkillEventRouter::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillS
 				*EventTag.ToString());
 		}
 
-		for (const FMASkillEventBinding& EventBinding : Definition->GetEventBindings())
+		for (const FMASkillEventBinding& Binding : Definition->GetEventBindings())
 		{
-			if (!EventBinding.EventTag.IsValid() || !EventBinding.Action) continue;
+			if (!Binding.EventTag.IsValid() || !Binding.Action) continue;
 
-			RequiredRoutes.FindOrAdd(EventBinding.EventTag);
+			RequiredRoutes.FindOrAdd(Binding.EventTag);
+		}
+
+		for (const UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
+		{
+			const UMASkillDefinition* ModuleDefinition = ModuleInstance && ModuleInstance->IsActive()
+				? ModuleInstance->GetDefinition()
+				: nullptr;
+			if (!ModuleDefinition) continue;
+
+			const FMASkillModuleCooldownConfig& CooldownConfig = ModuleDefinition->GetModuleCooldownConfig();
+			if (CooldownConfig.DurationSeconds <= 0.f) continue;
+
+			for (const FGameplayTag& EventTag : CooldownConfig.TriggerEventTags)
+			{
+				if (EventTag.IsValid()) RequiredRoutes.FindOrAdd(EventTag);
+			}
 		}
 	}
 

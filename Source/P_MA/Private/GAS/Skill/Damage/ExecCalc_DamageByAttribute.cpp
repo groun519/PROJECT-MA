@@ -207,6 +207,13 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 				EGameplayModOp::Additive,
 				-HealthDamage));
 		}
+		else
+		{
+			OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+				UMAAttributeSet::GetHealthAttribute(),
+				EGameplayModOp::Additive,
+				0.f));
+		}
 	};
 
 	if (bIsFixedDamage)

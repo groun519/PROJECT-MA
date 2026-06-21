@@ -22,7 +22,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	{
 		if (ModuleInstance)
 		{
-			ModuleInstance->SetActivationState(EMASkillModuleActivationState::Active);
+			ModuleInstance->SetActive(true);
 		}
 	}
 
@@ -56,7 +56,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 
 		if (BlockingAssemblyTag.IsValid())
 		{
-			ModuleInstance->SetActivationState(EMASkillModuleActivationState::Inactive, BlockingAssemblyTag);
+			ModuleInstance->SetActive(false, BlockingAssemblyTag);
 			continue;
 		}
 

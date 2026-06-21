@@ -5,7 +5,6 @@
 #include "UObject/Object.h"
 #include "MASkillEventRouter.generated.h"
 
-class UMASkillAbility;
 class UMASkillEventSource;
 class UMASkillManagerComponent;
 struct FMASkillSlotRuntimeState;
@@ -16,7 +15,7 @@ class P_MA_API UMASkillEventRouter : public UObject
 	GENERATED_BODY()
 
 public:
-	bool TryRoute(FMASkillEvent Event, UMASkillAbility* ExecutorAbility);
+	bool CanRoute(const FGameplayTag& EventTag) const { return Routes.Contains(EventTag); }
 	void Refresh(const TArray<FMASkillSlotRuntimeState>& SkillSlotRuntimeStates);
 	void Clear();
 

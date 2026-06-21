@@ -27,5 +27,8 @@ private:
 	static FMADamageExecutionConfig ResolveExecutionConfig(const FMASkillDamageConfig& DamageConfig, const FMASkillPayloadStore& PayloadStore);
 	static FMADamageExecutionConfig ResolveExecutionConfig(const FMASkillDamageConfig& DamageConfig, const FMASkillPayloadAccessor& Payloads);
 	static FMADamageExecutionConfig ScaleDamageConfigForTick(const FMADamageExecutionConfig& DamageConfig, int32 TickCount);
-	static void AppendElementalHitGameplayCueTag(UMASkillAbility& OwnerAbility, FGameplayTagContainer& TargetGameplayCueTags);
+	static void AppendElementalHitGameplayCueTag(
+		UMASkillAbility& OwnerAbility,
+		const FGameplayTag& DamageTypeTag,
+		FGameplayTagContainer& TargetGameplayCueTags);
 };

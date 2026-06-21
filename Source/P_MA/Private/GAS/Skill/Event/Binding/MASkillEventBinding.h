@@ -28,6 +28,7 @@ struct P_MA_API FMASkillEventBinding
 	UPROPERTY(Transient)
 	FMASkillScopes BindingScopes;
 
+	bool CanExecute() const;
 	bool TryResolveScopes(const FMASkillScopes& SourceScopes, FMASkillScopes& OutScopes) const;
 };
 

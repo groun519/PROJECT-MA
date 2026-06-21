@@ -3,18 +3,16 @@
 #include "CoreMinimal.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameplayTagContainer.h"
+#include "TimerManager.h"
 #include "UObject/Object.h"
 #include "MASkillModuleInstance.generated.h"
 
 class UMASkillDefinition;
+class UMASkillEventDispatcher;
 class UMASkillRuntimeRegistry;
+struct FMASkillEvent;
 
-UENUM(BlueprintType)
-enum class EMASkillModuleActivationState : uint8
-{
-	Active,
-	Inactive
-};
+DECLARE_MULTICAST_DELEGATE(FMASkillModuleStateChangedSignature);
 
 UCLASS()
 class P_MA_API UMASkillModuleInstance : public UObject
@@ -30,17 +28,24 @@ public:
 	UMASkillDefinition* GetDefinition() const { return Definition; }
 	void SetDefinition(UMASkillDefinition* InDefinition);
 	bool IsValid() const { return Definition != nullptr; }
-	bool IsActive() const { return ActivationState == EMASkillModuleActivationState::Active; }
-	void SetActivationState(EMASkillModuleActivationState InActivationState, const FGameplayTag& InInactiveReasonTag = FGameplayTag())
-	{
-		ActivationState = InActivationState;
-		InactiveReasonTag = IsActive() ? FGameplayTag() : InInactiveReasonTag;
-	}
+	bool IsActive() const { return bIsActive; }
+	void SetActive(
+		bool bInActive,
+		const FGameplayTag& InInactiveReasonTag = FGameplayTag());
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
+
+	/** Module Cooldown **/
+	bool IsCooldownActive() const;
+	void RegisterCooldownEvents(
+		UMASkillEventDispatcher& EventDispatcher,
+		UMASkillModuleInstance* SkillScope);
+
 	// Add a const getter when a const module instance needs read-only payload access.
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
 	void ResetPayloadStore() { PayloadStore.Reset(); }
 	UMASkillRuntimeRegistry* GetRuntimeRegistry() const { return RuntimeRegistry; }
+
+	FMASkillModuleStateChangedSignature OnStateChanged;
 
 private:
 	UFUNCTION()
@@ -51,7 +56,7 @@ private:
 	TObjectPtr<UMASkillDefinition> Definition;
 
 	UPROPERTY(Transient)
-	EMASkillModuleActivationState ActivationState = EMASkillModuleActivationState::Active;
+	bool bIsActive = true;
 
 	UPROPERTY(Transient)
 	FGameplayTag InactiveReasonTag;
@@ -61,6 +66,19 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillRuntimeRegistry> RuntimeRegistry;
+
+	/** Module Cooldown **/
+	UFUNCTION()
+	void RefreshModuleCooldownState();
+	void HandleCooldownEvent(
+		const FMASkillEvent& Event,
+		TWeakObjectPtr<UMASkillModuleInstance> SkillScope);
+	float GetCurrentServerTimeSeconds() const;
+
+	UPROPERTY(ReplicatedUsing=RefreshModuleCooldownState)
+	float ModuleCooldownEndTimeSeconds = 0.f;
+
+	FTimerHandle ModuleCooldownTimerHandle;
 
 	friend struct FMASkillAssembler;
 };

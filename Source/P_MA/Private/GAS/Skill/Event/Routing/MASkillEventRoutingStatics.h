@@ -24,14 +24,22 @@ public:
 		UMASkillAbility* ExecutorAbility,
 		FGameplayTag EventTag,
 		const FMASkillScopes& SourceScopes);
+	static bool TryNotifySkillEventGroup(
+		UMASkillAbility* ExecutorAbility,
+		TArray<FMASkillEvent> Events,
+		UMASkillModuleInstance* ModuleScope = nullptr);
 
 	static bool TryNotifyGlobalEvent(
 		UMASkillManagerComponent* SkillManager,
 		FMASkillEvent Event);
 
 private:
-	static bool TryRoute(
+	static bool TryRouteEvent(
 		UMASkillManagerComponent* SkillManager,
-		FMASkillEvent Event,
+		const FMASkillEvent& Event,
+		UMASkillAbility* ExecutorAbility);
+	static bool TryRouteEventGroup(
+		UMASkillManagerComponent* SkillManager,
+		TArray<FMASkillEvent> Events,
 		UMASkillAbility* ExecutorAbility);
 };

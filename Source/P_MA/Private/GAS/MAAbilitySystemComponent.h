@@ -4,20 +4,9 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
 struct FGameplayEffectModCallbackData;
-
-struct FMADamageAppliedEvent
-{
-	TWeakObjectPtr<AActor> SourceActor;
-	TWeakObjectPtr<AActor> TargetActor;
-	FHitResult HitResult;
-	float DisplayMagnitude = 0.f;
-	FGameplayTag DamageTypeTag;
-	EMADamageCriticalResult CriticalResult = EMADamageCriticalResult::None;
-};
 
 UCLASS()
 class UMAAbilitySystemComponent : public UAbilitySystemComponent
@@ -39,7 +28,7 @@ private:
 	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
-	void ShowDamageText(const FMADamageAppliedEvent& DamageAppliedEvent, bool bIsIncoming) const;
+	void ShowDamageText(const FGameplayEffectModCallbackData& Data, bool bIsIncoming) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
 	TArray<TSubclassOf<UGameplayAbility>> Abilities;

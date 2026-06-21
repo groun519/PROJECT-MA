@@ -54,7 +54,10 @@ private:
 	const UDataTable* ResolveWarningTextDataTable() const;
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
-	void ApplyActivationVisual(const UMASkillModuleInstance* ModuleInstance);
+	void ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance);
+	void BindModuleState(UMASkillModuleInstance* ModuleInstance);
+	void UnbindModuleState();
+	void HandleModuleStateChanged();
 	void RefreshHoverVisual();
 	void RefreshTooltip();
 	void SetDraggedSourceVisual(bool bDragged);
@@ -71,6 +74,8 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillDefinition> CachedDefinition = nullptr;
 
+	TWeakObjectPtr<UMASkillModuleInstance> BoundModuleInstance;
+	FDelegateHandle ModuleStateChangedHandle;
 	bool bIsHovered = false;
 	bool bIsDropTargetHighlighted = false;
 };
