@@ -1,7 +1,7 @@
-#include "AI/BTTask_SelectMonsterSkill.h"
+#include "AI/BTT/BTTask_SelectMonsterSkill.h"
 
 #include "AIController.h"
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Components/StateTreeComponentSchema.h"
 #include "StateTree.h"

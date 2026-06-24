@@ -1,10 +1,10 @@
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
-#include "AI/MAMonsterCharacterMovementComponent.h"
+#include "AI/Monster/MAMonsterCharacterMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"

@@ -1,6 +1,6 @@
 #include "AI/Barrack.h"
 
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "GameFramework/PlayerStart.h"
 
 ABarrack::ABarrack()

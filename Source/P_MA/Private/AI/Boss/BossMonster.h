@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "BossMonster.generated.h"
 
 /**

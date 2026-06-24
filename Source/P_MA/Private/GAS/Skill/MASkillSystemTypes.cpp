@@ -4,6 +4,9 @@
 
 int32 FMASkillSystemStatics::ResolveSlotInputID(const FGameplayTag& SlotTag)
 {
+	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
+	if (SlotTag.MatchesTagExact(NoCooldownSlotTag)) return 1;
+
 	const FString SlotTagString = SlotTag.ToString();
 	const FString SlotPrefix = TEXT("Skill.Slot.");
 	if (!SlotTagString.StartsWith(SlotPrefix)) return INDEX_NONE;
@@ -22,6 +25,9 @@ bool FMASkillSystemStatics::IsSkillSlotTag(const FGameplayTag& Tag)
 
 FGameplayTag FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(const FGameplayTag& SlotTag)
 {
+	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
+	if (SlotTag.MatchesTagExact(NoCooldownSlotTag)) return FGameplayTag();
+
 	const int32 SlotInputID = ResolveSlotInputID(SlotTag);
 	return SlotInputID == INDEX_NONE
 		? FGameplayTag()

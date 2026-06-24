@@ -1,6 +1,6 @@
 #include "WaveManager.h"
 
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "Framework/MAGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "AI/Data/MonstersByEnvironmentData.h"

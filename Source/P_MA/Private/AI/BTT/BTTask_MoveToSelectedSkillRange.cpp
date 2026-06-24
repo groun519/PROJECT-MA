@@ -1,7 +1,7 @@
-#include "AI/BTTask_MoveToSelectedSkillRange.h"
+#include "AI/BTT/BTTask_MoveToSelectedSkillRange.h"
 
 #include "AIController.h"
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 
 UBTTask_MoveToSelectedSkillRange::UBTTask_MoveToSelectedSkillRange()

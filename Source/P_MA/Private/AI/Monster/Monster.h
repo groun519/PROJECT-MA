@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AI/MAMonsterTypes.h"
+#include "AI/Monster/MAMonsterTypes.h"
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
@@ -77,7 +77,7 @@ private:
 	TArray<FMonsterSkillSlotData> SkillSlots;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Pattern", meta=(Categories="Skill.Slot"))
-	FGameplayTag PatternSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.1"));
+	FGameplayTag PatternSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
 
 	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
 	TObjectPtr<UStateTree> PatternStateTree;

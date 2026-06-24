@@ -1,8 +1,8 @@
-#include "AI/BTTask_SendInputToAbilitySystem.h"
+#include "AI/BTT/BTTask_SendInputToAbilitySystem.h"
 
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
-#include "AI/Golem/Monster.h"
+#include "AI/Monster/Monster.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
