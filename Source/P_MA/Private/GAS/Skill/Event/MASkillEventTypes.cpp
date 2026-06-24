@@ -4,8 +4,15 @@
 
 namespace
 {
-	const FGameplayTag EventMagnitudeTag = FGameplayTag::RequestGameplayTag(TEXT("Data.Event.Magnitude"));
-	const FGameplayTag EventTargetDataTag = FGameplayTag::RequestGameplayTag(TEXT("Data.Event.TargetData"));
+FGameplayTag GetEventMagnitudeTag()
+{
+	return FGameplayTag::RequestGameplayTag(TEXT("Data.Event.Magnitude"));
+}
+
+FGameplayTag GetEventTargetDataTag()
+{
+	return FGameplayTag::RequestGameplayTag(TEXT("Data.Event.TargetData"));
+}
 }
 
 FMASkillPayloadAccessor FMASkillScopes::GetPayloadAccess(const FMASkillPayloadStore* EventPayloads) const
@@ -26,24 +33,24 @@ UMASkillRuntimeRegistry& FMASkillScopes::GetRuntimeRegistry() const
 
 void FMASkillEvent::SetMagnitude(float Magnitude)
 {
-	Payloads.SetScalar(EventMagnitudeTag, Magnitude);
+	Payloads.SetScalar(GetEventMagnitudeTag(), Magnitude);
 }
 
 float FMASkillEvent::GetMagnitude() const
 {
 	float Magnitude = 0.f;
-	Payloads.TryGetScalar(EventMagnitudeTag, Magnitude);
+	Payloads.TryGetScalar(GetEventMagnitudeTag(), Magnitude);
 	return Magnitude;
 }
 
 void FMASkillEvent::SetTargetData(const FGameplayAbilityTargetDataHandle& TargetData)
 {
-	Payloads.SetStruct(EventTargetDataTag, TargetData);
+	Payloads.SetStruct(GetEventTargetDataTag(), TargetData);
 }
 
 const FGameplayAbilityTargetDataHandle* FMASkillEvent::GetTargetData() const
 {
-	return Payloads.FindStruct<FGameplayAbilityTargetDataHandle>(EventTargetDataTag);
+	return Payloads.FindStruct<FGameplayAbilityTargetDataHandle>(GetEventTargetDataTag());
 }
 
 FMASkillPayloadAccessor FMASkillEvent::GetPayloadAccess(const FMASkillScopes& BindingScopes) const
