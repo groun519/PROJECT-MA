@@ -8,14 +8,18 @@ UBTTask_MoveToSelectedSkillRange::UBTTask_MoveToSelectedSkillRange()
 {
 	NodeName = TEXT("Move To Selected Skill Range");
 	bCreateNodeInstance = true;
+	AcceptableRadius = 300.f;
 }
 
 EBTNodeResult::Type UBTTask_MoveToSelectedSkillRange::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	const AAIController* AIController = OwnerComp.GetAIOwner();
 	const AMonster* Monster = AIController ? Cast<AMonster>(AIController->GetPawn()) : nullptr;
-	if (!Monster || !Monster->HasSelectedSkill()) return EBTNodeResult::Failed;
+	if (!Monster) return EBTNodeResult::Failed;
 
-	AcceptableRadius = Monster->GetSelectedSkillUseDistance();
+	AcceptableRadius = Monster->HasSelectedSkill()
+		? Monster->GetSelectedSkillUseDistance()
+		: 300.f;
+
 	return Super::ExecuteTask(OwnerComp, NodeMemory);
 }

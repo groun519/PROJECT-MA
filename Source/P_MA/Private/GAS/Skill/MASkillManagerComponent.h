@@ -37,6 +37,9 @@ public:
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
 		UMASkillDefinition* NewDefinition);
+	bool ReplaceDefinitionsAt(
+		FGameplayTag SlotTag,
+		const TArray<TObjectPtr<UMASkillDefinition>>& NewDefinitions);
 	bool ReplaceModuleInstanceAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,

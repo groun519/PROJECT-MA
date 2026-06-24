@@ -5,6 +5,8 @@
 #include "Character/MACharacter.h"
 #include "Monster.generated.h"
 
+class UStateTree;
+
 USTRUCT(BlueprintType)
 struct FMonsterEnvData
 {
@@ -23,7 +25,7 @@ class AMonster : public AMACharacter
 	GENERATED_BODY()
 
 public:
-	AMonster();
+	AMonster(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,16 +44,22 @@ public:
 	
 	void SetEnvTag(const FGameplayTag& InEnvTag);
 	void SetStatCoefficient(float InCoefficient) { StatCoefficient = InCoefficient; }
-	void SetSkillSlots(const TArray<FMonsterSkillSlotData>& InSkillSlots) { SkillSlots = InSkillSlots; }
 	bool SelectWeightedSkill();
+	bool SetPatternPlanFromStateNames(const TArray<FName>& StateNames);
+	bool HasPendingPatternPlan() const { return !PatternPlan.IsEmpty(); }
+	bool SelectNextPatternPlanFragment();
+	void ResetSkillSelection();
 	bool HasSelectedSkill() const { return SelectedSkillSlotTag.IsValid(); }
 	FGameplayTag GetSelectedSkillSlotTag() const { return SelectedSkillSlotTag; }
 	float GetSelectedSkillUseDistance() const { return SelectedSkillUseDistance; }
+	const UStateTree* GetPatternStateTree() const { return PatternStateTree; }
 	
 private:
 	void ApplyStatCoefficientEffect();
 	void ApplyEnvMaterials();
 	void InitializeSkills();
+	bool ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& PatternRow);
+	static const FMonsterSkillPatternRow* ResolvePatternRow(const UDataTable* PatternDataTable, FName RowName, const TCHAR* Context);
 
 	UPROPERTY(ReplicatedUsing=OnRep_EnvGameplayTag, EditAnywhere, Category = "Env")
 	FGameplayTag EnvGameplayTag;
@@ -68,11 +76,23 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Skill")
 	TArray<FMonsterSkillSlotData> SkillSlots;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern", meta=(Categories="Skill.Slot"))
+	FGameplayTag PatternSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.1"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	TObjectPtr<UStateTree> PatternStateTree;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
+	TObjectPtr<UDataTable> PatternDataTable;
+
 	UPROPERTY()
 	FGameplayTag SelectedSkillSlotTag;
 
 	UPROPERTY()
 	float SelectedSkillUseDistance = 0.f;
+
+	UPROPERTY(Transient)
+	TArray<FName> PatternPlan;
 	
 	UPROPERTY()
 	bool bActiveInPool = true;

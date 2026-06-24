@@ -120,6 +120,35 @@ bool UMASkillManagerComponent::ReplaceDefinitionAt(
 	return true;
 }
 
+bool UMASkillManagerComponent::ReplaceDefinitionsAt(
+	FGameplayTag SlotTag,
+	const TArray<TObjectPtr<UMASkillDefinition>>& NewDefinitions)
+{
+	if (!CanMutateSkillSlots()) return false;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
+
+	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
+	NormalizeModuleInstanceSlots(SlotState.SourceModuleInstances);
+
+	TArray<TObjectPtr<UMASkillModuleInstance>> PreviousModuleInstances = SlotState.SourceModuleInstances;
+	for (int32 Index = 0; Index < SkillModuleSlotCount; ++Index)
+	{
+		UMASkillDefinition* Definition = NewDefinitions.IsValidIndex(Index)
+			? NewDefinitions[Index].Get()
+			: nullptr;
+		SlotState.SourceModuleInstances[Index] = UMASkillModuleInstance::Create(GetOwner(), Definition);
+	}
+
+	if (!RebuildSkill(SlotTag))
+	{
+		SlotState.SourceModuleInstances = PreviousModuleInstances;
+		RebuildSkill(SlotTag);
+		return false;
+	}
+
+	return true;
+}
+
 bool UMASkillManagerComponent::ReplaceModuleInstanceAt(
 	FGameplayTag SlotTag,
 	int32 ModuleIndex,

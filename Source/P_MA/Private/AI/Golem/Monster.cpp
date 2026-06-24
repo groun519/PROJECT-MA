@@ -4,14 +4,19 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BrainComponent.h"
+#include "AI/MAMonsterCharacterMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 
-AMonster::AMonster()
+AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAMonsterCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
+	SetGenericTeamId(FGenericTeamId(1));
+
 	bUseControllerRotationYaw = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -82,6 +87,8 @@ void AMonster::Activate()
 
 void AMonster::Deactivate()
 {
+	ResetSkillSelection();
+
 	if (HasAuthority())
 	{
 		if (UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent()))
@@ -153,16 +160,12 @@ void AMonster::ApplyEnvMaterials()
 void AMonster::InitializeSkills()
 {
 	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+	if (!SkillManager) return;
 
 	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
 	{
 		if (!SkillSlot.SlotTag.IsValid()) continue;
-
-		for (int32 Index = 0; Index < SkillSlot.Definitions.Num(); ++Index)
-		{
-			if (!SkillSlot.Definitions[Index]) continue;
-			SkillManager->ReplaceDefinitionAt(SkillSlot.SlotTag, Index, SkillSlot.Definitions[Index]);
-		}
+		SkillManager->ReplaceDefinitionsAt(SkillSlot.SlotTag, SkillSlot.Definitions);
 	}
 }
 
@@ -172,6 +175,7 @@ bool AMonster::SelectWeightedSkill()
 	SelectedSkillUseDistance = 0.f;
 
 	const UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+	if (!SkillManager) return false;
 
 	float TotalWeight = 0.f;
 	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
@@ -196,6 +200,73 @@ bool AMonster::SelectWeightedSkill()
 	return false;
 }
 
+bool AMonster::SetPatternPlanFromStateNames(const TArray<FName>& StateNames)
+{
+	PatternPlan.Reset();
+	if (!PatternDataTable) return false;
+
+	for (const FName StateName : StateNames)
+	{
+		if (!ResolvePatternRow(PatternDataTable, StateName, TEXT("SetPatternPlanFromStateNames"))) continue;
+
+		PatternPlan.Add(StateName);
+	}
+	return !PatternPlan.IsEmpty();
+}
+
+bool AMonster::SelectNextPatternPlanFragment()
+{
+	SelectedSkillSlotTag = FGameplayTag();
+	SelectedSkillUseDistance = 0.f;
+	if (!PatternSlotTag.IsValid() || PatternPlan.IsEmpty()) return false;
+
+	const FName PatternRowName = PatternPlan[0];
+	PatternPlan.RemoveAt(0);
+
+	const FMonsterSkillPatternRow* PatternRow = ResolvePatternRow(
+		PatternDataTable,
+		PatternRowName,
+		TEXT("SelectNextPatternPlanFragment"));
+	if (!PatternRow || !ApplyPatternRowToActiveSlot(*PatternRow))
+	{
+		ResetSkillSelection();
+		return false;
+	}
+
+	SelectedSkillSlotTag = PatternSlotTag;
+	SelectedSkillUseDistance = PatternRow->UseDistance;
+	return true;
+}
+
+void AMonster::ResetSkillSelection()
+{
+	SelectedSkillSlotTag = FGameplayTag();
+	SelectedSkillUseDistance = 0.f;
+	PatternPlan.Reset();
+}
+
+bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& PatternRow)
+{
+	if (!PatternRow.Definitions.ContainsByPredicate([](const TObjectPtr<UMASkillDefinition>& Definition)
+	{
+		return Definition != nullptr;
+	}))
+	{
+		return false;
+	}
+
+	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+	return SkillManager
+		&& SkillManager->ReplaceDefinitionsAt(PatternSlotTag, PatternRow.Definitions)
+		&& SkillManager->GetAssembledDefinition(PatternSlotTag);
+}
+
+const FMonsterSkillPatternRow* AMonster::ResolvePatternRow(const UDataTable* PatternDataTable, FName RowName, const TCHAR* Context)
+{
+	if (!PatternDataTable || RowName.IsNone()) return nullptr;
+	return PatternDataTable->FindRow<FMonsterSkillPatternRow>(RowName, Context, false);
+}
+
 void AMonster::SetGoal(AActor* Goal)
 {
 	if (AAIController* AIController = GetController<AAIController>())
@@ -215,6 +286,7 @@ void AMonster::OnRep_EnvGameplayTag()
 void AMonster::OnDead()
 {
 	Super::OnDead();
+	ResetSkillSelection();
 	OnMonsterDead.Broadcast();
 	
 	if (HasAuthority())

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
 #include "MAMonsterTypes.generated.h"
 
 class UMASkillDefinition;
-
 USTRUCT(BlueprintType)
 struct FMonsterSkillSlotData
 {
@@ -25,13 +25,13 @@ struct FMonsterSkillSlotData
 };
 
 USTRUCT(BlueprintType)
-struct FMonsterData
+struct FMonsterSkillPatternRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10000"))
-	int32 Gold = 0;
+	UPROPERTY(EditAnywhere, meta=(ClampMin = "0.0"))
+	float UseDistance = 300.f;
 
 	UPROPERTY(EditAnywhere)
-	TArray<FMonsterSkillSlotData> SkillSlots;
+	TArray<TObjectPtr<UMASkillDefinition>> Definitions;
 };

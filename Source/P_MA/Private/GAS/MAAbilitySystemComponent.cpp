@@ -13,16 +13,6 @@
 #include "Player/Feedback/MAFloatingTextComponent.h"
 #include "Setting/MAGameSettings.h"
 
-static AMAPlayerController* ResolvePlayerControllerFromActor(AActor* Actor)
-{
-	if (APawn* Pawn = Cast<APawn>(Actor))
-	{
-		return Cast<AMAPlayerController>(Pawn->GetController());
-	}
-
-	return Cast<AMAPlayerController>(Actor);
-}
-
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
@@ -107,17 +97,21 @@ void UMAAbilitySystemComponent::ShowDamageText(const FGameplayEffectModCallbackD
 	AActor* ViewerActor = bIsIncoming ? TargetActor : ContextHandle.GetOriginalInstigator();
 	if (!ViewerActor || (!bIsIncoming && ViewerActor == TargetActor)) return;
 
-	if (AMAPlayerController* PlayerController = ResolvePlayerControllerFromActor(ViewerActor))
+	AMAPlayerController* PlayerController = Cast<AMAPlayerController>(ViewerActor);
+	if (APawn* ViewerPawn = Cast<APawn>(ViewerActor))
 	{
-		if (UMAFloatingTextComponent* FloatingText = PlayerController->GetFloatingTextComponent())
-		{
-			FloatingText->ClientShowDamage(
-				MAContext->GetDisplayMagnitude(),
-				TargetActor,
-				MAContext->GetCriticalResult(),
-				bIsIncoming,
-				MAContext->GetDamageTypeTag());
-		}
+		PlayerController = Cast<AMAPlayerController>(ViewerPawn->GetController());
+	}
+	if (!PlayerController) return;
+
+	if (UMAFloatingTextComponent* FloatingText = PlayerController->GetFloatingTextComponent())
+	{
+		FloatingText->ClientShowDamage(
+			MAContext->GetDisplayMagnitude(),
+			TargetActor,
+			MAContext->GetCriticalResult(),
+			bIsIncoming,
+			MAContext->GetDamageTypeTag());
 	}
 }
 
@@ -130,36 +124,11 @@ void UMAAbilitySystemComponent::AuthApplyGameplayEffect(TSubclassOf<UGameplayEff
 	}
 }
 
-/** 
- * @brief 체력 변경 콜백.
- * @details 체력이 0 이하이면 서버 권한(Authority)을 확인하고 DeathEffect를 적용합니다.
- * 
- * @param ChangeData 변경된 Attribute 정보(이전/새 값).
- *
- * @note 서버에서만 상태 변화 적용.
- */
 void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& ChangeData)
 {
-	/** [Exception Handling] **//**
-	 * 1. GetOwner()
-	 *		=>	find MACharacter(AActor*)
-	 *			AActorComponent's Owner automatically link (Component's attaching Actor)
-	 *			
-	 * 2. (!GetOwner()) return;
-	 *		=>	if MAAbilitySystemComponent not have Owner, return.
-	 *			(if Character is Dead)
-	 */
-	// if (!GetOwner()) return;
-	//
-	// if (ChangeData.NewValue <= 0 && GetOwner()->HasAuthority() && DeathEffect)
-	// {
-	// 	AuthApplyGameplayEffect(DeathEffect);
-	// }
-	
-		// 1. 안전장치: 주인 없거나 서버 아니면 중단
+	// 주인 없거나 서버 아니면 중단
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
-		// --- 가득 참상태 관리 ---
 	bool bFound = false;
 	float MaxHealth = GetGameplayAttributeValue(UMAAttributeSet::GetMaxHealthAttribute(), bFound);
 
@@ -176,7 +145,6 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 		RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetHealthFullStatTag());
 	}
 
-	// --- 바닥남 상태 관리 ---
 	if (ChangeData.NewValue <= 0)
 	{
 		if (!HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag()))
@@ -197,17 +165,16 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 	}
 	else
 	{
-			// 체력이 0보다 클 때 태그를 제거하는 구문
+		// 체력이 0보다 클 때 태그를 제거하는 구문
 		RemoveLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
 	}
 }
-
 
 void UMAAbilitySystemComponent::InitializeBaseAttributes()
 {
 	AActor* Owner = GetOwner();
 	if (!Owner) return;
-	
+
 	//플레이어인 경우 플레이어 데이터 테이블로 초기화
 	if (Cast<AMAPlayerCharacter>(Owner))
 	{
@@ -241,8 +208,7 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetReverseCriticalDamageAttribute(), BaseStats->BaseReverseCriticalDamage);
 		}
 	}
-	//몬스터인 경우 몬스터 데이터 테이블로 초기화
-	else
+	else //몬스터인 경우 몬스터 데이터 테이블로 초기화
 	{
 		const UDataTable* BaseStatTable = UMAGameSettings::Get()->GetMonsterBaseStatDataTable();
 		if (!BaseStatTable) return;

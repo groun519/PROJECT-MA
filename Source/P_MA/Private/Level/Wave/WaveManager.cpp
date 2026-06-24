@@ -47,12 +47,12 @@ void AWaveManager::OnHandleSectorStateChanged(EMASectorState NewState)
 
 TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 {
-	SetTotalGoldByWave();
+	SetTotalCoinByWave();
 	SetStatCoefficientByWave();
-	int32 UsingGold = 0;
+	int32 UsingCoin = 0;
 	TArray<FWaveMonster> OutWaveMonsters;
 
-	int32 MinGold = 0;
+	int32 MinCoin = 0;
 	if (MonsByEnvData)
 	{
 		FString TagString = CurEnvTag.ToString();
@@ -67,58 +67,52 @@ TArray<FWaveMonster> AWaveManager::GetNewWaveMonsters()
 		);
 		if (Data && CurEnvTag == Data->EnvGameplayTag)
 		{
-			for (const auto& Pair : Data->MonsterToData)
+			for (const auto& Pair : Data->MonsterToCoin)
 			{
-				if (Pair.Value.Gold <= 0) continue;
-				MinGold = (MinGold == 0) ? Pair.Value.Gold : FMath::Min(MinGold, Pair.Value.Gold);
+				if (Pair.Value <= 0) continue;
+				MinCoin = (MinCoin == 0) ? Pair.Value : FMath::Min(MinCoin, Pair.Value);
 			}
 		}
 	}
 	
-	if (MinGold == 0 || TotalGold <= 0)
+	if (MinCoin == 0 || TotalCoin <= 0)
 	{
 		return OutWaveMonsters;
 	}
 
-	while (UsingGold + MinGold <= TotalGold && OutWaveMonsters.Num() < WaveSetting.MaxMonsterNum)
+	while (UsingCoin + MinCoin <= TotalCoin && OutWaveMonsters.Num() < WaveSetting.MaxMonsterNum)
 	{
 		TSubclassOf<AMonster> Monster;
-		FMonsterData MonsterData;
-		GetRandomMonsterByEnv(Monster, MonsterData, CurEnvTag);
+		int32 SpawnCostCoin = 0;
+		GetRandomMonsterByEnv(Monster, SpawnCostCoin, CurEnvTag, TotalCoin - UsingCoin);
 
-		if (MonsterData.Gold == 0)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Monster Gold is Zero"));
-			break;
-		}
-		if (UsingGold + MonsterData.Gold > TotalGold)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("WaveManager: Skip monster gold=%d (UsingGold=%d TotalGold=%d)"),
-				MonsterData.Gold, UsingGold, TotalGold);
-			continue;
-		}
+		if (!Monster || SpawnCostCoin <= 0) break;
 
-		FWaveMonster NewMonster{Monster, MonsterData};
+		FWaveMonster NewMonster{Monster, SpawnCostCoin};
 		OutWaveMonsters.Add(NewMonster);
-		UsingGold += MonsterData.Gold;
+		UsingCoin += SpawnCostCoin;
 	}
 
-	LastGold = FMath::Max(0, TotalGold - UsingGold);
-	if (TotalGold > 0 && LastGold > 0)
+	LastCoin = FMath::Max(0, TotalCoin - UsingCoin);
+	if (TotalCoin > 0 && LastCoin > 0)
 	{
-		const float RemainRatio = static_cast<float>(LastGold) / static_cast<float>(TotalGold);
+		const float RemainRatio = static_cast<float>(LastCoin) / static_cast<float>(TotalCoin);
 		MonsterStatCoefficient *= (1.0f + RemainRatio);
 	}
 
 	OutWaveMonsters.Sort([](const FWaveMonster& A, const FWaveMonster& B)
 	{
-		return A.Data.Gold < B.Data.Gold;
+		return A.SpawnCostCoin < B.SpawnCostCoin;
 	});
 	
 	return OutWaveMonsters;
 }
 
-void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, FMonsterData& OutData, FGameplayTag InEnvTag)
+void AWaveManager::GetRandomMonsterByEnv(
+	TSubclassOf<AMonster>& OutMonster,
+	int32& OutSpawnCostCoin,
+	FGameplayTag InEnvTag,
+	int32 MaxSpawnCostCoin)
 {
 	if (!MonsByEnvData) return;
 	
@@ -135,15 +129,23 @@ void AWaveManager::GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, FMon
 	if (!Data) return;
 	if (InEnvTag != Data->EnvGameplayTag) return;
 	
-	TArray<TSubclassOf<AMonster>> Keys;
-	Data->MonsterToData.GetKeys(Keys);
+	TArray<TSubclassOf<AMonster>> MonsterClasses;
+	TArray<int32> SpawnCostCoins;
+	for (const auto& Pair : Data->MonsterToCoin)
+	{
+		if (!Pair.Key || Pair.Value <= 0) continue;
+		if (MaxSpawnCostCoin > 0 && Pair.Value > MaxSpawnCostCoin) continue;
 
-	if (Keys.Num() == 0) return;
+		MonsterClasses.Add(Pair.Key);
+		SpawnCostCoins.Add(Pair.Value);
+	}
+
+	if (MonsterClasses.IsEmpty()) return;
 	
-	int32 RandomIndex = FMath::RandRange(0, Data->MonsterToData.Num() - 1);
+	int32 RandomIndex = FMath::RandRange(0, MonsterClasses.Num() - 1);
 	
-	OutMonster = Keys[RandomIndex];
-	OutData = Data->MonsterToData[OutMonster];
+	OutMonster = MonsterClasses[RandomIndex];
+	OutSpawnCostCoin = SpawnCostCoins[RandomIndex];
 }
 
 void AWaveManager::StartWave()
@@ -168,26 +170,26 @@ void AWaveManager::EndWave()
 	Wave++;
 }
 
-int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
+int32 AWaveManager::SpawnMonstersAndReturnCoin(int32 SpawnAtOnce)
 {
 	if (WaveMonsters.IsEmpty() || !SpawnSpline) return 0;
 	
 	TArray<FVector> SpawnLocations
 		= SpawnSpline->GetMonsterSpawnLocations(SpawnAtOnce);
 
-	int32 UsingGold = 0;
+	int32 UsingCoin = 0;
 	
 	for (FVector SpawnLoc : SpawnLocations)
 	{
-		if (WaveMonsters.Num() == 0) return 0;
+		if (WaveMonsters.Num() == 0) break;
 
 		// 첫 인덱스의 몬스터 픽
 		FWaveMonster Monster = WaveMonsters[0];
 		WaveMonsters.RemoveAt(0);
 		if (!Monster.Class) continue;
 
-		// 골드 +
-		UsingGold += Monster.Data.Gold;
+		// 코인 +
+		UsingCoin += Monster.SpawnCostCoin;
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride =
@@ -208,9 +210,8 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 		{
 			Spawned->SetEnvTag(CurEnvTag);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
-			Spawned->SetSkillSlots(Monster.Data.SkillSlots);
 			Spawned->FinishSpawning(SpawnTransform);
-			Spawned->GetAbilitySystemComponent()->SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), Monster.Data.Gold);
+			Spawned->GetAbilitySystemComponent()->SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), Monster.SpawnCostCoin);
 			Spawned->SetGoal(SpawnSpline);
 			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
 			AliveMonsterCount++;
@@ -218,12 +219,12 @@ int32 AWaveManager::SpawnMonstersAndReturnGold(int32 SpawnAtOnce)
 
 	}
 
-	return UsingGold;
+	return UsingCoin;
 }
 
 void AWaveManager::CreateBaseIntervalTimer()
 {
-	LastGold = TotalGold;
+	LastCoin = TotalCoin;
 
 	if (!GetWorld()) return;
 
@@ -240,10 +241,10 @@ void AWaveManager::SpawnMonstersByInterval()
 {
 	if (!bIsWaving) return;
 
-	int32 UsingGold =
-		SpawnMonstersAndReturnGold(1);
+	int32 UsingCoin =
+		SpawnMonstersAndReturnCoin(1);
 
-	LastGold -= UsingGold;
+	LastCoin -= UsingCoin;
 	
 	if (WaveMonsters.IsEmpty())
 	{
