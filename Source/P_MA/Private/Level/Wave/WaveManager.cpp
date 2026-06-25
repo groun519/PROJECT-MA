@@ -208,10 +208,6 @@ int32 AWaveManager::SpawnMonstersAndReturnCoin(int32 SpawnAtOnce)
 		// 코인 +
 		UsingCoin += Monster.SpawnCostCoin;
 
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride =
-			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
 		FVector SpawnLocation = SpawnSpline->GetActorLocation() + SpawnLoc;
 		FRotator SpawnRotation = (-SpawnLoc).Rotation();
 		
@@ -232,10 +228,6 @@ int32 AWaveManager::SpawnMonstersAndReturnCoin(int32 SpawnAtOnce)
 			Spawned->FinishSpawning(SpawnTransform);
 			Spawned->GetAbilitySystemComponent()->SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), Monster.SpawnCostCoin);
 			Spawned->SetGoal(SpawnSpline);
-			if (Spawned->IsDead())
-			{
-				OnMonsterDead();
-			}
 		}
 
 	}
@@ -332,9 +324,8 @@ bool AWaveManager::InitSpawnSpline()
 			SpawnSpline = Cast<ABattleSpaceSpline>(
 				UGameplayStatics::GetActorOfClass(GetWorld(), ABattleSpaceSpline::StaticClass())
 			);
-			return false;
 		}
-		return true;
+		return SpawnSpline != nullptr;
 	}
 	return false;
 }
