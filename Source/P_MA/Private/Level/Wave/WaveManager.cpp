@@ -151,11 +151,28 @@ void AWaveManager::GetRandomMonsterByEnv(
 void AWaveManager::StartWave()
 {
 	if (bIsWaving) return;
+
+	GetWorldTimerManager().ClearTimer(BaseIntervalTimerHandle);
+	if (!SpawnSpline && !InitSpawnSpline())
+	{
+		bIsWaving = true;
+		bWaveSpawnFinished = true;
+		AliveMonsterCount = 0;
+		TryEndWave();
+		return;
+	}
 	
 	bIsWaving = true;
 	bWaveSpawnFinished = false;
 	AliveMonsterCount = 0;
 	WaveMonsters = GetNewWaveMonsters();
+	if (WaveMonsters.IsEmpty())
+	{
+		bWaveSpawnFinished = true;
+		TryEndWave();
+		return;
+	}
+
 	CreateBaseIntervalTimer();
 }
 
@@ -210,11 +227,15 @@ int32 AWaveManager::SpawnMonstersAndReturnCoin(int32 SpawnAtOnce)
 		{
 			Spawned->SetEnvTag(CurEnvTag);
 			Spawned->SetStatCoefficient(MonsterStatCoefficient);
+			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
+			AliveMonsterCount++;
 			Spawned->FinishSpawning(SpawnTransform);
 			Spawned->GetAbilitySystemComponent()->SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), Monster.SpawnCostCoin);
 			Spawned->SetGoal(SpawnSpline);
-			Spawned->OnMonsterDead.AddUObject(this, &AWaveManager::OnMonsterDead);
-			AliveMonsterCount++;
+			if (Spawned->IsDead())
+			{
+				OnMonsterDead();
+			}
 		}
 
 	}
