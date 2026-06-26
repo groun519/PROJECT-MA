@@ -40,7 +40,7 @@ void UMAInteractorComponent::Interact(AMAPlayerCharacter* Interactor)
 
 	if (UMAInteractableComponent* Comp = CurrentInteractableComponent.Get())
 	{
-		if (Comp->GetExecutionMode() == EMAInteractionExecutionMode::Server)
+		if (Comp->ExecutionMode == EMAInteractionExecutionMode::Server)
 		{
 			if (Interactor->HasAuthority())
 			{
@@ -82,7 +82,7 @@ void UMAInteractorComponent::Server_RequestInteract_Implementation(UMAInteractab
 {
 	AMAPlayerCharacter* Interactor = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!Interactor || !InteractableComponent) return;
-	if (InteractableComponent->GetExecutionMode() != EMAInteractionExecutionMode::Server) return;
+	if (InteractableComponent->ExecutionMode != EMAInteractionExecutionMode::Server) return;
 	if (!InteractableComponent->CanServerInteract(Interactor)) return;
 
 	InteractableComponent->RequestInteract(Interactor);

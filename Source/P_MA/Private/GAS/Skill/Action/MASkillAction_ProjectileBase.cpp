@@ -1,13 +1,14 @@
-﻿#include "GAS/Skill/Action/MASkillAction_SpawnProjectile.h"
+﻿#include "GAS/Skill/Action/MASkillAction_ProjectileBase.h"
 
+#include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GAS/Projectile/MAProjectile.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
-#include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/MAElementData.h"
-#include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/MAElementData.h"
+#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
@@ -110,7 +111,7 @@ static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadAcce
 	return OutTargetActor != nullptr;
 }
 
-void UMASkillAction_SpawnProjectile::Execute(
+void UMASkillAction_ProjectileBase::Execute(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillEvent& Event,
 	const FMASkillScopes& Scopes)
@@ -142,6 +143,12 @@ void UMASkillAction_SpawnProjectile::Execute(
 		SpawnRotation,
 		SpawnParams);
 	if (!Projectile) return;
+
+	if (!PostSpawnProjectile(*Projectile, *AvatarActor, Payloads))
+	{
+		Projectile->Destroy();
+		return;
+	}
 
 	FMASkillDamageConfig DamageConfig;
 	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
@@ -176,4 +183,9 @@ void UMASkillAction_SpawnProjectile::Execute(
 
 	Projectile->InitializeProjectile(ProjectileParams);
 	Scopes.GetRuntimeRegistry().Register(Projectile);
+}
+
+bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectile& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads)
+{
+	return true;
 }

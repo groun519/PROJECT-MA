@@ -50,10 +50,12 @@ public:
 
 	void RequestInteract(AMAPlayerCharacter* Interactor);
 	void SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused);
-	EMAInteractionExecutionMode GetExecutionMode() const { return ExecutionMode; }
 	bool CanServerInteract(const AMAPlayerCharacter* Interactor) const;
 
 	TWeakObjectPtr<UMAHighlightComponent> HighlightComponent;
+
+	UPROPERTY(EditAnywhere, Category="MA|Interaction")
+	EMAInteractionExecutionMode ExecutionMode = EMAInteractionExecutionMode::Local;
 	
 private:
 	void AttachKeyWidgetToInteractable();
@@ -69,9 +71,6 @@ private:
 
 	TFunction<void(AMAPlayerCharacter*)> InteractionHandler;
 	bool bFocused = false;
-
-	UPROPERTY(EditAnywhere, Category="MA|Interaction", meta=(AllowPrivateAccess="true"))
-	EMAInteractionExecutionMode ExecutionMode = EMAInteractionExecutionMode::Local;
 
 };
 

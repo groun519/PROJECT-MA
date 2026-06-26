@@ -53,6 +53,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Projectile|Movement", meta=(ClampMin="0.0", UIMin="0.0", EditCondition="bDecayLaunchSpeed", EditConditionHides))
 	float LaunchSpeedEndScale = 0.f;
 
+	UPROPERTY(EditDefaultsOnly, Category="Projectile|Lifetime", meta=(ClampMin="0.0", UIMin="0.0"))
+	float PendingDestroyLifeSpan = 0.5f;
+
 	UPROPERTY()
 	FOnProjectileHitSignature OnProjectileHit;
 

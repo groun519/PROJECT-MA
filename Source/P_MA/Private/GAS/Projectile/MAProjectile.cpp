@@ -19,6 +19,7 @@ AMAProjectile::AMAProjectile()
 	
 	bReplicates = true;
 	SetReplicateMovement(true);
+	InitialLifeSpan = 5.f;
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
 	SetRootComponent(SphereComp);
@@ -62,7 +63,6 @@ void AMAProjectile::BeginPlay()
 		SphereComp->OnComponentBeginOverlap.AddDynamic(this, &AMAProjectile::OnOverlapBegin);
 	PreviousHitCheckLocation = GetActorLocation();
 	ApplyProjectileVisuals();
-	SetLifeSpan(5.f);
 }
 
 void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -372,7 +372,14 @@ void AMAProjectile::BeginPendingDestroy()
 	if (bPendingDestroy) return;
 
 	MulticastBeginPendingDestroy();
-	SetLifeSpan(0.5f);
+	if (PendingDestroyLifeSpan > 0.f)
+	{
+		SetLifeSpan(PendingDestroyLifeSpan);
+	}
+	else
+	{
+		Destroy();
+	}
 }
 
 void AMAProjectile::ApplyPendingDestroyVisuals()
