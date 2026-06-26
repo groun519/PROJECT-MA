@@ -9,6 +9,7 @@
 class UDataTable;
 class UPCGGraph;
 class AMAGameMode;
+struct FMonstersByEnvironmentData;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnvironmentTagChanged, const FGameplayTag&);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEnvironmentPCGChanged, UPCGGraph*);
@@ -37,6 +38,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Environment")
 	EMASectorState GetMASectorState() const { return CachedMASectorState; }
+
+	const FMonstersByEnvironmentData* FindEnvironmentData(FGameplayTag InEnvTag) const;
 
 	FOnEnvironmentTagChanged OnEnvironmentTagChanged;
 	FOnEnvironmentPCGChanged OnEnvironmentPCGChanged;

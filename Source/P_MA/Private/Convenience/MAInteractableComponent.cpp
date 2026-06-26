@@ -68,6 +68,12 @@ void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 	if (InteractionHandler) InteractionHandler(Interactor);
 }
 
+bool UMAInteractableComponent::CanServerInteract(const AMAPlayerCharacter* Interactor) const
+{
+	if (!Interactor) return false;
+	return FVector::DistSquared(Interactor->GetActorLocation(), GetComponentLocation()) <= FMath::Square(GetScaledSphereRadius());
+}
+
 void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused)
 {
 	if (bFocused == bNewFocused) return;

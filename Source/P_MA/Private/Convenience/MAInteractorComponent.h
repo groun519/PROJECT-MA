@@ -13,6 +13,9 @@ class P_MA_API UMAInteractorComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UMAInteractorComponent();
+
+	/** Interaction **/
 	void SetCurrentInteractableComponent(UMAInteractableComponent* NewComp, AMAPlayerCharacter* Interactor);
 	void ClearCurrentInteractableComponent(UMAInteractableComponent* Comp, AMAPlayerCharacter* Interactor);
 	void Interact(AMAPlayerCharacter* Interactor);
@@ -21,6 +24,11 @@ public:
 private:
 	void ApplyCurrentInteractFocus(AMAPlayerCharacter* Interactor);
 
+	/** Server Interaction **/
+	UFUNCTION(Server, Reliable)
+	void Server_RequestInteract(UMAInteractableComponent* InteractableComponent);
+
+	/** State **/
 	TWeakObjectPtr<UMAInteractableComponent> CurrentInteractableComponent;
 	bool bInteractionEnabled = true;
 };

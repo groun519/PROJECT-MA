@@ -3,6 +3,12 @@
 #include "Convenience/MAInteractableComponent.h"
 #include "Player/MAPlayerCharacter.h"
 
+UMAInteractorComponent::UMAInteractorComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
+}
+
 void UMAInteractorComponent::SetCurrentInteractableComponent(UMAInteractableComponent* NewComp, AMAPlayerCharacter* Interactor)
 {
 	check(NewComp);
@@ -34,6 +40,21 @@ void UMAInteractorComponent::Interact(AMAPlayerCharacter* Interactor)
 
 	if (UMAInteractableComponent* Comp = CurrentInteractableComponent.Get())
 	{
+		if (Comp->GetExecutionMode() == EMAInteractionExecutionMode::Server)
+		{
+			if (Interactor->HasAuthority())
+			{
+				if (Comp->CanServerInteract(Interactor))
+				{
+					Comp->RequestInteract(Interactor);
+				}
+				return;
+			}
+
+			Server_RequestInteract(Comp);
+			return;
+		}
+
 		Comp->RequestInteract(Interactor);
 	}
 }
@@ -55,6 +76,16 @@ void UMAInteractorComponent::ApplyCurrentInteractFocus(AMAPlayerCharacter* Inter
 	{
 		Comp->SetInteractFocused(Interactor, bInteractionEnabled);
 	}
+}
+
+void UMAInteractorComponent::Server_RequestInteract_Implementation(UMAInteractableComponent* InteractableComponent)
+{
+	AMAPlayerCharacter* Interactor = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!Interactor || !InteractableComponent) return;
+	if (InteractableComponent->GetExecutionMode() != EMAInteractionExecutionMode::Server) return;
+	if (!InteractableComponent->CanServerInteract(Interactor)) return;
+
+	InteractableComponent->RequestInteract(Interactor);
 }
 
 

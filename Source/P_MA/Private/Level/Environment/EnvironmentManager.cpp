@@ -106,19 +106,22 @@ void AEnvironmentManager::OnHandleStageChangeEnvRequested()
 
 UPCGGraph* AEnvironmentManager::FindPCGGraphByTag(FGameplayTag InEnvTag) const
 {
+	const FMonstersByEnvironmentData* EnvironmentData = FindEnvironmentData(InEnvTag);
+	return EnvironmentData ? EnvironmentData->EnvPCGGraph : nullptr;
+}
+
+const FMonstersByEnvironmentData* AEnvironmentManager::FindEnvironmentData(FGameplayTag InEnvTag) const
+{
 	if (!EnvironmentDataTable || !InEnvTag.IsValid()) return nullptr;
 
-	TArray<FMonstersByEnvironmentData*> Rows;
-	EnvironmentDataTable->GetAllRows(TEXT("FindPCGGraphByTag"), Rows);
+	const FString TagNameString = InEnvTag.GetTagName().ToString();
+	FString RowNameString = TagNameString;
+	FString UnusedPrefix;
+	TagNameString.Split(TEXT("."), &UnusedPrefix, &RowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
-	for (const FMonstersByEnvironmentData* Row : Rows)
-	{
-		if (!Row) continue;
-		if (Row->EnvGameplayTag != InEnvTag) continue;
-		return Row->EnvPCGGraph;
-	}
-
-	return nullptr;
+	const FMonstersByEnvironmentData* EnvironmentData =
+		EnvironmentDataTable->FindRow<FMonstersByEnvironmentData>(FName(*RowNameString), TEXT("FindEnvironmentData"));
+	return EnvironmentData && EnvironmentData->EnvGameplayTag == InEnvTag ? EnvironmentData : nullptr;
 }
 
 bool AEnvironmentManager::PickRandomDifferentEnvTag(FGameplayTag& OutEnvTag) const

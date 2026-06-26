@@ -9,6 +9,7 @@
 
 class UPCGGraph;
 class AMonster;
+class UTexture2D;
 
 USTRUCT(BlueprintType)
 struct FMonstersByEnvironmentData : public FTableRowBase
@@ -20,6 +21,9 @@ struct FMonstersByEnvironmentData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	UPCGGraph* EnvPCGGraph = nullptr;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UTexture2D> DestinationIcon = nullptr;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "1", ClampMax = "10000"))
 	TMap<TSubclassOf<AMonster>, int32> MonsterToCoin;

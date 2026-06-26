@@ -15,6 +15,14 @@ class UWidgetComponent;
 // Set DefaultInteractKeyWidgetClass in MA Game Settings.
 #define CALL_SETUP_INTERACT(MethodName) SetupInteraction(this, &std::remove_pointer_t<decltype(this)>::MethodName)
 #define CALL_SETUP_HIGHLIGHTER(Highlighter) HighlightComponent = Highlighter
+#define CALL_SETUP_INTERACTION_MODE(ModeName) ExecutionMode = EMAInteractionExecutionMode::ModeName
+
+UENUM(BlueprintType)
+enum class EMAInteractionExecutionMode : uint8
+{
+	Local,
+	Server,
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class P_MA_API UMAInteractableComponent : public USphereComponent
@@ -42,6 +50,8 @@ public:
 
 	void RequestInteract(AMAPlayerCharacter* Interactor);
 	void SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused);
+	EMAInteractionExecutionMode GetExecutionMode() const { return ExecutionMode; }
+	bool CanServerInteract(const AMAPlayerCharacter* Interactor) const;
 
 	TWeakObjectPtr<UMAHighlightComponent> HighlightComponent;
 	
@@ -59,5 +69,9 @@ private:
 
 	TFunction<void(AMAPlayerCharacter*)> InteractionHandler;
 	bool bFocused = false;
+
+	UPROPERTY(EditAnywhere, Category="MA|Interaction", meta=(AllowPrivateAccess="true"))
+	EMAInteractionExecutionMode ExecutionMode = EMAInteractionExecutionMode::Local;
+
 };
 
