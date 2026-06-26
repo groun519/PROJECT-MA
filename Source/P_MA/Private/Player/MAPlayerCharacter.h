@@ -19,6 +19,7 @@ class UMASkillModuleInventoryComponent;
 class USpringArmComponent;
 class USkeletalMeshComponent;
 class AMAPlayerState;
+class AMAReviveActor;
 
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
@@ -180,6 +181,9 @@ public:
 	virtual void OnRespawn() override;
 	void EnableInputAfterRespawnMontage();
 
+	UPROPERTY(EditDefaultsOnly, Category = "Death|Revive")
+	TSubclassOf<AMAReviveActor> ReviveActorClass;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeadColorSaturationScale = 0.25f;
 
@@ -213,4 +217,11 @@ public:
 
 	TSet<FGameplayTag> HeldAbilitySlotTags;
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<AMAReviveActor> ActiveReviveActor = nullptr;
+
+	void SpawnReviveActor();
+	void ClearReviveActor();
 };

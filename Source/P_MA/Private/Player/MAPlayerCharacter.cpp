@@ -32,6 +32,7 @@
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
+#include "Player/Revive/MAReviveActor.h"
 #include "Engine/DataTable.h"
 #include "EngineUtils.h"
 #include "Shop/MAShopNPC.h"
@@ -134,6 +135,8 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	ReadyCheckWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ReadyCheckWidget->SetHiddenInGame(true);
 	ReadyCheckWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
+
+	ReviveActorClass = AMAReviveActor::StaticClass();
 }
 
 void AMAPlayerCharacter::BeginPlay()
@@ -679,6 +682,7 @@ void AMAPlayerCharacter::OnDead()
 {
 	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
+	SpawnReviveActor();
 	if (LoadoutComponent)
 	{
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue(), DeadColorSaturationScale);
@@ -687,6 +691,8 @@ void AMAPlayerCharacter::OnDead()
 
 void AMAPlayerCharacter::OnRespawn()
 {
+	ClearReviveActor();
+
 	bool bDeferredInputEnable = false;
 
 	if (RespawnMontage)
@@ -724,6 +730,52 @@ void AMAPlayerCharacter::OnRespawn()
 void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
 {
 	SetInputEnabledFromPlayerController(true);
+}
+
+void AMAPlayerCharacter::SpawnReviveActor()
+{
+	if (!HasAuthority() || ActiveReviveActor || !ReviveActorClass) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	static constexpr float ReviveGroundTraceUp = 200.f;
+	static constexpr float ReviveGroundTraceDown = 1000.f;
+
+	FVector SpawnLocation = GetActorLocation();
+	FHitResult GroundHit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SpawnReviveActor), false, this);
+	const FVector TraceStart = SpawnLocation + FVector::UpVector * ReviveGroundTraceUp;
+	const FVector TraceEnd = SpawnLocation - FVector::UpVector * ReviveGroundTraceDown;
+	if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, Params))
+	{
+		SpawnLocation = GroundHit.ImpactPoint;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ActiveReviveActor = World->SpawnActor<AMAReviveActor>(
+		ReviveActorClass,
+		SpawnLocation,
+		FRotator::ZeroRotator,
+		SpawnParams);
+	if (ActiveReviveActor)
+	{
+		ActiveReviveActor->InitializeReviveTarget(this);
+	}
+}
+
+void AMAPlayerCharacter::ClearReviveActor()
+{
+	if (!HasAuthority()) return;
+
+	if (ActiveReviveActor)
+	{
+		ActiveReviveActor->Destroy();
+		ActiveReviveActor = nullptr;
+	}
 }
 
 void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)

@@ -34,8 +34,12 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Visual")
 	TObjectPtr<UMaterialInterface> IconMaterial;
 
-	void SetValue(float NewVal);
-	FNumberFormattingOptions NumberFormattingOptions;
+	UPROPERTY(EditAnywhere, Category = "Attribute|Format", meta=(ClampMin="0", UIMin="0", ClampMax="6", UIMax="6"))
+	int32 MinimumFractionalDigits = 0;
 
+	UPROPERTY(EditAnywhere, Category = "Attribute|Format", meta=(ClampMin="0", UIMin="0", ClampMax="6", UIMax="6"))
+	int32 MaximumFractionalDigits = 2;
+
+	void SetValue(float NewVal);
 	void AttributeChanged(const FOnAttributeChangeData& Data);
 };
