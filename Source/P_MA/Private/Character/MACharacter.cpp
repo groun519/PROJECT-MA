@@ -22,7 +22,6 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "P_MA/P_MA.h"
-#include "Player/Loadout/LoadoutComponent.h"
 
 AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -48,7 +47,6 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	OverlayComponent = CreateDefaultSubobject<UMAOverlayComponent>("Overlay Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
-	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
 	SkillManagerComponent = CreateDefaultSubobject<UMASkillManagerComponent>("SkillManagerComponent");
 
 	BindGASChangeDelegates();
@@ -88,11 +86,6 @@ void AMACharacter::BeginPlay()
 	ConfigureOverHeadStatusWidget();
 
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
-
-	if (LoadoutComponent)
-	{
-		LoadoutComponent->InitializeMaterial(GetMesh());
-	}
 }
 
 void AMACharacter::PossessedBy(AController* NewController)
@@ -324,15 +317,6 @@ UMAOverHeadStatsGauge* AMACharacter::EnsureOverHeadStatusWidgetConfigured()
 
 	OverheadStatsGuage->InitializeFromCharacter(this);
 	return OverheadStatsGuage;
-}
-
-void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
-                                                           const FMaterialParamData& EyeData)
-{
-	if (LoadoutComponent)
-	{
-		LoadoutComponent->SetMaterialParams(BodyData, EyeData);
-	}
 }
 
 /*************************************************************/

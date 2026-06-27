@@ -69,6 +69,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
 	CurrencyComponent = CreateDefaultSubobject<UMACurrencyComponent>(TEXT("CurrencyComponent"));
 	InteractorComponent = CreateDefaultSubobject<UMAInteractorComponent>(TEXT("InteractorComponent"));
+	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>(TEXT("LoadoutComponent"));
 
 	/** Create SKCs **/
 	// Create and Attach Weapon
@@ -142,6 +143,10 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->InitializeMaterial(GetMesh());
+	}
 	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }

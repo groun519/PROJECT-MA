@@ -12,6 +12,7 @@
 
 class AMAShopNPC;
 class UMAFloatingTextComponent;
+class UMAPlayerSpectateComponent;
 
 UENUM(BlueprintType)
 enum class EChatType : uint8
@@ -89,6 +90,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category="Feedback")
 	TObjectPtr<UMAFloatingTextComponent> FloatingTextComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Spectate")
+	TObjectPtr<UMAPlayerSpectateComponent> SpectateComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;

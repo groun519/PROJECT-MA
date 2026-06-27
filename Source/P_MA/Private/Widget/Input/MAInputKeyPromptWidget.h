@@ -27,7 +27,7 @@ private:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> KeyText;
 
-	UPROPERTY(EditDefaultsOnly, Category="Input")
+	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UInputAction> InputAction;
 
 	TWeakObjectPtr<APlayerController> InputOwner;

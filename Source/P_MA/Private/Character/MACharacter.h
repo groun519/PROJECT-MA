@@ -9,7 +9,6 @@
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
-#include "Player/Loadout/LoadoutTypes.h"
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
@@ -126,17 +125,10 @@ private:
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
 
-	/** Mat System **/
+	/** Skill **/
 protected:
-	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
-	class ULoadoutComponent* LoadoutComponent;
-
 	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
 	TObjectPtr<UMASkillManagerComponent> SkillManagerComponent;
-
-public:
-	UFUNCTION(Server, Reliable)
-	void Server_SetMaterialParams(const FMaterialParamData& BodyData, const FMaterialParamData& EyeData);
 
 	/***************************************************************/
 	/*								Skill						   */

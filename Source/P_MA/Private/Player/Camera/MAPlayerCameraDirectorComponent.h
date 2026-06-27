@@ -21,8 +21,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void RefreshPawnCamera();
-	void SwitchToViewTarget(AActor* ViewTarget);
-	void SwitchToPawnCamera();
+	void SwitchToViewTarget(AActor* ViewTarget, float BlendTime = 0.f);
+	void SwitchToPawnCamera(float BlendTime = 0.f);
 	void RequestFade(const FMACameraFadeSettings& Settings);
 	void PlayFade(const FMACameraFadeSettings& Settings);
 	void FadeOut(float Duration, TFunction<void()> OnFinished = nullptr);

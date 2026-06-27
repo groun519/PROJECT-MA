@@ -4,6 +4,7 @@
 #include "Character/MACharacter.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
@@ -18,6 +19,7 @@ class UReadyCheckWidgetComponent;
 class UMASkillModuleInventoryComponent;
 class USpringArmComponent;
 class USkeletalMeshComponent;
+class ULoadoutComponent;
 class AMAPlayerState;
 class AMAReviveActor;
 
@@ -73,6 +75,9 @@ public:
 	UMACurrencyComponent* GetCurrencyComponent() const { return CurrencyComponent; }
 	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }
 private:
+	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
+	TObjectPtr<ULoadoutComponent> LoadoutComponent;
+
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;

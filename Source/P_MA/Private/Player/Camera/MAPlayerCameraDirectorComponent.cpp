@@ -50,16 +50,16 @@ void UMAPlayerCameraDirectorComponent::RefreshPawnCamera()
 	Camera = PlayerCharacter->GetPlayerCamera();
 }
 
-void UMAPlayerCameraDirectorComponent::SwitchToViewTarget(AActor* ViewTarget)
+void UMAPlayerCameraDirectorComponent::SwitchToViewTarget(AActor* ViewTarget, float BlendTime)
 {
 	APlayerController* PlayerController = GetOwnerPlayerController();
 	if (!PlayerController || !PlayerController->IsLocalController() || !ViewTarget) return;
 
 	CancelCameraMovement();
-	PlayerController->SetViewTargetWithBlend(ViewTarget, 0.f);
+	PlayerController->SetViewTargetWithBlend(ViewTarget, BlendTime);
 }
 
-void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera()
+void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera(float BlendTime)
 {
 	APlayerController* PlayerController = GetOwnerPlayerController();
 	if (!PlayerController || !PlayerController->IsLocalController()) return;
@@ -69,7 +69,7 @@ void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera()
 
 	CancelCameraMovement();
 	RefreshPawnCamera();
-	PlayerController->SetViewTargetWithBlend(Pawn, 0.f);
+	PlayerController->SetViewTargetWithBlend(Pawn, BlendTime);
 }
 
 void UMAPlayerCameraDirectorComponent::RequestFade(const FMACameraFadeSettings& Settings)

@@ -13,6 +13,7 @@
 #include "Framework/MAGameState.h"
 #include "Input/MAInputStatics.h"
 #include "Player/Feedback/MAFloatingTextComponent.h"
+#include "Player/Spectate/MAPlayerSpectateComponent.h"
 #include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
 
@@ -20,6 +21,7 @@ AMAPlayerController::AMAPlayerController()
 {
 	TeamID = FGenericTeamId(0);
 	FloatingTextComponent = CreateDefaultSubobject<UMAFloatingTextComponent>("Floating Text Component");
+	SpectateComponent = CreateDefaultSubobject<UMAPlayerSpectateComponent>("Spectate Component");
 }
 
 void AMAPlayerController::BeginPlay()
@@ -67,6 +69,7 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 		MAPlayerCharacter->ServerSideInit();
 		MAPlayerCharacter->SetGenericTeamId(TeamID);
 		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
+		SpectateComponent->BindToPawn(MAPlayerCharacter);
 	}
 }
 
@@ -78,6 +81,7 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	{
 		MAPlayerCharacter->ClientSideInit();
 		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
+		SpectateComponent->BindToPawn(MAPlayerCharacter);
 		SpawnGameplayWidget();
 	}
 }
@@ -147,6 +151,7 @@ void AMAPlayerController::SetupInputComponent()
 	if (EnhancedInputComp)
 	{
 		EnhancedInputComp->BindAction(SkillSlotToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillSlots);
+		SpectateComponent->BindInput(EnhancedInputComp);
 	}
 }
 
