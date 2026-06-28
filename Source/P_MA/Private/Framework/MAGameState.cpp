@@ -45,6 +45,14 @@ void AMAGameState::GetPlayerCharacters(TArray<AMAPlayerCharacter*>& OutPlayers, 
 	}
 }
 
+void AMAGameState::SetGameOver(bool bNewGameOver)
+{
+	if (bGameOver == bNewGameOver) return;
+
+	bGameOver = bNewGameOver;
+	OnGameOverChanged.Broadcast(bGameOver);
+}
+
 void AMAGameState::SyncLoopReadyEntries(const TArray<APlayerState*>& Players)
 {
 	bool bChanged = false;
@@ -168,10 +176,16 @@ void AMAGameState::OnRep_StageCycle()
 	UE_LOG(LogTemp, Warning, TEXT("GameState: StageCycle rep %d-%d"), ReplicatedStageCycle.Round, ReplicatedStageCycle.Stage);
 }
 
+void AMAGameState::OnRep_GameOver()
+{
+	OnGameOverChanged.Broadcast(bGameOver);
+}
+
 void AMAGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMAGameState, ReplicatedState);
 	DOREPLIFETIME(AMAGameState, LoopReadyEntries);
 	DOREPLIFETIME(AMAGameState, ReplicatedStageCycle);
+	DOREPLIFETIME(AMAGameState, bGameOver);
 }

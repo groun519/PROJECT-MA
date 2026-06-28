@@ -146,6 +146,16 @@ void AMAPlayerControllerBase::ReopenSettingsWidget()
 	OpenSettingsWidget(ActiveCategory);
 }
 
+void AMAPlayerControllerBase::OpenSettings(ESettingsCategory InitialCategory)
+{
+	if (ActiveSystemMenuWidget && ActiveSystemMenuWidget->IsInViewport())
+	{
+		CloseSystemMenu();
+	}
+
+	OpenSettingsWidget(InitialCategory);
+}
+
 void AMAPlayerControllerBase::ApplySystemMenuClosedInputMode()
 {
 	ApplyGameAndUiInputMode();

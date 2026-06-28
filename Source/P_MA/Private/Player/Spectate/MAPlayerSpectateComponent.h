@@ -25,6 +25,7 @@ public:
 
 	void BindToPawn(AMAPlayerCharacter* PlayerCharacter);
 	void BindInput(UEnhancedInputComponent* EnhancedInputComponent);
+	void StopSpectating();
 
 private:
 	void RequestPawnCamera(float BlendTime = -1.f);

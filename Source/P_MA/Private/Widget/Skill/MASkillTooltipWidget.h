@@ -24,10 +24,11 @@ public:
 	void SetSkillTooltip(
 		const UMASkillDefinition* SkillDefinition,
 		const FGameplayTag& InactiveReasonTag = FGameplayTag(),
-		const UDataTable* WarningTextDataTable = nullptr);
+		const UDataTable* WarningTextDataTable = nullptr,
+		bool bShowTagsAndMessages = true);
 
 protected:
-	UPROPERTY(meta=(BindWidget))
+	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UImage> SkillIconImage;
 
 	UPROPERTY(meta=(BindWidget))

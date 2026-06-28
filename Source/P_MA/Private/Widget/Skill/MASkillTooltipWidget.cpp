@@ -14,7 +14,8 @@
 void UMASkillTooltipWidget::SetSkillTooltip(
 	const UMASkillDefinition* SkillDefinition,
 	const FGameplayTag& InactiveReasonTag,
-	const UDataTable* WarningTextDataTable)
+	const UDataTable* WarningTextDataTable,
+	bool bShowTagsAndMessages)
 {
 	const FMASkillDefinitionDisplayData DisplayData = SkillDefinition
 		? SkillDefinition->GetDisplayData()
@@ -33,8 +34,11 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 	const FGameplayTagContainer TooltipTags = SkillDefinition
 		? SkillDefinition->GetTooltipTags()
 		: FGameplayTagContainer();
-	SetTooltipTags(TooltipTags, WarningTextDataTable);
-	SetTooltipMessages(TooltipTags, InactiveReasonTag, WarningTextDataTable);
+	SetTooltipTags(bShowTagsAndMessages ? TooltipTags : FGameplayTagContainer(), WarningTextDataTable);
+	SetTooltipMessages(
+		bShowTagsAndMessages ? TooltipTags : FGameplayTagContainer(),
+		bShowTagsAndMessages ? InactiveReasonTag : FGameplayTag(),
+		WarningTextDataTable);
 }
 
 void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)

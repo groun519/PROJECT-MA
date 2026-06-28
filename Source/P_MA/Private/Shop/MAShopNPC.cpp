@@ -296,15 +296,23 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 	const int32 Count = ModuleStockCountRange.ResolveCount();
 	if (Count <= 0 || SkillDefinitions.IsEmpty()) return Stock;
 
-	TArray<UMASkillDefinition*> Pool = SkillDefinitions;
+	TArray<UMASkillDefinition*> Pool;
+	for (UMASkillDefinition* SkillDefinition : SkillDefinitions)
+	{
+		if (!SkillDefinition) continue;
+		if (static_cast<uint8>(SkillDefinition->GetModuleQuality().Rarity)
+			> static_cast<uint8>(MaxModuleRarity)) continue;
+
+		Pool.Add(SkillDefinition);
+	}
+
 	const int32 TargetCount = FMath::Min(Count, Pool.Num());
+	if (TargetCount <= 0) return Stock;
 
 	for (int32 Index = 0; Index < TargetCount; ++Index)
 	{
 		const int32 PickIndex = FMath::RandRange(Index, Pool.Num() - 1);
 		Pool.Swap(Index, PickIndex);
-
-		if (!Pool[Index]) continue;
 
 		FMAShopStockEntry Entry;
 		Entry.StockId = Index;

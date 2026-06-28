@@ -688,6 +688,13 @@ void AMAPlayerCharacter::OnDead()
 	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
 	SpawnReviveActor();
+	if (HasAuthority())
+	{
+		if (AMAGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMAGameMode>() : nullptr)
+		{
+			GameMode->CheckGameOver();
+		}
+	}
 	if (LoadoutComponent)
 	{
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue(), DeadColorSaturationScale);

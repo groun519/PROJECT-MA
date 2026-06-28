@@ -12,6 +12,7 @@
 
 class AMAShopNPC;
 class UMAFloatingTextComponent;
+class UMAPlayerGameOverComponent;
 class UMAPlayerSpectateComponent;
 
 UENUM(BlueprintType)
@@ -93,6 +94,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category="Spectate")
 	TObjectPtr<UMAPlayerSpectateComponent> SpectateComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Game Over")
+	TObjectPtr<UMAPlayerGameOverComponent> GameOverComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;

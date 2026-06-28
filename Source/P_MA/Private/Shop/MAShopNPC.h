@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Framework/MAGameStateTypes.h"
 #include "GameFramework/Actor.h"
+#include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "Player/Camera/MACameraTypes.h"
 #include "Shop/MAShopTypes.h"
 #include "MAShopNPC.generated.h"
@@ -57,6 +58,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
 	FMAShopStockCountRange ModuleStockCountRange;
+
+	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
+	EMAModuleRarity MaxModuleRarity = EMAModuleRarity::Rarity7;
 
 	// TODO: Test-only stock refresh hook. Consider removing when the map/shop flow is finalized.
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")

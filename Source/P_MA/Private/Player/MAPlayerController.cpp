@@ -13,6 +13,7 @@
 #include "Framework/MAGameState.h"
 #include "Input/MAInputStatics.h"
 #include "Player/Feedback/MAFloatingTextComponent.h"
+#include "Player/GameOver/MAPlayerGameOverComponent.h"
 #include "Player/Spectate/MAPlayerSpectateComponent.h"
 #include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
@@ -22,6 +23,7 @@ AMAPlayerController::AMAPlayerController()
 	TeamID = FGenericTeamId(0);
 	FloatingTextComponent = CreateDefaultSubobject<UMAFloatingTextComponent>("Floating Text Component");
 	SpectateComponent = CreateDefaultSubobject<UMAPlayerSpectateComponent>("Spectate Component");
+	GameOverComponent = CreateDefaultSubobject<UMAPlayerGameOverComponent>("Game Over Component");
 }
 
 void AMAPlayerController::BeginPlay()

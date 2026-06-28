@@ -45,6 +45,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ReopenSettingsWidget();
 
+	void OpenSettings(ESettingsCategory InitialCategory);
+	void ApplyWidgetFocusInputMode(UUserWidget* TargetWidget);
+	void ApplyGameAndUiInputMode();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* SystemMenuInputMapping;
@@ -69,8 +73,6 @@ protected:
 
 	virtual void ApplySystemMenuOpenInputMode();
 	virtual void ApplySystemMenuClosedInputMode();
-	void ApplyWidgetFocusInputMode(UUserWidget* TargetWidget);
-	void ApplyGameAndUiInputMode();
 
 private:
 	void HandleSystemMenuActionRequested(ESystemMenuAction Action);

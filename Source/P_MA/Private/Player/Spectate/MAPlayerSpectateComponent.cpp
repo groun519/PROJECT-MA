@@ -140,6 +140,11 @@ void UMAPlayerSpectateComponent::BindInput(UEnhancedInputComponent* EnhancedInpu
 	}
 }
 
+void UMAPlayerSpectateComponent::StopSpectating()
+{
+	SetSpectating(false);
+}
+
 AMAPlayerCharacter* UMAPlayerSpectateComponent::GetCurrentSpectateTarget() const
 {
 	return SpectateTargets.IsValidIndex(CurrentSpectateIndex)
