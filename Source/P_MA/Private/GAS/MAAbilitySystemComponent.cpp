@@ -45,7 +45,7 @@ void UMAAbilitySystemComponent::GiveInitialAbilities()
 	}
 
 	const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
-	if (SystemGenerics && SystemGenerics->GetDeadAbility())
+	if (!UMAAbilitySystemStatics::IsPlayer(GetOwner()) && SystemGenerics && SystemGenerics->GetDeadAbility())
 	{
 		GiveAbility(FGameplayAbilitySpec(SystemGenerics->GetDeadAbility(), 1, INDEX_NONE, nullptr));
 	}

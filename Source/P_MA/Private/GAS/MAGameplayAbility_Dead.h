@@ -30,6 +30,9 @@ struct FMACoinRewardSettings
 	float KillerRewardPortion = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
+	bool bScaleByPlayerCount = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	FMACoinRewardVFXSettings VFX;
 };
 

@@ -184,7 +184,6 @@ public:
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
-	void EnableInputAfterRespawnMontage();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death|Revive")
 	TSubclassOf<AMAReviveActor> ReviveActorClass;
@@ -194,11 +193,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	TObjectPtr<UNiagaraSystem> RespawnVFX = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
-
-	FTimerHandle RespawnInputEnableTimerHandle;
 
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")

@@ -685,7 +685,6 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 
 void AMAPlayerCharacter::OnDead()
 {
-	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
 	SpawnReviveActor();
 	if (HasAuthority())
@@ -704,29 +703,7 @@ void AMAPlayerCharacter::OnDead()
 void AMAPlayerCharacter::OnRespawn()
 {
 	ClearReviveActor();
-
-	bool bDeferredInputEnable = false;
-
-	if (RespawnMontage)
-	{
-		const float MontageDuration = PlayAnimMontage(RespawnMontage);
-		if (MontageDuration > 0.f)
-		{
-			bDeferredInputEnable = true;
-			GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
-			GetWorldTimerManager().SetTimer(
-				RespawnInputEnableTimerHandle,
-				this,
-				&AMAPlayerCharacter::EnableInputAfterRespawnMontage,
-				MontageDuration,
-				false);
-		}
-	}
-
-	if (!bDeferredInputEnable)
-	{
-		EnableInputAfterRespawnMontage();
-	}
+	SetInputEnabledFromPlayerController(true);
 
 	if (LoadoutComponent)
 	{
@@ -737,11 +714,6 @@ void AMAPlayerCharacter::OnRespawn()
 	{
 		Multicast_PlayNiagara(RespawnVFX, GetActorTransform());
 	}
-}
-
-void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
-{
-	SetInputEnabledFromPlayerController(true);
 }
 
 void AMAPlayerCharacter::SpawnReviveActor()

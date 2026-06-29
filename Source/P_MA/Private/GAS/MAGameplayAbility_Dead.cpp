@@ -8,6 +8,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "EngineUtils.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
 #include "NiagaraSystem.h"
@@ -34,6 +35,12 @@ static bool IsValidRewardTarget(AActor* Actor)
 	return PlayerCharacter && !PlayerCharacter->IsDead();
 }
 
+static int32 ResolveConnectedPlayerCount(const UWorld* World)
+{
+	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
+	return GameState ? FMath::Max(1, GameState->PlayerArray.Num()) : 1;
+}
+
 UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
@@ -57,6 +64,12 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 	check(TriggerEventData);
 
 	AActor* DeadActor = GetAvatarActorFromActorInfo();
+	if (!DeadActor || UMAAbilitySystemStatics::IsPlayer(DeadActor))
+	{
+		K2_EndAbility();
+		return;
+	}
+
 	AActor* OriginalInstigator = TriggerEventData->ContextHandle.GetOriginalInstigator();
 	AActor* EffectCauser = TriggerEventData->ContextHandle.GetEffectCauser();
 	AActor* Killer = ResolveRewardPlayerActor(OriginalInstigator);
@@ -83,7 +96,11 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 		return;
 	}
 
-	const float TotalCoinReward = GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UMAAttributeSet::GetCoinAttribute());
+	const float BaseCoinReward = GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UMAAttributeSet::GetCoinAttribute());
+	const float PlayerCountScale = CoinReward.bScaleByPlayerCount
+		? static_cast<float>(ResolveConnectedPlayerCount(GetWorld()))
+		: 1.f;
+	const float TotalCoinReward = BaseCoinReward * PlayerCountScale;
 	if (TotalCoinReward <= 0.f)
 	{
 		K2_EndAbility();
