@@ -4,6 +4,7 @@
 #include "Widget/MATemperatureGauge.h"
 #include "Widget/Skill/MASkillSlotWidget.h"
 #include "Widget/Skill/MASkillModuleInventoryWidget.h"
+#include "Widget/Skill/MASkillPassiveModuleSlotsWidget.h"
 #include "Widget/Loop/LoopReadyWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -33,20 +34,19 @@ void UMAGameplayWidget::NativeConstruct()
         TemperatureBar->BindTemperatureAttribute(OwnerAbilitySystemComponent);
     }
 
-    if (SkillSlotWidget)
+    APawn* OwningPawn = GetOwningPlayerPawn();
+    UMASkillManagerComponent* SkillManager = OwningPawn
+        ? OwningPawn->FindComponentByClass<UMASkillManagerComponent>()
+        : nullptr;
+    if (SkillManager)
     {
-        if (APawn* OwningPawn = GetOwningPlayerPawn())
-        {
-            if (UMASkillManagerComponent* SkillManager = OwningPawn->FindComponentByClass<UMASkillManagerComponent>())
-            {
-                SkillSlotWidget->InitializeSkillSlots(SkillManager);
-            }
-        }
+        SkillSlotWidget->InitializeSkillSlots(SkillManager);
+        PassiveModuleSlotsWidget->InitializePassiveSlots(SkillManager);
     }
 
     if (SkillModuleInventoryWidget)
     {
-        if (APawn* OwningPawn = GetOwningPlayerPawn())
+        if (OwningPawn)
         {
             SkillModuleInventoryWidget->InitializeInventory(OwningPawn->FindComponentByClass<UMASkillModuleInventoryComponent>());
         }

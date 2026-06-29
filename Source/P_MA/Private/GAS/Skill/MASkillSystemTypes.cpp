@@ -4,11 +4,14 @@
 
 int32 FMASkillSystemStatics::ResolveSlotInputID(const FGameplayTag& SlotTag)
 {
-	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
+	static const FGameplayTag ActiveSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active"));
+	if (!SlotTag.MatchesTag(ActiveSlotTag)) return INDEX_NONE;
+
+	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.NoCooldown"));
 	if (SlotTag.MatchesTagExact(NoCooldownSlotTag)) return 1;
 
 	const FString SlotTagString = SlotTag.ToString();
-	const FString SlotPrefix = TEXT("Skill.Slot.");
+	const FString SlotPrefix = TEXT("Skill.Slot.Active.");
 	if (!SlotTagString.StartsWith(SlotPrefix)) return INDEX_NONE;
 
 	const FString SlotIndexString = SlotTagString.RightChop(SlotPrefix.Len());
@@ -20,12 +23,28 @@ int32 FMASkillSystemStatics::ResolveSlotInputID(const FGameplayTag& SlotTag)
 
 bool FMASkillSystemStatics::IsSkillSlotTag(const FGameplayTag& Tag)
 {
+	return IsActiveSkillSlotTag(Tag) || IsPassiveSkillSlotTag(Tag);
+}
+
+bool FMASkillSystemStatics::IsActiveSkillSlotTag(const FGameplayTag& Tag)
+{
 	return ResolveSlotInputID(Tag) != INDEX_NONE;
+}
+
+bool FMASkillSystemStatics::IsPassiveSkillSlotTag(const FGameplayTag& Tag)
+{
+	return Tag.MatchesTagExact(GetPassiveSlotTag());
+}
+
+FGameplayTag FMASkillSystemStatics::GetPassiveSlotTag()
+{
+	static const FGameplayTag PassiveSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Passive"));
+	return PassiveSlotTag;
 }
 
 FGameplayTag FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(const FGameplayTag& SlotTag)
 {
-	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
+	static const FGameplayTag NoCooldownSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.NoCooldown"));
 	if (SlotTag.MatchesTagExact(NoCooldownSlotTag)) return FGameplayTag();
 
 	const int32 SlotInputID = ResolveSlotInputID(SlotTag);

@@ -99,6 +99,20 @@ public:
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	virtual void PostLoad() override;
 
+	template<typename StepType>
+	StepType* CreateRuntimeSkillStep()
+	{
+		static_assert(TIsDerivedFrom<StepType, UMASkillStep>::IsDerived, "StepType must derive from UMASkillStep.");
+		check(HasAnyFlags(RF_Transient));
+
+		StepType* SkillStep = NewObject<StepType>(this, NAME_None, RF_Transient);
+		if (SkillStep)
+		{
+			SkillSteps.Add(SkillStep);
+		}
+		return SkillStep;
+	}
+
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
 	{
 		for (const FMASkillPayloadEntry& PayloadEntry : Payloads)

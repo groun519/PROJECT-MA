@@ -64,7 +64,7 @@ FPlayerBaseStats::FPlayerBaseStats()
 	BaseFocus{0.f},
 	BaseCriticalDamage{1.5f},
 	BaseReverseCriticalDamage{0.5f},
-	BaseAttackRange{0.f},
+	BaseAttackRange{1.f},
 	BaseMoveSpeed{0.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f},
@@ -78,6 +78,7 @@ FMonsterBaseStats::FMonsterBaseStats()
 	BaseAttack{0.f},
 	BaseMoveSpeed{0.f},
 	BaseAttackSpeed{0.f},
+	BaseAttackRange{1.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f}
 {

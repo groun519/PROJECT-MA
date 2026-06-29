@@ -79,17 +79,15 @@ public:
 	UMASkillEventDispatcher* GetEventDispatcher() const { return Dispatcher; }
 
 private:
-	static constexpr int32 SkillModuleSlotCount = 8;
+	static constexpr int32 ActiveModuleSlotCount = 8;
+	static constexpr int32 PassiveModuleSlotCount = 4;
 
 	FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag);
 	const FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag) const;
 	FMASkillSlotRuntimeState& FindOrAddSlotRuntimeState(FGameplayTag SlotTag);
-	FMASkillSlotStack* FindSkillSlotStack(FGameplayTag SlotTag);
-	const FMASkillSlotStack* FindSkillSlotStack(FGameplayTag SlotTag) const;
-	bool IsKnownSkillSlotTag(FGameplayTag SlotTag) const;
-	static bool IsValidModuleSlotIndex(int32 Index);
-	static void NormalizeModuleInstanceSlots(TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
-	static bool HasAnyModuleInstance(const TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
+	static int32 GetModuleSlotCount(FGameplayTag SlotTag);
+	static bool IsValidModuleSlotIndex(FGameplayTag SlotTag, int32 Index);
+	static void NormalizeModuleInstanceSlots(FGameplayTag SlotTag, TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	TArray<FGameplayTag> GatherUniqueSkillSlotTags() const;
 	bool CanMutateSkillSlots() const;
 	bool SwapModuleSlotsBetween(

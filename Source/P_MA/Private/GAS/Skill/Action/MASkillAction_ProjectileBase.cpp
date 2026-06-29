@@ -155,7 +155,9 @@ void UMASkillAction_ProjectileBase::Execute(
 
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
-	ProjectileParams.SkillAreaScale = MASkillAreaStatics::ResolveAreaScale(Payloads);
+	ProjectileParams.SkillAreaScale = MASkillAreaStatics::ResolveAreaScale(
+		Payloads,
+		OwnerAbility.GetAbilitySystemComponentFromActorInfo());
 	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;

@@ -10,9 +10,33 @@ UMASkillStep_Cast::UMASkillStep_Cast()
 	StepProgressSettings.Label = FText::FromString(TEXT("Cast"));
 }
 
-void UMASkillStep_Cast::OnTimedStepStarted(UMASkillAbility*, EMASkillStepStartMode)
+void UMASkillStep_Cast::Configure(
+	float InCastDuration,
+	EMASkillCastMontageMode InMontageMode,
+	UAnimMontage* InCustomMontage)
+{
+	CastDuration = FMath::Max(InCastDuration, 0.f);
+	MontageMode = InMontageMode;
+	StepMontage = MontageMode == EMASkillCastMontageMode::CustomMontage
+		? InCustomMontage
+		: nullptr;
+}
+
+UAnimMontage* UMASkillStep_Cast::ResolveStepMontage() const
+{
+	return MontageMode == EMASkillCastMontageMode::CustomMontage
+		? Super::ResolveStepMontage()
+		: nullptr;
+}
+
+void UMASkillStep_Cast::OnTimedStepStarted(UMASkillAbility*, EMASkillStepStartMode StartMode)
 {
 	ApplyInputBlockTag();
+	if (MontageMode == EMASkillCastMontageMode::BlendInNextMontage
+		&& StartMode == EMASkillStepStartMode::Fresh)
+	{
+		PrepareNextStepPreview(CastDuration);
+	}
 }
 
 void UMASkillStep_Cast::OnTimedStepStopped()

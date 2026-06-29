@@ -6,6 +6,7 @@
 #include "MAMonsterTypes.generated.h"
 
 class UMASkillDefinition;
+
 USTRUCT(BlueprintType)
 struct FMonsterSkillSlotData
 {
@@ -28,6 +29,9 @@ USTRUCT(BlueprintType)
 struct FMonsterSkillPatternRow : public FTableRowBase
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, meta=(ClampMin = "0.0"))
+	float WindupDuration = 0.f;
 
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "0.0"))
 	float UseDistance = 300.f;

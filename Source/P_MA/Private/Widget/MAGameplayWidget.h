@@ -8,6 +8,7 @@ class UMAValueGauge;
 class ULoopReadyWidget;
 class UButton;
 class UMASkillModuleInventoryWidget;
+class UMASkillPassiveModuleSlotsWidget;
 class UMASkillSlotWidget;
 class UMATemperatureGauge;
 
@@ -46,6 +47,9 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UMASkillModuleInventoryWidget> SkillModuleInventoryWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillPassiveModuleSlotsWidget> PassiveModuleSlotsWidget;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> ModuleInventoryToggleButton;

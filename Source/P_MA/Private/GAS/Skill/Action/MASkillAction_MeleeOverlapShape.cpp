@@ -22,7 +22,9 @@ void UMASkillAction_MeleeOverlapShape::Execute(
 	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
 	const FMASkillWorldAreaShape Area = Config.ResolveWorld(
 		AvatarActor->GetActorTransform(),
-		MASkillAreaStatics::ResolveAreaScale(Payloads));
+		MASkillAreaStatics::ResolveAreaScale(
+			Payloads,
+			OwnerAbility.GetAbilitySystemComponentFromActorInfo()));
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
 	MASkillDamageApplicator::ApplyArea(OwnerAbility, Scopes, Area, DamageConfig, Payloads);
 }

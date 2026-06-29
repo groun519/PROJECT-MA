@@ -31,7 +31,7 @@ struct FMASkillSlotStack
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Skill", meta=(Categories="Skill.Slot"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Skill", meta=(Categories="Skill.Slot.Active"))
 	FGameplayTag SlotTag;
 };
 
@@ -51,6 +51,9 @@ struct P_MA_API FMASkillSystemStatics
 {
 	static int32 ResolveSlotInputID(const FGameplayTag& SlotTag);
 	static bool IsSkillSlotTag(const FGameplayTag& Tag);
+	static bool IsActiveSkillSlotTag(const FGameplayTag& Tag);
+	static bool IsPassiveSkillSlotTag(const FGameplayTag& Tag);
+	static FGameplayTag GetPassiveSlotTag();
 	static FGameplayTag ResolveCooldownTagFromSlotTag(const FGameplayTag& SlotTag);
 	static FGameplayTag ResolveSlotTagFromAbilitySpec(const FGameplayAbilitySpec& Spec);
 

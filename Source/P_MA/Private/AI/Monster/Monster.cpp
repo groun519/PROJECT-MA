@@ -10,7 +10,9 @@
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Step/MASkillStep_Cast.h"
 
 AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAMonsterCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -256,8 +258,25 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 	}
 
 	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
-	return SkillManager
-		&& SkillManager->ReplaceDefinitionsAt(PatternSlotTag, PatternRow.Definitions)
+	if (!SkillManager) return false;
+
+	TArray<TObjectPtr<UMASkillDefinition>> Definitions = PatternRow.Definitions;
+	if (PatternRow.WindupDuration > 0.f)
+	{
+		UMASkillDefinition* WindupDefinition = NewObject<UMASkillDefinition>(SkillManager, NAME_None, RF_Transient);
+		if (!WindupDefinition) return false;
+
+		UMASkillStep_Cast* WindupStep = WindupDefinition->CreateRuntimeSkillStep<UMASkillStep_Cast>();
+		if (!WindupStep) return false;
+
+		WindupStep->Configure(
+			PatternRow.WindupDuration,
+			EMASkillCastMontageMode::BlendInNextMontage,
+			nullptr);
+		Definitions.Insert(WindupDefinition, 0);
+	}
+
+	return SkillManager->ReplaceDefinitionsAt(PatternSlotTag, Definitions)
 		&& SkillManager->GetAssembledDefinition(PatternSlotTag);
 }
 

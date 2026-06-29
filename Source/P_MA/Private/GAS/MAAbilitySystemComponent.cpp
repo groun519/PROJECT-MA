@@ -201,7 +201,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
-			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseStats->BaseAttackRange);
+			const float BaseAttackRange = BaseStats->BaseAttackRange > 0.f ? BaseStats->BaseAttackRange : 1.f;
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseAttackRange);
 			SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
 			SetNumericAttributeBase(UMAAttributeSet::GetFocusAttribute(), BaseStats->BaseFocus);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
@@ -231,6 +232,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
+			const float BaseAttackRange = BaseStats->BaseAttackRange > 0.f ? BaseStats->BaseAttackRange : 1.f;
+			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseAttackRange);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			AppliedBaseTags = BaseStats->BaseImmunityTags;

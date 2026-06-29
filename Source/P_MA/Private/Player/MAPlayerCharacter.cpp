@@ -611,7 +611,7 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		{
 			UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
 			SkillManager->ReplaceDefinitionAt(
-				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.1")),
+				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.1")),
 				0,
 				AttackSkillDefinition);
 		}

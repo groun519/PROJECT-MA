@@ -22,7 +22,9 @@ float MASkillAnimNotifyStatics::ResolveSkillAreaScale(UMASkillAbility* SkillAbil
 
 	const FMASkillPayloadStore* SkillPayloadStore = &SkillAbility->GetAssembledModulePayloadStore();
 	FMASkillPayloadAccessor Payloads(nullptr, SkillPayloadStore, nullptr);
-	return MASkillAreaStatics::ResolveAreaScale(Payloads);
+	return MASkillAreaStatics::ResolveAreaScale(
+		Payloads,
+		SkillAbility->GetAbilitySystemComponentFromActorInfo());
 }
 
 float MASkillAnimNotifyStatics::ResolveSkillAreaScale(

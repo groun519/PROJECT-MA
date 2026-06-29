@@ -5,6 +5,7 @@
 struct FGameplayAbilityTargetDataHandle;
 struct FMASkillPayloadAccessor;
 struct FMASkillWorldAreaShape;
+class UAbilitySystemComponent;
 
 class P_MA_API MASkillAreaStatics final
 {
@@ -21,7 +22,9 @@ public:
 		UWorld& World,
 		const FMASkillWorldAreaShape& Area);
 
-	static float ResolveAreaScale(const FMASkillPayloadAccessor& Payloads);
+	static float ResolveAreaScale(
+		const FMASkillPayloadAccessor& Payloads,
+		const UAbilitySystemComponent* AbilitySystemComponent);
 
 private:
 	MASkillAreaStatics() = delete;

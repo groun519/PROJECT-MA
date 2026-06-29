@@ -281,6 +281,9 @@ struct FMonsterBaseStats : public FTableRowBase
 	float BaseAttackSpeed;
 
 	UPROPERTY(EditAnywhere)
+	float BaseAttackRange;
+
+	UPROPERTY(EditAnywhere)
 	float BaseArmor;
 
 	UPROPERTY(EditAnywhere)

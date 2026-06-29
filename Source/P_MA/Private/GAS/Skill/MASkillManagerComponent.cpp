@@ -88,7 +88,8 @@ void UMASkillManagerComponent::InitializeGrantedAbilities()
 void UMASkillManagerComponent::PrepareSkillSlotRuntimeStatesForUI()
 {
 	const TArray<FGameplayTag> SlotTags = GatherUniqueSkillSlotTags();
-	SkillSlotRuntimeStates.Reserve(SlotTags.Num());
+	SkillSlotRuntimeStates.Reserve(SlotTags.Num() + 1);
+	FindOrAddSlotRuntimeState(FMASkillSystemStatics::GetPassiveSlotTag());
 	for (const FGameplayTag& SlotTag : SlotTags)
 	{
 		FindOrAddSlotRuntimeState(SlotTag);
@@ -102,10 +103,10 @@ bool UMASkillManagerComponent::ReplaceDefinitionAt(
 {
 	if (!CanMutateSkillSlots()) return false;
 	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
-	if (!IsValidModuleSlotIndex(ModuleIndex)) return false;
+	if (!IsValidModuleSlotIndex(SlotTag, ModuleIndex)) return false;
 
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
-	NormalizeModuleInstanceSlots(SlotState.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTag, SlotState.SourceModuleInstances);
 
 	TObjectPtr<UMASkillModuleInstance> PreviousModuleInstance = SlotState.SourceModuleInstances[ModuleIndex];
 	SlotState.SourceModuleInstances[ModuleIndex] = UMASkillModuleInstance::Create(GetOwner(), NewDefinition);
@@ -126,12 +127,13 @@ bool UMASkillManagerComponent::ReplaceDefinitionsAt(
 {
 	if (!CanMutateSkillSlots()) return false;
 	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
+	const int32 ModuleSlotCount = GetModuleSlotCount(SlotTag);
 
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
-	NormalizeModuleInstanceSlots(SlotState.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTag, SlotState.SourceModuleInstances);
 
 	TArray<TObjectPtr<UMASkillModuleInstance>> PreviousModuleInstances = SlotState.SourceModuleInstances;
-	for (int32 Index = 0; Index < SkillModuleSlotCount; ++Index)
+	for (int32 Index = 0; Index < ModuleSlotCount; ++Index)
 	{
 		UMASkillDefinition* Definition = NewDefinitions.IsValidIndex(Index)
 			? NewDefinitions[Index].Get()
@@ -158,11 +160,11 @@ bool UMASkillManagerComponent::ReplaceModuleInstanceAt(
 	OutPreviousModuleInstance = nullptr;
 
 	if (!CanMutateSkillSlots()) return false;
-	if (!IsKnownSkillSlotTag(SlotTag)) return false;
-	if (!IsValidModuleSlotIndex(ModuleIndex)) return false;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
+	if (!IsValidModuleSlotIndex(SlotTag, ModuleIndex)) return false;
 
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
-	NormalizeModuleInstanceSlots(SlotState.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTag, SlotState.SourceModuleInstances);
 
 	TObjectPtr<UMASkillModuleInstance> PreviousModuleInstance = SlotState.SourceModuleInstances[ModuleIndex];
 	SlotState.SourceModuleInstances[ModuleIndex] = NewModuleInstance;
@@ -184,8 +186,12 @@ bool UMASkillManagerComponent::RequestSwapModuleSlotsBetween(
 	FGameplayTag SlotTagB,
 	int32 IndexB)
 {
-	if (!IsValidModuleSlotIndex(IndexA) || !IsValidModuleSlotIndex(IndexB)) return false;
-	if (!IsKnownSkillSlotTag(SlotTagA) || !IsKnownSkillSlotTag(SlotTagB)) return false;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTagA)
+		|| !FMASkillSystemStatics::IsSkillSlotTag(SlotTagB))
+	{
+		return false;
+	}
+	if (!IsValidModuleSlotIndex(SlotTagA, IndexA) || !IsValidModuleSlotIndex(SlotTagB, IndexB)) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
@@ -206,10 +212,12 @@ bool UMASkillManagerComponent::RequestMoveModuleSlot(
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 	int32 TargetIndex)
 {
+	if (!SourceSlots || !TargetOwner || !TargetSlots || TargetIndex == INDEX_NONE) return false;
+
 	FGameplayTag SourceSlotTag;
 	if (!FindSlotTagForModuleSlots(SourceSlots, SourceSlotTag)) return false;
-	if (!SourceSlots->IsValidIndex(SourceIndex) || !(*SourceSlots)[SourceIndex] || !(*SourceSlots)[SourceIndex]->IsValid()) return false;
-	if (!TargetOwner || !TargetSlots || TargetIndex == INDEX_NONE) return false;
+	if (!IsValidModuleSlotIndex(SourceSlotTag, SourceIndex)) return false;
+	if (!(*SourceSlots)[SourceIndex] || !(*SourceSlots)[SourceIndex]->IsValid()) return false;
 
 	if (UMASkillManagerComponent* TargetSkillManager = Cast<UMASkillManagerComponent>(TargetOwner))
 	{
@@ -239,15 +247,19 @@ bool UMASkillManagerComponent::SwapModuleSlotsBetween(
 	int32 IndexB)
 {
 	if (!CanMutateSkillSlots()) return false;
-	if (!IsValidModuleSlotIndex(IndexA) || !IsValidModuleSlotIndex(IndexB)) return false;
-	if (!IsKnownSkillSlotTag(SlotTagA) || !IsKnownSkillSlotTag(SlotTagB)) return false;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTagA)
+		|| !FMASkillSystemStatics::IsSkillSlotTag(SlotTagB))
+	{
+		return false;
+	}
+	if (!IsValidModuleSlotIndex(SlotTagA, IndexA) || !IsValidModuleSlotIndex(SlotTagB, IndexB)) return false;
 	if (SlotTagA == SlotTagB && IndexA == IndexB) return true;
 
 	FMASkillSlotRuntimeState& SlotStateA = FindOrAddSlotRuntimeState(SlotTagA);
 	FMASkillSlotRuntimeState& SlotStateB = FindOrAddSlotRuntimeState(SlotTagB);
 
-	NormalizeModuleInstanceSlots(SlotStateA.SourceModuleInstances);
-	NormalizeModuleInstanceSlots(SlotStateB.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTagA, SlotStateA.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTagB, SlotStateB.SourceModuleInstances);
 
 	TObjectPtr<UMASkillModuleInstance> PreviousModuleInstanceA = SlotStateA.SourceModuleInstances[IndexA];
 	TObjectPtr<UMASkillModuleInstance> PreviousModuleInstanceB = SlotStateB.SourceModuleInstances[IndexB];
@@ -285,10 +297,10 @@ void UMASkillManagerComponent::ServerSwapModuleSlotsBetween_Implementation(
 
 const TArray<TObjectPtr<UMASkillModuleInstance>>* UMASkillManagerComponent::GetModuleSlotsForUI(FGameplayTag SlotTag)
 {
-	if (!IsKnownSkillSlotTag(SlotTag)) return nullptr;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return nullptr;
 
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
-	NormalizeModuleInstanceSlots(SlotState.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTag, SlotState.SourceModuleInstances);
 	return &SlotState.SourceModuleInstances;
 }
 
@@ -304,7 +316,7 @@ bool UMASkillManagerComponent::FindSlotTagForModuleSlots(
 		if (&SlotState.SourceModuleInstances != ModuleSlots) continue;
 
 		OutSlotTag = SlotState.SlotTag;
-		return FMASkillSystemStatics::IsSkillSlotTag(OutSlotTag);
+		return true;
 	}
 
 	return false;
@@ -329,8 +341,11 @@ bool UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 		SkillAbility->EndSkill();
 	}
 
-	SlotState.AssembledModuleInstance = FMASkillAssembler::Assemble(this, SlotState.SourceModuleInstances);
-	EnsureAbilityForSlot(SlotState);
+	SlotState.AssembledModuleInstance = FMASkillAssembler::Assemble(this, SlotTag, SlotState.SourceModuleInstances);
+	if (FMASkillSystemStatics::IsActiveSkillSlotTag(SlotTag) || SlotState.AssembledModuleInstance)
+	{
+		EnsureAbilityForSlot(SlotState);
+	}
 	RefreshAbilityDefinition(SlotState);
 	UpdateReplicatedSkillSlotRuntimeState(SlotState);
 	check(Dispatcher);
@@ -344,7 +359,11 @@ bool UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 		PreviousRuntimeRegistry->Cleanup();
 	}
 	OnSkillSlotChanged.Broadcast(SlotTag);
-	return SlotState.AssembledModuleInstance != nullptr || !HasAnyModuleInstance(SlotState.SourceModuleInstances);
+	return SlotState.AssembledModuleInstance != nullptr
+		|| !SlotState.SourceModuleInstances.ContainsByPredicate([](const UMASkillModuleInstance* ModuleInstance)
+		{
+			return ModuleInstance && ModuleInstance->IsValid() && ModuleInstance->IsActive();
+		});
 }
 
 void UMASkillManagerComponent::RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass)
@@ -378,7 +397,7 @@ void UMASkillManagerComponent::UnregisterAbilityHandle(FGameplayTag SlotTag, FGa
 
 bool UMASkillManagerComponent::TryActivateSkill(FGameplayTag SlotTag)
 {
-	if (!IsKnownSkillSlotTag(SlotTag)) return false;
+	if (!FMASkillSystemStatics::IsActiveSkillSlotTag(SlotTag)) return false;
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
 	if (!EnsureAbilityForSlot(SlotState)) return false;
 	if (!SlotState.AbilityHandle.IsValid()) return false;
@@ -448,7 +467,7 @@ FMASkillSlotRuntimeState& UMASkillManagerComponent::FindOrAddSlotRuntimeState(FG
 {
 	if (FMASkillSlotRuntimeState* ExistingState = FindSlotRuntimeState(SlotTag))
 	{
-		NormalizeModuleInstanceSlots(ExistingState->SourceModuleInstances);
+		NormalizeModuleInstanceSlots(SlotTag, ExistingState->SourceModuleInstances);
 		return *ExistingState;
 	}
 
@@ -459,54 +478,34 @@ FMASkillSlotRuntimeState& UMASkillManagerComponent::FindOrAddSlotRuntimeState(FG
 		TEXT("Do not add skill slot runtime states while UI widgets may hold direct slot array pointers."));
 	FMASkillSlotRuntimeState& NewState = SkillSlotRuntimeStates.AddDefaulted_GetRef();
 	NewState.SlotTag = SlotTag;
-	NormalizeModuleInstanceSlots(NewState.SourceModuleInstances);
+	NormalizeModuleInstanceSlots(SlotTag, NewState.SourceModuleInstances);
 	return NewState;
 }
 
-FMASkillSlotStack* UMASkillManagerComponent::FindSkillSlotStack(FGameplayTag SlotTag)
+int32 UMASkillManagerComponent::GetModuleSlotCount(FGameplayTag SlotTag)
 {
-	return SkillSlotStacks.FindByPredicate([SlotTag](const FMASkillSlotStack& SkillSlotStack)
-	{
-		return SkillSlotStack.SlotTag == SlotTag;
-	});
+	return FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag)
+		? PassiveModuleSlotCount
+		: ActiveModuleSlotCount;
 }
 
-const FMASkillSlotStack* UMASkillManagerComponent::FindSkillSlotStack(FGameplayTag SlotTag) const
+bool UMASkillManagerComponent::IsValidModuleSlotIndex(FGameplayTag SlotTag, int32 Index)
 {
-	return SkillSlotStacks.FindByPredicate([SlotTag](const FMASkillSlotStack& SkillSlotStack)
-	{
-		return SkillSlotStack.SlotTag == SlotTag;
-	});
+	return Index >= 0 && Index < GetModuleSlotCount(SlotTag);
 }
 
-bool UMASkillManagerComponent::IsKnownSkillSlotTag(FGameplayTag SlotTag) const
+void UMASkillManagerComponent::NormalizeModuleInstanceSlots(
+	FGameplayTag SlotTag,
+	TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances)
 {
-	return FMASkillSystemStatics::IsSkillSlotTag(SlotTag)
-		&& (FindSkillSlotStack(SlotTag) || FindSlotRuntimeState(SlotTag));
-}
-
-bool UMASkillManagerComponent::IsValidModuleSlotIndex(int32 Index)
-{
-	return Index >= 0 && Index < SkillModuleSlotCount;
-}
-
-void UMASkillManagerComponent::NormalizeModuleInstanceSlots(TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances)
-{
-	if (ModuleInstances.Num() != 0 && ModuleInstances.Num() != SkillModuleSlotCount)
+	const int32 ModuleSlotCount = GetModuleSlotCount(SlotTag);
+	if (ModuleInstances.Num() != 0 && ModuleInstances.Num() != ModuleSlotCount)
 	{
 		ensureMsgf(
 			false,
 			TEXT("Do not resize skill module slots while UI widgets may hold direct slot array pointers."));
 	}
-	ModuleInstances.SetNum(SkillModuleSlotCount);
-}
-
-bool UMASkillManagerComponent::HasAnyModuleInstance(const TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances)
-{
-	return ModuleInstances.ContainsByPredicate([](const UMASkillModuleInstance* ModuleInstance)
-	{
-		return ModuleInstance && ModuleInstance->IsValid();
-	});
+	ModuleInstances.SetNum(ModuleSlotCount);
 }
 
 TArray<FGameplayTag> UMASkillManagerComponent::GatherUniqueSkillSlotTags() const
@@ -517,7 +516,7 @@ TArray<FGameplayTag> UMASkillManagerComponent::GatherUniqueSkillSlotTags() const
 	for (const FMASkillSlotStack& SkillSlotStack : SkillSlotStacks)
 	{
 		const FGameplayTag& SlotTag = SkillSlotStack.SlotTag;
-		if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) continue;
+		if (!FMASkillSystemStatics::IsActiveSkillSlotTag(SlotTag)) continue;
 
 		if (SeenSlotTags.Contains(SlotTag))
 		{
@@ -536,7 +535,11 @@ TArray<FGameplayTag> UMASkillManagerComponent::GatherUniqueSkillSlotTags() const
 
 	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
 	{
-		if (!FMASkillSystemStatics::IsSkillSlotTag(SlotState.SlotTag) || SeenSlotTags.Contains(SlotState.SlotTag)) continue;
+		if (!FMASkillSystemStatics::IsActiveSkillSlotTag(SlotState.SlotTag)
+			|| SeenSlotTags.Contains(SlotState.SlotTag))
+		{
+			continue;
+		}
 
 		SeenSlotTags.Add(SlotState.SlotTag);
 		UniqueSlotTags.Add(SlotState.SlotTag);
@@ -554,7 +557,6 @@ bool UMASkillManagerComponent::CanMutateSkillSlots() const
 bool UMASkillManagerComponent::EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState)
 {
 	if (SlotState.AbilityHandle.IsValid()) return true;
-	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotState.SlotTag)) return false;
 
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor || !OwnerActor->HasAuthority()) return true;
@@ -573,8 +575,6 @@ bool UMASkillManagerComponent::EnsureAbilityForSlot(FMASkillSlotRuntimeState& Sl
 	}
 
 	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotState.SlotTag);
-	if (SlotInputID == INDEX_NONE) return false;
-
 	FGameplayAbilitySpec AbilitySpec(UMASkillAbility::StaticClass(), 1, SlotInputID, nullptr);
 	AbilitySpec.DynamicAbilityTags.AddTag(SlotState.SlotTag);
 	SlotState.AbilityHandle = AbilitySystemComponent->GiveAbility(AbilitySpec);
@@ -594,9 +594,10 @@ void UMASkillManagerComponent::ApplyReplicatedSkillSlotRuntimeStates()
 
 		FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(ReplicatedSlotState.SlotTag);
 		SlotState.SourceModuleInstances.Reset();
-		SlotState.SourceModuleInstances.SetNum(SkillModuleSlotCount);
+		const int32 ModuleSlotCount = GetModuleSlotCount(ReplicatedSlotState.SlotTag);
+		SlotState.SourceModuleInstances.SetNum(ModuleSlotCount);
 
-		const int32 CopyCount = FMath::Min(ReplicatedSlotState.ModuleInstances.Num(), SkillModuleSlotCount);
+		const int32 CopyCount = FMath::Min(ReplicatedSlotState.ModuleInstances.Num(), ModuleSlotCount);
 		for (int32 Index = 0; Index < CopyCount; ++Index)
 		{
 			SlotState.SourceModuleInstances[Index] = ReplicatedSlotState.ModuleInstances[Index];
@@ -610,7 +611,6 @@ void UMASkillManagerComponent::UpdateReplicatedSkillSlotRuntimeState(const FMASk
 {
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor || !OwnerActor->HasAuthority()) return;
-	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotState.SlotTag)) return;
 
 	FMASkillReplicatedSlotRuntimeState* ReplicatedSlotState = ReplicatedSkillSlotRuntimeStates.FindByPredicate(
 		[&SlotState](const FMASkillReplicatedSlotRuntimeState& Candidate)
@@ -625,9 +625,10 @@ void UMASkillManagerComponent::UpdateReplicatedSkillSlotRuntimeState(const FMASk
 	}
 
 	ReplicatedSlotState->ModuleInstances.Reset();
-	ReplicatedSlotState->ModuleInstances.SetNum(SkillModuleSlotCount);
+	const int32 ModuleSlotCount = GetModuleSlotCount(SlotState.SlotTag);
+	ReplicatedSlotState->ModuleInstances.SetNum(ModuleSlotCount);
 
-	const int32 CopyCount = FMath::Min(SlotState.SourceModuleInstances.Num(), SkillModuleSlotCount);
+	const int32 CopyCount = FMath::Min(SlotState.SourceModuleInstances.Num(), ModuleSlotCount);
 	for (int32 Index = 0; Index < CopyCount; ++Index)
 	{
 		ReplicatedSlotState->ModuleInstances[Index] = SlotState.SourceModuleInstances[Index];

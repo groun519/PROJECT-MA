@@ -76,8 +76,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Skill")
 	TArray<FMonsterSkillSlotData> SkillSlots;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Pattern", meta=(Categories="Skill.Slot"))
-	FGameplayTag PatternSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.NoCooldown"));
+	UPROPERTY(EditDefaultsOnly, Category = "Pattern", meta=(Categories="Skill.Slot.Active"))
+	FGameplayTag PatternSlotTag = FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.NoCooldown"));
 
 	UPROPERTY(EditDefaultsOnly, Category = "Pattern")
 	TObjectPtr<UStateTree> PatternStateTree;

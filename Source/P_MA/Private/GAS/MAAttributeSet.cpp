@@ -26,6 +26,7 @@ UMAAttributeSet::UMAAttributeSet()
 	: SlowMultiplier(1.f)
 	, CriticalDamage(1.5f)
 	, ReverseCriticalDamage(0.5f)
+	, AttackRange(1.f)
 {}
 
 void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

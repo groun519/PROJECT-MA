@@ -382,7 +382,9 @@ void UMAElementalComponent::TriggerOverheatExplosion(const FGameplayEffectContex
 	const FMASkillScopes Scopes(nullptr, SourceAbility->GetCurrentSkillModuleInstance());
 	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(
 		OwnerCharacter->GetActorTransform(),
-		MASkillAreaStatics::ResolveAreaScale(Scopes.GetPayloadAccess()));
+		MASkillAreaStatics::ResolveAreaScale(
+			Scopes.GetPayloadAccess(),
+			SourceAbility->GetAbilitySystemComponentFromActorInfo()));
 	MASkillDamageApplicator::ApplyArea(
 		*SourceAbility,
 		Scopes,

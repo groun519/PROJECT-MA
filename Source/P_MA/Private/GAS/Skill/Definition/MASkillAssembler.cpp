@@ -1,10 +1,14 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 
 #include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 
-UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
+UMASkillModuleInstance* FMASkillAssembler::Assemble(
+	UObject* Outer,
+	const FGameplayTag& SlotTag,
+	const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
 {
 	if (!Outer) return nullptr;
 
@@ -15,6 +19,8 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
 	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
 	const FGameplayTag UniqueModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive.Unique"), false);
+	const FGameplayTag PassiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Passive"));
+	const bool bPassiveSlot = FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag);
 	int32 PriorityOneIconCount = 0;
 	bool bHasIconColors = false;
 
@@ -30,6 +36,12 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(UObject* Outer, const TArray
 	{
 		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 		if (!Definition) continue;
+
+		if (bPassiveSlot != Definition->GetModuleTags().HasTagExact(PassiveModuleTag))
+		{
+			ModuleInstance->SetActive(false, PassiveModuleTag);
+			continue;
+		}
 
 		FGameplayTag BlockingAssemblyTag;
 		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())

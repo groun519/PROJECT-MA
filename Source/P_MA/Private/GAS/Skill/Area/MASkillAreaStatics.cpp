@@ -1,8 +1,10 @@
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "AbilitySystemComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Area/Debug/DebugShapeHelper.h"
@@ -202,9 +204,15 @@ void MASkillAreaStatics::DrawWorldPreview(
 	}
 }
 
-float MASkillAreaStatics::ResolveAreaScale(const FMASkillPayloadAccessor& Payloads)
+float MASkillAreaStatics::ResolveAreaScale(
+	const FMASkillPayloadAccessor& Payloads,
+	const UAbilitySystemComponent* AbilitySystemComponent)
 {
 	float AreaScale = 1.f;
 	Payloads.TryGetScalar(UMAAbilitySystemStatics::GetSkillAreaScaleTag(), AreaScale);
-	return FMath::Max(AreaScale, 0.f);
+
+	const float AttackRangeScale = AbilitySystemComponent
+		? AbilitySystemComponent->GetNumericAttribute(UMAAttributeSet::GetAttackRangeAttribute())
+		: 1.f;
+	return FMath::Max(AreaScale, 0.f) * FMath::Max(AttackRangeScale, 0.f);
 }
