@@ -42,13 +42,8 @@ public:
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
 
-	static FGameplayTag GetCoinAttributeTag();
-
 	static FGameplayTag GetDefaultElementalTag();
 	
-	static FGameplayTag GetMontageDamageTag();
-	static FGameplayTag GetMontageProjectileTag();
-
 	static FGameplayTag GetBehaviorMultiplierTag();
 	static FGameplayTag GetDamageBaseTag();
 	static FGameplayTag GetAppliedDamageTag();
@@ -74,13 +69,9 @@ public:
 	static FGameplayTag GetAnyReactionStateTag();
 	static bool IsPlayer(const AActor* ActorToCheck);
 
-	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
-	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
-
 	static bool CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC);
 	static bool CheckAbilityCostStatic(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 
-	static float GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent* ASC);
 };

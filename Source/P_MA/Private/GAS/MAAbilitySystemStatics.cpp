@@ -2,9 +2,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "MAGameplayAbilityTypes.h"
-#include "Ability/MAGameplayAbility_Skill.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Setting/MASkillSubsystem.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
@@ -56,24 +54,9 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetCoinAttributeTag()
-{
-	return FGameplayTag::RequestGameplayTag("attr.coin");
-}
-
 FGameplayTag UMAAbilitySystemStatics::GetDefaultElementalTag()
 {
 	return FGameplayTag::RequestGameplayTag("Elemental.Default");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
@@ -286,35 +269,6 @@ bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
 	return ActorToCheck && ActorToCheck->IsA<AMAPlayerCharacter>();
 }
 
-float UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)
-{
-	if (!Ability)
-		return 0.f;
-	
-	const UGameplayEffect* CooldownEffect = Ability->GetCooldownGameplayEffect();
-	if (!CooldownEffect)
-		return 0.f;
-
-	float CooldownDuration = 0.f;
-
-	CooldownEffect->DurationMagnitude.GetStaticMagnitudeIfPossible(1, CooldownDuration);
-	return CooldownDuration;
-}
-
-float UMAAbilitySystemStatics::GetStaticCostForAbility(const UGameplayAbility* Ability)
-{
-	if (!Ability)
-		return 0.f;
-
-	const UGameplayEffect* CostEffect = Ability->GetCostGameplayEffect();
-	if (!CostEffect || CostEffect->Modifiers.Num() == 0)
-		return 0.f;
-
-	float Cost = 0.f;
-	CostEffect->Modifiers[0].ModifierMagnitude.GetStaticMagnitudeIfPossible(1, Cost);
-	return FMath::Abs(Cost);
-}
-
 bool UMAAbilitySystemStatics::CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC)
 {
 	const UGameplayAbility* AbilityCDO = AbilitySpec.Ability;
@@ -376,30 +330,4 @@ float UMAAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* A
 	}
 
 	return CooldownRemaining;
-}
-
-float UMAAbilitySystemStatics::GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO,	const UAbilitySystemComponent* ASC)
-{
-	if (!AbilityCDO || !ASC)
-		return 0.f;
-
-	const UMAGameplayAbility_Skill* SkillAbility = Cast<UMAGameplayAbility_Skill>(AbilityCDO);
-	if (!SkillAbility)
-		return 0.f;
-
-	float FinalCooldown = 0.f;
-	const FSkillData* FetchedSkillData = nullptr;
-	
-	if (UWorld* World = ASC->GetWorld())
-	{
-		if (UMASkillSubsystem* SkillSys = World->GetGameInstance()->GetSubsystem<UMASkillSubsystem>())
-		{
-			FetchedSkillData = SkillSys->GetSkillData(SkillAbility->GetSkillID());
-			if (FetchedSkillData)
-			{
-				FinalCooldown = FetchedSkillData->BaseCooldown;
-			}
-		}
-	}
-	return FinalCooldown;
 }

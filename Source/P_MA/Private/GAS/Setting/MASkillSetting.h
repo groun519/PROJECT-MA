@@ -21,11 +21,5 @@ public:
 	TSoftObjectPtr<UDataTable> SkillMasterTable;
 	
 	UPROPERTY(Config, EditAnywhere, Category="Data Tables")
-	TSoftObjectPtr<UDataTable> BehaviorTable;
-	
-	UPROPERTY(Config, EditAnywhere, Category="Data Tables")
-	TSoftObjectPtr<UDataTable> ElementalTable;
-	
-	UPROPERTY(Config, EditAnywhere, Category="Data Tables")
 	TSoftObjectPtr<UDataTable> UtilityTable;
 };

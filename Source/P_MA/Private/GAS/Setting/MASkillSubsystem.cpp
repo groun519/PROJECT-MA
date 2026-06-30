@@ -18,32 +18,6 @@ const FSkillData* UMASkillSubsystem::GetSkillData(FName SkillID)
 	return nullptr;
 }
 
-const FModuleBehaviorData* UMASkillSubsystem::GetBehaviorData(FGameplayTag Tag)
-{
-	if (!LoadedBehaviorTable)
-	{
-		LoadedBehaviorTable = UMASkillSetting::Get()->BehaviorTable.LoadSynchronous();
-	}
-	if (LoadedBehaviorTable && Tag.IsValid())
-	{
-		return LoadedBehaviorTable->FindRow<FModuleBehaviorData>(Tag.GetTagName(),"");
-	}
-	return nullptr;
-}
-
-const FModuleElementalData* UMASkillSubsystem::GetElementalData(FGameplayTag Tag)
-{
-	if (!LoadedElementalTable)
-	{
-		LoadedElementalTable = UMASkillSetting::Get()->ElementalTable.LoadSynchronous();
-	}
-	if (LoadedElementalTable && Tag.IsValid())
-	{
-		return LoadedElementalTable->FindRow<FModuleElementalData>(Tag.GetTagName(),"");
-	}
-	return nullptr;
-}
-
 const FModuleUtilityData* UMASkillSubsystem::GetUtilityData(FGameplayTag Tag)
 {
 	if (!LoadedUtilityTable)

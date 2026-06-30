@@ -18,13 +18,9 @@ class UMASkillSubsystem : public UGameInstanceSubsystem
 public:
 	const FSkillData* GetSkillData(FName SkillID);
 
-	const FModuleBehaviorData* GetBehaviorData(FGameplayTag Tag);
-	const FModuleElementalData* GetElementalData(FGameplayTag Tag);
 	const FModuleUtilityData* GetUtilityData(FGameplayTag Tag);
 
 private:
 	UPROPERTY()		UDataTable* LoadedMasterTable;
-	UPROPERTY()		UDataTable* LoadedBehaviorTable;
-	UPROPERTY()		UDataTable* LoadedElementalTable;
 	UPROPERTY()		UDataTable* LoadedUtilityTable;
 };
