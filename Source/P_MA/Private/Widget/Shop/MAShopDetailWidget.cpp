@@ -6,7 +6,6 @@
 #include "Components/RichTextBlock.h"
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "MAMaterialParams.h"
 #include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillTagBadgeWidget.h"
@@ -66,8 +65,7 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 		: GameSettings->NegativeCooldownColor));
 	CooldownText->SetVisibility(FMath::IsNearlyZero(CooldownSeconds) ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = GameSettings->GetDefaultSkillGenericDataAsset();
-	const UDataTable* WarningTextDataTable = GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
+	const UDataTable* WarningTextDataTable = GameSettings->GetWarningTextDataTable();
 	const FGameplayTagContainer TooltipTags = SkillDefinition ? SkillDefinition->GetTooltipTags() : FGameplayTagContainer();
 	UMASkillTagBadgeWidget::RefreshTagBadges(
 		this,

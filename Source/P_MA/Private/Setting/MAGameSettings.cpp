@@ -3,7 +3,6 @@
 #include "GAS/Elemental/MAElementalConfigData.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
-#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "Engine/DataTable.h"
 #include "Materials/MaterialInterface.h"
@@ -22,11 +21,6 @@ UMAGameSettings::UMAGameSettings()
 	IceDamageTextStyle.Color = FLinearColor(0.f, 1.f, 1.f);
 }
 
-const UMASkillGenericDataAsset* UMAGameSettings::GetDefaultSkillGenericDataAsset() const
-{
-	return DefaultSkillGenericDataAsset.LoadSynchronous();
-}
-
 const UPA_AbilitySystemGenerics* UMAGameSettings::GetAbilitySystemGenerics() const
 {
 	return AbilitySystemGenerics.LoadSynchronous();
@@ -40,6 +34,21 @@ const UDataTable* UMAGameSettings::GetPlayerBaseStatDataTable() const
 const UDataTable* UMAGameSettings::GetMonsterBaseStatDataTable() const
 {
 	return MonsterBaseStatDataTable.LoadSynchronous();
+}
+
+const UDataTable* UMAGameSettings::GetElementalDataTable() const
+{
+	return ElementalDataTable.LoadSynchronous();
+}
+
+const UDataTable* UMAGameSettings::GetAreaDecalDataTable() const
+{
+	return AreaDecalDataTable.LoadSynchronous();
+}
+
+const UDataTable* UMAGameSettings::GetWarningTextDataTable() const
+{
+	return WarningTextDataTable.LoadSynchronous();
 }
 
 const UMAModuleQualityData* UMAGameSettings::GetModuleQualityData() const

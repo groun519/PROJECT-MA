@@ -8,7 +8,6 @@
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
-#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -230,18 +229,6 @@ const FGameplayTag& UMASkillAbility::GetElementalTag() const
 	return CurrentElementalTag.IsValid()
 		? CurrentElementalTag
 		: DefaultElementalTag;
-}
-
-const UDataTable* UMASkillAbility::GetElementalDataTable() const
-{
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
-	return GenericSkillDataAsset ? GenericSkillDataAsset->GetElementalDataTable() : nullptr;
-}
-
-const UDataTable* UMASkillAbility::GetAreaDecalDataTable() const
-{
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
-	return GenericSkillDataAsset ? GenericSkillDataAsset->GetAreaDecalDataTable() : nullptr;
 }
 
 UMASkillModuleInstance* UMASkillAbility::GetCurrentBindingScope() const

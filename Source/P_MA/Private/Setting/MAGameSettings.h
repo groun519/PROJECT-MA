@@ -8,7 +8,6 @@
 class UUserWidget;
 class UDataTable;
 class UPA_AbilitySystemGenerics;
-class UMASkillGenericDataAsset;
 class UMAModuleQualityData;
 class UMAElementalConfigData;
 class UMaterialInterface;
@@ -36,10 +35,12 @@ class P_MA_API UMAGameSettings : public UDeveloperSettings
 public:
 	UMAGameSettings();
 	static const UMAGameSettings* Get() { return GetDefault<UMAGameSettings>(); }
-	const UMASkillGenericDataAsset* GetDefaultSkillGenericDataAsset() const;
 	const UPA_AbilitySystemGenerics* GetAbilitySystemGenerics() const;
 	const UDataTable* GetPlayerBaseStatDataTable() const;
 	const UDataTable* GetMonsterBaseStatDataTable() const;
+	const UDataTable* GetElementalDataTable() const;
+	const UDataTable* GetAreaDecalDataTable() const;
+	const UDataTable* GetWarningTextDataTable() const;
 	const UMAModuleQualityData* GetModuleQualityData() const;
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
@@ -47,9 +48,6 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Interact")
 	TSoftClassPtr<UUserWidget> DefaultInteractKeyWidgetClass;
-
-	UPROPERTY(Config, EditAnywhere, Category="Skill")
-	TSoftObjectPtr<UMASkillGenericDataAsset> DefaultSkillGenericDataAsset;
 
 	UPROPERTY(Config, EditAnywhere, Category="Gameplay Ability")
 	TSoftObjectPtr<UPA_AbilitySystemGenerics> AbilitySystemGenerics;
@@ -65,6 +63,15 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Elemental")
 	TSoftObjectPtr<UMAElementalConfigData> ElementalConfigData;
+
+	UPROPERTY(Config, EditAnywhere, Category="Elemental", meta=(RowType="/Script/P_MA.MAElementDataRow"))
+	TSoftObjectPtr<UDataTable> ElementalDataTable;
+
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Area", meta=(RowType="/Script/P_MA.MAAreaDecalDataRow"))
+	TSoftObjectPtr<UDataTable> AreaDecalDataTable;
+
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Warning", meta=(RowType="/Script/P_MA.MASkillWarningTextDataRow"))
+	TSoftObjectPtr<UDataTable> WarningTextDataTable;
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
 	FLinearColor PositiveCooldownColor = FLinearColor::White;

@@ -220,18 +220,6 @@ void UMAGameplayAbility_Skill::SpawnTargetingProjectile(FGameplayEventData& Payl
 	// Legacy targeting-projectile path disabled during projectile init-param migration.
 }
 
-AActor* UMAGameplayAbility_Skill::SpawnProjectileActor(TSubclassOf<AActor> Class, FVector Loc, FRotator Rot, float DamageMultiplier, bool bIsPenetrating)
-{
-	(void)Class;
-	(void)Loc;
-	(void)Rot;
-	(void)DamageMultiplier;
-	(void)bIsPenetrating;
-	// Legacy projectile spawn path disabled during projectile init-param migration.
-	return nullptr;
-}
-
-
 /********************************************************************************************/
 /*										초기화												*/
 /********************************************************************************************/

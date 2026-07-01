@@ -7,6 +7,7 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
+#include "Setting/MAGameSettings.h"
 
 void MASkillDamageResolver::ApplyDamageOverTimeConfig(
 	FGameplayEffectSpecHandle& SpecHandle,
@@ -70,11 +71,10 @@ FMADamageExecutionConfig MASkillDamageResolver::ScaleDamageConfigForTick(const F
 }
 
 void MASkillDamageResolver::AppendElementalHitGameplayCueTag(
-	UMASkillAbility& OwnerAbility,
 	const FGameplayTag& DamageTypeTag,
 	FGameplayTagContainer& TargetGameplayCueTags)
 {
-	const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
+	const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
 	if (!ElementalDataTable || !DamageTypeTag.IsValid())
 	{
 		return;
@@ -118,7 +118,7 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	ResolvedDamage.ApplicationMode = DamageConfig.ApplicationMode;
 	ResolvedDamage.TargetRelationMask = DamageConfig.TargetRelationMask;
 	ResolvedDamage.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
-	AppendElementalHitGameplayCueTag(OwnerAbility, DamageConfig.DamageTypeTag, ResolvedDamage.TargetGameplayCueTags);
+	AppendElementalHitGameplayCueTag(DamageConfig.DamageTypeTag, ResolvedDamage.TargetGameplayCueTags);
 
 	const FMADamageExecutionConfig ExecutionConfig = ResolveExecutionConfig(DamageConfig, Payloads);
 	if (ExecutionConfig.HasValues())

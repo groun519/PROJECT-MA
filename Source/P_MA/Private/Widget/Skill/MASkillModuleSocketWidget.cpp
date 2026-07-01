@@ -4,7 +4,6 @@
 #include "Components/Image.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
-#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
@@ -56,8 +55,7 @@ UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
 
 const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
 {
-	const UMASkillGenericDataAsset* GenericSkillDataAsset = UMAGameSettings::Get()->GetDefaultSkillGenericDataAsset();
-	return GenericSkillDataAsset ? GenericSkillDataAsset->GetWarningTextDataTable() : nullptr;
+	return UMAGameSettings::Get()->GetWarningTextDataTable();
 }
 
 bool UMASkillModuleSocketWidget::IsValidSlot() const

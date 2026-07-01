@@ -247,9 +247,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageMultiplierPerProjectile = 1.f;
 
-	/**투사체가 적을 통과 할 수 있는지*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsPenetrating = false;
 	/**투사체를 캐릭터 360도 주변으로 날릴 것인지 (3개 이상 스폰시에 가능)*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(EditCondition="NumOfProjectiles>2"))
 	bool bIsRadial = false;

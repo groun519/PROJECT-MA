@@ -1,17 +1,22 @@
-﻿#include "GAS/Projectile/MAProjectile.h"
+﻿#include "GAS/Projectile/MAProjectileBase.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "NiagaraComponent.h"
+#include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "Engine/DataTable.h"
+#include "GAS/Projectile/MAProjectileMovementComponent.h"
+#include "GAS/Skill/Area/Decal/MAAreaDecalData.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 #include "GenericTeamAgentInterface.h"
+#include "MAMaterialParams.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraComponent.h"
 #include "P_MA/P_MA.h"
+#include "Setting/MAGameSettings.h"
 
-AMAProjectile::AMAProjectile()
+AMAProjectileBase::AMAProjectileBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickInterval = 0.08f;
@@ -27,94 +32,119 @@ AMAProjectile::AMAProjectile()
 	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
 	SphereComp->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Overlap);
 
-	Niagara = CreateDefaultSubobject<UNiagaraComponent>("Niagara");
-	Niagara->SetupAttachment(SphereComp);
+	ProjectileDecal = CreateDefaultSubobject<UDecalComponent>("ProjectileDecal");
+	ProjectileDecal->SetupAttachment(SphereComp);
+	ProjectileDecal->SetRelativeLocation(FVector(0.f, 0.f, -100.f));
+	ProjectileDecal->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+	ProjectileDecal->SetRelativeScale3D(FVector::OneVector);
+	ProjectileDecal->DecalSize = FVector(100.f, BaseRadius, BaseRadius);
 
 	TrailNiagara = CreateDefaultSubobject<UNiagaraComponent>("TrailNiagara");
 	TrailNiagara->SetupAttachment(SphereComp);
 
-	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovementComponent");
+	ProjectileMovement = CreateDefaultSubobject<UMAProjectileMovementComponent>("ProjectileMovementComponent");
 	ProjectileMovement->UpdatedComponent = SphereComp;
-	ProjectileMovement->InitialSpeed = 1000.f;
-	ProjectileMovement->MaxSpeed = 1000.f;
+	ProjectileMovement->InitialSpeed = BaseSpeed;
+	ProjectileMovement->MaxSpeed = BaseSpeed;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = false;
 	ProjectileMovement->bIsHomingProjectile = false;
 }
 
-void AMAProjectile::Tick(float DeltaTime)
+void AMAProjectileBase::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	SphereComp->SetSphereRadius(BaseRadius, false);
+	ProjectileDecal->DecalSize = FVector(100.f, BaseRadius, BaseRadius);
+}
+
+void AMAProjectileBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (!HasAuthority()) return;
 
-	if (ProjectileParams.ContinuousHitSettings.bEnabled)
-		CheckContinuousHit();
-
-	if (bPendingDestroy) return;
-
-	ApplyLaunchSpeedDecay(DeltaTime);
+	CheckContinuousSweepHit();
 	PreviousHitCheckLocation = GetActorLocation();
 }
 
-void AMAProjectile::BeginPlay()
+void AMAProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeProjectileDecal();
+	ApplyProjectileTrailVisuals();
 	if (HasAuthority())
-		SphereComp->OnComponentBeginOverlap.AddDynamic(this, &AMAProjectile::OnOverlapBegin);
+		SphereComp->OnComponentBeginOverlap.AddDynamic(this, &AMAProjectileBase::OnOverlapBegin);
 	PreviousHitCheckLocation = GetActorLocation();
-	ApplyProjectileVisuals();
 }
 
-void AMAProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+void AMAProjectileBase::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	TryApplyHitToActor(OtherActor, BuildHitResultFromOverlap(OtherActor, SweepResult, OtherComp));
 }
 
-void AMAProjectile::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+void AMAProjectileBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AMAProjectile, bRep_HasElementalVisualData);
-	DOREPLIFETIME(AMAProjectile, Rep_MainVFX);
-	DOREPLIFETIME(AMAProjectile, Rep_TrailVFX);
-	DOREPLIFETIME(AMAProjectile, Rep_ElementalColor);
-	DOREPLIFETIME(AMAProjectile, Rep_SkillAreaScale);
+	DOREPLIFETIME(AMAProjectileBase, Rep_ProjectileRadius);
+	DOREPLIFETIME(AMAProjectileBase, Rep_ElementalColor);
+	DOREPLIFETIME(AMAProjectileBase, bRep_HasElementalVisualData);
+	DOREPLIFETIME(AMAProjectileBase, Rep_TrailVFX);
 }
 
-void AMAProjectile::OnRep_ProjectileVisuals()
-{
-	ApplyProjectileVisuals();
-}
-
-void AMAProjectile::OnRep_ProjectileScale()
-{
-	ApplySkillAreaScale();
-	ApplyProjectileVisuals();
-}
-
-void AMAProjectile::InitializeProjectile(const FMAProjectileParams& InProjectileParams)
+void AMAProjectileBase::InitializeProjectile(const FMAProjectileParams& InProjectileParams)
 {
 	ProjectileParams = InProjectileParams;
-	EventScopes = ProjectileParams.EventScopes;
-	Rep_SkillAreaScale = ProjectileParams.SkillAreaScale;
-	bRep_HasElementalVisualData = ProjectileParams.ElementalSettings.bHasElementalData;
-	Rep_MainVFX = ProjectileParams.ElementalSettings.MainVFX;
-	Rep_TrailVFX = ProjectileParams.ElementalSettings.TrailVFX;
+	Rep_ProjectileRadius = BaseRadius * FMath::Max(ProjectileParams.ProjectileRadiusMultiplier, KINDA_SMALL_NUMBER);
 	Rep_ElementalColor = ProjectileParams.ElementalSettings.ElementalColor;
-	ApplySkillAreaScale();
-	ApplyProjectileVisuals();
-	BindHomingTarget();
+	bRep_HasElementalVisualData = ProjectileParams.ElementalSettings.bHasElementalData;
+	Rep_TrailVFX = ProjectileParams.ElementalSettings.TrailVFX;
+	ApplyProjectileRadius();
+	ApplyProjectileElementalColor();
+	InitializeProjectileVisuals(ProjectileParams);
 
 	const FMAProjectileContinuousHitSettings& ContinuousHitSettings = ProjectileParams.ContinuousHitSettings;
 	PrimaryActorTick.TickInterval = FMath::Max(ContinuousHitSettings.TickInterval, 0.01f);
+	ProjectileMovement->InitialSpeed = FMath::Max(BaseSpeed, KINDA_SMALL_NUMBER);
+	SpeedMultiplier = 1.f;
+	BaseHomingAccelerationMagnitude = ProjectileMovement->HomingAccelerationMagnitude;
+	RefreshProjectileSpeed();
+	BindHomingTarget();
 	PreviousHitCheckLocation = GetActorLocation();
-
-	SetActorTickEnabled(
-		ContinuousHitSettings.bEnabled
-		|| (ProjectileMovement->bIsHomingProjectile && bDecayLaunchSpeed));
 }
 
-FHitResult AMAProjectile::BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const
+void AMAProjectileBase::SetProjectileSpeedMultiplier(float NewSpeedMultiplier)
+{
+	SpeedMultiplier = FMath::Max(NewSpeedMultiplier, KINDA_SMALL_NUMBER);
+	RefreshProjectileSpeed();
+}
+
+void AMAProjectileBase::RefreshProjectileSpeed()
+{
+	// Override MaxSpeed
+	const float CalcSpeed = FMath::Max(BaseSpeed * SpeedMultiplier, KINDA_SMALL_NUMBER);
+	ProjectileMovement->MaxSpeed = CalcSpeed;
+
+	// Override Projectile Vector
+	const float CurSpeed = ProjectileMovement->Velocity.Size();
+	const FVector CurDir = ProjectileMovement->Velocity.GetSafeNormal();
+	if (CurSpeed < CalcSpeed && !CurDir.IsNearlyZero())
+	{
+		ProjectileMovement->Velocity = CurDir * CalcSpeed;
+	}
+
+	// Override HomingAccMag -> BaseHomingAccMag * SpeedMul^2.
+	if (ProjectileMovement->bIsHomingProjectile)
+	{
+		// Preserve the configured turn radius as projectile speed scales.
+		ProjectileMovement->HomingAccelerationMagnitude = BaseHomingAccelerationMagnitude * FMath::Square(SpeedMultiplier);
+	}
+
+	const float SweepDistancePerTick = CalcSpeed * PrimaryActorTick.TickInterval;
+	SetActorTickEnabled(SweepDistancePerTick > SphereComp->GetScaledSphereRadius());
+}
+
+FHitResult AMAProjectileBase::BuildHitResultFromOverlap(AActor* HitActor, const FHitResult& SweepResult, UPrimitiveComponent* OtherComp) const
 {
 	FHitResult FinalHit = SweepResult;
 	if (FinalHit.bBlockingHit) return FinalHit;
@@ -126,7 +156,7 @@ FHitResult AMAProjectile::BuildHitResultFromOverlap(AActor* HitActor, const FHit
 	{
 		FVector ClosestPointOnEnemy;
 		const float Distance = OtherComp->GetClosestPointOnCollision(GetActorLocation(), ClosestPointOnEnemy);
-		if (Distance >= 0.f && !ClosestPointOnEnemy.IsZero())
+		if (Distance >= 0.f)
 		{
 			ImpactPoint = ClosestPointOnEnemy;
 			ImpactNormal = (GetActorLocation() - ClosestPointOnEnemy).GetSafeNormal(UE_SMALL_NUMBER, -GetActorForwardVector());
@@ -145,10 +175,8 @@ FHitResult AMAProjectile::BuildHitResultFromOverlap(AActor* HitActor, const FHit
 	return FinalHit;
 }
 
-bool AMAProjectile::CanDamageActor(AActor* OtherActor) const
+bool AMAProjectileBase::CanDamageActor(AActor* OtherActor) const
 {
-	if (!OtherActor) return false;
-
 	const AActor* SourceActor = GetOwner() ? GetOwner() : GetInstigator();
 	if (MATargetRelation::IsSelfTarget(SourceActor, OtherActor))
 	{
@@ -163,18 +191,18 @@ bool AMAProjectile::CanDamageActor(AActor* OtherActor) const
 		SourceTeamInterface->GetTeamAttitudeTowards(*OtherActor));
 }
 
-void AMAProjectile::ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult)
+void AMAProjectileBase::ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult)
 {
 	MASkillDamageApplicator::FMASkillDamageApplicationContext ApplicationContext;
 	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
 	ApplicationContext.EffectCauser = this;
 	ApplicationContext.EventExecutorAbility = ProjectileParams.EventExecutorAbility.Get();
-	ApplicationContext.EventScopes = EventScopes;
+	ApplicationContext.EventScopes = ProjectileParams.EventScopes;
 	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
 	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedDamage, ApplicationContext);
 }
 
-bool AMAProjectile::TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult)
+bool AMAProjectileBase::TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult)
 {
 	if (bPendingDestroy) return false;
 	if (!OtherActor || OtherActor == this) return false;
@@ -197,11 +225,7 @@ bool AMAProjectile::TryApplyHitToActor(AActor* OtherActor, const FHitResult& Hit
 	ApplyDamageToTarget(TargetASC, HitResult);
 
 	HitActors.Add(HitActor);
-	OnProjectileHit.Broadcast(OtherActor);
-
-	const FMAProjectilePenetratingSettings& PenetratingSettings = ProjectileParams.PenetratingSettings;
-	if (!PenetratingSettings.bIsPenetrating
-		|| (PenetratingSettings.PenetratingCount > 0 && HitActors.Num() > PenetratingSettings.PenetratingCount))
+	if (ProjectileParams.MaxHitCount > 0 && HitActors.Num() >= ProjectileParams.MaxHitCount)
 	{
 		BeginPendingDestroy();
 	}
@@ -209,7 +233,7 @@ bool AMAProjectile::TryApplyHitToActor(AActor* OtherActor, const FHitResult& Hit
 	return true;
 }
 
-void AMAProjectile::CheckContinuousHit()
+void AMAProjectileBase::CheckContinuousSweepHit()
 {
 	const FVector CurrentLocation = GetActorLocation();
 	const FVector PreviousLocation = PreviousHitCheckLocation;
@@ -229,7 +253,6 @@ void AMAProjectile::CheckContinuousHit()
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Hitbox);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MAProjectileContinuousHit), false, this);
-	QueryParams.AddIgnoredActor(this);
 	if (!MATargetRelation::IncludesSelf(ProjectileParams.ResolvedDamage.TargetRelationMask))
 	{
 		if (AActor* InstigatorActor = GetInstigator())
@@ -244,7 +267,6 @@ void AMAProjectile::CheckContinuousHit()
 
 	const FCollisionShape SweepShape = FCollisionShape::MakeSphere(SphereComp->GetScaledSphereRadius());
 	UWorld* World = GetWorld();
-	if (!World) return;
 
 	for (int32 StepIndex = 0; StepIndex < SweepSubsteps && !bPendingDestroy; ++StepIndex)
 	{
@@ -278,47 +300,59 @@ void AMAProjectile::CheckContinuousHit()
 	}
 }
 
-void AMAProjectile::ApplySkillAreaScale()
+// RepNotify로 사용중이어서 제거불가
+void AMAProjectileBase::ApplyProjectileRadius()
 {
-	if (!bCapturedBaseActorScale)
+	const float ProjectileRadius = FMath::Max(Rep_ProjectileRadius, 0.f);
+	SphereComp->SetSphereRadius(ProjectileRadius, true);
+	ProjectileDecal->DecalSize = FVector(100.f, ProjectileRadius, ProjectileRadius);
+	ApplyProjectileTrailVisuals();
+	OnProjectileRadiusChanged();
+}
+
+void AMAProjectileBase::InitializeProjectileDecal()
+{
+	if (const UDataTable* DecalDataTable = UMAGameSettings::Get()->GetAreaDecalDataTable())
 	{
-		BaseActorScale = GetActorScale3D();
-		bCapturedBaseActorScale = true;
+		if (const FMAAreaDecalDataRow* DecalRow = DecalDataTable->FindRow<FMAAreaDecalDataRow>(
+			TEXT("Circle"),
+			TEXT("ProjectileDecal")))
+		{
+			ProjectileDecal->SetDecalMaterial(DecalRow->DecalMaterial);
+		}
+	}
+	ProjectileDecal->CreateDynamicMaterialInstance();
+	ApplyProjectileElementalColor();
+}
+
+void AMAProjectileBase::ApplyProjectileElementalColor()
+{
+	if (UMaterialInstanceDynamic* DecalMID = Cast<UMaterialInstanceDynamic>(ProjectileDecal->GetDecalMaterial()))
+	{
+		DecalMID->SetVectorParameterValue(PARAM_AreaDecal_BaseColor, Rep_ElementalColor);
+	}
+	ApplyProjectileTrailVisuals();
+	OnProjectileElementalColorChanged();
+}
+
+void AMAProjectileBase::ApplyProjectileTrailVisuals()
+{
+	if (bRep_HasElementalVisualData && TrailVisualSettings.bUseElementalVFX && Rep_TrailVFX
+		&& TrailNiagara->GetAsset() != Rep_TrailVFX)
+	{
+		TrailNiagara->SetAsset(Rep_TrailVFX);
+		TrailNiagara->ResetSystem();
 	}
 
-	SetActorScale3D(BaseActorScale * FMath::Max(Rep_SkillAreaScale, KINDA_SMALL_NUMBER));
-}
-
-void AMAProjectile::ApplyProjectileVisuals()
-{
-	const float SphereRadius = SphereComp->GetScaledSphereRadius();
-	const auto ApplyVisual = [this, SphereRadius](
-		UNiagaraComponent* NiagaraComponent,
-		UNiagaraSystem* ElementalVFX,
-		const FMAProjectileElementalVisualSettings& VisualSettings)
+	if (bRep_HasElementalVisualData && TrailVisualSettings.bUseElementalColor)
 	{
-		if (!NiagaraComponent) return;
+		TrailNiagara->SetVariableLinearColor(TEXT("User.BaseColor"), Rep_ElementalColor);
+	}
 
-		if (bRep_HasElementalVisualData && VisualSettings.bUseElementalVFX && ElementalVFX
-			&& NiagaraComponent->GetAsset() != ElementalVFX)
-		{
-			NiagaraComponent->SetAsset(ElementalVFX);
-			NiagaraComponent->ResetSystem();
-		}
-
-		if (bRep_HasElementalVisualData && VisualSettings.bUseElementalColor)
-		{
-			NiagaraComponent->SetVariableLinearColor(TEXT("User.BaseColor"), Rep_ElementalColor);
-		}
-
-		NiagaraComponent->SetVariableFloat(TEXT("User.Radius"), SphereRadius);
-	};
-
-	ApplyVisual(Niagara, Rep_MainVFX, MainVisualSettings);
-	ApplyVisual(TrailNiagara, Rep_TrailVFX, TrailVisualSettings);
+	TrailNiagara->SetVariableFloat(TEXT("User.Radius"), SphereComp->GetScaledSphereRadius());
 }
 
-void AMAProjectile::BindHomingTarget()
+void AMAProjectileBase::BindHomingTarget()
 {
 	if (!ProjectileMovement->bIsHomingProjectile) return;
 
@@ -331,50 +365,16 @@ void AMAProjectile::BindHomingTarget()
 	}
 
 	ProjectileMovement->HomingTargetComponent = TargetComponent;
-	LaunchSpeed = ProjectileMovement->Velocity.Size();
-	if (LaunchSpeed <= UE_SMALL_NUMBER)
-	{
-		LaunchSpeed = ProjectileMovement->InitialSpeed;
-	}
-	LaunchSpeedDecayElapsed = 0.f;
-	bLaunchSpeedDecayFinished = false;
 }
 
-void AMAProjectile::ApplyLaunchSpeedDecay(float DeltaTime)
-{
-	if (!ProjectileMovement->bIsHomingProjectile || !bDecayLaunchSpeed || bLaunchSpeedDecayFinished) return;
-
-	const float DecayDuration = FMath::Max(LaunchSpeedDecayDuration, 0.f);
-	LaunchSpeedDecayElapsed = DecayDuration > 0.f
-		? FMath::Min(LaunchSpeedDecayElapsed + DeltaTime, DecayDuration)
-		: 0.f;
-
-	const float Alpha = DecayDuration > 0.f ? LaunchSpeedDecayElapsed / DecayDuration : 1.f;
-	const float TargetSpeed = LaunchSpeed * FMath::Lerp(1.f, LaunchSpeedEndScale, Alpha);
-	const FVector CurrentDirection = ProjectileMovement->Velocity.GetSafeNormal();
-	if (!CurrentDirection.IsNearlyZero())
-	{
-		ProjectileMovement->Velocity = CurrentDirection * TargetSpeed;
-	}
-
-	if (Alpha >= 1.f)
-	{
-		bLaunchSpeedDecayFinished = true;
-		if (!ProjectileParams.ContinuousHitSettings.bEnabled)
-		{
-			SetActorTickEnabled(false);
-		}
-	}
-}
-
-void AMAProjectile::BeginPendingDestroy()
+void AMAProjectileBase::BeginPendingDestroy()
 {
 	if (bPendingDestroy) return;
 
 	MulticastBeginPendingDestroy();
-	if (PendingDestroyLifeSpan > 0.f)
+	if (PostHitVisualLifeSpan > 0.f)
 	{
-		SetLifeSpan(PendingDestroyLifeSpan);
+		SetLifeSpan(PostHitVisualLifeSpan);
 	}
 	else
 	{
@@ -382,11 +382,8 @@ void AMAProjectile::BeginPendingDestroy()
 	}
 }
 
-void AMAProjectile::ApplyPendingDestroyVisuals()
+void AMAProjectileBase::ApplyPendingDestroyVisuals()
 {
-	Niagara->Deactivate();
-	Niagara->SetVisibility(false, true);
-
 	SphereComp->SetGenerateOverlapEvents(false);
 	SphereComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -394,9 +391,10 @@ void AMAProjectile::ApplyPendingDestroyVisuals()
 	ProjectileMovement->Deactivate();
 
 	SetActorTickEnabled(false);
+	OnProjectilePendingDestroy();
 }
 
-void AMAProjectile::MulticastBeginPendingDestroy_Implementation()
+void AMAProjectileBase::MulticastBeginPendingDestroy_Implementation()
 {
 	if (bPendingDestroy) return;
 

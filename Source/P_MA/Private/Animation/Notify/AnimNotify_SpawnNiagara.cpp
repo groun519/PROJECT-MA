@@ -8,6 +8,7 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Setting/MAGameSettings.h"
 #include "Weapon/WeaponComponent.h"
 
 static USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const EMANiagaraAttachTarget AttachTarget)
@@ -30,7 +31,7 @@ static bool ResolveElementalColor(const UMASkillAbility* SkillAbility, FLinearCo
 {
 	if (!SkillAbility) return false;
 
-	const UDataTable* ElementalDataTable = SkillAbility->GetElementalDataTable();
+	const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
 	const FGameplayTag& ElementalTag = SkillAbility->GetElementalTag();
 	if (!ElementalDataTable || !ElementalTag.IsValid()) return false;
 

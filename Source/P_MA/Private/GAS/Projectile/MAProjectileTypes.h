@@ -20,15 +20,6 @@ struct P_MA_API FMAProjectileTargetSettings
 };
 
 USTRUCT()
-struct P_MA_API FMAProjectilePenetratingSettings
-{
-	GENERATED_BODY()
-
-	bool bIsPenetrating = false;
-	int32 PenetratingCount = 0;
-};
-
-USTRUCT()
 struct P_MA_API FMAProjectileElementalSettings
 {
 	GENERATED_BODY()
@@ -56,19 +47,16 @@ struct P_MA_API FMAProjectileContinuousHitSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit")
-	bool bEnabled = true;
-
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.01", UIMin="0.01"))
+	UPROPERTY(EditDefaultsOnly, Category="Sweep", meta=(ClampMin="0.01", UIMin="0.01"))
 	float TickInterval = 0.08f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="0.0", UIMin="0.0"))
+	UPROPERTY(EditDefaultsOnly, Category="Sweep", meta=(ClampMin="0.0", UIMin="0.0"))
 	float MinSweepDistance = 10.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1.0", UIMin="1.0"))
+	UPROPERTY(EditDefaultsOnly, Category="Sweep", meta=(ClampMin="1.0", UIMin="1.0"))
 	float MaxSweepSegmentLength = 150.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Continuous Hit", meta=(ClampMin="1", UIMin="1"))
+	UPROPERTY(EditDefaultsOnly, Category="Sweep", meta=(ClampMin="1", UIMin="1"))
 	int32 MaxSweepSubsteps = 8;
 };
 
@@ -78,10 +66,10 @@ struct P_MA_API FMAProjectileParams
 	GENERATED_BODY()
 
 	FResolvedSkillDamage ResolvedDamage;
-	float SkillAreaScale = 1.f;
+	float ProjectileRadiusMultiplier = 1.f;
+	int32 MaxHitCount = 1;
 
 	FMAProjectileTargetSettings TargetSettings;
-	FMAProjectilePenetratingSettings PenetratingSettings;
 	FMAProjectileElementalSettings ElementalSettings;
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
 	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;

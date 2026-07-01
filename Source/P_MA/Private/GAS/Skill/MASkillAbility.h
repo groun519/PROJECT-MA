@@ -6,7 +6,6 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
-class UDataTable;
 class UMASkillDefinition;
 class UMASkillManagerComponent;
 class UMASkillModuleInstance;
@@ -32,8 +31,6 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	const FGameplayTag& GetElementalTag() const;
-	const UDataTable* GetElementalDataTable() const;
-	const UDataTable* GetAreaDecalDataTable() const;
 	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;

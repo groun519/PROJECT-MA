@@ -3,7 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
-#include "GAS/Projectile/MAProjectile.h"
+#include "GAS/Projectile/MAProjectileBase.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
@@ -12,6 +12,7 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
+#include "Setting/MAGameSettings.h"
 
 static bool TryResolveLocationFromObject(UObject* Object, FName SocketName, FVector& OutLocation)
 {
@@ -137,28 +138,22 @@ void UMASkillAction_ProjectileBase::Execute(
 	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AMAProjectile* Projectile = World->SpawnActor<AMAProjectile>(
+	AMAProjectileBase* Projectile = World->SpawnActor<AMAProjectileBase>(
 		Config.ProjectileClass,
 		SpawnLocation,
 		SpawnRotation,
 		SpawnParams);
 	if (!Projectile) return;
 
-	if (!PostSpawnProjectile(*Projectile, *AvatarActor, Payloads))
-	{
-		Projectile->Destroy();
-		return;
-	}
-
 	FMASkillDamageConfig DamageConfig;
 	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
-	ProjectileParams.SkillAreaScale = MASkillAreaStatics::ResolveAreaScale(
+	ProjectileParams.ProjectileRadiusMultiplier = MASkillAreaStatics::ResolveAreaScale(
 		Payloads,
 		OwnerAbility.GetAbilitySystemComponentFromActorInfo());
-	ProjectileParams.PenetratingSettings.bIsPenetrating = Config.bIsPenetrating;
+	ProjectileParams.MaxHitCount = Config.MaxHitCount;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;
 	ProjectileParams.TargetSettings.bHitOnlyTarget = Config.bUseTargetTracking && Config.TargetTracking.bHitOnlyTarget;
@@ -166,7 +161,7 @@ void UMASkillAction_ProjectileBase::Execute(
 	ProjectileParams.EventScopes = Scopes;
 
 	const FGameplayTag ElementalTag = OwnerAbility.GetElementalTag();
-	if (const UDataTable* ElementalDataTable = OwnerAbility.GetElementalDataTable();
+	if (const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
 		ElementalDataTable && ElementalTag.IsValid())
 	{
 		FString ElementalRowNameString = ElementalTag.GetTagName().ToString();
@@ -184,10 +179,15 @@ void UMASkillAction_ProjectileBase::Execute(
 	}
 
 	Projectile->InitializeProjectile(ProjectileParams);
+	if (!PostSpawnProjectile(*Projectile, *AvatarActor, Payloads))
+	{
+		Projectile->Destroy();
+		return;
+	}
 	Scopes.GetRuntimeRegistry().Register(Projectile);
 }
 
-bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectile& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads)
+bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads)
 {
 	return true;
 }

@@ -6,7 +6,6 @@
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Area/Decal/MAAreaDecalData.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/MASkillGenericDataAsset.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GameplayTagContainer.h"
@@ -19,12 +18,6 @@ static constexpr float ImpactFadeDuration = 0.5f;
 static constexpr float ImpactInnerAlpha = 5.f;
 static constexpr float DecalProjectionDepth = 110.f;
 static constexpr float DecalZOffset = -100.f;
-
-static const UMASkillGenericDataAsset* ResolveDefaultGenericData()
-{
-	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
-	return GameSettings ? GameSettings->GetDefaultSkillGenericDataAsset() : nullptr;
-}
 
 static FName ResolveElementRowName(const FGameplayTag& ElementalTag)
 {
@@ -113,14 +106,9 @@ UDecalComponent* MASkillAreaDecalStatics::Spawn(
 	UWorld* World = ComponentOwner ? ComponentOwner->GetWorld() : nullptr;
 	if (!World || World->GetNetMode() == NM_DedicatedServer || !Area.IsValid()) return nullptr;
 
-	const UDataTable* DecalDataTable = SkillAbility ? SkillAbility->GetAreaDecalDataTable() : nullptr;
-	const UDataTable* ElementalDataTable = SkillAbility ? SkillAbility->GetElementalDataTable() : nullptr;
-	if (!DecalDataTable || !ElementalDataTable)
-	{
-		const UMASkillGenericDataAsset* GenericData = ResolveDefaultGenericData();
-		if (!DecalDataTable && GenericData) DecalDataTable = GenericData->GetAreaDecalDataTable();
-		if (!ElementalDataTable && GenericData) ElementalDataTable = GenericData->GetElementalDataTable();
-	}
+	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
+	const UDataTable* DecalDataTable = GameSettings->GetAreaDecalDataTable();
+	const UDataTable* ElementalDataTable = GameSettings->GetElementalDataTable();
 
 	const FName DecalRowName = ResolveDecalRowName(Area.Shape);
 	if (!DecalDataTable || DecalRowName == NAME_None) return nullptr;

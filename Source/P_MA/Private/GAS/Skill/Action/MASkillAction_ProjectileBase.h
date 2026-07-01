@@ -6,7 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAction_ProjectileBase.generated.h"
 
-class AMAProjectile;
+class AMAProjectileBase;
 struct FMASkillPayloadAccessor;
 
 UENUM(BlueprintType)
@@ -52,7 +52,7 @@ struct FMASkillActionConfig_SpawnProjectile
 	GENERATED_BODY()
 	
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
-	TSubclassOf<AMAProjectile> ProjectileClass;
+	TSubclassOf<AMAProjectileBase> ProjectileClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	EMASkillProjectileStartObjectSource StartObjectSource = EMASkillProjectileStartObjectSource::Self;
@@ -75,8 +75,8 @@ struct FMASkillActionConfig_SpawnProjectile
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	FName SpawnSocketName = TEXT("WeaponHandSocket");
 
-	UPROPERTY(EditDefaultsOnly, Category="Projectile")
-	bool bIsPenetrating = false;
+	UPROPERTY(EditDefaultsOnly, Category="Projectile", meta=(ClampMin="0", UIMin="0", ToolTip="Maximum unique targets this projectile can hit. Set to 0 for unlimited hits."))
+	int32 MaxHitCount = 1;
 
 	UPROPERTY(EditDefaultsOnly, Category="Projectile")
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
@@ -91,7 +91,7 @@ public:
 	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
 
 protected:
-	virtual bool PostSpawnProjectile(AMAProjectile& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads);
+	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads);
 
 	UPROPERTY(EditDefaultsOnly, Category="Action")
 	FMASkillActionConfig_SpawnProjectile Config;
