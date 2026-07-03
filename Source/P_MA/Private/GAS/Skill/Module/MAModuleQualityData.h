@@ -2,16 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "MAModuleQualityData.generated.h"
-
-UENUM(BlueprintType)
-enum class EMAModuleType : uint8
-{
-	Sequence,
-	Modifier,
-	DebuffModifier,
-	Elemental
-};
 
 UENUM(BlueprintType)
 enum class EMAModuleRarity : uint8
@@ -29,9 +21,6 @@ USTRUCT(BlueprintType)
 struct FMAModuleQuality
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
-	EMAModuleType Type = EMAModuleType::Modifier;
 
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
 	EMAModuleRarity Rarity = EMAModuleRarity::Rarity4;
@@ -78,11 +67,11 @@ class P_MA_API UMAModuleQualityData : public UDataAsset
 public:
 	int32 ResolvePrice(const FMAModuleQuality& Quality) const;
 	const FMAModuleRarityData* FindRarityData(EMAModuleRarity Rarity) const { return RarityData.Find(Rarity); }
-	const FMAModuleTypeData* FindTypeData(EMAModuleType Type) const { return TypeData.Find(Type); }
+	const FMAModuleTypeData* FindVisualData(const FGameplayTagContainer& ModuleVisualTags) const;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
-	TMap<EMAModuleType, FMAModuleTypeData> TypeData;
+	UPROPERTY(EditDefaultsOnly, Category="Module|Quality", meta=(Categories="Module.Visual"))
+	TMap<FGameplayTag, FMAModuleTypeData> VisualData;
 
 	UPROPERTY(EditDefaultsOnly, Category="Module|Quality")
 	TMap<EMAModuleRarity, FMAModuleRarityData> RarityData;

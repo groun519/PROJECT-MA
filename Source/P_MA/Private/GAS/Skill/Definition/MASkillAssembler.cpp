@@ -22,7 +22,6 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	const FGameplayTag PassiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Passive"));
 	const bool bPassiveSlot = FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag);
 	int32 PriorityOneIconCount = 0;
-	bool bHasIconColors = false;
 
 	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
 	{
@@ -115,13 +114,6 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			}
 			++PriorityOneIconCount;
 		}
-		if (!bHasIconColors && IconData.Priority == 2)
-		{
-			AssembledDefinition->DisplayData.IconData.IconColor = IconData.IconColor;
-			AssembledDefinition->DisplayData.IconData.InnerColor = IconData.InnerColor;
-			bHasIconColors = true;
-		}
-
 		const FMASkillDefinitionNameData& NameData = DisplayData.NameData;
 		if (NameData.Priority > 0 && !NameData.Keyword.IsEmpty())
 		{

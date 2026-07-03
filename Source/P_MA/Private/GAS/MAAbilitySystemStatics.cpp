@@ -54,9 +54,14 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetDefaultElementalTag()
+FGameplayTag UMAAbilitySystemStatics::GetDefaultVisualElementTag()
 {
-	return FGameplayTag::RequestGameplayTag("Elemental.Default");
+	return FGameplayTag::RequestGameplayTag("Module.Visual.Elemental.Default");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetPlayerRespawnGameplayCueTag()
+{
+	return FGameplayTag::RequestGameplayTag("GameplayCue.Player.Respawn");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()

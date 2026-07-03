@@ -57,9 +57,9 @@ void ULoadoutWeaponModuleButtonWidget::RefreshIcon()
 	if (!IconMaterial) return;
 
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillDefinitionIconData IconData = ModuleDefinition
+	const FMASkillIconData IconData = ModuleDefinition
 		? ModuleDefinition->ResolveIconData(ModuleQualityData)
-		: FMASkillDefinitionIconData();
+		: FMASkillIconData();
 	UTexture2D* SubIcon = ModuleDefinition ? ModuleDefinition->GetAssembledSubIcon() : nullptr;
 	const FLinearColor FrameColor = ModuleDefinition
 		? ModuleDefinition->ResolveFrameColor(ModuleQualityData)

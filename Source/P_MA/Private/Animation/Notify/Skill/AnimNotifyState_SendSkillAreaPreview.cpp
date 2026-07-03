@@ -113,7 +113,7 @@ void UAnimNotifyState_SendSkillAreaPreview::SpawnPreviewDecal(
 
 	DestroyPreviewDecal(MeshComp);
 	const UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
-	UDecalComponent* DecalComponent = MASkillAreaDecalStatics::Spawn(
+	UDecalComponent* DecalComponent = MASkillAreaDecalStatics::SpawnPreview(
 		MeshComp->GetOwner(),
 		bAttachPreviewToMesh ? MeshComp : nullptr,
 		SkillAbility,

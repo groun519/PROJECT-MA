@@ -3,12 +3,13 @@
 #include "Animation/Notify/Skill/MASkillAnimNotifyStatics.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Character/MACharacter.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Player/MAPlayerCharacter.h"
-#include "Setting/MAGameSettings.h"
 #include "Weapon/WeaponComponent.h"
 
 static USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp, const EMANiagaraAttachTarget AttachTarget)
@@ -27,22 +28,30 @@ static USceneComponent* ResolveAttachComponent(USkeletalMeshComponent* MeshComp,
 	return MeshComp;
 }
 
-static bool ResolveElementalColor(const UMASkillAbility* SkillAbility, FLinearColor& OutColor)
+static const UMASkillManagerComponent* ResolveSkillManager(const USkeletalMeshComponent* MeshComp)
 {
-	if (!SkillAbility) return false;
+	const AMACharacter* Character = MeshComp ? Cast<AMACharacter>(MeshComp->GetOwner()) : nullptr;
+	return Character ? Character->GetSkillManagerComponent() : nullptr;
+}
 
-	const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
-	const FGameplayTag& ElementalTag = SkillAbility->GetElementalTag();
-	if (!ElementalDataTable || !ElementalTag.IsValid()) return false;
-
-	FString UnusedRoot;
-	FString RowNameString;
-	if (!ElementalTag.ToString().Split(TEXT("."), &UnusedRoot, &RowNameString, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+static FGameplayTag ResolveVisualElementTag(
+	const UMASkillAbility* SkillAbility,
+	const USkeletalMeshComponent* MeshComp)
+{
+	if (SkillAbility)
 	{
-		return false;
+		return SkillAbility->GetVisualElementTag();
 	}
 
-	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(FName(*RowNameString), TEXT("AnimNotify_SpawnNiagara"));
+	const UMASkillManagerComponent* SkillManager = ResolveSkillManager(MeshComp);
+	return SkillManager ? SkillManager->GetActivePreviewVisualElementTag() : FGameplayTag();
+}
+
+static bool ResolveVisualElementColor(FGameplayTag VisualElementTag, FLinearColor& OutColor)
+{
+	const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
+		VisualElementTag,
+		TEXT("AnimNotify_SpawnNiagara"));
 	if (!ElementRow) return false;
 
 	OutColor = ElementRow->ElementColor;
@@ -61,49 +70,18 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	USceneComponent* AttachComponent = ResolveAttachComponent(MeshComp, AttachTarget);
 	if (!AttachComponent) return;
 
-	UMASkillAbility* SkillAbility = (bApplySkillAreaScale || bApplyElementalColor)
+	UMASkillAbility* SkillAbility = (bApplyElementalColor || bApplySkillAreaScale)
 		? MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation)
 		: nullptr;
 	const FVector SpawnScale = bApplySkillAreaScale
 		? Scale * MASkillAnimNotifyStatics::ResolveSkillAreaScale(SkillAbility)
 		: Scale;
+	FLinearColor VisualElementColor = FLinearColor::White;
+	const bool bHasVisualElementColor = bApplyElementalColor
+		&& ColorParamName != NAME_None
+		&& ResolveVisualElementColor(ResolveVisualElementTag(SkillAbility, MeshComp), VisualElementColor);
 
 	UNiagaraComponent* SpawnedVFX = nullptr;
-#if WITH_EDITOR
-	if (World->WorldType == EWorldType::EditorPreview)
-	{
-		if (bSpawnInWorld)
-		{
-			const FTransform SocketTransform = (SocketName != NAME_None)
-				? AttachComponent->GetSocketTransform(SocketName)
-				: AttachComponent->GetComponentTransform();
-			const FTransform OffsetTransform(RotationOffset, LocationOffset, SpawnScale);
-			const FTransform SpawnTransform = OffsetTransform * SocketTransform;
-
-			SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-				World,
-				NiagaraTemplate,
-				SpawnTransform.GetLocation(),
-				SpawnTransform.Rotator(),
-				SpawnTransform.GetScale3D());
-		}
-		else
-		{
-			SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-				NiagaraTemplate,
-				AttachComponent,
-				SocketName,
-				LocationOffset,
-				RotationOffset,
-				SpawnScale,
-				EAttachLocation::KeepRelativeOffset,
-				true,
-				ENCPoolMethod::None,
-				true);
-		}
-	}
-	else
-#endif
 	if (bSpawnInWorld)
 	{
 		const FTransform SocketTransform = (SocketName != NAME_None)
@@ -117,7 +95,11 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 			NiagaraTemplate,
 			SpawnTransform.GetLocation(),
 			SpawnTransform.Rotator(),
-			SpawnTransform.GetScale3D());
+			SpawnTransform.GetScale3D(),
+			true,
+			!bHasVisualElementColor,
+			ENCPoolMethod::None,
+			true);
 	}
 	else
 	{
@@ -131,16 +113,13 @@ void UAnimNotify_SpawnNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 			EAttachLocation::KeepRelativeOffset,
 			true,
 			ENCPoolMethod::None,
-			true);
+			!bHasVisualElementColor);
 	}
 
-	if (!SpawnedVFX || !bApplyElementalColor || ColorParamName == NAME_None) return;
-	if (!SkillAbility) return;
+	if (!SpawnedVFX || !bHasVisualElementColor) return;
 
-	FLinearColor ElementalColor = FLinearColor::White;
-	if (!ResolveElementalColor(SkillAbility, ElementalColor)) return;
-
-	SpawnedVFX->SetVariableLinearColor(ColorParamName, ElementalColor);
+	SpawnedVFX->SetVariableLinearColor(ColorParamName, VisualElementColor);
+	SpawnedVFX->Activate(true);
 }
 
 FString UAnimNotify_SpawnNiagara::GetNotifyName_Implementation() const

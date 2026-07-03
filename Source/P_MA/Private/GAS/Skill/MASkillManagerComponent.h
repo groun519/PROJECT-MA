@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "MASkillManagerComponent.generated.h"
 
@@ -60,7 +61,7 @@ public:
 
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(FGameplayTag SlotTag);
 	bool FindSlotTagForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, FGameplayTag& OutSlotTag) const;
-	FGameplayTag GetActivePreviewElementalTag() const { return ActivePreviewElementalTag; }
+	FGameplayTag GetActivePreviewVisualElementTag() const { return ActivePreviewVisualElementTag; }
 
 	TArray<FGameplayTag> GetSkillSlotTags() const
 	{
@@ -72,11 +73,16 @@ public:
 	bool RebuildSkill(FGameplayTag SlotTag);
 	void RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
 	void UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle);
-	void ClearActivePreviewElementalTag();
+	void ClearActivePreviewVisualElementTag();
 	bool TryActivateSkill(FGameplayTag SlotTag);
 	UMASkillAbility* GetSkillAbility(FGameplayTag SlotTag) const;
 	UMASkillEventRouter* GetEventRouter() const { return Router; }
 	UMASkillEventDispatcher* GetEventDispatcher() const { return Dispatcher; }
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag ElementSourceTag);
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnPredictedSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag ElementSourceTag);
 
 private:
 	static constexpr int32 ActiveModuleSlotCount = 8;
@@ -96,7 +102,11 @@ private:
 		FGameplayTag SlotTagB,
 		int32 IndexB);
 	bool EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState);
-	void SetActivePreviewElementalTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
+	void SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
+	void SpawnSkillAreaImpactLocal(
+		const FMASkillWorldAreaShape& Area,
+		FGameplayTag ElementSourceTag,
+		bool bSkipAutonomousProxy);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapModuleSlotsBetween(
@@ -123,7 +133,7 @@ private:
 	TArray<FMASkillReplicatedSlotRuntimeState> ReplicatedSkillSlotRuntimeStates;
 
 	UPROPERTY(Transient, Replicated)
-	FGameplayTag ActivePreviewElementalTag;
+	FGameplayTag ActivePreviewVisualElementTag;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillEventRouter> Router;

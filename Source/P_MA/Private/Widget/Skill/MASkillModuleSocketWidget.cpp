@@ -68,9 +68,9 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 	if (!ModuleIconImage) return;
 
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillDefinitionIconData IconData = Definition
+	const FMASkillIconData IconData = Definition
 		? Definition->ResolveIconData(ModuleQualityData)
-		: FMASkillDefinitionIconData();
+		: FMASkillIconData();
 	const bool bHasIcon = IconData.Icon != nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
@@ -183,7 +183,7 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	RefreshHoverVisual();
 	SetDraggedSourceVisual(true);
 
-	const FMASkillDefinitionIconData IconData = CachedDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
+	const FMASkillIconData IconData = CachedDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
 	if (DragVisualWidgetClass && IconData.Icon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);

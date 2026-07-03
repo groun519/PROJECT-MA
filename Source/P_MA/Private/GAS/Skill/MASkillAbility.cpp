@@ -119,7 +119,6 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 			FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Activate")),
 			FMASkillScopes{ nullptr, CurrentSkillModuleInstance }));
 	}
-
 	if (IsActive() && (!StepManager || !StepManager->GetCurrentRuntimeSkillStep()))
 	{
 		K2_EndAbility();
@@ -188,7 +187,7 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	{
 		if (UMASkillManagerComponent* SkillManager = OwnerCharacter->GetSkillManagerComponent())
 		{
-			SkillManager->ClearActivePreviewElementalTag();
+			SkillManager->ClearActivePreviewVisualElementTag();
 		}
 
 		if (bWasCancelled)
@@ -218,17 +217,16 @@ FGameplayTag UMASkillAbility::GetCooldownTagForSpec(const FGameplayAbilitySpecHa
 		: FGameplayTag();
 }
 
-const FGameplayTag& UMASkillAbility::GetElementalTag() const
+FGameplayTag UMASkillAbility::GetVisualElementTag() const
 {
-	static const FGameplayTag EmptyTag;
-	static const FGameplayTag DefaultElementalTag = UMAAbilitySystemStatics::GetDefaultElementalTag();
+	static const FGameplayTag DefaultVisualElementTag = UMAAbilitySystemStatics::GetDefaultVisualElementTag();
 	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition) return EmptyTag;
+	if (!CurrentSkillDefinition) return DefaultVisualElementTag;
 
-	const FGameplayTag& CurrentElementalTag = CurrentSkillDefinition->GetElementalTag();
-	return CurrentElementalTag.IsValid()
-		? CurrentElementalTag
-		: DefaultElementalTag;
+	const FGameplayTag VisualElementTag = CurrentSkillDefinition->GetVisualElementTag();
+	return VisualElementTag.IsValid()
+		? VisualElementTag
+		: DefaultVisualElementTag;
 }
 
 UMASkillModuleInstance* UMASkillAbility::GetCurrentBindingScope() const

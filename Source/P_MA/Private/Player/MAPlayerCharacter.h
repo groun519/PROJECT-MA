@@ -191,9 +191,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeadColorSaturationScale = 0.25f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<UNiagaraSystem> RespawnVFX = nullptr;
-
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
 	USpringArmComponent* MinimapCameraBoom;

@@ -73,6 +73,7 @@ UMAStatusEffectComponent::UMAStatusEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.SetTickFunctionEnable(false);
+	SetIsReplicatedByDefault(true);
 }
 
 void UMAStatusEffectComponent::BeginPlay()
@@ -297,8 +298,18 @@ void UMAStatusEffectComponent::HandleImpulseStatusEffectApplied(const FGameplayE
 		}
 
 		ApplyStatusEffectImpulse(StatusEffectRule, Magnitude, SourcePoint);
-		OwnerCharacter->Multicast_PlayStatusEffectImpulse(StatusEffectRule.StatusEffectTag, Magnitude, SourcePoint);
+		Multicast_PlayStatusEffectImpulse(StatusEffectRule.StatusEffectTag, Magnitude, SourcePoint);
 	}
+}
+
+void UMAStatusEffectComponent::Multicast_PlayStatusEffectImpulse_Implementation(
+	const FGameplayTag& StatusEffectTag,
+	float Magnitude,
+	FVector SourcePoint)
+{
+	if (GetOwnerRole() == ROLE_Authority) return;
+
+	PlayReplicatedStatusEffectImpulse(StatusEffectTag, Magnitude, SourcePoint);
 }
 
 void UMAStatusEffectComponent::PlayReplicatedStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, const FVector& SourcePoint)

@@ -13,7 +13,7 @@ class UDataTable;
 class UMASkillDefinition;
 class UMASkillTagBadgeWidget;
 class UMASkillTooltipMessageWidget;
-struct FMASkillDefinitionIconData;
+struct FMASkillIconData;
 
 UCLASS()
 class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
@@ -50,7 +50,7 @@ protected:
 	TSubclassOf<UMASkillTagBadgeWidget> TagBadgeWidgetClass;
 
 private:
-	void SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
+	void SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
 	void SetCooldown(const UMASkillDefinition* SkillDefinition);
 	void SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable);
 	void SetTooltipMessages(

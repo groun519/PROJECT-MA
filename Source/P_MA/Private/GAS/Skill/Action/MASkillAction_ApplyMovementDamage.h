@@ -40,6 +40,7 @@ private:
 	FMASkillScopes Scopes;
 	FMAActionImpulseHandle MovementHandle;
 	FResolvedSkillDamage ResolvedDamage;
+	FGameplayTag VisualElementTag;
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 	FVector PreviousLocation = FVector::ZeroVector;
 	float CapsuleRadiusScale = 1.f;

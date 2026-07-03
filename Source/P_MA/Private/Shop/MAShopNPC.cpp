@@ -319,7 +319,7 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 		Entry.VisualSeed = FMath::Rand();
 		Entry.SkillDefinition = Pool[Index];
 		Entry.Price = ResolveModulePrice(Pool[Index]);
-		const FMASkillDefinitionIconData IconData = Pool[Index]->ResolveIconData(ModuleQualityData);
+		const FMASkillIconData IconData = Pool[Index]->ResolveIconData(ModuleQualityData);
 		Entry.Icon = IconData.Icon;
 		Entry.IconColor = IconData.IconColor;
 		Entry.InnerColor = IconData.InnerColor;

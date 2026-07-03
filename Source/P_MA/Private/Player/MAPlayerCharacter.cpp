@@ -710,9 +710,16 @@ void AMAPlayerCharacter::OnRespawn()
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
 	}
 
-	if (HasAuthority() && RespawnVFX)
+	if (HasAuthority() && GetAbilitySystemComponent())
 	{
-		Multicast_PlayNiagara(RespawnVFX, GetActorTransform());
+		FGameplayCueParameters CueParams;
+		CueParams.Location = GetActorLocation();
+		CueParams.Normal = GetActorUpVector();
+		CueParams.Instigator = this;
+		CueParams.EffectCauser = this;
+		GetAbilitySystemComponent()->ExecuteGameplayCue(
+			UMAAbilitySystemStatics::GetPlayerRespawnGameplayCueTag(),
+			CueParams);
 	}
 }
 

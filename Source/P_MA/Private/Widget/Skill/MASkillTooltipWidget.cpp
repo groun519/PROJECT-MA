@@ -21,9 +21,9 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		? SkillDefinition->GetDisplayData()
 		: FMASkillDefinitionDisplayData();
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillDefinitionIconData IconData = SkillDefinition
+	const FMASkillIconData IconData = SkillDefinition
 		? SkillDefinition->ResolveIconData(ModuleQualityData)
-		: DisplayData.IconData;
+		: FMASkillIconData();
 
 	SetDescription(DisplayData.DisplayName, DisplayData.Description);
 	SetIconData(
@@ -41,7 +41,7 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		WarningTextDataTable);
 }
 
-void UMASkillTooltipWidget::SetIconData(const FMASkillDefinitionIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)
+void UMASkillTooltipWidget::SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)
 {
 	if (!SkillIconImage) return;
 

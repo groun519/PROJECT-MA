@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 
 class AActor;
 class UDecalComponent;
@@ -11,7 +12,7 @@ struct FMASkillWorldAreaShape;
 class P_MA_API MASkillAreaDecalStatics final
 {
 public:
-	static UDecalComponent* Spawn(
+	static UDecalComponent* SpawnPreview(
 		AActor* ComponentOwner,
 		USceneComponent* AttachParent,
 		const UMASkillAbility* SkillAbility,
@@ -19,11 +20,12 @@ public:
 
 	static void SpawnImpact(
 		UMASkillAbility& SkillAbility,
-		const FMASkillWorldAreaShape& Area);
+		const FMASkillWorldAreaShape& Area,
+		FGameplayTag DamageTypeTag);
 
-	static void SpawnImpact(
+	static void SpawnImpactLocal(
 		AActor* ComponentOwner,
-		const UMASkillAbility* SkillAbility,
+		FGameplayTag ElementSourceTag,
 		const FMASkillWorldAreaShape& Area);
 
 	static void SetAreaTransform(
@@ -32,4 +34,9 @@ public:
 
 private:
 	MASkillAreaDecalStatics() = delete;
+	static UDecalComponent* SpawnDecal(
+		AActor* ComponentOwner,
+		USceneComponent* AttachParent,
+		FGameplayTag ElementSourceTag,
+		const FMASkillWorldAreaShape& Area);
 };

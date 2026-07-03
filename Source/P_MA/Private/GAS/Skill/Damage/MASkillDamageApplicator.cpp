@@ -20,6 +20,19 @@
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GameplayEffect.h"
 
+static FGameplayTag ResolveImpactDamageTypeTag(TConstArrayView<FMASkillDamageConfig> DamageConfigs)
+{
+	for (const FMASkillDamageConfig& DamageConfig : DamageConfigs)
+	{
+		if (DamageConfig.HasValues() && DamageConfig.DamageTypeTag.IsValid())
+		{
+			return DamageConfig.DamageTypeTag;
+		}
+	}
+
+	return DamageConfigs.IsEmpty() ? FGameplayTag() : DamageConfigs[0].DamageTypeTag;
+}
+
 void MASkillDamageApplicator::ApplyArea(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillScopes& EventScopes,
@@ -39,7 +52,7 @@ void MASkillDamageApplicator::ApplyArea(
 {
 	if (!Area.IsValid() || DamageConfigs.IsEmpty()) return;
 
-	MASkillAreaDecalStatics::SpawnImpact(OwnerAbility, Area);
+	MASkillAreaDecalStatics::SpawnImpact(OwnerAbility, Area, ResolveImpactDamageTypeTag(DamageConfigs));
 	if (!OwnerAbility.K2_HasAuthority()) return;
 
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();

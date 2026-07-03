@@ -24,13 +24,14 @@ struct FMASkillDefinitionIconData
 	TObjectPtr<UTexture2D> Icon = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
-	FLinearColor IconColor = FLinearColor::White;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
-	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
 	int32 Priority = 0;
+};
+
+struct FMASkillIconData
+{
+	UTexture2D* Icon = nullptr;
+	FLinearColor IconColor = FLinearColor::White;
+	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
 };
 
 USTRUCT(BlueprintType)
@@ -86,12 +87,12 @@ class P_MA_API UMASkillDefinition : public UDataAsset
 public:
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return DisplayData; }
 	const FMAModuleQuality& GetModuleQuality() const { return ModuleQuality; }
-	FMASkillDefinitionIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
+	FMASkillIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
 	FLinearColor ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const;
 	UTexture2D* GetAssembledSubIcon() const { return AssembledSubIcon; }
 	const FGameplayTagContainer& GetModuleTags() const { return ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const;
-	const FGameplayTag& GetElementalTag() const { return ElementalTag; }
+	FGameplayTag GetVisualElementTag() const;
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
 	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
@@ -140,14 +141,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Tags", meta=(Categories="Module"))
 	FGameplayTagContainer ModuleTags;
 
+	UPROPERTY(EditDefaultsOnly, Category="Visual", meta=(Categories="Module.Visual"))
+	FGameplayTagContainer ModuleVisualTags;
+
 	UPROPERTY()
 	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;
 
 	UPROPERTY()
 	FGameplayTag UniqueModuleEffectTag_DEPRECATED;
-
-	UPROPERTY(EditDefaultsOnly, Category="Elemental", meta=(Categories="Elemental"))
-	FGameplayTag ElementalTag;
 
 	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
 	float CooldownSeconds = 0.f;

@@ -3,6 +3,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
@@ -54,7 +55,7 @@ void UMASkillManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(UMASkillManagerComponent, ReplicatedSkillSlotRuntimeStates, COND_OwnerOnly);
-	DOREPLIFETIME(UMASkillManagerComponent, ActivePreviewElementalTag);
+	DOREPLIFETIME(UMASkillManagerComponent, ActivePreviewVisualElementTag);
 }
 
 bool UMASkillManagerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
@@ -72,6 +73,32 @@ bool UMASkillManagerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutB
 	}
 
 	return bWrote;
+}
+
+void UMASkillManagerComponent::Multicast_SpawnSkillAreaImpact_Implementation(
+	FMASkillWorldAreaShape Area,
+	FGameplayTag ElementSourceTag)
+{
+	SpawnSkillAreaImpactLocal(Area, ElementSourceTag, false);
+}
+
+void UMASkillManagerComponent::Multicast_SpawnPredictedSkillAreaImpact_Implementation(
+	FMASkillWorldAreaShape Area,
+	FGameplayTag ElementSourceTag)
+{
+	SpawnSkillAreaImpactLocal(Area, ElementSourceTag, true);
+}
+
+void UMASkillManagerComponent::SpawnSkillAreaImpactLocal(
+	const FMASkillWorldAreaShape& Area,
+	FGameplayTag ElementSourceTag,
+	bool bSkipAutonomousProxy)
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || OwnerActor->GetNetMode() == NM_DedicatedServer) return;
+	if (bSkipAutonomousProxy && OwnerActor->GetLocalRole() == ROLE_AutonomousProxy) return;
+
+	MASkillAreaDecalStatics::SpawnImpactLocal(OwnerActor, ElementSourceTag, Area);
 }
 
 void UMASkillManagerComponent::InitializeGrantedAbilities()
@@ -406,14 +433,14 @@ bool UMASkillManagerComponent::TryActivateSkill(FGameplayTag SlotTag)
 	UAbilitySystemComponent* AbilitySystemComponent = AbilitySystemOwner ? AbilitySystemOwner->GetAbilitySystemComponent() : nullptr;
 	if (!AbilitySystemComponent) return false;
 
-	SetActivePreviewElementalTagFromSlot(SlotState);
+	SetActivePreviewVisualElementTagFromSlot(SlotState);
 	if (const FGameplayAbilitySpec* AbilitySpec = AbilitySystemComponent->FindAbilitySpecFromHandle(SlotState.AbilityHandle))
 	{
 		if (AbilitySpec->IsActive()) return true;
 	}
 	if (AbilitySystemComponent->TryActivateAbility(SlotState.AbilityHandle)) return true;
 
-	ClearActivePreviewElementalTag();
+	ClearActivePreviewVisualElementTag();
 	return false;
 }
 
@@ -423,24 +450,25 @@ UMASkillAbility* UMASkillManagerComponent::GetSkillAbility(FGameplayTag SlotTag)
 	return SlotState ? ResolveSkillAbility(*SlotState) : nullptr;
 }
 
-void UMASkillManagerComponent::SetActivePreviewElementalTagFromSlot(const FMASkillSlotRuntimeState& SlotState)
+void UMASkillManagerComponent::SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState)
 {
 	const UMASkillDefinition* SkillDefinition = SlotState.AssembledModuleInstance
 		? SlotState.AssembledModuleInstance->GetDefinition()
 		: nullptr;
-	ActivePreviewElementalTag = SkillDefinition ? SkillDefinition->GetElementalTag() : FGameplayTag();
-
+	ActivePreviewVisualElementTag = SkillDefinition
+		? SkillDefinition->GetVisualElementTag()
+		: FGameplayTag();
 	if (AActor* OwnerActor = GetOwner())
 	{
 		OwnerActor->ForceNetUpdate();
 	}
 }
 
-void UMASkillManagerComponent::ClearActivePreviewElementalTag()
+void UMASkillManagerComponent::ClearActivePreviewVisualElementTag()
 {
-	if (!ActivePreviewElementalTag.IsValid()) return;
+	if (!ActivePreviewVisualElementTag.IsValid()) return;
 
-	ActivePreviewElementalTag = FGameplayTag();
+	ActivePreviewVisualElementTag = FGameplayTag();
 	if (AActor* OwnerActor = GetOwner())
 	{
 		OwnerActor->ForceNetUpdate();

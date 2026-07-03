@@ -3,8 +3,8 @@
 #include "Character/MACharacter.h"
 #include "Components/DecalComponent.h"
 #include "Engine/DataTable.h"
-#include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Area/Decal/MAAreaDecalData.h"
+#include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
@@ -18,16 +18,6 @@ static constexpr float ImpactFadeDuration = 0.5f;
 static constexpr float ImpactInnerAlpha = 5.f;
 static constexpr float DecalProjectionDepth = 110.f;
 static constexpr float DecalZOffset = -100.f;
-
-static FName ResolveElementRowName(const FGameplayTag& ElementalTag)
-{
-	if (!ElementalTag.IsValid()) return NAME_None;
-
-	FString RowNameString = ElementalTag.GetTagName().ToString();
-	return RowNameString.Split(TEXT("."), nullptr, &RowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd)
-		? FName(*RowNameString)
-		: NAME_None;
-}
 
 static FName ResolveDecalRowName(EMASkillAreaShape Shape)
 {
@@ -70,37 +60,52 @@ static FVector ResolveDecalSize(const FMASkillWorldAreaShape& Area)
 	}
 }
 
-static FLinearColor ResolveElementColor(
+static FGameplayTag ResolveVisualElementTag(
 	const UMASkillAbility* SkillAbility,
-	const AActor* ComponentOwner,
-	const UDataTable* ElementalDataTable)
+	const AActor* ComponentOwner)
 {
-	FGameplayTag ElementalTag;
 	if (SkillAbility)
 	{
-		ElementalTag = SkillAbility->GetElementalTag();
+		return SkillAbility->GetVisualElementTag();
 	}
-	else if (const AMACharacter* Character = Cast<AMACharacter>(ComponentOwner))
+
+	if (const AMACharacter* Character = Cast<AMACharacter>(ComponentOwner))
 	{
 		if (const UMASkillManagerComponent* SkillManager = Character->GetSkillManagerComponent())
 		{
-			ElementalTag = SkillManager->GetActivePreviewElementalTag();
+			return SkillManager->GetActivePreviewVisualElementTag();
 		}
 	}
 
-	const FName ElementRowName = ResolveElementRowName(ElementalTag);
-	if (ElementRowName == NAME_None || !ElementalDataTable) return FLinearColor::White;
+	return FGameplayTag();
+}
 
-	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(
-		ElementRowName,
+static FLinearColor ResolveElementColor(
+	const FGameplayTag& ElementSourceTag)
+{
+	const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
+		ElementSourceTag,
 		TEXT("MASkillAreaDecal"));
 	return ElementRow ? ElementRow->ElementColor : FLinearColor::White;
 }
 
-UDecalComponent* MASkillAreaDecalStatics::Spawn(
+UDecalComponent* MASkillAreaDecalStatics::SpawnPreview(
 	AActor* ComponentOwner,
 	USceneComponent* AttachParent,
 	const UMASkillAbility* SkillAbility,
+	const FMASkillWorldAreaShape& Area)
+{
+	return SpawnDecal(
+		ComponentOwner,
+		AttachParent,
+		ResolveVisualElementTag(SkillAbility, ComponentOwner),
+		Area);
+}
+
+UDecalComponent* MASkillAreaDecalStatics::SpawnDecal(
+	AActor* ComponentOwner,
+	USceneComponent* AttachParent,
+	FGameplayTag ElementSourceTag,
 	const FMASkillWorldAreaShape& Area)
 {
 	UWorld* World = ComponentOwner ? ComponentOwner->GetWorld() : nullptr;
@@ -108,7 +113,6 @@ UDecalComponent* MASkillAreaDecalStatics::Spawn(
 
 	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
 	const UDataTable* DecalDataTable = GameSettings->GetAreaDecalDataTable();
-	const UDataTable* ElementalDataTable = GameSettings->GetElementalDataTable();
 
 	const FName DecalRowName = ResolveDecalRowName(Area.Shape);
 	if (!DecalDataTable || DecalRowName == NAME_None) return nullptr;
@@ -131,7 +135,7 @@ UDecalComponent* MASkillAreaDecalStatics::Spawn(
 
 	AreaMID->SetVectorParameterValue(
 		PARAM_AreaDecal_BaseColor,
-		ResolveElementColor(SkillAbility, ComponentOwner, ElementalDataTable));
+		ResolveElementColor(ElementSourceTag));
 
 	if (Area.Shape == EMASkillAreaShape::Rect || Area.Shape == EMASkillAreaShape::Line)
 	{
@@ -160,21 +164,39 @@ void MASkillAreaDecalStatics::SetAreaTransform(
 
 void MASkillAreaDecalStatics::SpawnImpact(
 	UMASkillAbility& SkillAbility,
-	const FMASkillWorldAreaShape& Area)
+	const FMASkillWorldAreaShape& Area,
+	FGameplayTag DamageTypeTag)
 {
 	AActor* AvatarActor = SkillAbility.GetAvatarActorFromActorInfo();
-	SpawnImpact(AvatarActor, &SkillAbility, Area);
+	if (SkillAbility.K2_HasAuthority())
+	{
+		AMACharacter* Character = AvatarActor ? Cast<AMACharacter>(AvatarActor) : nullptr;
+		UMASkillManagerComponent* SkillManager = Character ? Character->GetSkillManagerComponent() : nullptr;
+		if (SkillManager)
+		{
+			SkillManager->Multicast_SpawnPredictedSkillAreaImpact(
+				Area,
+				DamageTypeTag);
+		}
+		else
+		{
+			SpawnImpactLocal(AvatarActor, DamageTypeTag, Area);
+		}
+		return;
+	}
+
+	SpawnImpactLocal(AvatarActor, DamageTypeTag, Area);
 }
 
-void MASkillAreaDecalStatics::SpawnImpact(
+void MASkillAreaDecalStatics::SpawnImpactLocal(
 	AActor* ComponentOwner,
-	const UMASkillAbility* SkillAbility,
+	FGameplayTag ElementSourceTag,
 	const FMASkillWorldAreaShape& Area)
 {
-	UDecalComponent* Decal = Spawn(
+	UDecalComponent* Decal = SpawnDecal(
 		ComponentOwner,
 		nullptr,
-		SkillAbility,
+		ElementSourceTag,
 		Area);
 	if (!Decal) return;
 

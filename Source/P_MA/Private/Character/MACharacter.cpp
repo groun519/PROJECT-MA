@@ -1,6 +1,5 @@
 #include "Character/MACharacter.h"
 
-#include "AbilitySystemBlueprintLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -14,7 +13,6 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -110,20 +108,6 @@ FGenericTeamId AMACharacter::GetGenericTeamId() const
 UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 {
 	return MAAbilitySystemComponent;
-}
-
-void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
-                                                                 const FGameplayEventData& EventData)
-{
-	FGameplayEventData LocalEventData = EventData;
-	LocalEventData.EventTag = EventTag;
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, LocalEventData);
-}
-
-bool AMACharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
-	const FGameplayEventData& EventData)
-{
-	return true;
 }
 
 void AMACharacter::BindGASChangeDelegates()
@@ -319,23 +303,6 @@ UMAOverHeadStatsGauge* AMACharacter::EnsureOverHeadStatusWidgetConfigured()
 	return OverheadStatsGuage;
 }
 
-/*************************************************************/
-/*								Skill						 */
-/*************************************************************/
-
-void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor, FLinearColor EffectColor)
-{
-	if (GetNetMode() == NM_DedicatedServer)
-            return;
-	
-	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
-	if (SpawnedVFX && bApplyColor)
-	{
-		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
-	}
-}
-
 void AMACharacter::Multicast_AttachNiagaraToSelf_Implementation(UNiagaraSystem* NS, FName SocketName, float LifeSpan)
 {
 	if (GetNetMode() == NM_DedicatedServer || !NS) return;
@@ -369,22 +336,6 @@ void AMACharacter::Multicast_AttachNiagaraToSelf_Implementation(UNiagaraSystem* 
 		},
 		LifeSpan,
 		false);
-}
-
-void AMACharacter::Multicast_SpawnSkillAreaImpact_Implementation(FMASkillWorldAreaShape Area)
-{
-	if (GetNetMode() == NM_DedicatedServer) return;
-
-	MASkillAreaDecalStatics::SpawnImpact(this, nullptr, Area);
-}
-
-/** Status Effect **/
-void AMACharacter::Multicast_PlayStatusEffectImpulse_Implementation(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint)
-{
-	if (HasAuthority()) return;
-	if (!StatusEffectComponent) return;
-
-	StatusEffectComponent->PlayReplicatedStatusEffectImpulse(StatusEffectTag, Magnitude, SourcePoint);
 }
 
 bool AMACharacter::GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const

@@ -8,6 +8,7 @@
 #include "MAMaterialParams.h"
 #include "GameplayEffect.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillTooltipWidget.h"
 
 void UMASkillIconWidget::SetHotkeyText(const FText& InText)
@@ -22,9 +23,9 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 {
 	if (!SkillIconImage) return;
 
-	const FMASkillDefinitionIconData IconData = SkillDefinition
-		? SkillDefinition->GetDisplayData().IconData
-		: FMASkillDefinitionIconData();
+	const FMASkillIconData IconData = SkillDefinition
+		? SkillDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
+		: FMASkillIconData();
 	UTexture2D* AssembledSubIcon = SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr;
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())

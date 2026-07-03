@@ -8,7 +8,10 @@
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
@@ -21,6 +24,21 @@ AMASkillMovementDamageRuntime::AMASkillMovementDamageRuntime()
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	SetReplicates(false);
 	SetActorEnableCollision(false);
+}
+
+static FGameplayTag ResolveMovementDamageVisualElementTag(
+	const FMASkillScopes& Scopes,
+	const UMASkillAbility& SkillAbility)
+{
+	const UMASkillDefinition* ModuleDefinition = Scopes.Module
+		? Scopes.Module->GetDefinition()
+		: nullptr;
+	const FGameplayTag ModuleVisualElementTag = ModuleDefinition
+		? ModuleDefinition->GetVisualElementTag()
+		: FGameplayTag();
+	return ModuleVisualElementTag.IsValid()
+		? ModuleVisualElementTag
+		: SkillAbility.GetVisualElementTag();
 }
 
 bool AMASkillMovementDamageRuntime::Initialize(
@@ -46,6 +64,7 @@ bool AMASkillMovementDamageRuntime::Initialize(
 	Scopes = InScopes;
 	MovementHandle = InMovementHandle;
 	ResolvedDamage = InResolvedDamage;
+	VisualElementTag = ResolveMovementDamageVisualElementTag(InScopes, InOwnerAbility);
 	CapsuleRadiusScale = FMath::Max(InCapsuleRadiusMultiplier, 0.01f);
 	CapsuleHalfHeightScale = FMath::Max(InCapsuleHalfHeightMultiplier, 0.01f);
 	bDrawTrailDecal = bInDrawTrailDecal;
@@ -173,7 +192,12 @@ void AMASkillMovementDamageRuntime::SpawnTrailDecal(const FVector& Start, const 
 	Area.Rect.Height = Distance;
 	Area.Rect.Depth = Radius * 2.f;
 
-	Character->Multicast_SpawnSkillAreaImpact(Area);
+	UMASkillManagerComponent* SkillManager = Character->GetSkillManagerComponent();
+	if (!SkillManager) return;
+
+	SkillManager->Multicast_SpawnSkillAreaImpact(
+		Area,
+		VisualElementTag);
 }
 
 void UMASkillAction_ApplyMovementDamage::Execute(

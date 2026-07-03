@@ -1,19 +1,29 @@
 ﻿#include "GAS/Skill/Definition/MASkillDefinition.h"
 
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-FMASkillDefinitionIconData UMASkillDefinition::ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const
+static void MoveVisualTags(
+	FGameplayTagContainer& SourceTags,
+	FGameplayTagContainer& TargetTags)
 {
-	FMASkillDefinitionIconData IconData = DisplayData.IconData;
-	if (!ModuleQualityData || ModuleQuality.Type == EMAModuleType::Elemental) return IconData;
+	static const FGameplayTagContainer ModuleVisualTags(FGameplayTag::RequestGameplayTag(TEXT("Module.Visual")));
+	const FGameplayTagContainer VisualTags = SourceTags.Filter(ModuleVisualTags);
+	TargetTags.AppendTags(VisualTags);
+	SourceTags.RemoveTags(VisualTags);
+}
 
-	if (const FMAModuleTypeData* TypeData = ModuleQualityData->FindTypeData(ModuleQuality.Type))
+FMASkillIconData UMASkillDefinition::ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const
+{
+	FMASkillIconData IconData;
+	IconData.Icon = DisplayData.IconData.Icon;
+	if (!ModuleQualityData) return IconData;
+
+	if (const FMAModuleTypeData* VisualData = ModuleQualityData->FindVisualData(ModuleVisualTags))
 	{
-		IconData.IconColor = TypeData->IconColor;
-		IconData.InnerColor = TypeData->InnerColor;
+		IconData.IconColor = VisualData->IconColor;
+		IconData.InnerColor = VisualData->InnerColor;
 	}
 	return IconData;
 }
@@ -31,6 +41,20 @@ FGameplayTagContainer UMASkillDefinition::GetTooltipTags() const
 	return ModuleTags;
 }
 
+FGameplayTag UMASkillDefinition::GetVisualElementTag() const
+{
+	static const FGameplayTag ElementalVisualTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Visual.Elemental"));
+	for (const FGameplayTag& VisualTag : ModuleVisualTags)
+	{
+		if (VisualTag != ElementalVisualTag && VisualTag.MatchesTag(ElementalVisualTag))
+		{
+			return VisualTag;
+		}
+	}
+
+	return FGameplayTag();
+}
+
 void UMASkillDefinition::PostLoad()
 {
 	Super::PostLoad();
@@ -43,6 +67,7 @@ void UMASkillDefinition::PostLoad()
 	{
 		ModuleTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
 	}
+	MoveVisualTags(ModuleTags, ModuleVisualTags);
 
 	for (FMASkillEventBinding& EventBinding : EventBindings)
 	{
@@ -59,9 +84,9 @@ void UMASkillDefinition::ResetAssemblyData()
 	DisplayData = FMASkillDefinitionDisplayData();
 	AssembledSubIcon = nullptr;
 	ModuleTags.Reset();
+	ModuleVisualTags.Reset();
 	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
-	ElementalTag = FGameplayTag();
 	CooldownSeconds = 0.f;
 	ModuleCooldown = FMASkillModuleCooldownConfig();
 	SkillSteps.Reset();
@@ -74,13 +99,7 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 {
 	const UMASkillDefinition* SourceDefinition = SourceModuleInstance ? SourceModuleInstance->GetDefinition() : nullptr;
 	if (!SourceDefinition) return;
-
-	if (!ElementalTag.IsValid()
-		&& SourceDefinition->ElementalTag.IsValid()
-		&& SourceDefinition->ElementalTag != UMAAbilitySystemStatics::GetDefaultElementalTag())
-	{
-		ElementalTag = SourceDefinition->ElementalTag;
-	}
+	ModuleVisualTags.AppendTags(SourceDefinition->ModuleVisualTags);
 
 	CooldownSeconds += SourceDefinition->CooldownSeconds;
 

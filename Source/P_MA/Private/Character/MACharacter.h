@@ -3,12 +3,10 @@
 #include "CoreMinimal.h"
 #include "Character/MAStatusEffectTypes.h"
 #include "GameFramework/Character.h"
-#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
 #include "GAS/MAGameplayAbilityTypes.h"
-#include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "MACharacter.generated.h"
 
 class UNiagaraSystem;
@@ -47,9 +45,6 @@ public:
 	UMAOverlayComponent* GetOverlayComponent() const { return OverlayComponent; }
 	UMASkillManagerComponent* GetSkillManagerComponent() const { return SkillManagerComponent; }
 	
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
-
 private:
 	void BindGASChangeDelegates();
 	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
@@ -134,18 +129,8 @@ protected:
 	/*								Skill						   */
 	/***************************************************************/
 public:
-	//월드에 VFX 출력
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayNiagara(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor=false, FLinearColor EffectColor=FLinearColor::White);
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_AttachNiagaraToSelf(UNiagaraSystem* NS, FName SocketName, float LifeSpan);
-	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SpawnSkillAreaImpact(FMASkillWorldAreaShape Area);
-	UFUNCTION(NetMulticast, Reliable)
-	// Kept on AMACharacter because the actor already owns the replication entrypoint.
-	// If status-effect impulse RPCs grow, move this multicast into UMAStatusEffectComponent.
-	void Multicast_PlayStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint);
-
 	UFUNCTION()
 	bool GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const;
 };

@@ -7,7 +7,6 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
-#include "Setting/MAGameSettings.h"
 
 void MASkillDamageResolver::ApplyDamageOverTimeConfig(
 	FGameplayEffectSpecHandle& SpecHandle,
@@ -74,19 +73,9 @@ void MASkillDamageResolver::AppendElementalHitGameplayCueTag(
 	const FGameplayTag& DamageTypeTag,
 	FGameplayTagContainer& TargetGameplayCueTags)
 {
-	const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
-	if (!ElementalDataTable || !DamageTypeTag.IsValid())
-	{
-		return;
-	}
-
-	FString ElementalRowNameString = DamageTypeTag.GetTagName().ToString();
-	ElementalRowNameString.Split(TEXT("."), nullptr, &ElementalRowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-	const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(
-		FName(*ElementalRowNameString),
-		TEXT("SkillDamageElementalHitCueLookup"),
-		false);
+	const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
+		DamageTypeTag,
+		TEXT("SkillDamageElementalHitCueLookup"));
 	if (ElementRow && ElementRow->HitGameplayCueTag.IsValid())
 	{
 		TargetGameplayCueTags.AddTag(ElementRow->HitGameplayCueTag);

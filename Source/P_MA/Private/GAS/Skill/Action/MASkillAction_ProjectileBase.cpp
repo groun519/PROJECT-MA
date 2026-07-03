@@ -12,7 +12,6 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
-#include "Setting/MAGameSettings.h"
 
 static bool TryResolveLocationFromObject(UObject* Object, FName SocketName, FVector& OutLocation)
 {
@@ -160,22 +159,14 @@ void UMASkillAction_ProjectileBase::Execute(
 	ProjectileParams.EventExecutorAbility = &OwnerAbility;
 	ProjectileParams.EventScopes = Scopes;
 
-	const FGameplayTag ElementalTag = OwnerAbility.GetElementalTag();
-	if (const UDataTable* ElementalDataTable = UMAGameSettings::Get()->GetElementalDataTable();
-		ElementalDataTable && ElementalTag.IsValid())
+	if (const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
+		OwnerAbility.GetVisualElementTag(),
+		TEXT("SkillProjectileElementalLookup")))
 	{
-		FString ElementalRowNameString = ElementalTag.GetTagName().ToString();
-		ElementalRowNameString.Split(TEXT("."), nullptr, &ElementalRowNameString, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-		if (const FMAElementDataRow* ElementRow = ElementalDataTable->FindRow<FMAElementDataRow>(
-			FName(*ElementalRowNameString),
-			TEXT("SkillProjectileElementalLookup")))
-		{
-			ProjectileParams.ElementalSettings.bHasElementalData = true;
-			ProjectileParams.ElementalSettings.ElementalColor = ElementRow->ElementColor;
-			ProjectileParams.ElementalSettings.MainVFX = ElementRow->MainVFX;
-			ProjectileParams.ElementalSettings.TrailVFX = ElementRow->TrailVFX;
-		}
+		ProjectileParams.ElementalSettings.bHasElementalData = true;
+		ProjectileParams.ElementalSettings.ElementalColor = ElementRow->ElementColor;
+		ProjectileParams.ElementalSettings.MainVFX = ElementRow->MainVFX;
+		ProjectileParams.ElementalSettings.TrailVFX = ElementRow->TrailVFX;
 	}
 
 	Projectile->InitializeProjectile(ProjectileParams);

@@ -12,8 +12,7 @@ struct P_MA_API FMAElementDataRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element")
-	FGameplayTag ElementTag;
+	static const FMAElementDataRow* FindByTag(const FGameplayTag& SourceTag, const TCHAR* ContextString);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Element")
 	FLinearColor ElementColor = FLinearColor::White;

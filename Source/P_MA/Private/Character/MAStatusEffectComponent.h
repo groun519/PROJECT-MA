@@ -22,7 +22,6 @@ public:
 	FOnStatusEffectDisplayChanged OnStatusEffectDisplayChanged;
 	bool GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const;
 	void GetActiveStatusEffectDisplayEvents(TArray<FStatusEffectDisplayEvent>& OutEvents) const;
-	void PlayReplicatedStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, const FVector& SourcePoint);
 	void ResetTransientStatusEffectState();
 
 protected:
@@ -34,6 +33,9 @@ private:
 	const FStatusEffectRule* FindStatusEffectRule(const FGameplayTag& StatusEffectTag) const;
 	UMAImpulseComponent* GetImpulseComponent() const;
 	void ApplyStatusEffectImpulse(const FStatusEffectRule& StatusEffectRule, float Magnitude, const FVector& SourcePoint);
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, FVector SourcePoint);
+	void PlayReplicatedStatusEffectImpulse(const FGameplayTag& StatusEffectTag, float Magnitude, const FVector& SourcePoint);
 	void HandleStatusEffectStarted(const FStatusEffectRule& StatusEffectRule);
 	void HandleStatusEffectEnded(const FStatusEffectRule& StatusEffectRule);
 	void StopStatusEffectMontage(const FGameplayTag& StatusEffectTag);

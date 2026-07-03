@@ -42,7 +42,8 @@ public:
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
 
-	static FGameplayTag GetDefaultElementalTag();
+	static FGameplayTag GetDefaultVisualElementTag();
+	static FGameplayTag GetPlayerRespawnGameplayCueTag();
 	
 	static FGameplayTag GetBehaviorMultiplierTag();
 	static FGameplayTag GetDamageBaseTag();
