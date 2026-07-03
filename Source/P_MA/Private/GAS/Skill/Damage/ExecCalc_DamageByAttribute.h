@@ -4,6 +4,8 @@
 #include "GameplayEffectExecutionCalculation.h"
 #include "ExecCalc_DamageByAttribute.generated.h"
 
+enum class EMADamageAttributeSide : uint8;
+
 UCLASS()
 class P_MA_API UExecCalc_DamageByAttribute : public UGameplayEffectExecutionCalculation
 {
@@ -17,28 +19,19 @@ public:
 		FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const override;
 
 private:
-	FGameplayEffectAttributeCaptureDefinition SourceHealthDef;
-	FGameplayEffectAttributeCaptureDefinition SourceMaxHealthDef;
-	FGameplayEffectAttributeCaptureDefinition SourceAttackDef;
-	FGameplayEffectAttributeCaptureDefinition SourceMoveSpeedDef;
-	FGameplayEffectAttributeCaptureDefinition SourceAttackSpeedDef;
-	FGameplayEffectAttributeCaptureDefinition SourceArmorDef;
-	FGameplayEffectAttributeCaptureDefinition SourceArmorPenetrationDef;
-	FGameplayEffectAttributeCaptureDefinition SourceFocusDef;
-	FGameplayEffectAttributeCaptureDefinition SourceCriticalDamageDef;
-	FGameplayEffectAttributeCaptureDefinition SourceReverseCriticalDamageDef;
+	struct FAttributeCaptureDefinitions
+	{
+		FGameplayEffectAttributeCaptureDefinition Source;
+		FGameplayEffectAttributeCaptureDefinition Target;
+		FName SourceCoefficientName;
+		FName TargetCoefficientName;
+	};
 
-	FGameplayEffectAttributeCaptureDefinition TargetHealthDef;
-	FGameplayEffectAttributeCaptureDefinition TargetMaxHealthDef;
-	FGameplayEffectAttributeCaptureDefinition TargetShieldDef;
-	FGameplayEffectAttributeCaptureDefinition TargetAttackDef;
-	FGameplayEffectAttributeCaptureDefinition TargetMoveSpeedDef;
-	FGameplayEffectAttributeCaptureDefinition TargetAttackSpeedDef;
-	FGameplayEffectAttributeCaptureDefinition TargetArmorDef;
-	FGameplayEffectAttributeCaptureDefinition TargetArmorPenetrationDef;
-	FGameplayEffectAttributeCaptureDefinition TargetFocusDef;
-	FGameplayEffectAttributeCaptureDefinition TargetCriticalDamageDef;
-	FGameplayEffectAttributeCaptureDefinition TargetReverseCriticalDamageDef;
+	const FGameplayEffectAttributeCaptureDefinition* FindCaptureDefinition(
+		EMADamageAttributeSide Side,
+		const FGameplayAttribute& Attribute) const;
+
+	TMap<FGameplayAttribute, FAttributeCaptureDefinitions> AttributeCaptureDefinitions;
 
 	FGameplayTag BehaviorModifierTag;
 	FGameplayTag DamageVarianceTag;

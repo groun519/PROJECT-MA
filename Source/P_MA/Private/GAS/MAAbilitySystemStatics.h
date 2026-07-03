@@ -10,8 +10,8 @@
 class UGameplayAbility;
 struct FGameplayAbilitySpec;
 class UAbilitySystemComponent;
-enum class EMADamageAttribute : uint8;
 enum class EMADamageAttributeSide : uint8;
+struct FGameplayAttribute;
 struct FMADamageExecutionConfig;
 /**
  * 
@@ -62,7 +62,7 @@ public:
 	static FGameplayTag GetFireDamageTypeTag();
 	static FGameplayTag GetIceDamageTypeTag();
 	static FGameplayTag GetFixedDamageTypeTag();
-	static FGameplayTag GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute);
+	static FName GetDamageAttributeCoefficientName(EMADamageAttributeSide Side, const FGameplayAttribute& Attribute);
 	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);
 	static void SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint);
 	static bool TryGetReactionSourcePoint(const FGameplayEffectSpec& Spec, FVector& OutSourcePoint);

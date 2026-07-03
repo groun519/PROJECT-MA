@@ -1,5 +1,7 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 
+#include "GAS/MAAttributeSet.h"
+
 bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	bool bSuccess = true;
@@ -53,6 +55,11 @@ bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map
 
 FGenericDamageEffectDef::FGenericDamageEffectDef()
 	:DamageEffect{nullptr}, PushVelocity{0.f}
+{
+}
+
+FMADamageAttributeCoefficient::FMADamageAttributeCoefficient()
+	: GameplayAttribute(UMAAttributeSet::GetAttackAttribute())
 {
 }
 

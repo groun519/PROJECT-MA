@@ -2,7 +2,6 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
@@ -11,24 +10,6 @@
 namespace
 {
 	const FName LostHealthPayloadTagName(TEXT("Data.Health.Lost"));
-
-	FGameplayAttribute ResolveAttribute(EMADamageAttribute Attribute)
-	{
-		switch (Attribute)
-		{
-		case EMADamageAttribute::Health: return UMAAttributeSet::GetHealthAttribute();
-		case EMADamageAttribute::MaxHealth: return UMAAttributeSet::GetMaxHealthAttribute();
-		case EMADamageAttribute::Attack: return UMAAttributeSet::GetAttackAttribute();
-		case EMADamageAttribute::MoveSpeed: return UMAAttributeSet::GetMoveSpeedAttribute();
-		case EMADamageAttribute::AttackSpeed: return UMAAttributeSet::GetAttackSpeedAttribute();
-		case EMADamageAttribute::Armor: return UMAAttributeSet::GetArmorAttribute();
-		case EMADamageAttribute::ArmorPenetration: return UMAAttributeSet::GetArmorPenetrationAttribute();
-		case EMADamageAttribute::Focus: return UMAAttributeSet::GetFocusAttribute();
-		case EMADamageAttribute::CriticalDamage: return UMAAttributeSet::GetCriticalDamageAttribute();
-		case EMADamageAttribute::ReverseCriticalDamage: return UMAAttributeSet::GetReverseCriticalDamageAttribute();
-		default: return UMAAttributeSet::GetAttackAttribute();
-		}
-	}
 
 	float ResolveAttributeCoefficientValue(
 		const FMADamageAttributeCoefficient& Coefficient,
@@ -43,10 +24,11 @@ namespace
 				? PayloadValue * Coefficient.Coefficient
 				: 0.f;
 		}
+		if (!Coefficient.GameplayAttribute.IsValid()) return 0.f;
 
 		bool bFound = false;
 		UAbilitySystemComponent& ASC = Coefficient.Side == EMADamageAttributeSide::Source ? SourceASC : TargetASC;
-		const float AttributeValue = ASC.GetGameplayAttributeValue(ResolveAttribute(Coefficient.Attribute), bFound);
+		const float AttributeValue = ASC.GetGameplayAttributeValue(Coefficient.GameplayAttribute, bFound);
 		return bFound ? AttributeValue * Coefficient.Coefficient : 0.f;
 	}
 }

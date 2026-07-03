@@ -75,21 +75,6 @@ struct FGenericDamageEffectDef
 };
 
 UENUM(BlueprintType)
-enum class EMADamageAttribute : uint8
-{
-	Health,
-	MaxHealth,
-	Attack,
-	MoveSpeed,
-	AttackSpeed,
-	Armor,
-	ArmorPenetration,
-	Focus,
-	CriticalDamage,
-	ReverseCriticalDamage
-};
-
-UENUM(BlueprintType)
 enum class EMADamageAttributeSide : uint8
 {
 	Source,
@@ -166,11 +151,13 @@ struct FMADamageAttributeCoefficient
 {
 	GENERATED_BODY()
 
+	FMADamageAttributeCoefficient();
+
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	EMADamageAttributeSide Side = EMADamageAttributeSide::Source;
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(EditCondition="Side != EMADamageAttributeSide::Payload", EditConditionHides))
-	EMADamageAttribute Attribute = EMADamageAttribute::Attack;
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(DisplayName="Attribute", EditCondition="Side != EMADamageAttributeSide::Payload", EditConditionHides))
+	FGameplayAttribute GameplayAttribute;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Data", EditCondition="Side == EMADamageAttributeSide::Payload", EditConditionHides))
 	FGameplayTag PayloadTag;
@@ -209,7 +196,11 @@ struct FMADamageExecutionConfig
 
 		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{
-			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
+			if (!FMath::IsNearlyZero(Coefficient.Coefficient)
+				&& Coefficient.GameplayAttribute.IsValid())
+			{
+				return true;
+			}
 		}
 
 		return false;

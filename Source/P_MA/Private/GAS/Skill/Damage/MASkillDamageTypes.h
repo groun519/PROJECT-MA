@@ -127,7 +127,13 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 
 		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{
-			if (!FMath::IsNearlyZero(Coefficient.Coefficient)) return true;
+			if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
+			if (Coefficient.Side == EMADamageAttributeSide::Payload
+				? Coefficient.PayloadTag.IsValid()
+				: Coefficient.GameplayAttribute.IsValid())
+			{
+				return true;
+			}
 		}
 
 		return StatusEffects.Num() > 0;

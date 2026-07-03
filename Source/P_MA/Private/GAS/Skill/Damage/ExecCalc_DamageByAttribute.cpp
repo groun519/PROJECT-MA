@@ -3,45 +3,54 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAGameplayAbilityTypes.h"
+#include "UObject/UnrealType.h"
 
 UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 {
-	auto InitCaptureDef = [this](
-		FGameplayEffectAttributeCaptureDefinition& CaptureDef,
-		const FGameplayAttribute& Attribute,
-		EGameplayEffectAttributeCaptureSource CaptureSource)
+	for (TFieldIterator<FProperty> PropertyIt(UMAAttributeSet::StaticClass(), EFieldIteratorFlags::IncludeSuper);
+		PropertyIt;
+		++PropertyIt)
 	{
-		CaptureDef.AttributeToCapture = Attribute;
-		CaptureDef.AttributeSource = CaptureSource;
-		CaptureDef.bSnapshot = false;
-		RelevantAttributesToCapture.Add(CaptureDef);
-	};
+		FProperty* Property = *PropertyIt;
+		if (!FGameplayAttribute::IsGameplayAttributeDataProperty(Property)) continue;
 
-	InitCaptureDef(SourceHealthDef, UMAAttributeSet::GetHealthAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceMaxHealthDef, UMAAttributeSet::GetMaxHealthAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceAttackDef, UMAAttributeSet::GetAttackAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceMoveSpeedDef, UMAAttributeSet::GetMoveSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceAttackSpeedDef, UMAAttributeSet::GetAttackSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceArmorDef, UMAAttributeSet::GetArmorAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceArmorPenetrationDef, UMAAttributeSet::GetArmorPenetrationAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceFocusDef, UMAAttributeSet::GetFocusAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceCriticalDamageDef, UMAAttributeSet::GetCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Source);
-	InitCaptureDef(SourceReverseCriticalDamageDef, UMAAttributeSet::GetReverseCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Source);
+		const FGameplayAttribute Attribute(Property);
+		const FGameplayEffectAttributeCaptureDefinition SourceDefinition(
+			Attribute,
+			EGameplayEffectAttributeCaptureSource::Source,
+			false);
+		const FGameplayEffectAttributeCaptureDefinition TargetDefinition(
+			Attribute,
+			EGameplayEffectAttributeCaptureSource::Target,
+			false);
 
-	InitCaptureDef(TargetHealthDef, UMAAttributeSet::GetHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetMaxHealthDef, UMAAttributeSet::GetMaxHealthAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetShieldDef, UMAAttributeSet::GetShieldAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetAttackDef, UMAAttributeSet::GetAttackAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetMoveSpeedDef, UMAAttributeSet::GetMoveSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetAttackSpeedDef, UMAAttributeSet::GetAttackSpeedAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetArmorDef, UMAAttributeSet::GetArmorAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetArmorPenetrationDef, UMAAttributeSet::GetArmorPenetrationAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetFocusDef, UMAAttributeSet::GetFocusAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetCriticalDamageDef, UMAAttributeSet::GetCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Target);
-	InitCaptureDef(TargetReverseCriticalDamageDef, UMAAttributeSet::GetReverseCriticalDamageAttribute(), EGameplayEffectAttributeCaptureSource::Target);
+		FAttributeCaptureDefinitions& CaptureDefinitions = AttributeCaptureDefinitions.Add(Attribute);
+		CaptureDefinitions.Source = SourceDefinition;
+		CaptureDefinitions.Target = TargetDefinition;
+		CaptureDefinitions.SourceCoefficientName = UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
+			EMADamageAttributeSide::Source,
+			Attribute);
+		CaptureDefinitions.TargetCoefficientName = UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
+			EMADamageAttributeSide::Target,
+			Attribute);
+		RelevantAttributesToCapture.Add(SourceDefinition);
+		RelevantAttributesToCapture.Add(TargetDefinition);
+	}
 
 	BehaviorModifierTag = UMAAbilitySystemStatics::GetBehaviorMultiplierTag();
 	DamageVarianceTag = UMAAbilitySystemStatics::GetDamageVarianceTag();
+}
+
+const FGameplayEffectAttributeCaptureDefinition* UExecCalc_DamageByAttribute::FindCaptureDefinition(
+	EMADamageAttributeSide Side,
+	const FGameplayAttribute& Attribute) const
+{
+	const FAttributeCaptureDefinitions* CaptureDefinitions = AttributeCaptureDefinitions.Find(Attribute);
+	if (!CaptureDefinitions) return nullptr;
+
+	return Side == EMADamageAttributeSide::Source
+		? &CaptureDefinitions->Source
+		: &CaptureDefinitions->Target;
 }
 
 void UExecCalc_DamageByAttribute::Execute_Implementation(
@@ -66,45 +75,30 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return Value;
 	};
 
-	auto GetCaptureDef = [&](EMADamageAttributeSide Side, EMADamageAttribute Attribute) -> const FGameplayEffectAttributeCaptureDefinition&
+	auto CaptureAttributeMagnitude = [&](EMADamageAttributeSide Side, const FGameplayAttribute& Attribute)
 	{
-		const bool bSource = Side == EMADamageAttributeSide::Source;
-		switch (Attribute)
-		{
-		case EMADamageAttribute::Health: return bSource ? SourceHealthDef : TargetHealthDef;
-		case EMADamageAttribute::MaxHealth: return bSource ? SourceMaxHealthDef : TargetMaxHealthDef;
-		case EMADamageAttribute::Attack: return bSource ? SourceAttackDef : TargetAttackDef;
-		case EMADamageAttribute::MoveSpeed: return bSource ? SourceMoveSpeedDef : TargetMoveSpeedDef;
-		case EMADamageAttribute::AttackSpeed: return bSource ? SourceAttackSpeedDef : TargetAttackSpeedDef;
-		case EMADamageAttribute::Armor: return bSource ? SourceArmorDef : TargetArmorDef;
-		case EMADamageAttribute::ArmorPenetration: return bSource ? SourceArmorPenetrationDef : TargetArmorPenetrationDef;
-		case EMADamageAttribute::Focus: return bSource ? SourceFocusDef : TargetFocusDef;
-		case EMADamageAttribute::CriticalDamage: return bSource ? SourceCriticalDamageDef : TargetCriticalDamageDef;
-		case EMADamageAttribute::ReverseCriticalDamage: return bSource ? SourceReverseCriticalDamageDef : TargetReverseCriticalDamageDef;
-		}
-
-		return bSource ? SourceAttackDef : TargetAttackDef;
+		const FGameplayEffectAttributeCaptureDefinition* CaptureDefinition = FindCaptureDefinition(Side, Attribute);
+		return CaptureDefinition ? CaptureMagnitude(*CaptureDefinition) : 0.f;
 	};
 
 	float BaseDamage = Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetDamageBaseTag(), false, 0.f);
 	bool bHasConfiguredBaseDamage = !FMath::IsNearlyZero(BaseDamage);
 
-	for (int32 SideIndex = 0; SideIndex < 2; ++SideIndex)
+	auto AddAttributeCoefficient = [&](
+		FName CoefficientName,
+		const FGameplayEffectAttributeCaptureDefinition& CaptureDefinition)
 	{
-		const EMADamageAttributeSide Side = SideIndex == 0 ? EMADamageAttributeSide::Source : EMADamageAttributeSide::Target;
-		for (int32 AttributeIndex = 0; AttributeIndex <= static_cast<int32>(EMADamageAttribute::ReverseCriticalDamage); ++AttributeIndex)
-		{
-			const EMADamageAttribute Attribute = static_cast<EMADamageAttribute>(AttributeIndex);
-			const float Coefficient = Spec.GetSetByCallerMagnitude(
-				UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(Side, Attribute),
-				false,
-				0.f);
+		const float Coefficient = Spec.GetSetByCallerMagnitude(CoefficientName, false, 0.f);
+		if (FMath::IsNearlyZero(Coefficient)) return;
 
-			if (FMath::IsNearlyZero(Coefficient)) continue;
+		bHasConfiguredBaseDamage = true;
+		BaseDamage += CaptureMagnitude(CaptureDefinition) * Coefficient;
+	};
 
-			bHasConfiguredBaseDamage = true;
-			BaseDamage += CaptureMagnitude(GetCaptureDef(Side, Attribute)) * Coefficient;
-		}
+	for (const TPair<FGameplayAttribute, FAttributeCaptureDefinitions>& Pair : AttributeCaptureDefinitions)
+	{
+		AddAttributeCoefficient(Pair.Value.SourceCoefficientName, Pair.Value.Source);
+		AddAttributeCoefficient(Pair.Value.TargetCoefficientName, Pair.Value.Target);
 	}
 
 	if (!bHasConfiguredBaseDamage)
@@ -190,7 +184,9 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 			MutableMAContext->SetDisplayMagnitude(FinalDamage);
 		}
 
-		const float CurrentShield = FMath::Max(0.f, CaptureMagnitude(TargetShieldDef));
+		const float CurrentShield = FMath::Max(0.f, CaptureAttributeMagnitude(
+			EMADamageAttributeSide::Target,
+			UMAAttributeSet::GetShieldAttribute()));
 		const float ShieldDamage = FMath::Min(CurrentShield, FinalDamage);
 		const float HealthDamage = FinalDamage - ShieldDamage;
 		if (ShieldDamage > 0.f)
@@ -229,16 +225,24 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return;
 	}
 
-	const float Armor = CaptureMagnitude(TargetArmorDef);
-	const float ArmorPenetration = CaptureMagnitude(SourceArmorPenetrationDef);
+	const float Armor = CaptureAttributeMagnitude(
+		EMADamageAttributeSide::Target,
+		UMAAttributeSet::GetArmorAttribute());
+	const float ArmorPenetration = CaptureAttributeMagnitude(
+		EMADamageAttributeSide::Source,
+		UMAAttributeSet::GetArmorPenetrationAttribute());
 	const float DamageVariance = FMath::Max(0.f, Spec.GetSetByCallerMagnitude(DamageVarianceTag, false, 0.f));
 	const float Focus = FMath::Clamp(
-		CaptureMagnitude(SourceFocusDef)
+		CaptureAttributeMagnitude(EMADamageAttributeSide::Source, UMAAttributeSet::GetFocusAttribute())
 		+ Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetSkillFocusOffsetTag(), false, 0.f),
 		-1.f,
 		1.f);
-	const float CriticalDamage = CaptureMagnitude(SourceCriticalDamageDef);
-	const float ReverseCriticalDamage = CaptureMagnitude(SourceReverseCriticalDamageDef);
+	const float CriticalDamage = CaptureAttributeMagnitude(
+		EMADamageAttributeSide::Source,
+		UMAAttributeSet::GetCriticalDamageAttribute());
+	const float ReverseCriticalDamage = CaptureAttributeMagnitude(
+		EMADamageAttributeSide::Source,
+		UMAAttributeSet::GetReverseCriticalDamageAttribute());
 
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);
 	const float MinMultiplier = 1.f - DamageVariance;

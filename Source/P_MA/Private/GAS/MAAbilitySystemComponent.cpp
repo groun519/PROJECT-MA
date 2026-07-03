@@ -2,6 +2,8 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "GameplayEffectExtension.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
@@ -16,6 +18,66 @@
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
+}
+
+float UMAAbilitySystemComponent::PlayMontageWithBlendIn(
+	UGameplayAbility* AnimatingAbility,
+	FGameplayAbilityActivationInfo ActivationInfo,
+	UAnimMontage* Montage,
+	float PlayRate,
+	FName StartSectionName,
+	float BlendInTime)
+{
+	const float Duration = Super::PlayMontage(
+		AnimatingAbility,
+		ActivationInfo,
+		Montage,
+		PlayRate,
+		StartSectionName);
+	if (Duration <= 0.f) return Duration;
+
+	ApplyMontageBlendIn(Montage, PlayRate, BlendInTime);
+	if (ShouldRecordMontageReplication())
+	{
+		AnimMontage_UpdateReplicatedData();
+	}
+	if (IsOwnerActorAuthoritative() && AbilityActorInfo.IsValid() && AbilityActorInfo->AvatarActor.IsValid())
+	{
+		AbilityActorInfo->AvatarActor->ForceNetUpdate();
+	}
+
+	return Duration;
+}
+
+float UMAAbilitySystemComponent::PlayMontageSimulated(
+	UAnimMontage* Montage,
+	float PlayRate,
+	FName StartSectionName)
+{
+	const float Duration = Super::PlayMontageSimulated(Montage, PlayRate, StartSectionName);
+	if (Duration > 0.f)
+	{
+		ApplyMontageBlendIn(Montage, PlayRate, GetRepAnimMontageInfo().BlendTime);
+	}
+	return Duration;
+}
+
+void UMAAbilitySystemComponent::ApplyMontageBlendIn(
+	UAnimMontage* Montage,
+	float PlayRate,
+	float BlendInTime) const
+{
+	UAnimInstance* AnimInstance = AbilityActorInfo.IsValid() ? AbilityActorInfo->GetAnimInstance() : nullptr;
+	FAnimMontageInstance* MontageInstance = AnimInstance && Montage
+		? AnimInstance->GetInstanceForMontage(Montage)
+		: nullptr;
+	if (!MontageInstance) return;
+
+	FMontageBlendSettings BlendSettings(Montage->GetBlendInArgs());
+	BlendSettings.Blend.BlendTime = FMath::Max(BlendInTime, 0.f);
+	BlendSettings.BlendMode = Montage->BlendModeIn;
+	BlendSettings.BlendProfile = Montage->BlendProfileIn;
+	MontageInstance->Play(PlayRate, BlendSettings);
 }
 
 void UMAAbilitySystemComponent::GiveInitialAbilities()

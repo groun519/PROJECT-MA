@@ -149,44 +149,42 @@ FGameplayTag UMAAbilitySystemStatics::GetFixedDamageTypeTag()
 	return FGameplayTag::RequestGameplayTag("DamageType.Fixed");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetDamageAttributeCoefficientTag(EMADamageAttributeSide Side, EMADamageAttribute Attribute)
+FName UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
+	EMADamageAttributeSide Side,
+	const FGameplayAttribute& Attribute)
 {
+	if (!Attribute.IsValid() || Side == EMADamageAttributeSide::Payload) return NAME_None;
+
 	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
-	const TCHAR* AttributeName = TEXT("Attack");
-
-	switch (Attribute)
-	{
-	case EMADamageAttribute::Health: AttributeName = TEXT("Health"); break;
-	case EMADamageAttribute::MaxHealth: AttributeName = TEXT("MaxHealth"); break;
-	case EMADamageAttribute::Attack: AttributeName = TEXT("Attack"); break;
-	case EMADamageAttribute::MoveSpeed: AttributeName = TEXT("MoveSpeed"); break;
-	case EMADamageAttribute::AttackSpeed: AttributeName = TEXT("AttackSpeed"); break;
-	case EMADamageAttribute::Armor: AttributeName = TEXT("Armor"); break;
-	case EMADamageAttribute::ArmorPenetration: AttributeName = TEXT("ArmorPenetration"); break;
-	case EMADamageAttribute::Focus: AttributeName = TEXT("Focus"); break;
-	case EMADamageAttribute::CriticalDamage: AttributeName = TEXT("CriticalDamage"); break;
-	case EMADamageAttribute::ReverseCriticalDamage: AttributeName = TEXT("ReverseCriticalDamage"); break;
-	}
-
-	return FGameplayTag::RequestGameplayTag(*FString::Printf(TEXT("Data.Damage.Coeff.%s.%s"), SideName, AttributeName));
+	return FName(*FString::Printf(
+		TEXT("Data.Damage.Coeff.%s.%s.%s"),
+		SideName,
+		*GetNameSafe(Attribute.GetAttributeSetClass()),
+		*Attribute.GetName()));
 }
 
 void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig)
 {
 	if (!SpecHandle.IsValid()) return;
 
-	TMap<FGameplayTag, float> SummedMagnitudes;
-	SummedMagnitudes.FindOrAdd(GetDamageBaseTag()) += DamageConfig.BaseDamage;
+	TMap<FName, float> SummedAttributeCoefficients;
+	SpecHandle.Data->SetSetByCallerMagnitude(GetDamageBaseTag(), DamageConfig.BaseDamage);
 
 	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
 		if (Coefficient.Side == EMADamageAttributeSide::Payload) continue;
 
-		SummedMagnitudes.FindOrAdd(GetDamageAttributeCoefficientTag(Coefficient.Side, Coefficient.Attribute)) += Coefficient.Coefficient;
+		const FName CoefficientName = GetDamageAttributeCoefficientName(
+			Coefficient.Side,
+			Coefficient.GameplayAttribute);
+		if (!CoefficientName.IsNone())
+		{
+			SummedAttributeCoefficients.FindOrAdd(CoefficientName) += Coefficient.Coefficient;
+		}
 	}
 
-	for (const TPair<FGameplayTag, float>& Pair : SummedMagnitudes)
+	for (const TPair<FName, float>& Pair : SummedAttributeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Pair.Value)) continue;
 

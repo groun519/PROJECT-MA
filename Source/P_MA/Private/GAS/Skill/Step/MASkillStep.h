@@ -7,6 +7,7 @@
 
 class UAnimMontage;
 class UMASkillAbility;
+class UMAAbilitySystemComponent;
 class UMASkillStepManager;
 class UAnimInstance;
 class UAbilityTask_PlayMontageAndWait;
@@ -72,15 +73,7 @@ public:
 		ClearPreparedStepPreview();
 	}
 
-	void ApplyDesiredMontagePlayRate(float DesiredMontagePlayRate) const
-	{
-		UAnimInstance* AnimInstance = nullptr;
-		UAnimMontage* CurrentStepMontage = nullptr;
-		if (!TryResolveStepMontageContext(AnimInstance, CurrentStepMontage) || !AnimInstance->Montage_IsPlaying(CurrentStepMontage))
-			return;
-
-		AnimInstance->Montage_SetPlayRate(CurrentStepMontage, DesiredMontagePlayRate);
-	}
+	void ApplyDesiredMontagePlayRate(float DesiredMontagePlayRate) const;
 
 	virtual void StopStep() {}
 	virtual void HandleStepMontageCancelled();
@@ -102,6 +95,7 @@ public:
 protected:
 	UMASkillAbility* GetOwnerSkillAbility() const { return OwnerSkillAbility; }
 	UMASkillStepManager* GetOwnerStepManager() const;
+	UMAAbilitySystemComponent* ResolveOwnerAbilitySystemComponent() const;
 	void RequestAdvanceOrEnd(float MontageBlendOutTime = 0.f);
 	UAnimInstance* ResolveOwnerAnimInstance() const;
 

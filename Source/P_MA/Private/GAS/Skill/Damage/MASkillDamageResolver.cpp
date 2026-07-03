@@ -50,6 +50,7 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 			}
 			continue;
 		}
+		if (!Coefficient.GameplayAttribute.IsValid()) continue;
 
 		Result.AttributeCoefficients.Add(Coefficient);
 	}

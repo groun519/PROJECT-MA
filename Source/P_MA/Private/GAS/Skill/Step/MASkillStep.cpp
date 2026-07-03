@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -71,21 +72,24 @@ bool UMASkillStep::PrepareStepPreview(float PreviewBlendInTime)
 	if (PreparedStepPreviewMontage) return false;
 
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
+	UMAAbilitySystemComponent* AbilitySystemComponent = ResolveOwnerAbilitySystemComponent();
 	UAnimInstance* AnimInstance = nullptr;
 	UAnimMontage* StepPreviewMontage = nullptr;
-	if (!SkillAbility || !SkillAbility->CanPlaySkillMontageLocally() || !TryResolveStepMontageContext(AnimInstance, StepPreviewMontage)) return false;
-
-	if (AnimInstance->Montage_PlayWithBlendSettings(
-			StepPreviewMontage,
-			FMontageBlendSettings(FMath::Max(PreviewBlendInTime, 0.f)),
-			PreviewPlayRate) <= 0.f)
+	if (!SkillAbility || !AbilitySystemComponent || !SkillAbility->CanPlaySkillMontageLocally()
+		|| !TryResolveStepMontageContext(AnimInstance, StepPreviewMontage))
 	{
 		return false;
 	}
 
-	if (const FName StartSectionName = ResolveStepStartSectionName(); !StartSectionName.IsNone())
+	if (AbilitySystemComponent->PlayMontageWithBlendIn(
+			SkillAbility,
+			SkillAbility->GetCurrentActivationInfo(),
+			StepPreviewMontage,
+			PreviewPlayRate,
+			ResolveStepStartSectionName(),
+			PreviewBlendInTime) <= 0.f)
 	{
-		AnimInstance->Montage_JumpToSection(StartSectionName, StepPreviewMontage);
+		return false;
 	}
 
 	if (UMAAnimInstance* MAAnimInstance = Cast<UMAAnimInstance>(AnimInstance))
@@ -129,15 +133,6 @@ bool UMASkillStep::PromotePreparedStepPreviewToActive()
 {
 	if (!PreparedStepPreviewMontage) return false;
 
-	if (UAnimInstance* AnimInstance = ResolveOwnerAnimInstance())
-	{
-		if (FAnimMontageInstance* PreparedMontageInstance = AnimInstance->GetInstanceForMontage(PreparedStepPreviewMontage))
-		{
-			PreparedMontageInstance->SetWeight(1.f);
-			PreparedMontageInstance->SetDesiredWeight(1.f);
-		}
-	}
-
 	bPreparedStepPreviewActivated = true;
 	AdvanceSequence();
 	return true;
@@ -149,7 +144,11 @@ void UMASkillStep::ClearPreparedStepPreview(float BlendOutTime)
 	UAnimMontage* StepPreviewMontage = ReleasePreparedStepPreview(false);
 	if (!StepPreviewMontage) return;
 
-	if (AnimInstance && AnimInstance->Montage_IsPlaying(StepPreviewMontage))
+	if (UMAAbilitySystemComponent* AbilitySystemComponent = ResolveOwnerAbilitySystemComponent())
+	{
+		AbilitySystemComponent->StopMontageIfCurrent(*StepPreviewMontage, BlendOutTime);
+	}
+	else if (AnimInstance && AnimInstance->Montage_IsPlaying(StepPreviewMontage))
 	{
 		AnimInstance->Montage_Stop(BlendOutTime, StepPreviewMontage);
 	}
@@ -190,6 +189,23 @@ UMASkillStepManager* UMASkillStep::GetOwnerStepManager() const
 {
 	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
 	return SkillAbility ? SkillAbility->GetStepManager() : nullptr;
+}
+
+UMAAbilitySystemComponent* UMASkillStep::ResolveOwnerAbilitySystemComponent() const
+{
+	UMASkillAbility* SkillAbility = GetOwnerSkillAbility();
+	return SkillAbility
+		? Cast<UMAAbilitySystemComponent>(SkillAbility->GetAbilitySystemComponentFromActorInfo())
+		: nullptr;
+}
+
+void UMASkillStep::ApplyDesiredMontagePlayRate(float DesiredMontagePlayRate) const
+{
+	UMAAbilitySystemComponent* AbilitySystemComponent = ResolveOwnerAbilitySystemComponent();
+	UAnimMontage* CurrentStepMontage = ResolveStepMontage();
+	if (!AbilitySystemComponent || AbilitySystemComponent->GetCurrentMontage() != CurrentStepMontage) return;
+
+	AbilitySystemComponent->CurrentMontageSetPlayRate(DesiredMontagePlayRate);
 }
 
 void UMASkillStep::RequestAdvanceOrEnd(float MontageBlendOutTime)
@@ -264,8 +280,8 @@ void UMASkillStep::StopCurrentStepMontage(float MontageBlendOutTime)
 	UAnimMontage* CurrentStepMontage = nullptr;
 	if (!TryResolveStepMontageContext(AnimInstance, CurrentStepMontage)) return;
 
-	if (UMASkillStepManager* StepManager = GetOwnerStepManager();
-		StepManager && StepManager->IsCurrentStepPrepared())
+	const bool bWasPreparedStep = GetOwnerStepManager() && GetOwnerStepManager()->IsCurrentStepPrepared();
+	if (bWasPreparedStep)
 	{
 		ReleasePreparedStepPreview(true);
 	}
@@ -275,7 +291,11 @@ void UMASkillStep::StopCurrentStepMontage(float MontageBlendOutTime)
 		MAAnimInstance->UnregisterAnimationOwner(CurrentStepMontage, GetOwnerSkillAbility());
 	}
 
-	if (AnimInstance->Montage_IsPlaying(CurrentStepMontage))
+	if (UMAAbilitySystemComponent* AbilitySystemComponent = ResolveOwnerAbilitySystemComponent())
+	{
+		AbilitySystemComponent->StopMontageIfCurrent(*CurrentStepMontage, MontageBlendOutTime);
+	}
+	else if (AnimInstance->Montage_IsPlaying(CurrentStepMontage))
 	{
 		AnimInstance->Montage_Stop(MontageBlendOutTime, CurrentStepMontage);
 	}
