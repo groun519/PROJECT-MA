@@ -1,15 +1,27 @@
-﻿#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Definition/MASkillDefinition.h"
 
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
 
 static void MoveVisualTags(
 	FGameplayTagContainer& SourceTags,
 	FGameplayTagContainer& TargetTags)
 {
-	static const FGameplayTagContainer ModuleVisualTags(FGameplayTag::RequestGameplayTag(TEXT("Module.Visual")));
-	const FGameplayTagContainer VisualTags = SourceTags.Filter(ModuleVisualTags);
+	static const FGameplayTag ModuleVisualTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Visual"));
+
+	FGameplayTagContainer VisualTags;
+	for (const FGameplayTag& SourceTag : SourceTags)
+	{
+		if (SourceTag.IsValid() && SourceTag.MatchesTag(ModuleVisualTag))
+		{
+			VisualTags.AddTag(SourceTag);
+		}
+	}
+
+	if (VisualTags.IsEmpty()) return;
+
 	TargetTags.AppendTags(VisualTags);
 	SourceTags.RemoveTags(VisualTags);
 }
@@ -89,7 +101,9 @@ void UMASkillDefinition::ResetAssemblyData()
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	CooldownSeconds = 0.f;
 	ModuleCooldown = FMASkillModuleCooldownConfig();
-	SkillSteps.Reset();
+	BaseSequences.Reset();
+	SequenceModifiers.Reset();
+	AssembledSequences.Reset();
 	EventSources.Reset();
 	EventBindings.Reset();
 	Payloads.Reset();
@@ -102,16 +116,6 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 	ModuleVisualTags.AppendTags(SourceDefinition->ModuleVisualTags);
 
 	CooldownSeconds += SourceDefinition->CooldownSeconds;
-
-	for (UMASkillStep* SkillStep : SourceDefinition->SkillSteps)
-	{
-		if (!SkillStep) continue;
-		UMASkillStep* NewSkillStep = DuplicateObject<UMASkillStep>(SkillStep, this);
-		if (!NewSkillStep) continue;
-
-		NewSkillStep->SetBindingScope(SourceModuleInstance);
-		SkillSteps.Add(NewSkillStep);
-	}
 
 	for (UMASkillEventSource* EventSource : SourceDefinition->EventSources)
 	{
@@ -136,49 +140,26 @@ void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance
 	Payloads.Append(SourceDefinition->Payloads);
 }
 
-void UMASkillDefinition::FinalizeStepAssembly()
+void UMASkillDefinition::FinalizeSequenceAssembly()
 {
-	TMap<FString, int32> SequenceOffsets;
 	TMap<FString, int32> SequenceCounts;
-
-	for (const UMASkillStep* SkillStep : SkillSteps)
+	for (const FMASkillSequence& Sequence : AssembledSequences)
 	{
-		if (!SkillStep || !SkillStep->UsesSequenceSections()) continue;
-
-		SequenceCounts.FindOrAdd(SkillStep->GetSequenceSectionKey())++;
+		if (Sequence.UsesSequenceSections())
+		{
+			SequenceCounts.FindOrAdd(Sequence.GetSequenceKey())++;
+		}
 	}
 
-	for (int32 StepIndex = 0; StepIndex < SkillSteps.Num(); ++StepIndex)
+	TMap<FString, int32> SequenceOffsets;
+	for (FMASkillSequence& Sequence : AssembledSequences)
 	{
-		UMASkillStep* SkillStep = SkillSteps[StepIndex];
-		if (!SkillStep) continue;
+		if (!Sequence.UsesSequenceSections()) continue;
 
-		const int32 NextStepIndex = SkillSteps.IsValidIndex(StepIndex + 1) ? StepIndex + 1 : INDEX_NONE;
-		int32 NextMontageStepIndex = INDEX_NONE;
-		for (int32 NextStepCandidateIndex = StepIndex + 1; NextStepCandidateIndex < SkillSteps.Num(); ++NextStepCandidateIndex)
-		{
-			const UMASkillStep* NextSkillStep = SkillSteps[NextStepCandidateIndex];
-			if (!NextSkillStep || !NextSkillStep->ResolveStepMontage()) continue;
-
-			NextMontageStepIndex = NextStepCandidateIndex;
-			break;
-		}
-
-		int32 InitialSequenceIndex = 0;
-		int32 SequenceAdvanceCount = 0;
-		if (SkillStep->UsesSequenceSections())
-		{
-			const FString SequenceSectionKey = SkillStep->GetSequenceSectionKey();
-			InitialSequenceIndex = SequenceOffsets.FindRef(SequenceSectionKey) + 1;
-			SequenceOffsets.Add(SequenceSectionKey, InitialSequenceIndex);
-			SequenceAdvanceCount = SequenceCounts.FindRef(SequenceSectionKey);
-		}
-
-		SkillStep->ConfigureAssembledStep(
-			StepIndex,
-			NextStepIndex,
-			NextMontageStepIndex,
-			InitialSequenceIndex,
-			SequenceAdvanceCount);
+		const FString SequenceKey = Sequence.GetSequenceKey();
+		const int32 InitialSequenceIndex = SequenceOffsets.FindRef(SequenceKey) + 1;
+		SequenceOffsets.Add(SequenceKey, InitialSequenceIndex);
+		Sequence.InitialSequenceIndex = InitialSequenceIndex;
+		Sequence.SequenceAdvanceCount = SequenceCounts.FindRef(SequenceKey);
 	}
 }

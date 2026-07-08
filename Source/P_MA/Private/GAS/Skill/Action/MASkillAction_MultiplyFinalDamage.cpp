@@ -16,5 +16,17 @@ void UMASkillAction_MultiplyFinalDamage::Execute(
 
 	float CurrentMultiplier = 1.f;
 	Payloads.TryGetScalar(FinalDamageMultiplierTag, CurrentMultiplier);
-	Payloads.SetScalar(EMASkillPayloadWriteScope::Skill, FinalDamageMultiplierTag, CurrentMultiplier * Multiplier);
+
+	float AppliedMultiplier = Multiplier;
+	if (MultiplierPayloadTag.IsValid())
+	{
+		float PayloadMultiplier = 0.f;
+		if (!Payloads.TryGetScalar(MultiplierPayloadTag, PayloadMultiplier)) return;
+		AppliedMultiplier = PayloadBaseMultiplier + Multiplier * PayloadMultiplier;
+	}
+
+	Payloads.SetScalar(
+		EMASkillPayloadWriteScope::Skill,
+		FinalDamageMultiplierTag,
+		CurrentMultiplier * AppliedMultiplier);
 }

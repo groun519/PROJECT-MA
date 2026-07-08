@@ -5,12 +5,14 @@
 #include "GAS/Skill/Event/Binding/MASkillEventBinding.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
-#include "GAS/Skill/Step/MASkillStep.h"
+#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
+#include "GAS/Skill/Sequence/MASkillSequenceTypes.h"
 #include "GameplayTagContainer.h"
 #include "MASkillDefinition.generated.h"
 
 class UMASkillEventSource;
 class UMASkillModuleInstance;
+class UMASkillSequenceModifier;
 class UTexture2D;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
@@ -95,23 +97,26 @@ public:
 	FGameplayTag GetVisualElementTag() const;
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
-	const TArray<TObjectPtr<UMASkillStep>>& GetSkillSteps() const { return SkillSteps; }
+	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
+	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
+	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	virtual void PostLoad() override;
 
-	template<typename StepType>
-	StepType* CreateRuntimeSkillStep()
+	template<typename ModifierType>
+	ModifierType* AddTransientSequenceModifier()
 	{
-		static_assert(TIsDerivedFrom<StepType, UMASkillStep>::IsDerived, "StepType must derive from UMASkillStep.");
+		static_assert(TIsDerivedFrom<ModifierType, UMASkillSequenceModifier>::IsDerived,
+			"ModifierType must derive from UMASkillSequenceModifier.");
 		check(HasAnyFlags(RF_Transient));
 
-		StepType* SkillStep = NewObject<StepType>(this, NAME_None, RF_Transient);
-		if (SkillStep)
+		ModifierType* Modifier = NewObject<ModifierType>(this, NAME_None, RF_Transient);
+		if (Modifier)
 		{
-			SkillSteps.Add(SkillStep);
+			SequenceModifiers.Add(Modifier);
 		}
-		return SkillStep;
+		return Modifier;
 	}
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
@@ -125,7 +130,7 @@ public:
 private:
 	void ResetAssemblyData();
 	void AppendFrom(UMASkillModuleInstance* SourceModuleInstance);
-	void FinalizeStepAssembly();
+	void FinalizeSequenceAssembly();
 
 	friend struct FMASkillAssembler;
 
@@ -156,9 +161,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown")
 	FMASkillModuleCooldownConfig ModuleCooldown;
 
-	/** Preferred step pipeline. Each step owns its own montage and runtime logic. **/
-	UPROPERTY(EditDefaultsOnly, Instanced, Category="Step")
-	TArray<TObjectPtr<UMASkillStep>> SkillSteps;
+	UPROPERTY(EditDefaultsOnly, Category="Sequence")
+	TArray<FMASkillSequence> BaseSequences;
+
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="Sequence")
+	TArray<TObjectPtr<UMASkillSequenceModifier>> SequenceModifiers;
+
+	UPROPERTY(Transient)
+	TArray<FMASkillSequence> AssembledSequences;
 
 	/** Event Source **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Event")

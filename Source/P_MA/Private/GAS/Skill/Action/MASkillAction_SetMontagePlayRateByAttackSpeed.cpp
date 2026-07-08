@@ -5,7 +5,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
-#include "GAS/Skill/Step/MASkillStepManager.h"
+#include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(
 	UMASkillAbility& OwnerAbility,
@@ -26,6 +26,8 @@ void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(
 	const float FinalPlayRate = BasePlayRate
 		* (AttackSpeed > 0.f ? AttackSpeed : 1.f)
 		* FMath::Max(SkillAttackSpeedMultiplier, KINDA_SMALL_NUMBER);
-	if (UMASkillStepManager* StepManager = OwnerAbility.GetStepManager())
-		StepManager->SetDesiredMontagePlayRate(FMath::Max(FinalPlayRate, KINDA_SMALL_NUMBER));
+	if (UMASkillSequenceRuntime* SequenceRuntime = OwnerAbility.GetSequenceRuntime())
+	{
+		SequenceRuntime->SetDesiredPlayRate(FinalPlayRate);
+	}
 }

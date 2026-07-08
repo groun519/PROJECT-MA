@@ -4,7 +4,7 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
-#include "GAS/Skill/Step/MASkillStepManager.h"
+#include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 void UMASkillAction_MultiplySkillAttackSpeed::Execute(
 	UMASkillAbility& OwnerAbility,
@@ -20,8 +20,8 @@ void UMASkillAction_MultiplySkillAttackSpeed::Execute(
 	Payloads.TryGetScalar(AttackSpeedMultiplierTag, CurrentMultiplier);
 	Payloads.SetScalar(EMASkillPayloadWriteScope::Skill, AttackSpeedMultiplierTag, CurrentMultiplier * SafeMultiplier);
 
-	if (UMASkillStepManager* StepManager = OwnerAbility.GetStepManager())
+	if (UMASkillSequenceRuntime* SequenceRuntime = OwnerAbility.GetSequenceRuntime())
 	{
-		StepManager->SetDesiredMontagePlayRate(StepManager->GetDesiredMontagePlayRate() * SafeMultiplier);
+		SequenceRuntime->SetDesiredPlayRate(SequenceRuntime->GetDesiredPlayRate() * SafeMultiplier);
 	}
 }

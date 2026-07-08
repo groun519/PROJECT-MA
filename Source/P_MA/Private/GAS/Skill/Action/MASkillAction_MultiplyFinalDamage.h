@@ -15,4 +15,10 @@ public:
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	float Multiplier = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	FGameplayTag MultiplierPayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float PayloadBaseMultiplier = 0.f;
 };

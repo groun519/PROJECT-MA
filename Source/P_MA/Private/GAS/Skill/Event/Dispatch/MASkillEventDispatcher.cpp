@@ -5,7 +5,6 @@
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Step/MASkillStepManager.h"
 
 void UMASkillEventDispatcher::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillSlotRuntimeStates)
 {
@@ -35,10 +34,9 @@ void UMASkillEventDispatcher::Refresh(const TArray<FMASkillSlotRuntimeState>& Sk
 		if (!AssembledModuleInstance) continue;
 		for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
 		{
-			if (ModuleInstance)
-			{
-				ModuleInstance->RegisterCooldownEvents(*this, AssembledModuleInstance);
-			}
+			if (!ModuleInstance) continue;
+
+			ModuleInstance->RegisterCooldownEvents(*this, AssembledModuleInstance);
 		}
 	}
 }
@@ -97,16 +95,6 @@ void UMASkillEventDispatcher::DispatchGroup(
 	for (int32 EventIndex = 0; EventIndex < Events.Num(); ++EventIndex)
 	{
 		const FMASkillEvent& Event = Events[EventIndex];
-		if (ExecutorAbility
-			&& ExecutorAbility->IsActive()
-			&& Event.SourceScopes.Skill == ExecutorAbility->GetCurrentSkillModuleInstance())
-		{
-			if (UMASkillStepManager* StepManager = ExecutorAbility->GetStepManager())
-			{
-				StepManager->HandleRuntimeEvent(Event);
-			}
-		}
-
 		if (!RegisteredBindings) continue;
 		for (const FMASkillRegisteredEventBinding& RegisteredBinding : RegisteredBindings->Values)
 		{

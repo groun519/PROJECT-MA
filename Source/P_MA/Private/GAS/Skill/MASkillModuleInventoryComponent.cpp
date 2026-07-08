@@ -3,7 +3,6 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 
 UMASkillModuleInventoryComponent::UMASkillModuleInventoryComponent()
@@ -25,20 +24,6 @@ void UMASkillModuleInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 	DOREPLIFETIME_CONDITION(UMASkillModuleInventoryComponent, Entries, COND_OwnerOnly);
 }
 
-bool UMASkillModuleInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool bWrote = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-	if (!RepFlags || !RepFlags->bNetOwner) return bWrote;
-
-	for (UMASkillModuleInstance* Entry : Entries)
-	{
-		if (!Entry) continue;
-		bWrote |= Channel->ReplicateSubobject(Entry, *Bunch, *RepFlags);
-	}
-
-	return bWrote;
-}
-
 bool UMASkillModuleInventoryComponent::AddModule(UMASkillDefinition* Definition)
 {
 	if (!CanMutateInventory()) return false;
@@ -51,7 +36,11 @@ bool UMASkillModuleInventoryComponent::AddModule(UMASkillDefinition* Definition)
 	});
 	if (EmptyIndex == INDEX_NONE) return false;
 
-	Entries[EmptyIndex] = UMASkillModuleInstance::Create(GetOwner(), Definition);
+	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
+	if (!SkillManager) return false;
+
+	Entries[EmptyIndex] = SkillManager->CreateModuleInstance(Definition);
+	if (!Entries[EmptyIndex]) return false;
 	OnInventoryChanged.Broadcast();
 	return true;
 }
@@ -79,15 +68,14 @@ bool UMASkillModuleInventoryComponent::RequestMoveModuleSlot(
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
 	int32 TargetIndex)
 {
+	const AActor* OwnerActor = GetOwner();
+	if (!OwnerActor) return false;
 	if (SourceSlots != &Entries) return false;
 	if (!IsValidSlotIndex(SourceIndex) || !Entries[SourceIndex] || !Entries[SourceIndex]->IsValid()) return false;
 	if (!TargetOwner || !TargetSlots || TargetIndex == INDEX_NONE) return false;
 
 	if (TargetOwner == this && TargetSlots == &Entries)
 	{
-		const AActor* OwnerActor = GetOwner();
-		if (!OwnerActor) return false;
-
 		if (OwnerActor->HasAuthority())
 		{
 			return SwapInventorySlots(SourceIndex, TargetIndex);
@@ -102,9 +90,6 @@ bool UMASkillModuleInventoryComponent::RequestMoveModuleSlot(
 
 	FGameplayTag TargetSlotTag;
 	if (!TargetSkillManager->FindSlotTagForModuleSlots(TargetSlots, TargetSlotTag)) return false;
-
-	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return false;
 
 	if (OwnerActor->HasAuthority())
 	{
@@ -142,7 +127,7 @@ bool UMASkillModuleInventoryComponent::EquipInventorySlotToSkillSlot(
 	EnsureSlotCount();
 	if (!IsValidSlotIndex(SourceSlotIndex) || !Entries[SourceSlotIndex] || !Entries[SourceSlotIndex]->IsValid()) return false;
 
-	UMASkillManagerComponent* SkillManager = GetOwner() ? GetOwner()->FindComponentByClass<UMASkillManagerComponent>() : nullptr;
+	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
 	if (!SkillManager) return false;
 
 	UMASkillModuleInstance* PreviousModuleInstance = nullptr;
@@ -217,17 +202,16 @@ bool UMASkillModuleInventoryComponent::MoveSkillSlotToInventorySlot(
 	EnsureSlotCount();
 	if (!IsValidSlotIndex(TargetSlotIndex)) return false;
 
-	UMASkillManagerComponent* SkillManager = GetOwner() ? GetOwner()->FindComponentByClass<UMASkillManagerComponent>() : nullptr;
+	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
 	if (!SkillManager) return false;
+
+	const TArray<TObjectPtr<UMASkillModuleInstance>>* SkillSlots = SkillManager->GetModuleSlotsForUI(SlotTag);
+	if (!SkillSlots || !SkillSlots->IsValidIndex(ModuleIndex)) return false;
+	if (!(*SkillSlots)[ModuleIndex] || !(*SkillSlots)[ModuleIndex]->IsValid()) return false;
 
 	UMASkillModuleInstance* PreviousSkillModuleInstance = nullptr;
 	if (!SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, Entries[TargetSlotIndex], PreviousSkillModuleInstance)) return false;
-	if (!PreviousSkillModuleInstance)
-	{
-		UMASkillModuleInstance* IgnoredModuleInstance = nullptr;
-		SkillManager->ReplaceModuleInstanceAt(SlotTag, ModuleIndex, nullptr, IgnoredModuleInstance);
-		return false;
-	}
+	check(PreviousSkillModuleInstance);
 
 	PreviousSkillModuleInstance->SetActive(true);
 	Entries[TargetSlotIndex] = PreviousSkillModuleInstance;
@@ -237,7 +221,7 @@ bool UMASkillModuleInventoryComponent::MoveSkillSlotToInventorySlot(
 
 bool UMASkillModuleInventoryComponent::IsValidSlotIndex(int32 SlotIndex) const
 {
-	return SlotIndex >= 0 && SlotIndex < MaxSlotCount && Entries.IsValidIndex(SlotIndex);
+	return Entries.IsValidIndex(SlotIndex);
 }
 
 void UMASkillModuleInventoryComponent::EnsureSlotCount()

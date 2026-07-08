@@ -9,7 +9,7 @@
 class UMASkillDefinition;
 class UMASkillManagerComponent;
 class UMASkillModuleInstance;
-class UMASkillStepManager;
+class UMASkillSequenceRuntime;
 struct FGameplayEventData;
 struct FMASkillPayloadStore;
 
@@ -36,7 +36,7 @@ public:
 	const UMASkillDefinition* GetCurrentSkillDefinition() const;
 	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
-	UMASkillStepManager* GetStepManager() const { return StepManager; }
+	UMASkillSequenceRuntime* GetSequenceRuntime() const { return SequenceRuntime; }
 	UMASkillModuleInstance* GetCurrentBindingScope() const;
 	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }
 	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
@@ -53,7 +53,6 @@ private:
 	void RegisterCancelTriggers();
 	void UnregisterCancelTriggers();
 	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
-	void EnsureStepManager();
 	float GetCooldownSeconds() const;
 	FGameplayTag GetCooldownTagForSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 
@@ -61,7 +60,7 @@ private:
 	TObjectPtr<UMASkillModuleInstance> CurrentSkillModuleInstance;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillStepManager> StepManager;
+	TObjectPtr<UMASkillSequenceRuntime> SequenceRuntime;
 
 	FMASkillAbilityLifecycleDelegate SkillActivatedDelegate;
 	FMASkillAbilityLifecycleDelegate SkillDeactivatedDelegate;

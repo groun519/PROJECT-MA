@@ -12,7 +12,7 @@
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
-#include "GAS/Skill/Step/MASkillStep_Cast.h"
+#include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Windup.h"
 
 AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAMonsterCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -263,17 +263,24 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 	TArray<TObjectPtr<UMASkillDefinition>> Definitions = PatternRow.Definitions;
 	if (PatternRow.WindupDuration > 0.f)
 	{
-		UMASkillDefinition* WindupDefinition = NewObject<UMASkillDefinition>(SkillManager, NAME_None, RF_Transient);
-		if (!WindupDefinition) return false;
+		const int32 TargetDefinitionIndex = Definitions.IndexOfByPredicate([](const UMASkillDefinition* Definition)
+		{
+			return Definition && !Definition->GetBaseSequences().IsEmpty();
+		});
+		if (TargetDefinitionIndex == INDEX_NONE) return false;
 
-		UMASkillStep_Cast* WindupStep = WindupDefinition->CreateRuntimeSkillStep<UMASkillStep_Cast>();
-		if (!WindupStep) return false;
+		UMASkillDefinition* TargetDefinition = DuplicateObject<UMASkillDefinition>(
+			Definitions[TargetDefinitionIndex],
+			SkillManager);
+		if (!TargetDefinition) return false;
+		TargetDefinition->SetFlags(RF_Transient);
 
-		WindupStep->Configure(
-			PatternRow.WindupDuration,
-			EMASkillCastMontageMode::BlendInNextMontage,
-			nullptr);
-		Definitions.Insert(WindupDefinition, 0);
+		UMASkillSequenceModifier_Windup* WindupModifier =
+			TargetDefinition->AddTransientSequenceModifier<UMASkillSequenceModifier_Windup>();
+		if (!WindupModifier) return false;
+
+		WindupModifier->Configure(PatternRow.WindupDuration);
+		Definitions[TargetDefinitionIndex] = TargetDefinition;
 	}
 
 	return SkillManager->ReplaceDefinitionsAt(PatternSlotTag, Definitions)

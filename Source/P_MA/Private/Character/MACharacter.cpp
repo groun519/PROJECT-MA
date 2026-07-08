@@ -25,6 +25,7 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicateUsingRegisteredSubObjectList = true;
 
 	/** Mesh **/
 	GetMesh()->SetupAttachment(GetRootComponent());

@@ -6,16 +6,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
-UMASkillModuleInstance* UMASkillModuleInstance::Create(UObject* Outer, UMASkillDefinition* InDefinition)
-{
-	if (!Outer || !InDefinition) return nullptr;
-
-	UMASkillModuleInstance* Instance = NewObject<UMASkillModuleInstance>(Outer);
-	if (!Instance) return nullptr;
-
-	Instance->SetDefinition(InDefinition);
-	return Instance;
-}
+UMASkillModuleInstance::UMASkillModuleInstance() = default;
 
 void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {

@@ -109,6 +109,11 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillAreaScaleTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.AreaScale");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillChargeRatioTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.Payload.Scalar.ChargeRatio");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.Hit");
@@ -117,6 +122,11 @@ FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
 FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.MovementStart");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetChargeCompletedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.ChargeCompleted");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMovementHandleTag()

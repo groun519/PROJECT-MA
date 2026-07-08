@@ -44,7 +44,9 @@ void UMASkillEventRouter::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillS
 
 		for (const UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
 		{
-			const UMASkillDefinition* ModuleDefinition = ModuleInstance && ModuleInstance->IsActive()
+			if (!ModuleInstance) continue;
+
+			const UMASkillDefinition* ModuleDefinition = ModuleInstance->IsActive()
 				? ModuleInstance->GetDefinition()
 				: nullptr;
 			if (!ModuleDefinition) continue;

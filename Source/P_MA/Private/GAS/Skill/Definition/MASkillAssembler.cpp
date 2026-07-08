@@ -4,42 +4,22 @@
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
+#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
 
-UMASkillModuleInstance* FMASkillAssembler::Assemble(
-	UObject* Outer,
-	const FGameplayTag& SlotTag,
-	const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
+struct FMASkillAssemblyState
 {
-	if (!Outer) return nullptr;
+	explicit FMASkillAssemblyState(bool bInPassiveSlot)
+		: bPassiveSlot(bInPassiveSlot) {}
 
-	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
-	UMASkillDefinition* AssembledDefinition = nullptr;
-	TMap<int32, FText> NameKeywordsByPriority;
-	TSet<FGameplayTag> UsedExclusiveModuleTags;
-	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
-	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
-	const FGameplayTag UniqueModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive.Unique"), false);
-	const FGameplayTag PassiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Passive"));
-	const bool bPassiveSlot = FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag);
-	int32 PriorityOneIconCount = 0;
-
-	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
+	bool TryActivate(UMASkillModuleInstance& ModuleInstance)
 	{
-		if (ModuleInstance)
-		{
-			ModuleInstance->SetActive(true);
-		}
-	}
-
-	for (UMASkillModuleInstance* ModuleInstance : OrderedModuleInstances)
-	{
-		UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
-		if (!Definition) continue;
+		const UMASkillDefinition* Definition = ModuleInstance.GetDefinition();
+		if (!Definition) return false;
 
 		if (bPassiveSlot != Definition->GetModuleTags().HasTagExact(PassiveModuleTag))
 		{
-			ModuleInstance->SetActive(false, PassiveModuleTag);
-			continue;
+			ModuleInstance.SetActive(false, PassiveModuleTag);
+			return false;
 		}
 
 		FGameplayTag BlockingAssemblyTag;
@@ -67,8 +47,8 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 		if (BlockingAssemblyTag.IsValid())
 		{
-			ModuleInstance->SetActive(false, BlockingAssemblyTag);
-			continue;
+			ModuleInstance.SetActive(false, BlockingAssemblyTag);
+			return false;
 		}
 
 		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())
@@ -85,22 +65,42 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			}
 		}
 
-		if (!AssembledDefinition)
-		{
-			AssembledModuleInstance = NewObject<UMASkillModuleInstance>(Outer);
-			if (!AssembledModuleInstance) return nullptr;
-			AssembledModuleInstance->RuntimeRegistry = NewObject<UMASkillRuntimeRegistry>(AssembledModuleInstance);
-			if (!AssembledModuleInstance->RuntimeRegistry) return nullptr;
+		return true;
+	}
 
-			AssembledDefinition = NewObject<UMASkillDefinition>(AssembledModuleInstance);
-			if (!AssembledDefinition) return nullptr;
-			AssembledDefinition->ResetAssemblyData();
-			AssembledModuleInstance->SetDefinition(AssembledDefinition);
-		}
+	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
+	const FGameplayTag UniqueModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive.Unique"), false);
+	const FGameplayTag PassiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Passive"));
+	const bool bPassiveSlot;
+	TSet<FGameplayTag> UsedExclusiveModuleTags;
+	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
+};
 
-		AssembledDefinition->AppendFrom(ModuleInstance);
+UMASkillModuleInstance* FMASkillAssembler::Assemble(
+	UObject* Outer,
+	const FGameplayTag& SlotTag,
+	const TArray<TObjectPtr<UMASkillModuleInstance>>& OrderedModuleInstances)
+{
+	if (!Outer) return nullptr;
 
-		const FMASkillDefinitionDisplayData& DisplayData = Definition->DisplayData;
+	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
+	UMASkillDefinition* AssembledDefinition = nullptr;
+	FMASkillAssemblyState AssemblyState(FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag));
+	TMap<int32, FText> NameKeywordsByPriority;
+	int32 PriorityOneIconCount = 0;
+
+	for (UMASkillModuleInstance* RootModuleInstance : OrderedModuleInstances)
+	{
+		if (!RootModuleInstance) continue;
+		RootModuleInstance->SetActive(true);
+	}
+
+	auto AppendDisplayData = [
+		&NameKeywordsByPriority,
+		&PriorityOneIconCount,
+		&AssembledDefinition](const UMASkillDefinition& Definition)
+	{
+		const FMASkillDefinitionDisplayData& DisplayData = Definition.GetDisplayData();
 		const FMASkillDefinitionIconData& IconData = DisplayData.IconData;
 		if (IconData.Priority == 1 && IconData.Icon)
 		{
@@ -114,11 +114,60 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			}
 			++PriorityOneIconCount;
 		}
+
 		const FMASkillDefinitionNameData& NameData = DisplayData.NameData;
 		if (NameData.Priority > 0 && !NameData.Keyword.IsEmpty())
 		{
 			NameKeywordsByPriority.FindOrAdd(NameData.Priority, NameData.Keyword);
 		}
+	};
+
+	for (UMASkillModuleInstance* RootModuleInstance : OrderedModuleInstances)
+	{
+		if (!RootModuleInstance || !AssemblyState.TryActivate(*RootModuleInstance)) continue;
+
+		if (!AssembledDefinition)
+		{
+			AssembledModuleInstance = NewObject<UMASkillModuleInstance>(Outer);
+			if (!AssembledModuleInstance) return nullptr;
+			AssembledModuleInstance->RuntimeRegistry = NewObject<UMASkillRuntimeRegistry>(AssembledModuleInstance);
+			if (!AssembledModuleInstance->RuntimeRegistry) return nullptr;
+
+			AssembledDefinition = NewObject<UMASkillDefinition>(AssembledModuleInstance);
+			if (!AssembledDefinition) return nullptr;
+			AssembledDefinition->ResetAssemblyData();
+			AssembledModuleInstance->SetDefinition(AssembledDefinition);
+		}
+
+		const FMASkillScopes TargetScopes(RootModuleInstance, AssembledModuleInstance);
+		TArray<FMASkillSequence> ModuleSequences;
+		TArray<const UMASkillSequenceModifier*> SequenceModifiers;
+
+		const UMASkillDefinition* Definition = RootModuleInstance->GetDefinition();
+		if (!Definition) continue;
+
+		AssembledDefinition->AppendFrom(RootModuleInstance);
+		AppendDisplayData(*Definition);
+		for (const FMASkillSequence& SourceSequence : Definition->GetBaseSequences())
+		{
+			FMASkillSequence Sequence = SourceSequence;
+			Sequence.TargetScopes = TargetScopes;
+			Sequence.Tasks.Reset();
+			Sequence.InitialSequenceIndex = 0;
+			Sequence.SequenceAdvanceCount = 0;
+			ModuleSequences.Add(MoveTemp(Sequence));
+		}
+		for (const UMASkillSequenceModifier* Modifier : Definition->GetSequenceModifiers())
+		{
+			if (Modifier) SequenceModifiers.Add(Modifier);
+		}
+
+		for (const UMASkillSequenceModifier* Modifier : SequenceModifiers)
+		{
+			Modifier->Apply(ModuleSequences, *AssembledDefinition);
+		}
+
+		AssembledDefinition->AssembledSequences.Append(MoveTemp(ModuleSequences));
 	}
 
 	if (AssembledDefinition && !NameKeywordsByPriority.IsEmpty())
@@ -146,7 +195,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 	if (AssembledDefinition)
 	{
-		AssembledDefinition->FinalizeStepAssembly();
+		AssembledDefinition->FinalizeSequenceAssembly();
 	}
 
 	return AssembledModuleInstance;

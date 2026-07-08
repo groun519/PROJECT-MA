@@ -20,7 +20,7 @@ class P_MA_API UMASkillModuleInstance : public UObject
 	GENERATED_BODY()
 
 public:
-	static UMASkillModuleInstance* Create(UObject* Outer, UMASkillDefinition* InDefinition);
+	UMASkillModuleInstance();
 
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

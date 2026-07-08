@@ -11,13 +11,14 @@
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Step/MASkillStepManager.h"
+#include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 #include "Setting/MAGameSettings.h"
 
 UMASkillAbility::UMASkillAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	SequenceRuntime = CreateDefaultSubobject<UMASkillSequenceRuntime>(TEXT("SequenceRuntime"));
 
 	const FGameplayTag SkillTag = FGameplayTag::RequestGameplayTag(TEXT("Skill"));
 	AbilityTags.AddTag(SkillTag);
@@ -77,17 +78,16 @@ FMASkillPayloadStore& UMASkillAbility::GetAssembledModulePayloadStore()
 void UMASkillAbility::UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance)
 {
 	check(!IsActive());
-	if (StepManager) StepManager->ResetRuntimeState();
 
 	CurrentSkillModuleInstance = SourceSkillModuleInstance;
 	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
 	if (!CurrentSkillDefinition)
 	{
+		SequenceRuntime->ResetSequence();
 		return;
 	}
 
-	EnsureStepManager();
-	StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
+	SequenceRuntime->UpdateSequence(CurrentSkillDefinition->GetAssembledSequences());
 }
 
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -100,15 +100,7 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	CurrentSkillModuleInstance->ResetPayloadStore();
 	CurrentSkillDefinition->ApplyPayloadsTo(CurrentSkillModuleInstance->GetPayloadStore());
 
-	EnsureStepManager();
-	if (StepManager)
-	{
-		StepManager->UpdateSteps(CurrentSkillDefinition->GetSkillSteps());
-	}
-	if (StepManager)
-	{
-		StepManager->SetDesiredMontagePlayRate(1.f);
-	}
+	SequenceRuntime->SetDesiredPlayRate(1.f);
 	RegisterCancelTriggers();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
@@ -119,9 +111,9 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 			FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Activate")),
 			FMASkillScopes{ nullptr, CurrentSkillModuleInstance }));
 	}
-	if (IsActive() && (!StepManager || !StepManager->GetCurrentRuntimeSkillStep()))
+	if (IsActive())
 	{
-		K2_EndAbility();
+		SequenceRuntime->Start();
 	}
 }
 
@@ -174,6 +166,7 @@ void UMASkillAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, con
 void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	SequenceRuntime->Stop();
 	SkillDeactivatedDelegate.Broadcast();
 	if (CurrentSkillModuleInstance)
 	{
@@ -231,9 +224,8 @@ FGameplayTag UMASkillAbility::GetVisualElementTag() const
 
 UMASkillModuleInstance* UMASkillAbility::GetCurrentBindingScope() const
 {
-	return StepManager
-		? StepManager->GetCurrentBindingScope()
-		: nullptr;
+	const FMASkillScopes* CurrentScopes = SequenceRuntime->GetCurrentTargetScopes();
+	return CurrentScopes ? CurrentScopes->Module.Get() : nullptr;
 }
 
 bool UMASkillAbility::CanPlaySkillMontageLocally() const
@@ -284,18 +276,6 @@ void UMASkillAbility::HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewC
 	if (!IsActive()) return;
 
 	CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
-}
-
-void UMASkillAbility::EnsureStepManager()
-{
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition) return;
-
-	if (!StepManager)
-	{
-		StepManager = NewObject<UMASkillStepManager>(this);
-		StepManager->Initialize(this);
-	}
 }
 
 UMASkillManagerComponent* UMASkillAbility::GetSkillManagerComponent() const

@@ -11,10 +11,7 @@ class UMASkillDefinition;
 class UMASkillEventDispatcher;
 class UMASkillEventRouter;
 class UMASkillModuleInstance;
-class UActorChannel;
-class FOutBunch;
 struct FMASkillEvent;
-struct FReplicationFlags;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, FGameplayTag);
 
@@ -28,12 +25,15 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	void InitializeGrantedAbilities();
 	void PrepareSkillSlotRuntimeStatesForUI();
 
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
+	/** Module Lifetime **/
+	UMASkillModuleInstance* CreateModuleInstance(UMASkillDefinition* Definition);
+
+	/** Slot Composition **/
 	bool ReplaceDefinitionAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
@@ -61,13 +61,13 @@ public:
 
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(FGameplayTag SlotTag);
 	bool FindSlotTagForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, FGameplayTag& OutSlotTag) const;
-	FGameplayTag GetActivePreviewVisualElementTag() const { return ActivePreviewVisualElementTag; }
-
 	TArray<FGameplayTag> GetSkillSlotTags() const
 	{
 		return GatherUniqueSkillSlotTags();
 	}
 
+	/** Slot Runtime **/
+	FGameplayTag GetActivePreviewVisualElementTag() const { return ActivePreviewVisualElementTag; }
 	UMASkillDefinition* GetAssembledDefinition(FGameplayTag SlotTag) const;
 
 	bool RebuildSkill(FGameplayTag SlotTag);
@@ -85,6 +85,10 @@ public:
 	void Multicast_SpawnPredictedSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag ElementSourceTag);
 
 private:
+	/** Module Lifetime **/
+	void UnregisterModuleInstance(UMASkillModuleInstance* ModuleInstance);
+
+	/** Slot Composition **/
 	static constexpr int32 ActiveModuleSlotCount = 8;
 	static constexpr int32 PassiveModuleSlotCount = 4;
 
@@ -101,12 +105,6 @@ private:
 		int32 IndexA,
 		FGameplayTag SlotTagB,
 		int32 IndexB);
-	bool EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState);
-	void SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
-	void SpawnSkillAreaImpactLocal(
-		const FMASkillWorldAreaShape& Area,
-		FGameplayTag ElementSourceTag,
-		bool bSkipAutonomousProxy);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapModuleSlotsBetween(
@@ -115,13 +113,23 @@ private:
 		FGameplayTag SlotTagB,
 		int32 IndexB);
 
+	/** Slot Replication **/
 	UFUNCTION()
 	void OnRep_ReplicatedSkillSlotRuntimeStates();
 
 	void ApplyReplicatedSkillSlotRuntimeStates();
 	void UpdateReplicatedSkillSlotRuntimeState(const FMASkillSlotRuntimeState& SlotState);
+
+	/** Slot Runtime **/
+	bool EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState);
 	void RefreshAbilityDefinition(FMASkillSlotRuntimeState& SlotState);
 	UMASkillAbility* ResolveSkillAbility(const FMASkillSlotRuntimeState& SlotState) const;
+	void SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
+
+	void SpawnSkillAreaImpactLocal(
+		const FMASkillWorldAreaShape& Area,
+		FGameplayTag ElementSourceTag,
+		bool bSkipAutonomousProxy);
 
 	UPROPERTY(Transient)
 	TArray<FMASkillSlotRuntimeState> SkillSlotRuntimeStates;
