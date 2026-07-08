@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Animation/MAAnimInstance.h"
+
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -92,4 +90,39 @@ void UMAAnimInstance::UnregisterAnimationOwner(const UAnimSequenceBase* Animatio
 	if (SkillAbility && FoundOwner->Get() != SkillAbility) return;
 
 	AnimationOwners.Remove(Animation);
+}
+
+void UMAAnimInstance::RegisterSkillAreaPreviewContext(
+	const UAnimSequenceBase* Animation,
+	float AreaScale,
+	FGameplayTag VisualTag)
+{
+	if (!Animation) return;
+
+	SkillAreaPreviewScales.FindOrAdd(Animation) = AreaScale;
+	SkillAreaPreviewVisualTags.FindOrAdd(Animation) = VisualTag;
+}
+
+bool UMAAnimInstance::FindSkillAreaPreviewContext(
+	const UAnimSequenceBase* Animation,
+	float& OutAreaScale,
+	FGameplayTag& OutVisualTag) const
+{
+	if (!Animation) return false;
+
+	const float* FoundAreaScale = SkillAreaPreviewScales.Find(Animation);
+	const FGameplayTag* FoundVisualTag = SkillAreaPreviewVisualTags.Find(Animation);
+	if (!FoundAreaScale || !FoundVisualTag) return false;
+
+	OutAreaScale = *FoundAreaScale;
+	OutVisualTag = *FoundVisualTag;
+	return true;
+}
+
+void UMAAnimInstance::UnregisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation)
+{
+	if (!Animation) return;
+
+	SkillAreaPreviewScales.Remove(Animation);
+	SkillAreaPreviewVisualTags.Remove(Animation);
 }

@@ -2,6 +2,7 @@
 
 #include "Character/MACharacter.h"
 #include "Components/DecalComponent.h"
+#include "Components/SceneComponent.h"
 #include "Engine/DataTable.h"
 #include "GAS/Skill/Area/Decal/MAAreaDecalData.h"
 #include "GAS/Skill/MAElementData.h"
@@ -60,31 +61,11 @@ static FVector ResolveDecalSize(const FMASkillWorldAreaShape& Area)
 	}
 }
 
-static FGameplayTag ResolveVisualElementTag(
-	const UMASkillAbility* SkillAbility,
-	const AActor* ComponentOwner)
-{
-	if (SkillAbility)
-	{
-		return SkillAbility->GetVisualElementTag();
-	}
-
-	if (const AMACharacter* Character = Cast<AMACharacter>(ComponentOwner))
-	{
-		if (const UMASkillManagerComponent* SkillManager = Character->GetSkillManagerComponent())
-		{
-			return SkillManager->GetActivePreviewVisualElementTag();
-		}
-	}
-
-	return FGameplayTag();
-}
-
-static FLinearColor ResolveElementColor(
-	const FGameplayTag& ElementSourceTag)
+static FLinearColor ResolveVisualColor(
+	const FGameplayTag& VisualTag)
 {
 	const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
-		ElementSourceTag,
+		VisualTag,
 		TEXT("MASkillAreaDecal"));
 	return ElementRow ? ElementRow->ElementColor : FLinearColor::White;
 }
@@ -92,20 +73,16 @@ static FLinearColor ResolveElementColor(
 UDecalComponent* MASkillAreaDecalStatics::SpawnPreview(
 	AActor* ComponentOwner,
 	USceneComponent* AttachParent,
-	const UMASkillAbility* SkillAbility,
+	FGameplayTag VisualTag,
 	const FMASkillWorldAreaShape& Area)
 {
-	return SpawnDecal(
-		ComponentOwner,
-		AttachParent,
-		ResolveVisualElementTag(SkillAbility, ComponentOwner),
-		Area);
+	return SpawnDecal(ComponentOwner, AttachParent, VisualTag, Area);
 }
 
 UDecalComponent* MASkillAreaDecalStatics::SpawnDecal(
 	AActor* ComponentOwner,
 	USceneComponent* AttachParent,
-	FGameplayTag ElementSourceTag,
+	FGameplayTag VisualTag,
 	const FMASkillWorldAreaShape& Area)
 {
 	UWorld* World = ComponentOwner ? ComponentOwner->GetWorld() : nullptr;
@@ -135,7 +112,7 @@ UDecalComponent* MASkillAreaDecalStatics::SpawnDecal(
 
 	AreaMID->SetVectorParameterValue(
 		PARAM_AreaDecal_BaseColor,
-		ResolveElementColor(ElementSourceTag));
+		ResolveVisualColor(VisualTag));
 
 	if (Area.Shape == EMASkillAreaShape::Rect || Area.Shape == EMASkillAreaShape::Line)
 	{
@@ -190,13 +167,13 @@ void MASkillAreaDecalStatics::SpawnImpact(
 
 void MASkillAreaDecalStatics::SpawnImpactLocal(
 	AActor* ComponentOwner,
-	FGameplayTag ElementSourceTag,
+	FGameplayTag VisualTag,
 	const FMASkillWorldAreaShape& Area)
 {
 	UDecalComponent* Decal = SpawnDecal(
 		ComponentOwner,
 		nullptr,
-		ElementSourceTag,
+		VisualTag,
 		Area);
 	if (!Decal) return;
 

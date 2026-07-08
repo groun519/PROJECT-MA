@@ -5,8 +5,8 @@
 
 class AActor;
 class UDecalComponent;
-class UMASkillAbility;
 class USceneComponent;
+class UMASkillAbility;
 struct FMASkillWorldAreaShape;
 
 class P_MA_API MASkillAreaDecalStatics final
@@ -15,7 +15,7 @@ public:
 	static UDecalComponent* SpawnPreview(
 		AActor* ComponentOwner,
 		USceneComponent* AttachParent,
-		const UMASkillAbility* SkillAbility,
+		FGameplayTag VisualTag,
 		const FMASkillWorldAreaShape& Area);
 
 	static void SpawnImpact(
@@ -25,7 +25,7 @@ public:
 
 	static void SpawnImpactLocal(
 		AActor* ComponentOwner,
-		FGameplayTag ElementSourceTag,
+		FGameplayTag VisualTag,
 		const FMASkillWorldAreaShape& Area);
 
 	static void SetAreaTransform(
@@ -37,6 +37,6 @@ private:
 	static UDecalComponent* SpawnDecal(
 		AActor* ComponentOwner,
 		USceneComponent* AttachParent,
-		FGameplayTag ElementSourceTag,
+		FGameplayTag VisualTag,
 		const FMASkillWorldAreaShape& Area);
 };

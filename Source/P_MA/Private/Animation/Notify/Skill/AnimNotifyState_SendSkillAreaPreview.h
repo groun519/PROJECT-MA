@@ -7,7 +7,14 @@
 #include "AnimNotifyState_SendSkillAreaPreview.generated.h"
 
 class UDecalComponent;
-class UMASkillAbility;
+
+struct FMASkillActiveAreaPreview
+{
+	TWeakObjectPtr<UDecalComponent> Decal;
+	float AreaScale = 1.f;
+	FGameplayTag VisualTag;
+	bool bContextReady = false;
+};
 
 UCLASS()
 class P_MA_API UAnimNotifyState_SendSkillAreaPreview : public UAnimNotifyState
@@ -30,10 +37,11 @@ private:
 	UPROPERTY(EditAnywhere, Category="Area", meta=(ShowOnlyInnerProperties))
 	FMASkillAreaShape Area;
 
-	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<UDecalComponent>> ActiveDecals;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FMASkillActiveAreaPreview> ActivePreviews;
 
-	bool ResolveWorldArea(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation, FMASkillWorldAreaShape& OutArea) const;
+	bool ResolveWorldArea(USkeletalMeshComponent* MeshComp, float AreaScale, FMASkillWorldAreaShape& OutArea) const;
+	bool ResolvePreviewContext(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation, FMASkillActiveAreaPreview& OutPreview) const;
 	void DestroyPreviewDecal(USkeletalMeshComponent* MeshComp);
-	void SpawnPreviewDecal(USkeletalMeshComponent* MeshComp, const UAnimSequenceBase* Animation, const FMASkillWorldAreaShape& WorldArea);
+	void SpawnPreviewDecal(USkeletalMeshComponent* MeshComp, FGameplayTag VisualTag, const FMASkillWorldAreaShape& WorldArea);
 	void UpdatePreviewDecalTransform(USkeletalMeshComponent* MeshComp, const FMASkillWorldAreaShape& WorldArea);
 };

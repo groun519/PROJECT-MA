@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GameplayTagContainer.h"
 #include "MAAnimInstance.generated.h"
 
 class UAnimSequence;
@@ -50,7 +51,9 @@ public:
 	void RegisterAnimationOwner(const UAnimSequenceBase* Animation, UMASkillAbility* SkillAbility);
 	UMASkillAbility* FindAnimationOwner(const UAnimSequenceBase* Animation) const;
 	void UnregisterAnimationOwner(const UAnimSequenceBase* Animation, const UMASkillAbility* SkillAbility);
-	
+	void RegisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation, float AreaScale, FGameplayTag VisualTag);
+	bool FindSkillAreaPreviewContext(const UAnimSequenceBase* Animation, float& OutAreaScale, FGameplayTag& OutVisualTag) const;
+	void UnregisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation);
 
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
@@ -91,4 +94,6 @@ private:
 	TObjectPtr<UAnimSequence> CurrentRideSequence = nullptr;
 
 	TMap<TObjectPtr<const UAnimSequenceBase>, TWeakObjectPtr<UMASkillAbility>> AnimationOwners;
+	TMap<TObjectPtr<const UAnimSequenceBase>, float> SkillAreaPreviewScales;
+	TMap<TObjectPtr<const UAnimSequenceBase>, FGameplayTag> SkillAreaPreviewVisualTags;
 };

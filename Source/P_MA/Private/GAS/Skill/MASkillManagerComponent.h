@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -11,6 +11,7 @@ class UMASkillDefinition;
 class UMASkillEventDispatcher;
 class UMASkillEventRouter;
 class UMASkillModuleInstance;
+class UAnimSequenceBase;
 struct FMASkillEvent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FMASkillSlotChangedSignature, FGameplayTag);
@@ -80,9 +81,16 @@ public:
 	UMASkillEventDispatcher* GetEventDispatcher() const { return Dispatcher; }
 
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SpawnSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag ElementSourceTag);
+	void Multicast_SpawnSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag VisualTag);
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SpawnPredictedSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag ElementSourceTag);
+	void Multicast_SpawnPredictedSkillAreaImpact(FMASkillWorldAreaShape Area, FGameplayTag VisualTag);
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_RegisterSkillAreaPreviewContext(
+		UAnimSequenceBase* Animation,
+		float ResolvedAreaScale,
+		FGameplayTag VisualTag);
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_UnregisterSkillAreaPreviewContext(UAnimSequenceBase* Animation);
 
 private:
 	/** Module Lifetime **/
@@ -128,7 +136,7 @@ private:
 
 	void SpawnSkillAreaImpactLocal(
 		const FMASkillWorldAreaShape& Area,
-		FGameplayTag ElementSourceTag,
+		FGameplayTag VisualTag,
 		bool bSkipAutonomousProxy);
 
 	UPROPERTY(Transient)

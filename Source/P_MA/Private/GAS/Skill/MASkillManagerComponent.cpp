@@ -2,6 +2,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "Animation/MAAnimInstance.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/Definition/MASkillAssembler.h"
@@ -12,6 +14,7 @@
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 
 UMASkillManagerComponent::UMASkillManagerComponent()
@@ -59,28 +62,59 @@ void UMASkillManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 
 void UMASkillManagerComponent::Multicast_SpawnSkillAreaImpact_Implementation(
 	FMASkillWorldAreaShape Area,
-	FGameplayTag ElementSourceTag)
+	FGameplayTag VisualTag)
 {
-	SpawnSkillAreaImpactLocal(Area, ElementSourceTag, false);
+	SpawnSkillAreaImpactLocal(Area, VisualTag, false);
 }
 
 void UMASkillManagerComponent::Multicast_SpawnPredictedSkillAreaImpact_Implementation(
 	FMASkillWorldAreaShape Area,
-	FGameplayTag ElementSourceTag)
+	FGameplayTag VisualTag)
 {
-	SpawnSkillAreaImpactLocal(Area, ElementSourceTag, true);
+	SpawnSkillAreaImpactLocal(Area, VisualTag, true);
+}
+
+void UMASkillManagerComponent::Multicast_RegisterSkillAreaPreviewContext_Implementation(
+	UAnimSequenceBase* Animation,
+	float ResolvedAreaScale,
+	FGameplayTag VisualTag)
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || OwnerActor->GetNetMode() == NM_DedicatedServer) return;
+	if (OwnerActor->GetLocalRole() == ROLE_AutonomousProxy) return;
+
+	const ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor);
+	USkeletalMeshComponent* Mesh = OwnerCharacter ? OwnerCharacter->GetMesh() : nullptr;
+	UMAAnimInstance* AnimInstance = Mesh ? Cast<UMAAnimInstance>(Mesh->GetAnimInstance()) : nullptr;
+	if (!AnimInstance) return;
+
+	AnimInstance->RegisterSkillAreaPreviewContext(Animation, ResolvedAreaScale, VisualTag);
+}
+
+void UMASkillManagerComponent::Multicast_UnregisterSkillAreaPreviewContext_Implementation(UAnimSequenceBase* Animation)
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || OwnerActor->GetNetMode() == NM_DedicatedServer) return;
+	if (OwnerActor->GetLocalRole() == ROLE_AutonomousProxy) return;
+
+	const ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerActor);
+	USkeletalMeshComponent* Mesh = OwnerCharacter ? OwnerCharacter->GetMesh() : nullptr;
+	UMAAnimInstance* AnimInstance = Mesh ? Cast<UMAAnimInstance>(Mesh->GetAnimInstance()) : nullptr;
+	if (!AnimInstance) return;
+
+	AnimInstance->UnregisterSkillAreaPreviewContext(Animation);
 }
 
 void UMASkillManagerComponent::SpawnSkillAreaImpactLocal(
 	const FMASkillWorldAreaShape& Area,
-	FGameplayTag ElementSourceTag,
+	FGameplayTag VisualTag,
 	bool bSkipAutonomousProxy)
 {
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor || OwnerActor->GetNetMode() == NM_DedicatedServer) return;
 	if (bSkipAutonomousProxy && OwnerActor->GetLocalRole() == ROLE_AutonomousProxy) return;
 
-	MASkillAreaDecalStatics::SpawnImpactLocal(OwnerActor, ElementSourceTag, Area);
+	MASkillAreaDecalStatics::SpawnImpactLocal(OwnerActor, VisualTag, Area);
 }
 
 void UMASkillManagerComponent::InitializeGrantedAbilities()

@@ -1,24 +1,50 @@
 #include "Animation/Notify/Skill/AnimNotifyState_SendSkillAreaPreview.h"
 
+#include "Animation/MAAnimInstance.h"
 #include "Animation/Notify/Skill/MASkillAreaNotifyStatics.h"
 #include "Animation/Notify/Skill/MASkillAnimNotifyStatics.h"
 #include "Components/DecalComponent.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 
 bool UAnimNotifyState_SendSkillAreaPreview::ResolveWorldArea(
 	USkeletalMeshComponent* MeshComp,
-	const UAnimSequenceBase* Animation,
+	float AreaScale,
 	FMASkillWorldAreaShape& OutArea) const
 {
 	FTransform OriginTransform;
 	if (!MASkillAreaNotifyStatics::ResolveOriginTransform(MeshComp, OriginTransform)) return false;
 
-	OutArea = Area.ResolveWorld(
-		OriginTransform,
-		MASkillAnimNotifyStatics::ResolveSkillAreaScale(MeshComp, Animation));
+	OutArea = Area.ResolveWorld(OriginTransform, AreaScale);
 	return OutArea.IsValid();
+}
+
+bool UAnimNotifyState_SendSkillAreaPreview::ResolvePreviewContext(
+	USkeletalMeshComponent* MeshComp,
+	const UAnimSequenceBase* Animation,
+	FMASkillActiveAreaPreview& OutPreview) const
+{
+	if (UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation))
+	{
+		OutPreview.AreaScale = MASkillAnimNotifyStatics::ResolveSkillAreaScale(SkillAbility);
+		OutPreview.VisualTag = SkillAbility->GetVisualElementTag();
+		OutPreview.bContextReady = true;
+		return true;
+	}
+
+	const UMAAnimInstance* AnimInstance = MeshComp ? Cast<UMAAnimInstance>(MeshComp->GetAnimInstance()) : nullptr;
+	if (!AnimInstance || !AnimInstance->FindSkillAreaPreviewContext(
+		Animation,
+		OutPreview.AreaScale,
+		OutPreview.VisualTag))
+	{
+		return false;
+	}
+
+	OutPreview.bContextReady = true;
+	return true;
 }
 
 void UAnimNotifyState_SendSkillAreaPreview::NotifyBegin(
@@ -32,13 +58,35 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyBegin(
 	UWorld* World = MeshComp ? MeshComp->GetWorld() : nullptr;
 	if (!World) return;
 
+	FMASkillActiveAreaPreview ResolvedPreview;
+	const bool bHasPreviewContext = ResolvePreviewContext(MeshComp, Animation, ResolvedPreview);
 	FMASkillWorldAreaShape WorldArea;
-	if (!ResolveWorldArea(MeshComp, Animation, WorldArea)) return;
+	if (!ResolveWorldArea(MeshComp, ResolvedPreview.AreaScale, WorldArea)) return;
 
 	MASkillAreaNotifyStatics::DrawEditorPreview(World, WorldArea);
-	if (World->GetNetMode() == NM_DedicatedServer || MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)) return;
+	if (MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)) return;
 
-	SpawnPreviewDecal(MeshComp, Animation, WorldArea);
+	DestroyPreviewDecal(MeshComp);
+	FMASkillActiveAreaPreview& ActivePreview = ActivePreviews.FindOrAdd(MeshComp);
+	ActivePreview = ResolvedPreview;
+
+	UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	if (SkillAbility && SkillAbility->K2_HasAuthority())
+	{
+		if (UMASkillManagerComponent* SkillManager = SkillAbility->GetSkillManagerComponent())
+		{
+			SkillManager->Multicast_RegisterSkillAreaPreviewContext(
+				Animation,
+				ResolvedPreview.AreaScale,
+				ResolvedPreview.VisualTag);
+		}
+	}
+
+	if (World->GetNetMode() == NM_DedicatedServer) return;
+	if (bHasPreviewContext)
+	{
+		SpawnPreviewDecal(MeshComp, ResolvedPreview.VisualTag, WorldArea);
+	}
 }
 
 void UAnimNotifyState_SendSkillAreaPreview::NotifyEnd(
@@ -49,17 +97,31 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyEnd(
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
 	if (!MeshComp) return;
 
+	const FMASkillActiveAreaPreview* ActivePreview = ActivePreviews.Find(MeshComp);
+	const bool bHasCapturedAreaScale = ActivePreview && ActivePreview->bContextReady;
+	const float CapturedAreaScale = bHasCapturedAreaScale ? ActivePreview->AreaScale : 1.f;
 	DestroyPreviewDecal(MeshComp);
 
 	UWorld* World = MeshComp->GetWorld();
 	if (!World || MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)) return;
-	if (!EventTag.IsValid()) return;
-
-	FMASkillWorldAreaShape WorldArea;
-	if (!ResolveWorldArea(MeshComp, Animation, WorldArea)) return;
 
 	UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
+	if (SkillAbility && SkillAbility->K2_HasAuthority())
+	{
+		if (UMASkillManagerComponent* SkillManager = SkillAbility->GetSkillManagerComponent())
+		{
+			SkillManager->Multicast_UnregisterSkillAreaPreviewContext(Animation);
+		}
+	}
+
+	if (!EventTag.IsValid()) return;
 	if (!SkillAbility) return;
+
+	const float AreaScale = bHasCapturedAreaScale
+		? CapturedAreaScale
+		: MASkillAnimNotifyStatics::ResolveSkillAreaScale(SkillAbility);
+	FMASkillWorldAreaShape WorldArea;
+	if (!ResolveWorldArea(MeshComp, AreaScale, WorldArea)) return;
 
 	FMASkillEvent Event(EventTag);
 	MASkillAreaNotifyStatics::AppendTargetData(Event, WorldArea);
@@ -77,14 +139,28 @@ void UAnimNotifyState_SendSkillAreaPreview::NotifyTick(
 	UWorld* World = MeshComp ? MeshComp->GetWorld() : nullptr;
 	if (!World
 		|| World->GetNetMode() == NM_DedicatedServer
-		|| MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World)
-		|| !ActiveDecals.Contains(MeshComp))
+		|| MASkillAreaNotifyStatics::IsEditorPreviewWorldNoPIE(World))
 	{
 		return;
 	}
 
+	FMASkillActiveAreaPreview* ActivePreview = ActivePreviews.Find(MeshComp);
+	if (!ActivePreview) return;
+
+	if (!ActivePreview->bContextReady && !ResolvePreviewContext(MeshComp, Animation, *ActivePreview)) return;
+
 	FMASkillWorldAreaShape WorldArea;
-	if (ResolveWorldArea(MeshComp, Animation, WorldArea)) UpdatePreviewDecalTransform(MeshComp, WorldArea);
+	if (ResolveWorldArea(MeshComp, ActivePreview->AreaScale, WorldArea))
+	{
+		if (ActivePreview->Decal.IsValid())
+		{
+			UpdatePreviewDecalTransform(MeshComp, WorldArea);
+		}
+		else
+		{
+			SpawnPreviewDecal(MeshComp, ActivePreview->VisualTag, WorldArea);
+		}
+	}
 }
 
 FString UAnimNotifyState_SendSkillAreaPreview::GetNotifyName_Implementation() const
@@ -94,39 +170,41 @@ FString UAnimNotifyState_SendSkillAreaPreview::GetNotifyName_Implementation() co
 
 void UAnimNotifyState_SendSkillAreaPreview::DestroyPreviewDecal(USkeletalMeshComponent* MeshComp)
 {
-	TWeakObjectPtr<UDecalComponent>* FoundDecal = ActiveDecals.Find(MeshComp);
-	if (!FoundDecal) return;
+	FMASkillActiveAreaPreview* ActivePreview = ActivePreviews.Find(MeshComp);
+	if (!ActivePreview) return;
 
-	if (UDecalComponent* DecalComponent = FoundDecal->Get())
+	if (UDecalComponent* DecalComponent = ActivePreview->Decal.Get())
 	{
 		DecalComponent->DestroyComponent();
 	}
-	ActiveDecals.Remove(MeshComp);
+	ActivePreviews.Remove(MeshComp);
 }
 
 void UAnimNotifyState_SendSkillAreaPreview::SpawnPreviewDecal(
 	USkeletalMeshComponent* MeshComp,
-	const UAnimSequenceBase* Animation,
+	FGameplayTag VisualTag,
 	const FMASkillWorldAreaShape& WorldArea)
 {
-	if (!MeshComp) return;
+	FMASkillActiveAreaPreview& ActivePreview = ActivePreviews.FindOrAdd(MeshComp);
+	if (UDecalComponent* ExistingDecal = ActivePreview.Decal.Get())
+	{
+		ExistingDecal->DestroyComponent();
+	}
 
-	DestroyPreviewDecal(MeshComp);
-	const UMASkillAbility* SkillAbility = MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(MeshComp, Animation);
 	UDecalComponent* DecalComponent = MASkillAreaDecalStatics::SpawnPreview(
 		MeshComp->GetOwner(),
 		bAttachPreviewToMesh ? MeshComp : nullptr,
-		SkillAbility,
+		VisualTag,
 		WorldArea);
-	if (DecalComponent) ActiveDecals.Add(MeshComp, DecalComponent);
+	ActivePreview.Decal = DecalComponent;
 }
 
 void UAnimNotifyState_SendSkillAreaPreview::UpdatePreviewDecalTransform(
 	USkeletalMeshComponent* MeshComp,
 	const FMASkillWorldAreaShape& WorldArea)
 {
-	const TWeakObjectPtr<UDecalComponent>* FoundDecal = ActiveDecals.Find(MeshComp);
-	UDecalComponent* DecalComponent = FoundDecal ? FoundDecal->Get() : nullptr;
+	const FMASkillActiveAreaPreview* ActivePreview = ActivePreviews.Find(MeshComp);
+	UDecalComponent* DecalComponent = ActivePreview ? ActivePreview->Decal.Get() : nullptr;
 	if (DecalComponent)
 	{
 		MASkillAreaDecalStatics::SetAreaTransform(*DecalComponent, WorldArea);
