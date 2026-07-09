@@ -34,6 +34,13 @@ public:
 		const FGameplayTag& InInactiveReasonTag = FGameplayTag());
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
 
+	/** Module Stack **/
+	bool IsStackEnabled() const;
+	int32 GetStack() const { return Stack; }
+	void SetStack(int32 NewStack);
+	void AddStack(int32 Delta) { SetStack(Stack + Delta); }
+	void ClearStack() { SetStack(0); }
+
 	/** Module Cooldown **/
 	bool IsCooldownActive() const;
 	void RegisterCooldownEvents(
@@ -50,7 +57,10 @@ public:
 private:
 	UFUNCTION()
 	void OnRep_Definition();
+	UFUNCTION()
+	void OnRep_Stack();
 	void InitializePayloadStore();
+	void RefreshStackPayload();
 
 	UPROPERTY(ReplicatedUsing=OnRep_Definition)
 	TObjectPtr<UMASkillDefinition> Definition;
@@ -60,6 +70,9 @@ private:
 
 	UPROPERTY(Transient)
 	FGameplayTag InactiveReasonTag;
+
+	UPROPERTY(ReplicatedUsing=OnRep_Stack)
+	int32 Stack = 0;
 
 	UPROPERTY(Transient)
 	FMASkillPayloadStore PayloadStore;
@@ -82,3 +95,4 @@ private:
 
 	friend struct FMASkillAssembler;
 };
+

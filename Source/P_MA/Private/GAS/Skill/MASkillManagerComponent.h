@@ -133,6 +133,7 @@ private:
 	void RefreshAbilityDefinition(FMASkillSlotRuntimeState& SlotState);
 	UMASkillAbility* ResolveSkillAbility(const FMASkillSlotRuntimeState& SlotState) const;
 	void SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
+	void NotifyActiveModulesChanged(const FMASkillSlotRuntimeState& SlotState);
 
 	void SpawnSkillAreaImpactLocal(
 		const FMASkillWorldAreaShape& Area,

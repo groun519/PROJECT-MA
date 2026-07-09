@@ -24,7 +24,7 @@ bool FMASkillEventBinding::TryResolveScopes(
 
 	case EMASkillEventBindingScope::Skill:
 		if (SourceScopes.Skill != BindingScopes.Skill) return false;
-		OutScopes.Skill = BindingScopes.Skill;
+		OutScopes = BindingScopes;
 		return true;
 
 	case EMASkillEventBindingScope::Global:

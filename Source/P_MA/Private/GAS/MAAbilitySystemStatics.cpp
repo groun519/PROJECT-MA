@@ -94,6 +94,16 @@ FGameplayTag UMAAbilitySystemStatics::GetDamageVarianceTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.Variance");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetModuleStackTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Module.Stack");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleLinkedGameplayEffectHandleTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Module.LinkedGameplayEffectHandle");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag()
 {
 	return FGameplayTag::RequestGameplayTag("Data.Skill.AttackSpeedMultiplier");
@@ -127,6 +137,16 @@ FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()
 FGameplayTag UMAAbilitySystemStatics::GetChargeCompletedEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.ChargeCompleted");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleActivationChangedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Module.ActivationChanged");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleStackChangedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Module.StackChanged");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMovementHandleTag()

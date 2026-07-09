@@ -5,10 +5,12 @@
 #include "Animation/MAAnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRouter.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -449,6 +451,7 @@ bool UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 	{
 		PreviousRuntimeRegistry->Cleanup();
 	}
+	NotifyActiveModulesChanged(SlotState);
 	OnSkillSlotChanged.Broadcast(SlotTag);
 	return SlotState.AssembledModuleInstance != nullptr
 		|| !SlotState.SourceModuleInstances.ContainsByPredicate([](const UMASkillModuleInstance* ModuleInstance)
@@ -536,6 +539,25 @@ void UMASkillManagerComponent::ClearActivePreviewVisualElementTag()
 	if (AActor* OwnerActor = GetOwner())
 	{
 		OwnerActor->ForceNetUpdate();
+	}
+}
+
+void UMASkillManagerComponent::NotifyActiveModulesChanged(const FMASkillSlotRuntimeState& SlotState)
+{
+	UMASkillAbility* SkillAbility = ResolveSkillAbility(SlotState);
+	if (!SkillAbility || !SlotState.AssembledModuleInstance) return;
+
+	const FGameplayTag EventTag = UMAAbilitySystemStatics::GetModuleActivationChangedEventTag();
+	for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
+	{
+		if (!ModuleInstance || !ModuleInstance->IsActive()) continue;
+		const UMASkillDefinition* ModuleDefinition = ModuleInstance->GetDefinition();
+		if (!ModuleDefinition || !ModuleDefinition->HasEventSource(EventTag)) continue;
+
+		UMASkillEventRoutingStatics::TryNotifySkillEvent(
+			SkillAbility,
+			EventTag,
+			FMASkillScopes(ModuleInstance, SlotState.AssembledModuleInstance));
 	}
 }
 

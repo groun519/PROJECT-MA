@@ -51,6 +51,8 @@ public:
 	static FGameplayTag GetDamageTargetTag();
 	static FGameplayTag GetFinalDamageMultiplierTag();
 	static FGameplayTag GetDamageVarianceTag();
+	static FGameplayTag GetModuleStackTag();
+	static FGameplayTag GetModuleLinkedGameplayEffectHandleTag();
 	static FGameplayTag GetSkillAttackSpeedMultiplierTag();
 	static FGameplayTag GetSkillFocusOffsetTag();
 	static FGameplayTag GetSkillAreaScaleTag();
@@ -58,6 +60,8 @@ public:
 	static FGameplayTag GetHitEventTag();
 	static FGameplayTag GetMovementStartEventTag();
 	static FGameplayTag GetChargeCompletedEventTag();
+	static FGameplayTag GetModuleActivationChangedEventTag();
+	static FGameplayTag GetModuleStackChangedEventTag();
 	static FGameplayTag GetMovementHandleTag();
 	static FGameplayTag GetDefaultDamageTypeTag();
 	static FGameplayTag GetHealDamageTypeTag();

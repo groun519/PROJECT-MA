@@ -95,6 +95,7 @@ public:
 	const FGameplayTagContainer& GetModuleTags() const { return ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const;
 	FGameplayTag GetVisualElementTag() const;
+	bool IsStackEnabled() const { return bStackEnabled; }
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
 	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
@@ -102,6 +103,7 @@ public:
 	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
+	bool HasEventSource(FGameplayTag EventTag) const;
 	virtual void PostLoad() override;
 
 	template<typename ModifierType>
@@ -149,6 +151,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Visual", meta=(Categories="Module.Visual"))
 	FGameplayTagContainer ModuleVisualTags;
 
+	UPROPERTY(EditDefaultsOnly, Category="Stack")
+	bool bStackEnabled = false;
+
 	UPROPERTY()
 	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;
 
@@ -182,3 +187,4 @@ private:
 	TArray<FMASkillPayloadEntry> Payloads;
 
 };
+

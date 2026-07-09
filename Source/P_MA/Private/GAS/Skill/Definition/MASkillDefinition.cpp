@@ -91,12 +91,25 @@ void UMASkillDefinition::PostLoad()
 	}
 }
 
+bool UMASkillDefinition::HasEventSource(FGameplayTag EventTag) const
+{
+	if (!EventTag.IsValid()) return false;
+
+	for (const UMASkillEventSource* EventSource : EventSources)
+	{
+		if (EventSource && EventSource->GetEmittedTag() == EventTag) return true;
+	}
+
+	return false;
+}
+
 void UMASkillDefinition::ResetAssemblyData()
 {
 	DisplayData = FMASkillDefinitionDisplayData();
 	AssembledSubIcon = nullptr;
 	ModuleTags.Reset();
 	ModuleVisualTags.Reset();
+	bStackEnabled = false;
 	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	CooldownSeconds = 0.f;
@@ -163,3 +176,4 @@ void UMASkillDefinition::FinalizeSequenceAssembly()
 		Sequence.SequenceAdvanceCount = SequenceCounts.FindRef(SequenceKey);
 	}
 }
+

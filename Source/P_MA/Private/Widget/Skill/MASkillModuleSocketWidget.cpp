@@ -2,6 +2,7 @@
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -39,6 +40,7 @@ void UMASkillModuleSocketWidget::Refresh()
 	CachedDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 	ApplyDefinitionVisual(CachedDefinition);
 	ApplyModuleStateVisual(ModuleInstance);
+	RefreshStackText(ModuleInstance);
 	RefreshTooltip();
 }
 
@@ -108,6 +110,16 @@ void UMASkillModuleSocketWidget::ApplyModuleStateVisual(const UMASkillModuleInst
 	}
 }
 
+void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
+{
+	const bool bShowStack = ModuleInstance && ModuleInstance->IsStackEnabled();
+	StackText->SetVisibility(bShowStack ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	if (bShowStack)
+	{
+		StackText->SetText(FText::AsNumber(ModuleInstance->GetStack()));
+	}
+}
+
 void UMASkillModuleSocketWidget::BindModuleState(UMASkillModuleInstance* ModuleInstance)
 {
 	if (BoundModuleInstance == ModuleInstance) return;
@@ -135,7 +147,9 @@ void UMASkillModuleSocketWidget::UnbindModuleState()
 
 void UMASkillModuleSocketWidget::HandleModuleStateChanged()
 {
-	ApplyModuleStateVisual(BoundModuleInstance.Get());
+	UMASkillModuleInstance* ModuleInstance = BoundModuleInstance.Get();
+	ApplyModuleStateVisual(ModuleInstance);
+	RefreshStackText(ModuleInstance);
 }
 
 void UMASkillModuleSocketWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -336,4 +350,5 @@ bool UMASkillModuleSocketWidget::IsSelfDragOperation(const UDragDropOperation* O
 		&& DragOperation->SourceSlots == SlotArray
 		&& DragOperation->SourceIndex == SlotIndex;
 }
+
 

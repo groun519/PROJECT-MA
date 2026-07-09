@@ -6,6 +6,7 @@
 
 class UActorComponent;
 class UImage;
+class UTextBlock;
 class UMASkillDefinition;
 class UMASkillModuleInstance;
 class UMASkillModuleDragVisualWidget;
@@ -38,6 +39,9 @@ protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> ModuleIconImage;
 
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UTextBlock> StackText;
+
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	TSubclassOf<UMASkillModuleDragVisualWidget> DragVisualWidgetClass;
 
@@ -55,6 +59,7 @@ private:
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
 	void ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance);
+	void RefreshStackText(const UMASkillModuleInstance* ModuleInstance);
 	void BindModuleState(UMASkillModuleInstance* ModuleInstance);
 	void UnbindModuleState();
 	void HandleModuleStateChanged();
