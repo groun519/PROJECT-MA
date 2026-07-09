@@ -1,9 +1,6 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 
-#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
 
 static void MoveVisualTags(
 	FGameplayTagContainer& SourceTags,
@@ -117,63 +114,10 @@ void UMASkillDefinition::ResetAssemblyData()
 	BaseSequences.Reset();
 	SequenceModifiers.Reset();
 	AssembledSequences.Reset();
+	Addons.Reset();
 	EventSources.Reset();
 	EventBindings.Reset();
 	Payloads.Reset();
 }
 
-void UMASkillDefinition::AppendFrom(UMASkillModuleInstance* SourceModuleInstance)
-{
-	const UMASkillDefinition* SourceDefinition = SourceModuleInstance ? SourceModuleInstance->GetDefinition() : nullptr;
-	if (!SourceDefinition) return;
-	ModuleVisualTags.AppendTags(SourceDefinition->ModuleVisualTags);
-
-	CooldownSeconds += SourceDefinition->CooldownSeconds;
-
-	for (UMASkillEventSource* EventSource : SourceDefinition->EventSources)
-	{
-		if (!EventSource) continue;
-		UMASkillEventSource* NewEventSource = DuplicateObject<UMASkillEventSource>(EventSource, this);
-		if (!NewEventSource) continue;
-
-		EventSources.Add(NewEventSource);
-	}
-
-	for (const FMASkillEventBinding& EventBinding : SourceDefinition->EventBindings)
-	{
-		FMASkillEventBinding NewEventBinding = EventBinding;
-		NewEventBinding.BindingScopes.Module = SourceModuleInstance;
-		NewEventBinding.BindingScopes.Skill = Cast<UMASkillModuleInstance>(GetOuter());
-		NewEventBinding.Action = EventBinding.Action
-			? DuplicateObject<UMASkillAction>(EventBinding.Action, this)
-			: nullptr;
-		EventBindings.Add(MoveTemp(NewEventBinding));
-	}
-
-	Payloads.Append(SourceDefinition->Payloads);
-}
-
-void UMASkillDefinition::FinalizeSequenceAssembly()
-{
-	TMap<FString, int32> SequenceCounts;
-	for (const FMASkillSequence& Sequence : AssembledSequences)
-	{
-		if (Sequence.UsesSequenceSections())
-		{
-			SequenceCounts.FindOrAdd(Sequence.GetSequenceKey())++;
-		}
-	}
-
-	TMap<FString, int32> SequenceOffsets;
-	for (FMASkillSequence& Sequence : AssembledSequences)
-	{
-		if (!Sequence.UsesSequenceSections()) continue;
-
-		const FString SequenceKey = Sequence.GetSequenceKey();
-		const int32 InitialSequenceIndex = SequenceOffsets.FindRef(SequenceKey) + 1;
-		SequenceOffsets.Add(SequenceKey, InitialSequenceIndex);
-		Sequence.InitialSequenceIndex = InitialSequenceIndex;
-		Sequence.SequenceAdvanceCount = SequenceCounts.FindRef(SequenceKey);
-	}
-}
 

@@ -71,6 +71,8 @@ private:
 	UPROPERTY(Transient)
 	FGameplayTag InactiveReasonTag;
 
+	// TODO(Addon): If addon-specific runtime state grows, split it into a module runtime data layer
+	// instead of continuing to add optional feature fields directly to UMASkillModuleInstance.
 	UPROPERTY(ReplicatedUsing=OnRep_Stack)
 	int32 Stack = 0;
 

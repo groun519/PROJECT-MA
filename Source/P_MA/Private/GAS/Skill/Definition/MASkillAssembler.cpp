@@ -1,10 +1,10 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 
+#include "GAS/Skill/Definition/Assembly/MASkillFeatureAssemblers.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
-#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
 
 struct FMASkillAssemblyState
 {
@@ -140,34 +140,16 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 		}
 
 		const FMASkillScopes TargetScopes(RootModuleInstance, AssembledModuleInstance);
-		TArray<FMASkillSequence> ModuleSequences;
-		TArray<const UMASkillSequenceModifier*> SequenceModifiers;
 
 		const UMASkillDefinition* Definition = RootModuleInstance->GetDefinition();
 		if (!Definition) continue;
 
-		AssembledDefinition->AppendFrom(RootModuleInstance);
+		AssembledDefinition->ModuleVisualTags.AppendTags(Definition->ModuleVisualTags);
 		AppendDisplayData(*Definition);
-		for (const FMASkillSequence& SourceSequence : Definition->GetBaseSequences())
-		{
-			FMASkillSequence Sequence = SourceSequence;
-			Sequence.TargetScopes = TargetScopes;
-			Sequence.Tasks.Reset();
-			Sequence.InitialSequenceIndex = 0;
-			Sequence.SequenceAdvanceCount = 0;
-			ModuleSequences.Add(MoveTemp(Sequence));
-		}
-		for (const UMASkillSequenceModifier* Modifier : Definition->GetSequenceModifiers())
-		{
-			if (Modifier) SequenceModifiers.Add(Modifier);
-		}
-
-		for (const UMASkillSequenceModifier* Modifier : SequenceModifiers)
-		{
-			Modifier->Apply(ModuleSequences, *AssembledDefinition);
-		}
-
-		AssembledDefinition->AssembledSequences.Append(MoveTemp(ModuleSequences));
+		FMASkillCooldownAssembler::AppendFrom(*AssembledDefinition, *Definition);
+		FMASkillPayloadAssembler::AppendFrom(*AssembledDefinition, *Definition);
+		FMASkillEventAssembler::AppendFrom(*AssembledDefinition, *Definition, *RootModuleInstance, *AssembledModuleInstance);
+		FMASkillSequenceAssembler::AppendFrom(*AssembledDefinition, *Definition, TargetScopes);
 	}
 
 	if (AssembledDefinition && !NameKeywordsByPriority.IsEmpty())
@@ -195,7 +177,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 	if (AssembledDefinition)
 	{
-		AssembledDefinition->FinalizeSequenceAssembly();
+		FMASkillSequenceAssembler::Finalize(*AssembledDefinition);
 	}
 
 	return AssembledModuleInstance;

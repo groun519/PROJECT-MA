@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GAS/Skill/Addon/MASkillModuleAddon.h"
 #include "GAS/Skill/Event/Binding/MASkillEventBinding.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
@@ -16,6 +17,10 @@ class UMASkillSequenceModifier;
 class UTexture2D;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
+struct FMASkillCooldownAssembler;
+struct FMASkillPayloadAssembler;
+struct FMASkillEventAssembler;
+struct FMASkillSequenceAssembler;
 
 USTRUCT(BlueprintType)
 struct FMASkillDefinitionIconData
@@ -101,10 +106,48 @@ public:
 	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
 	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
 	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
+	const TArray<TObjectPtr<UMASkillModuleAddon>>& GetModuleAddons() const { return Addons; }
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	bool HasEventSource(FGameplayTag EventTag) const;
 	virtual void PostLoad() override;
+
+	template<typename AddonType>
+	const AddonType* FindAddon() const
+	{
+		static_assert(TIsDerivedFrom<AddonType, UMASkillModuleAddon>::IsDerived,
+			"AddonType must derive from UMASkillModuleAddon.");
+
+		for (const TObjectPtr<UMASkillModuleAddon>& Addon : Addons)
+		{
+			if (const AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
+			{
+				return TypedAddon;
+			}
+		}
+		return nullptr;
+	}
+
+	template<typename AddonType>
+	bool HasAddon() const
+	{
+		return FindAddon<AddonType>() != nullptr;
+	}
+
+	template<typename AddonType>
+	void GetAddons(TArray<const AddonType*>& OutAddons) const
+	{
+		static_assert(TIsDerivedFrom<AddonType, UMASkillModuleAddon>::IsDerived,
+			"AddonType must derive from UMASkillModuleAddon.");
+
+		for (const TObjectPtr<UMASkillModuleAddon>& Addon : Addons)
+		{
+			if (const AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
+			{
+				OutAddons.Add(TypedAddon);
+			}
+		}
+	}
 
 	template<typename ModifierType>
 	ModifierType* AddTransientSequenceModifier()
@@ -131,10 +174,12 @@ public:
 
 private:
 	void ResetAssemblyData();
-	void AppendFrom(UMASkillModuleInstance* SourceModuleInstance);
-	void FinalizeSequenceAssembly();
 
 	friend struct FMASkillAssembler;
+	friend struct FMASkillCooldownAssembler;
+	friend struct FMASkillPayloadAssembler;
+	friend struct FMASkillEventAssembler;
+	friend struct FMASkillSequenceAssembler;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(AllowPrivateAccess="true"))
 	FMASkillDefinitionDisplayData DisplayData;
@@ -174,6 +219,9 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<FMASkillSequence> AssembledSequences;
+
+	UPROPERTY(EditDefaultsOnly, Instanced, Category="Addon")
+	TArray<TObjectPtr<UMASkillModuleAddon>> Addons;
 
 	/** Event Source **/
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Event")
