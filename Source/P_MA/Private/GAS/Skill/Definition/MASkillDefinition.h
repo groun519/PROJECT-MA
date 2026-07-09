@@ -12,9 +12,11 @@
 #include "MASkillDefinition.generated.h"
 
 class UMASkillEventSource;
+class UMASkillModuleStackAddon;
 class UMASkillModuleInstance;
 class UMASkillSequenceModifier;
 class UTexture2D;
+struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
 struct FMASkillCooldownAssembler;
@@ -100,16 +102,19 @@ public:
 	const FGameplayTagContainer& GetModuleTags() const { return ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const;
 	FGameplayTag GetVisualElementTag() const;
-	bool IsStackEnabled() const { return bStackEnabled; }
+	bool IsStackEnabled() const;
+	const UMASkillModuleStackAddon* GetStackAddon() const;
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
 	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
 	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
 	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
-	const TArray<TObjectPtr<UMASkillModuleAddon>>& GetModuleAddons() const { return Addons; }
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 	const TArray<TObjectPtr<UMASkillEventSource>>& GetEventSources() const { return EventSources; }
 	bool HasEventSource(FGameplayTag EventTag) const;
+	void InitializeAddonRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const;
+	void ApplyAddonPayloadMirrors(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const;
+	bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const;
 	virtual void PostLoad() override;
 
 	template<typename AddonType>
@@ -132,21 +137,6 @@ public:
 	bool HasAddon() const
 	{
 		return FindAddon<AddonType>() != nullptr;
-	}
-
-	template<typename AddonType>
-	void GetAddons(TArray<const AddonType*>& OutAddons) const
-	{
-		static_assert(TIsDerivedFrom<AddonType, UMASkillModuleAddon>::IsDerived,
-			"AddonType must derive from UMASkillModuleAddon.");
-
-		for (const TObjectPtr<UMASkillModuleAddon>& Addon : Addons)
-		{
-			if (const AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
-			{
-				OutAddons.Add(TypedAddon);
-			}
-		}
 	}
 
 	template<typename ModifierType>
@@ -173,6 +163,7 @@ public:
 	}
 
 private:
+	void ForEachUniqueAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	void ResetAssemblyData();
 
 	friend struct FMASkillAssembler;

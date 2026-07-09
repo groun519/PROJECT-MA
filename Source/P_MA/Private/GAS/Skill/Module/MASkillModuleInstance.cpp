@@ -1,6 +1,5 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
 #include "GameFramework/Actor.h"
@@ -14,63 +13,60 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UMASkillModuleInstance, Definition);
-	DOREPLIFETIME(UMASkillModuleInstance, Stack);
+	DOREPLIFETIME(UMASkillModuleInstance, AddonRuntimeData);
 	DOREPLIFETIME(UMASkillModuleInstance, ModuleCooldownEndTimeSeconds);
 }
 
 void UMASkillModuleInstance::SetDefinition(UMASkillDefinition* InDefinition)
 {
 	Definition = InDefinition;
-	Stack = 0;
+	AddonRuntimeData.Reset();
+	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
 	InitializePayloadStore();
 }
 
 void UMASkillModuleInstance::OnRep_Definition()
 {
+	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
 	InitializePayloadStore();
 	OnStateChanged.Broadcast();
 }
 
-void UMASkillModuleInstance::OnRep_Stack()
+void UMASkillModuleInstance::OnRep_AddonRuntimeData()
 {
-	RefreshStackPayload();
+	RefreshAddonPayloadMirrors();
 	OnStateChanged.Broadcast();
+}
+
+bool UMASkillModuleInstance::CanModifyAddonRuntimeData() const
+{
+	const AActor* OwnerActor = GetTypedOuter<AActor>();
+	return !OwnerActor || OwnerActor->HasAuthority();
+}
+
+void UMASkillModuleInstance::NotifyAddonRuntimeDataChanged()
+{
+	RefreshAddonPayloadMirrors();
+	OnStateChanged.Broadcast();
+
+	AActor* OwnerActor = GetTypedOuter<AActor>();
+	if (OwnerActor)
+	{
+		OwnerActor->ForceNetUpdate();
+	}
 }
 
 void UMASkillModuleInstance::InitializePayloadStore()
 {
 	PayloadStore.Reset();
 	if (Definition) Definition->ApplyPayloadsTo(PayloadStore);
-	RefreshStackPayload();
+	RefreshAddonPayloadMirrors();
 }
 
-void UMASkillModuleInstance::RefreshStackPayload()
+void UMASkillModuleInstance::RefreshAddonPayloadMirrors()
 {
-	if (!IsStackEnabled()) return;
-
-	PayloadStore.SetScalar(UMAAbilitySystemStatics::GetModuleStackTag(), static_cast<float>(Stack));
-}
-
-bool UMASkillModuleInstance::IsStackEnabled() const
-{
-	return Definition && Definition->IsStackEnabled();
-}
-
-void UMASkillModuleInstance::SetStack(int32 NewStack)
-{
-	if (!IsStackEnabled() || Stack == NewStack) return;
-
-	AActor* OwnerActor = GetTypedOuter<AActor>();
-	if (OwnerActor && !OwnerActor->HasAuthority()) return;
-
-	Stack = NewStack;
-	RefreshStackPayload();
-	OnStateChanged.Broadcast();
-
-	if (OwnerActor)
-	{
-		OwnerActor->ForceNetUpdate();
-	}
+	if (!Definition) return;
+	Definition->ApplyAddonPayloadMirrors(AddonRuntimeData, PayloadStore);
 }
 
 bool UMASkillModuleInstance::IsCooldownActive() const

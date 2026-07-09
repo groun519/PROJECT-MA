@@ -4,6 +4,7 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
 void UMASkillAction_ModifyModuleStack::Execute(
@@ -12,29 +13,44 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	const FMASkillScopes& Scopes)
 {
 	UMASkillModuleInstance* ModuleInstance = Scopes.Module.Get();
-	if (!ModuleInstance || !ModuleInstance->IsStackEnabled()) return;
+	const UMASkillDefinition* ModuleDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
+	if (!ModuleInstance || !ModuleDefinition || !ModuleDefinition->IsStackEnabled()) return;
 
-	const int32 PreviousStack = ModuleInstance->GetStack();
-	switch (Operation)
+	const UMASkillModuleStackAddon* StackAddon = ModuleDefinition->GetStackAddon();
+	auto ClampStack = [StackAddon](int32 Stack)
 	{
-	case EMASkillModuleStackOperation::Add:
-		ModuleInstance->AddStack(Value);
-		break;
+		return StackAddon ? StackAddon->ClampStack(Stack) : FMath::Clamp(Stack, 0, 999);
+	};
 
-	case EMASkillModuleStackOperation::Set:
-		ModuleInstance->SetStack(Value);
-		break;
+	const bool bChanged = ModuleInstance->ModifyAddonRuntimeData<FMASkillModuleStackRuntimeData>(
+		[this, &ClampStack](FMASkillModuleStackRuntimeData& StackData)
+	{
+		int32 NewStack = StackData.Stack;
+		switch (Operation)
+		{
+		case EMASkillModuleStackOperation::Add:
+			NewStack = StackData.Stack + Value;
+			break;
 
-	case EMASkillModuleStackOperation::Clear:
-		ModuleInstance->ClearStack();
-		break;
-	}
+		case EMASkillModuleStackOperation::Set:
+			NewStack = Value;
+			break;
 
-	if (ModuleInstance->GetStack() == PreviousStack) return;
+		case EMASkillModuleStackOperation::Clear:
+			NewStack = 0;
+			break;
+		}
+
+		NewStack = ClampStack(NewStack);
+		if (StackData.Stack == NewStack) return false;
+
+		StackData.Stack = NewStack;
+		return true;
+	});
+	if (!bChanged) return;
 
 	const FGameplayTag StackChangedEventTag = UMAAbilitySystemStatics::GetModuleStackChangedEventTag();
-	const UMASkillDefinition* ModuleDefinition = ModuleInstance->GetDefinition();
-	if (!ModuleDefinition || !ModuleDefinition->HasEventSource(StackChangedEventTag)) return;
+	if (!ModuleDefinition->HasEventSource(StackChangedEventTag)) return;
 
 	UMASkillEventRoutingStatics::TryNotifySkillEvent(
 		&OwnerAbility,

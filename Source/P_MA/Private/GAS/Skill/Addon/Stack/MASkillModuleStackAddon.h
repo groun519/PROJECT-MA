@@ -1,0 +1,43 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GAS/Skill/Addon/MASkillModuleAddon.h"
+#include "MASkillModuleStackAddon.generated.h"
+
+USTRUCT()
+struct FMASkillModuleStackRuntimeData
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 Stack = 0;
+};
+
+UCLASS(BlueprintType, EditInlineNew, DefaultToInstanced)
+class P_MA_API UMASkillModuleStackAddon : public UMASkillModuleAddon
+{
+	GENERATED_BODY()
+
+public:
+	virtual void InitializeRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const override;
+	virtual void ApplyPayloadMirror(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const override;
+	virtual bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const override;
+	bool ShouldShowStackText() const { return bShowStackText; }
+	int32 GetInitialStack() const { return InitialStack; }
+	int32 GetMinStack() const { return MinStack; }
+	int32 GetMaxStack() const { return MaxStack; }
+	int32 ClampStack(int32 Value) const;
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Stack")
+	int32 InitialStack = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category="Stack")
+	int32 MinStack = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category="Stack")
+	int32 MaxStack = 999;
+
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	bool bShowStackText = true;
+};

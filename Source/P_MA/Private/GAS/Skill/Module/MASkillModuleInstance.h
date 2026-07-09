@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameplayTagContainer.h"
 #include "TimerManager.h"
@@ -34,12 +35,18 @@ public:
 		const FGameplayTag& InInactiveReasonTag = FGameplayTag());
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
 
-	/** Module Stack **/
-	bool IsStackEnabled() const;
-	int32 GetStack() const { return Stack; }
-	void SetStack(int32 NewStack);
-	void AddStack(int32 Delta) { SetStack(Stack + Delta); }
-	void ClearStack() { SetStack(0); }
+	/** Addon Runtime Data **/
+	const FMASkillModuleAddonRuntimeData& GetAddonRuntimeData() const { return AddonRuntimeData; }
+
+	template<typename DataType, typename MutatorType>
+	bool ModifyAddonRuntimeData(MutatorType&& Mutator)
+	{
+		if (!CanModifyAddonRuntimeData()) return false;
+		if (!AddonRuntimeData.Modify<DataType>(Forward<MutatorType>(Mutator))) return false;
+
+		NotifyAddonRuntimeDataChanged();
+		return true;
+	}
 
 	/** Module Cooldown **/
 	bool IsCooldownActive() const;
@@ -58,9 +65,11 @@ private:
 	UFUNCTION()
 	void OnRep_Definition();
 	UFUNCTION()
-	void OnRep_Stack();
+	void OnRep_AddonRuntimeData();
+	bool CanModifyAddonRuntimeData() const;
+	void NotifyAddonRuntimeDataChanged();
 	void InitializePayloadStore();
-	void RefreshStackPayload();
+	void RefreshAddonPayloadMirrors();
 
 	UPROPERTY(ReplicatedUsing=OnRep_Definition)
 	TObjectPtr<UMASkillDefinition> Definition;
@@ -71,10 +80,8 @@ private:
 	UPROPERTY(Transient)
 	FGameplayTag InactiveReasonTag;
 
-	// TODO(Addon): If addon-specific runtime state grows, split it into a module runtime data layer
-	// instead of continuing to add optional feature fields directly to UMASkillModuleInstance.
-	UPROPERTY(ReplicatedUsing=OnRep_Stack)
-	int32 Stack = 0;
+	UPROPERTY(ReplicatedUsing=OnRep_AddonRuntimeData)
+	FMASkillModuleAddonRuntimeData AddonRuntimeData;
 
 	UPROPERTY(Transient)
 	FMASkillPayloadStore PayloadStore;

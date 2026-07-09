@@ -112,11 +112,14 @@ void UMASkillModuleSocketWidget::ApplyModuleStateVisual(const UMASkillModuleInst
 
 void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
 {
-	const bool bShowStack = ModuleInstance && ModuleInstance->IsStackEnabled();
+	const UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
+	FText StackValueText;
+	const bool bShowStack = Definition
+		&& Definition->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);
 	StackText->SetVisibility(bShowStack ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	if (bShowStack)
 	{
-		StackText->SetText(FText::AsNumber(ModuleInstance->GetStack()));
+		StackText->SetText(StackValueText);
 	}
 }
 

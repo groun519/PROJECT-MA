@@ -1,6 +1,10 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
+#include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 
 static void MoveVisualTags(
 	FGameplayTagContainer& SourceTags,
@@ -64,6 +68,16 @@ FGameplayTag UMASkillDefinition::GetVisualElementTag() const
 	return FGameplayTag();
 }
 
+bool UMASkillDefinition::IsStackEnabled() const
+{
+	return bStackEnabled || GetStackAddon() != nullptr;
+}
+
+const UMASkillModuleStackAddon* UMASkillDefinition::GetStackAddon() const
+{
+	return FindAddon<UMASkillModuleStackAddon>();
+}
+
 void UMASkillDefinition::PostLoad()
 {
 	Super::PostLoad();
@@ -98,6 +112,102 @@ bool UMASkillDefinition::HasEventSource(FGameplayTag EventTag) const
 	}
 
 	return false;
+}
+
+void UMASkillDefinition::InitializeAddonRuntimeData(
+	FMASkillModuleAddonRuntimeData& RuntimeData) const
+{
+	bool bHasStackAddon = false;
+	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	{
+		bHasStackAddon |= Addon.IsA<UMASkillModuleStackAddon>();
+		Addon.InitializeRuntimeData(RuntimeData);
+	});
+
+	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
+	if (IsStackEnabled()
+		&& !bHasStackAddon
+		&& !RuntimeData.Find<FMASkillModuleStackRuntimeData>())
+	{
+		FMASkillModuleStackRuntimeData& StackData =
+			RuntimeData.FindOrAdd<FMASkillModuleStackRuntimeData>();
+		StackData.Stack = 0;
+	}
+}
+
+void UMASkillDefinition::ApplyAddonPayloadMirrors(
+	const FMASkillModuleAddonRuntimeData& RuntimeData,
+	FMASkillPayloadStore& PayloadStore) const
+{
+	bool bHasStackAddon = false;
+	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	{
+		bHasStackAddon |= Addon.IsA<UMASkillModuleStackAddon>();
+		Addon.ApplyPayloadMirror(RuntimeData, PayloadStore);
+	});
+
+	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
+	if (IsStackEnabled() && !bHasStackAddon)
+	{
+		if (const FMASkillModuleStackRuntimeData* StackData =
+			RuntimeData.Find<FMASkillModuleStackRuntimeData>())
+		{
+			PayloadStore.SetScalar(
+				UMAAbilitySystemStatics::GetModuleStackTag(),
+				static_cast<float>(StackData->Stack));
+		}
+	}
+}
+
+bool UMASkillDefinition::TryResolveSocketText(
+	const FMASkillModuleAddonRuntimeData& RuntimeData,
+	FText& OutText) const
+{
+	bool bResolved = false;
+	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	{
+		if (!bResolved)
+		{
+			bResolved = Addon.TryResolveSocketText(RuntimeData, OutText);
+		}
+	});
+	if (bResolved) return true;
+
+	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
+	if (IsStackEnabled() && !GetStackAddon())
+	{
+		if (const FMASkillModuleStackRuntimeData* StackData =
+			RuntimeData.Find<FMASkillModuleStackRuntimeData>())
+		{
+			OutText = FText::AsNumber(StackData->Stack);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UMASkillDefinition::ForEachUniqueAddon(
+	TFunctionRef<void(const UMASkillModuleAddon&)> Func) const
+{
+	TSet<const UClass*> SeenAddonClasses;
+	for (const TObjectPtr<UMASkillModuleAddon>& Addon : Addons)
+	{
+		if (!Addon) continue;
+
+		const UClass* AddonClass = Addon->GetClass();
+		if (SeenAddonClasses.Contains(AddonClass))
+		{
+			ensureMsgf(false,
+				TEXT("Duplicate module addon '%s' in '%s'."),
+				*GetNameSafe(AddonClass),
+				*GetName());
+			continue;
+		}
+
+		SeenAddonClasses.Add(AddonClass);
+		Func(*Addon);
+	}
 }
 
 void UMASkillDefinition::ResetAssemblyData()
