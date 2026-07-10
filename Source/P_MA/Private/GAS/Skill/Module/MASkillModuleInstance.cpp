@@ -38,6 +38,14 @@ void UMASkillModuleInstance::OnRep_AddonRuntimeData()
 	OnStateChanged.Broadcast();
 }
 
+void UMASkillModuleInstance::SetInSkillSlot(bool bInSkillSlot)
+{
+	if (bIsInSkillSlot == bInSkillSlot) return;
+
+	bIsInSkillSlot = bInSkillSlot;
+	OnStateChanged.Broadcast();
+}
+
 bool UMASkillModuleInstance::CanModifyAddonRuntimeData() const
 {
 	const AActor* OwnerActor = GetTypedOuter<AActor>();

@@ -10,6 +10,8 @@
 
 class UMASkillDefinition;
 class UMASkillEventDispatcher;
+class UMASkillManagerComponent;
+class UMASkillModuleInventoryComponent;
 class UMASkillRuntimeRegistry;
 struct FMASkillEvent;
 
@@ -29,6 +31,8 @@ public:
 	UMASkillDefinition* GetDefinition() const { return Definition; }
 	void SetDefinition(UMASkillDefinition* InDefinition);
 	bool IsValid() const { return Definition != nullptr; }
+	bool IsInSkillSlot() const { return bIsInSkillSlot; }
+	bool IsAssemblyActive() const { return IsValid() && IsInSkillSlot() && IsActive(); }
 	bool IsActive() const { return bIsActive; }
 	void SetActive(
 		bool bInActive,
@@ -62,6 +66,8 @@ public:
 	FMASkillModuleStateChangedSignature OnStateChanged;
 
 private:
+	void SetInSkillSlot(bool bInSkillSlot);
+
 	UFUNCTION()
 	void OnRep_Definition();
 	UFUNCTION()
@@ -73,6 +79,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_Definition)
 	TObjectPtr<UMASkillDefinition> Definition;
+
+	UPROPERTY(Transient)
+	bool bIsInSkillSlot = false;
 
 	UPROPERTY(Transient)
 	bool bIsActive = true;
@@ -103,5 +112,7 @@ private:
 	FTimerHandle ModuleCooldownTimerHandle;
 
 	friend struct FMASkillAssembler;
+	friend class UMASkillManagerComponent;
+	friend class UMASkillModuleInventoryComponent;
 };
 

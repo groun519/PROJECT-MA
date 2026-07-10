@@ -1,6 +1,5 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 
-#include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
@@ -68,11 +67,6 @@ FGameplayTag UMASkillDefinition::GetVisualElementTag() const
 	return FGameplayTag();
 }
 
-bool UMASkillDefinition::IsStackEnabled() const
-{
-	return bStackEnabled || GetStackAddon() != nullptr;
-}
-
 const UMASkillModuleStackAddon* UMASkillDefinition::GetStackAddon() const
 {
 	return FindAddon<UMASkillModuleStackAddon>();
@@ -117,46 +111,20 @@ bool UMASkillDefinition::HasEventSource(FGameplayTag EventTag) const
 void UMASkillDefinition::InitializeAddonRuntimeData(
 	FMASkillModuleAddonRuntimeData& RuntimeData) const
 {
-	bool bHasStackAddon = false;
 	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
 	{
-		bHasStackAddon |= Addon.IsA<UMASkillModuleStackAddon>();
 		Addon.InitializeRuntimeData(RuntimeData);
 	});
-
-	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
-	if (IsStackEnabled()
-		&& !bHasStackAddon
-		&& !RuntimeData.Find<FMASkillModuleStackRuntimeData>())
-	{
-		FMASkillModuleStackRuntimeData& StackData =
-			RuntimeData.FindOrAdd<FMASkillModuleStackRuntimeData>();
-		StackData.Stack = 0;
-	}
 }
 
 void UMASkillDefinition::ApplyAddonPayloadMirrors(
 	const FMASkillModuleAddonRuntimeData& RuntimeData,
 	FMASkillPayloadStore& PayloadStore) const
 {
-	bool bHasStackAddon = false;
 	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
 	{
-		bHasStackAddon |= Addon.IsA<UMASkillModuleStackAddon>();
 		Addon.ApplyPayloadMirror(RuntimeData, PayloadStore);
 	});
-
-	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
-	if (IsStackEnabled() && !bHasStackAddon)
-	{
-		if (const FMASkillModuleStackRuntimeData* StackData =
-			RuntimeData.Find<FMASkillModuleStackRuntimeData>())
-		{
-			PayloadStore.SetScalar(
-				UMAAbilitySystemStatics::GetModuleStackTag(),
-				static_cast<float>(StackData->Stack));
-		}
-	}
 }
 
 bool UMASkillDefinition::TryResolveSocketText(
@@ -171,20 +139,7 @@ bool UMASkillDefinition::TryResolveSocketText(
 			bResolved = Addon.TryResolveSocketText(RuntimeData, OutText);
 		}
 	});
-	if (bResolved) return true;
-
-	// Temporary compatibility until bStackEnabled is migrated to StackAddon.
-	if (IsStackEnabled() && !GetStackAddon())
-	{
-		if (const FMASkillModuleStackRuntimeData* StackData =
-			RuntimeData.Find<FMASkillModuleStackRuntimeData>())
-		{
-			OutText = FText::AsNumber(StackData->Stack);
-			return true;
-		}
-	}
-
-	return false;
+	return bResolved;
 }
 
 void UMASkillDefinition::ForEachUniqueAddon(
@@ -216,7 +171,6 @@ void UMASkillDefinition::ResetAssemblyData()
 	AssembledSubIcon = nullptr;
 	ModuleTags.Reset();
 	ModuleVisualTags.Reset();
-	bStackEnabled = false;
 	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
 	CooldownSeconds = 0.f;

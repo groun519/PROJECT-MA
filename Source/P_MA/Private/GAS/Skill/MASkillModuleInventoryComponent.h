@@ -40,6 +40,7 @@ private:
 	bool MoveSkillSlotToInventorySlot(FGameplayTag SlotTag, int32 ModuleIndex, int32 TargetSlotIndex);
 	bool IsValidSlotIndex(int32 SlotIndex) const;
 	void EnsureSlotCount();
+	void RefreshEntryModuleStates();
 	UFUNCTION(Server, Reliable)
 	void ServerGrantModule(UMASkillDefinition* Definition);
 

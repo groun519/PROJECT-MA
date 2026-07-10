@@ -14,16 +14,13 @@ void UMASkillAction_ModifyModuleStack::Execute(
 {
 	UMASkillModuleInstance* ModuleInstance = Scopes.Module.Get();
 	const UMASkillDefinition* ModuleDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
-	if (!ModuleInstance || !ModuleDefinition || !ModuleDefinition->IsStackEnabled()) return;
+	if (!ModuleInstance || !ModuleDefinition) return;
 
 	const UMASkillModuleStackAddon* StackAddon = ModuleDefinition->GetStackAddon();
-	auto ClampStack = [StackAddon](int32 Stack)
-	{
-		return StackAddon ? StackAddon->ClampStack(Stack) : FMath::Clamp(Stack, 0, 999);
-	};
+	if (!StackAddon) return;
 
 	const bool bChanged = ModuleInstance->ModifyAddonRuntimeData<FMASkillModuleStackRuntimeData>(
-		[this, &ClampStack](FMASkillModuleStackRuntimeData& StackData)
+		[this, StackAddon](FMASkillModuleStackRuntimeData& StackData)
 	{
 		int32 NewStack = StackData.Stack;
 		switch (Operation)
@@ -41,7 +38,7 @@ void UMASkillAction_ModifyModuleStack::Execute(
 			break;
 		}
 
-		NewStack = ClampStack(NewStack);
+		NewStack = StackAddon->ClampStack(NewStack);
 		if (StackData.Stack == NewStack) return false;
 
 		StackData.Stack = NewStack;

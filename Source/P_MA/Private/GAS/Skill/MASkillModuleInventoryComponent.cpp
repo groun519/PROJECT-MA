@@ -15,6 +15,7 @@ void UMASkillModuleInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	EnsureSlotCount();
+	RefreshEntryModuleStates();
 }
 
 void UMASkillModuleInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -239,9 +240,17 @@ void UMASkillModuleInventoryComponent::EnsureSlotCount()
 
 void UMASkillModuleInventoryComponent::OnRep_Entries()
 {
+	RefreshEntryModuleStates();
+	OnInventoryChanged.Broadcast();
+}
+
+void UMASkillModuleInventoryComponent::RefreshEntryModuleStates()
+{
 	for (UMASkillModuleInstance* Entry : Entries)
 	{
-		if (Entry) Entry->SetActive(true);
+		if (!Entry) continue;
+
+		Entry->SetInSkillSlot(false);
+		Entry->SetActive(true);
 	}
-	OnInventoryChanged.Broadcast();
 }

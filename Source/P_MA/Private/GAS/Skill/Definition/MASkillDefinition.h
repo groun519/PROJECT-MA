@@ -102,7 +102,6 @@ public:
 	const FGameplayTagContainer& GetModuleTags() const { return ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const;
 	FGameplayTag GetVisualElementTag() const;
-	bool IsStackEnabled() const;
 	const UMASkillModuleStackAddon* GetStackAddon() const;
 	float GetCooldownSeconds() const { return CooldownSeconds; }
 	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
@@ -186,9 +185,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual", meta=(Categories="Module.Visual"))
 	FGameplayTagContainer ModuleVisualTags;
-
-	UPROPERTY(EditDefaultsOnly, Category="Stack")
-	bool bStackEnabled = false;
 
 	UPROPERTY()
 	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;

@@ -71,7 +71,7 @@ public:
 	FGameplayTag GetActivePreviewVisualElementTag() const { return ActivePreviewVisualElementTag; }
 	UMASkillDefinition* GetAssembledDefinition(FGameplayTag SlotTag) const;
 
-	bool RebuildSkill(FGameplayTag SlotTag);
+	void RebuildSkill(FGameplayTag SlotTag);
 	void RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
 	void UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle);
 	void ClearActivePreviewVisualElementTag();
