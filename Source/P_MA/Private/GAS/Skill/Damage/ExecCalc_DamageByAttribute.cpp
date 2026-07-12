@@ -28,10 +28,10 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 		CaptureDefinitions.Source = SourceDefinition;
 		CaptureDefinitions.Target = TargetDefinition;
 		CaptureDefinitions.SourceCoefficientName = UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
-			EMADamageAttributeSide::Source,
+			EMACoefficientSource::Source,
 			Attribute);
 		CaptureDefinitions.TargetCoefficientName = UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
-			EMADamageAttributeSide::Target,
+			EMACoefficientSource::Target,
 			Attribute);
 		RelevantAttributesToCapture.Add(SourceDefinition);
 		RelevantAttributesToCapture.Add(TargetDefinition);
@@ -42,13 +42,13 @@ UExecCalc_DamageByAttribute::UExecCalc_DamageByAttribute()
 }
 
 const FGameplayEffectAttributeCaptureDefinition* UExecCalc_DamageByAttribute::FindCaptureDefinition(
-	EMADamageAttributeSide Side,
+	EMACoefficientSource Side,
 	const FGameplayAttribute& Attribute) const
 {
 	const FAttributeCaptureDefinitions* CaptureDefinitions = AttributeCaptureDefinitions.Find(Attribute);
 	if (!CaptureDefinitions) return nullptr;
 
-	return Side == EMADamageAttributeSide::Source
+	return Side == EMACoefficientSource::Source
 		? &CaptureDefinitions->Source
 		: &CaptureDefinitions->Target;
 }
@@ -75,7 +75,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		return Value;
 	};
 
-	auto CaptureAttributeMagnitude = [&](EMADamageAttributeSide Side, const FGameplayAttribute& Attribute)
+	auto CaptureAttributeMagnitude = [&](EMACoefficientSource Side, const FGameplayAttribute& Attribute)
 	{
 		const FGameplayEffectAttributeCaptureDefinition* CaptureDefinition = FindCaptureDefinition(Side, Attribute);
 		return CaptureDefinition ? CaptureMagnitude(*CaptureDefinition) : 0.f;
@@ -185,7 +185,7 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		}
 
 		const float CurrentShield = FMath::Max(0.f, CaptureAttributeMagnitude(
-			EMADamageAttributeSide::Target,
+			EMACoefficientSource::Target,
 			UMAAttributeSet::GetShieldAttribute()));
 		const float ShieldDamage = FMath::Min(CurrentShield, FinalDamage);
 		const float HealthDamage = FinalDamage - ShieldDamage;
@@ -226,22 +226,22 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	}
 
 	const float Armor = CaptureAttributeMagnitude(
-		EMADamageAttributeSide::Target,
+		EMACoefficientSource::Target,
 		UMAAttributeSet::GetArmorAttribute());
 	const float ArmorPenetration = CaptureAttributeMagnitude(
-		EMADamageAttributeSide::Source,
+		EMACoefficientSource::Source,
 		UMAAttributeSet::GetArmorPenetrationAttribute());
 	const float DamageVariance = FMath::Max(0.f, Spec.GetSetByCallerMagnitude(DamageVarianceTag, false, 0.f));
 	const float Focus = FMath::Clamp(
-		CaptureAttributeMagnitude(EMADamageAttributeSide::Source, UMAAttributeSet::GetFocusAttribute())
+		CaptureAttributeMagnitude(EMACoefficientSource::Source, UMAAttributeSet::GetFocusAttribute())
 		+ Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetSkillFocusOffsetTag(), false, 0.f),
 		-1.f,
 		1.f);
 	const float CriticalDamage = CaptureAttributeMagnitude(
-		EMADamageAttributeSide::Source,
+		EMACoefficientSource::Source,
 		UMAAttributeSet::GetCriticalDamageAttribute());
 	const float ReverseCriticalDamage = CaptureAttributeMagnitude(
-		EMADamageAttributeSide::Source,
+		EMACoefficientSource::Source,
 		UMAAttributeSet::GetReverseCriticalDamageAttribute());
 
 	const float EffectiveArmor = FMath::Max(0.f, Armor - ArmorPenetration);

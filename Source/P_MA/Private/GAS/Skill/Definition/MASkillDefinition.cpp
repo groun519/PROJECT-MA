@@ -127,6 +127,14 @@ void UMASkillDefinition::ApplyAddonPayloadMirrors(
 	});
 }
 
+void UMASkillDefinition::BindAddons(UMASkillModuleInstance& ModuleInstance) const
+{
+	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	{
+		Addon.BindModule(ModuleInstance);
+	});
+}
+
 bool UMASkillDefinition::TryResolveSocketText(
 	const FMASkillModuleAddonRuntimeData& RuntimeData,
 	FText& OutText) const

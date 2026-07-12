@@ -65,6 +65,7 @@ struct FMASkillModuleActivationResolver
 			}
 		}
 
+		ModuleInstance.SetActive(true);
 		return Definition;
 	}
 
@@ -120,7 +121,6 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	{
 		if (!RootModuleInstance) continue;
 
-		RootModuleInstance->SetActive(true);
 		const UMASkillDefinition* Definition = ActivationResolver.Resolve(*RootModuleInstance);
 		if (!Definition) continue;
 

@@ -75,7 +75,7 @@ struct FGenericDamageEffectDef
 };
 
 UENUM(BlueprintType)
-enum class EMADamageAttributeSide : uint8
+enum class EMACoefficientSource : uint8
 {
 	Source,
 	Target,
@@ -147,22 +147,22 @@ namespace MATargetRelation
 }
 
 USTRUCT(BlueprintType)
-struct FMADamageAttributeCoefficient
+struct FMAAttributeCoefficient
 {
 	GENERATED_BODY()
 
-	FMADamageAttributeCoefficient();
+	FMAAttributeCoefficient();
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage")
-	EMADamageAttributeSide Side = EMADamageAttributeSide::Source;
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient")
+	EMACoefficientSource Source = EMACoefficientSource::Source;
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(DisplayName="Attribute", EditCondition="Side != EMADamageAttributeSide::Payload", EditConditionHides))
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(DisplayName="Attribute", EditCondition="Source != EMACoefficientSource::Payload", EditConditionHides))
 	FGameplayAttribute GameplayAttribute;
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Data", EditCondition="Side == EMADamageAttributeSide::Payload", EditConditionHides))
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(Categories="Data", EditCondition="Source == EMACoefficientSource::Payload", EditConditionHides))
 	FGameplayTag PayloadTag;
 
-	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient")
 	float Coefficient = 0.f;
 };
 
@@ -178,7 +178,7 @@ struct FMADamageExecutionConfig
 	FGameplayTag DamageTypeTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Damage"));
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
-	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
+	TArray<FMAAttributeCoefficient> AttributeCoefficients;
 
 	void Append(const FMADamageExecutionConfig& Other)
 	{
@@ -194,7 +194,7 @@ struct FMADamageExecutionConfig
 	{
 		if (!FMath::IsNearlyZero(BaseDamage)) return true;
 
-		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
+		for (const FMAAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{
 			if (!FMath::IsNearlyZero(Coefficient.Coefficient)
 				&& Coefficient.GameplayAttribute.IsValid())

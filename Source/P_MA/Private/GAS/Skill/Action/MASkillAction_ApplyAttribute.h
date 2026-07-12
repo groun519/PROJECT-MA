@@ -44,5 +44,5 @@ private:
 	float EventMagnitudeCoefficient = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Attribute")
-	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
+	TArray<FMAAttributeCoefficient> AttributeCoefficients;
 };

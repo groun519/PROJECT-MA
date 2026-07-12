@@ -37,11 +37,11 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 	Result.BaseDamage = DamageConfig.BaseDamage;
 	Result.DamageTypeTag = DamageConfig.DamageTypeTag;
 
-	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
+	for (const FMAAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
 
-		if (Coefficient.Side == EMADamageAttributeSide::Payload)
+		if (Coefficient.Source == EMACoefficientSource::Payload)
 		{
 			float PayloadValue = 0.f;
 			if (Payloads.TryGetScalar(Coefficient.PayloadTag, PayloadValue))
@@ -63,7 +63,7 @@ FMADamageExecutionConfig MASkillDamageResolver::ScaleDamageConfigForTick(const F
 	FMADamageExecutionConfig Result = DamageConfig;
 	const float TickScale = 1.f / static_cast<float>(FMath::Max(TickCount, 1));
 	Result.BaseDamage *= TickScale;
-	for (FMADamageAttributeCoefficient& Coefficient : Result.AttributeCoefficients)
+	for (FMAAttributeCoefficient& Coefficient : Result.AttributeCoefficients)
 	{
 		Coefficient.Coefficient *= TickScale;
 	}

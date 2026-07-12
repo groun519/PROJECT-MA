@@ -4,7 +4,7 @@
 #include "GameplayEffectExecutionCalculation.h"
 #include "ExecCalc_DamageByAttribute.generated.h"
 
-enum class EMADamageAttributeSide : uint8;
+enum class EMACoefficientSource : uint8;
 
 UCLASS()
 class P_MA_API UExecCalc_DamageByAttribute : public UGameplayEffectExecutionCalculation
@@ -28,7 +28,7 @@ private:
 	};
 
 	const FGameplayEffectAttributeCaptureDefinition* FindCaptureDefinition(
-		EMADamageAttributeSide Side,
+		EMACoefficientSource Side,
 		const FGameplayAttribute& Attribute) const;
 
 	TMap<FGameplayAttribute, FAttributeCaptureDefinitions> AttributeCaptureDefinitions;

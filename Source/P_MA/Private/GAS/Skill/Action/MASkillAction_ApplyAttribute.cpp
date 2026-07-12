@@ -12,12 +12,12 @@ namespace
 	const FName LostHealthPayloadTagName(TEXT("Data.Health.Lost"));
 
 	float ResolveAttributeCoefficientValue(
-		const FMADamageAttributeCoefficient& Coefficient,
+		const FMAAttributeCoefficient& Coefficient,
 		UAbilitySystemComponent& SourceASC,
 		UAbilitySystemComponent& TargetASC,
 		const FMASkillPayloadAccessor& Payloads)
 	{
-		if (Coefficient.Side == EMADamageAttributeSide::Payload)
+		if (Coefficient.Source == EMACoefficientSource::Payload)
 		{
 			float PayloadValue = 0.f;
 			return Payloads.TryGetScalar(Coefficient.PayloadTag, PayloadValue)
@@ -27,7 +27,7 @@ namespace
 		if (!Coefficient.GameplayAttribute.IsValid()) return 0.f;
 
 		bool bFound = false;
-		UAbilitySystemComponent& ASC = Coefficient.Side == EMADamageAttributeSide::Source ? SourceASC : TargetASC;
+		UAbilitySystemComponent& ASC = Coefficient.Source == EMACoefficientSource::Source ? SourceASC : TargetASC;
 		const float AttributeValue = ASC.GetGameplayAttributeValue(Coefficient.GameplayAttribute, bFound);
 		return bFound ? AttributeValue * Coefficient.Coefficient : 0.f;
 	}
@@ -39,8 +39,8 @@ void UMASkillAction_ApplyAttribute::PostLoad()
 
 	for (int32 Index = AttributeCoefficients.Num() - 1; Index >= 0; --Index)
 	{
-		const FMADamageAttributeCoefficient& Coefficient = AttributeCoefficients[Index];
-		if (Coefficient.Side != EMADamageAttributeSide::Payload
+		const FMAAttributeCoefficient& Coefficient = AttributeCoefficients[Index];
+		if (Coefficient.Source != EMACoefficientSource::Payload
 			|| Coefficient.PayloadTag.GetTagName() != LostHealthPayloadTagName)
 		{
 			continue;
@@ -75,7 +75,7 @@ void UMASkillAction_ApplyAttribute::Execute(
 	}
 
 	float FinalValue = BaseValue + Event.GetMagnitude() * EventMagnitudeCoefficient;
-	for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
+	for (const FMAAttributeCoefficient& Coefficient : AttributeCoefficients)
 	{
 		FinalValue += ResolveAttributeCoefficientValue(Coefficient, *SourceASC, *TargetASC, Payloads);
 	}

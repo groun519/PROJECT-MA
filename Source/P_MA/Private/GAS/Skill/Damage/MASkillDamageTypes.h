@@ -87,7 +87,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	FGameplayTag DamageTypeTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Damage"));
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
-	TArray<FMADamageAttributeCoefficient> AttributeCoefficients;
+	TArray<FMAAttributeCoefficient> AttributeCoefficients;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	EMASkillDamageApplicationMode ApplicationMode = EMASkillDamageApplicationMode::Instant;
@@ -125,10 +125,10 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 	{
 		if (!FMath::IsNearlyZero(BaseDamage)) return true;
 
-		for (const FMADamageAttributeCoefficient& Coefficient : AttributeCoefficients)
+		for (const FMAAttributeCoefficient& Coefficient : AttributeCoefficients)
 		{
 			if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
-			if (Coefficient.Side == EMADamageAttributeSide::Payload
+			if (Coefficient.Source == EMACoefficientSource::Payload
 				? Coefficient.PayloadTag.IsValid()
 				: Coefficient.GameplayAttribute.IsValid())
 			{

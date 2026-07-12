@@ -113,6 +113,7 @@ public:
 	bool HasEventSource(FGameplayTag EventTag) const;
 	void InitializeAddonRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const;
 	void ApplyAddonPayloadMirrors(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const;
+	void BindAddons(UMASkillModuleInstance& ModuleInstance) const;
 	bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const;
 	virtual void PostLoad() override;
 

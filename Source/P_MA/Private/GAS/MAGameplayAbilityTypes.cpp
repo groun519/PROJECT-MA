@@ -58,7 +58,7 @@ FGenericDamageEffectDef::FGenericDamageEffectDef()
 {
 }
 
-FMADamageAttributeCoefficient::FMADamageAttributeCoefficient()
+FMAAttributeCoefficient::FMAAttributeCoefficient()
 	: GameplayAttribute(UMAAttributeSet::GetAttackAttribute())
 {
 }

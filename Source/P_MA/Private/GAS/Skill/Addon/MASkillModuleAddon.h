@@ -6,6 +6,7 @@
 
 struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
+class UMASkillModuleInstance;
 
 /**
  * Definition-only extension point for optional module features.
@@ -19,5 +20,6 @@ class P_MA_API UMASkillModuleAddon : public UObject
 public:
 	virtual void InitializeRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const {}
 	virtual void ApplyPayloadMirror(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const {}
+	virtual void BindModule(UMASkillModuleInstance& ModuleInstance) const {}
 	virtual bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const { return false; }
 };

@@ -149,6 +149,7 @@ UMASkillModuleInstance* UMASkillManagerComponent::CreateModuleInstance(UMASkillD
 
 	UMASkillModuleInstance* ModuleInstance = NewObject<UMASkillModuleInstance>(OwnerActor);
 	ModuleInstance->SetDefinition(Definition);
+	Definition->BindAddons(*ModuleInstance);
 	OwnerActor->AddReplicatedSubObject(ModuleInstance, COND_OwnerOnly);
 	return ModuleInstance;
 }

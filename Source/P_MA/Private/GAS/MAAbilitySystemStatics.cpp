@@ -94,14 +94,14 @@ FGameplayTag UMAAbilitySystemStatics::GetDamageVarianceTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.Variance");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetModuleEffectMagnitudeTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Module.Effect.Magnitude");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetModuleStackTag()
 {
 	return FGameplayTag::RequestGameplayTag("Data.Module.Stack");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetModuleLinkedGameplayEffectHandleTag()
-{
-	return FGameplayTag::RequestGameplayTag("Data.Module.LinkedGameplayEffectHandle");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag()
@@ -180,12 +180,12 @@ FGameplayTag UMAAbilitySystemStatics::GetFixedDamageTypeTag()
 }
 
 FName UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
-	EMADamageAttributeSide Side,
+	EMACoefficientSource Side,
 	const FGameplayAttribute& Attribute)
 {
-	if (!Attribute.IsValid() || Side == EMADamageAttributeSide::Payload) return NAME_None;
+	if (!Attribute.IsValid() || Side == EMACoefficientSource::Payload) return NAME_None;
 
-	const TCHAR* SideName = Side == EMADamageAttributeSide::Source ? TEXT("Source") : TEXT("Target");
+	const TCHAR* SideName = Side == EMACoefficientSource::Source ? TEXT("Source") : TEXT("Target");
 	return FName(*FString::Printf(
 		TEXT("Data.Damage.Coeff.%s.%s.%s"),
 		SideName,
@@ -200,13 +200,13 @@ void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHand
 	TMap<FName, float> SummedAttributeCoefficients;
 	SpecHandle.Data->SetSetByCallerMagnitude(GetDamageBaseTag(), DamageConfig.BaseDamage);
 
-	for (const FMADamageAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
+	for (const FMAAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
-		if (Coefficient.Side == EMADamageAttributeSide::Payload) continue;
+		if (Coefficient.Source == EMACoefficientSource::Payload) continue;
 
 		const FName CoefficientName = GetDamageAttributeCoefficientName(
-			Coefficient.Side,
+			Coefficient.Source,
 			Coefficient.GameplayAttribute);
 		if (!CoefficientName.IsNone())
 		{
