@@ -5,14 +5,11 @@
 #include "GAS/Skill/Addon/MASkillModuleAddon.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
-#include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
-#include "GAS/Skill/Sequence/MASkillSequenceTypes.h"
 #include "GameplayTagContainer.h"
 #include "MASkillDefinition.generated.h"
 
 class UMASkillModuleStackAddon;
 class UMASkillModuleInstance;
-class UMASkillSequenceModifier;
 class UTexture2D;
 struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
@@ -88,9 +85,6 @@ public:
 	FGameplayTag GetVisualElementTag() const;
 	const UMASkillModuleStackAddon* GetStackAddon() const;
 	float GetCooldownSeconds() const;
-	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
-	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
-	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
 	void InitializeAddonRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const;
 	void ApplyAddonPayloadMirrors(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const;
 	void BindAddons(UMASkillModuleInstance& ModuleInstance) const;
@@ -120,19 +114,20 @@ public:
 		return FindAddon<AddonType>() != nullptr;
 	}
 
-	template<typename ModifierType>
-	ModifierType* AddTransientSequenceModifier()
+	template<typename AddonType>
+	AddonType* FindMutableAddon()
 	{
-		static_assert(TIsDerivedFrom<ModifierType, UMASkillSequenceModifier>::IsDerived,
-			"ModifierType must derive from UMASkillSequenceModifier.");
-		check(HasAnyFlags(RF_Transient));
+		static_assert(TIsDerivedFrom<AddonType, UMASkillModuleAddon>::IsDerived,
+			"AddonType must derive from UMASkillModuleAddon.");
 
-		ModifierType* Modifier = NewObject<ModifierType>(this, NAME_None, RF_Transient);
-		if (Modifier)
+		for (const TObjectPtr<UMASkillModuleAddon>& Addon : Addons)
 		{
-			SequenceModifiers.Add(Modifier);
+			if (AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
+			{
+				return TypedAddon;
+			}
 		}
-		return Modifier;
+		return nullptr;
 	}
 
 	void ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
@@ -167,21 +162,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual", meta=(Categories="Module.Visual"))
 	FGameplayTagContainer ModuleVisualTags;
-
-	UPROPERTY()
-	FGameplayTag ExclusiveAssemblyTag_DEPRECATED;
-
-	UPROPERTY()
-	FGameplayTag UniqueModuleEffectTag_DEPRECATED;
-
-	UPROPERTY(EditDefaultsOnly, Category="Sequence")
-	TArray<FMASkillSequence> BaseSequences;
-
-	UPROPERTY(EditDefaultsOnly, Instanced, Category="Sequence")
-	TArray<TObjectPtr<UMASkillSequenceModifier>> SequenceModifiers;
-
-	UPROPERTY(Transient)
-	TArray<FMASkillSequence> AssembledSequences;
 
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Addon")
 	TArray<TObjectPtr<UMASkillModuleAddon>> Addons;

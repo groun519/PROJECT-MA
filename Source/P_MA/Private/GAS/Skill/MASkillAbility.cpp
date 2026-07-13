@@ -6,6 +6,8 @@
 #include "Character/MAImpulseComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
+#include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -80,14 +82,21 @@ void UMASkillAbility::UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* S
 	check(!IsActive());
 
 	CurrentSkillModuleInstance = SourceSkillModuleInstance;
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition)
+	if (!CurrentSkillModuleInstance)
 	{
 		SequenceRuntime->ResetSequence();
 		return;
 	}
 
-	SequenceRuntime->UpdateSequence(CurrentSkillDefinition->GetAssembledSequences());
+	const UMASkillModuleSequenceAddon* SequenceAddon =
+		MASkillModuleAddonStatics::FindAddon<UMASkillModuleSequenceAddon>(*CurrentSkillModuleInstance);
+	if (!SequenceAddon)
+	{
+		SequenceRuntime->ResetSequence();
+		return;
+	}
+
+	SequenceRuntime->UpdateSequence(SequenceAddon->GetSequences());
 }
 
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

@@ -10,6 +10,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
+#include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Windup.h"
@@ -263,9 +264,13 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 	TArray<TObjectPtr<UMASkillDefinition>> Definitions = PatternRow.Definitions;
 	if (PatternRow.WindupDuration > 0.f)
 	{
+		// TODO: After submodule composition is available, express pattern windup as a
+		// parameterized submodule instead of decorating a duplicated Definition here.
 		const int32 TargetDefinitionIndex = Definitions.IndexOfByPredicate([](const UMASkillDefinition* Definition)
 		{
-			return Definition && !Definition->GetBaseSequences().IsEmpty();
+			const UMASkillModuleSequenceAddon* SequenceAddon =
+				Definition ? Definition->FindAddon<UMASkillModuleSequenceAddon>() : nullptr;
+			return SequenceAddon && !SequenceAddon->GetSequences().IsEmpty();
 		});
 		if (TargetDefinitionIndex == INDEX_NONE) return false;
 
@@ -275,8 +280,12 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 		if (!TargetDefinition) return false;
 		TargetDefinition->SetFlags(RF_Transient);
 
+		UMASkillModuleSequenceAddon* SequenceAddon =
+			TargetDefinition->FindMutableAddon<UMASkillModuleSequenceAddon>();
+		if (!SequenceAddon) return false;
+
 		UMASkillSequenceModifier_Windup* WindupModifier =
-			TargetDefinition->AddTransientSequenceModifier<UMASkillSequenceModifier_Windup>();
+			SequenceAddon->AddTransientModifier<UMASkillSequenceModifier_Windup>();
 		if (!WindupModifier) return false;
 
 		WindupModifier->Configure(PatternRow.WindupDuration);

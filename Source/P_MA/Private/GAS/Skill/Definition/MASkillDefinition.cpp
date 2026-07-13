@@ -82,14 +82,6 @@ void UMASkillDefinition::PostLoad()
 {
 	Super::PostLoad();
 
-	if (ExclusiveAssemblyTag_DEPRECATED.IsValid())
-	{
-		ModuleTags.AddTag(ExclusiveAssemblyTag_DEPRECATED);
-	}
-	if (UniqueModuleEffectTag_DEPRECATED.IsValid())
-	{
-		ModuleTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
-	}
 	MoveVisualTags(ModuleTags, ModuleVisualTags);
 }
 
@@ -164,11 +156,6 @@ void UMASkillDefinition::ResetAssemblyData()
 	AssembledSubIcon = nullptr;
 	ModuleTags.Reset();
 	ModuleVisualTags.Reset();
-	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
-	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
-	BaseSequences.Reset();
-	SequenceModifiers.Reset();
-	AssembledSequences.Reset();
 	Addons.Reset();
 	Payloads.Reset();
 }
