@@ -10,7 +10,6 @@
 
 class UMASkillDefinition;
 class UMASkillManagerComponent;
-class UMASkillModuleAddon;
 class UMASkillModuleInventoryComponent;
 class UMASkillRuntimeRegistry;
 
@@ -39,7 +38,6 @@ public:
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
 
 	/** Addon Runtime Data **/
-	void ForEachAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	const FMASkillModuleAddonRuntimeData& GetAddonRuntimeData() const { return AddonRuntimeData; }
 
 	template<typename DataType, typename MutatorType>

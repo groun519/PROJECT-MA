@@ -20,7 +20,14 @@ struct FMASkillPayloadAssembler
 		const UMASkillDefinition& SourceDefinition);
 };
 
-struct FMASkillEventAssembler
+struct FMASkillEventSourceAssembler
+{
+	static void AppendFrom(
+		UMASkillDefinition& TargetDefinition,
+		const UMASkillDefinition& SourceDefinition);
+};
+
+struct FMASkillEventBindingAssembler
 {
 	static void AppendFrom(
 		UMASkillDefinition& TargetDefinition,

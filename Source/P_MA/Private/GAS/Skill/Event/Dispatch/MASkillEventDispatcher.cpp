@@ -1,8 +1,8 @@
 #include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
 
 #include "GAS/Skill/Action/MASkillAction.h"
-#include "GAS/Skill/Addon/MASkillModuleAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventBindingAddon.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -15,20 +15,22 @@ void UMASkillEventDispatcher::Refresh(const TArray<FMASkillSlotRuntimeState>& Sk
 	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
 	{
 		UMASkillModuleInstance* AssembledModuleInstance = SlotState.AssembledModuleInstance;
-		const UMASkillDefinition* Definition = AssembledModuleInstance
-			? AssembledModuleInstance->GetDefinition()
-			: nullptr;
 		UMASkillAbility* ExecutorAbility = SkillManager->GetSkillAbility(SlotState.SlotTag);
-		if (Definition && ExecutorAbility)
+		if (AssembledModuleInstance && ExecutorAbility)
 		{
-			for (const FMASkillEventBinding& Binding : Definition->GetEventBindings())
+			const UMASkillModuleEventBindingAddon* EventBindingAddon =
+				MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventBindingAddon>(*AssembledModuleInstance);
+			if (EventBindingAddon)
 			{
-				if (!Binding.EventTag.IsValid()) continue;
+				for (const FMASkillEventBinding& Binding : EventBindingAddon->GetEventBindings())
+				{
+					if (!Binding.EventTag.IsValid()) continue;
 
-				FMASkillRegisteredEventBinding& RegisteredBinding =
-					BindingsByEventTag.FindOrAdd(Binding.EventTag).Values.AddDefaulted_GetRef();
-				RegisteredBinding.Binding = Binding;
-				RegisteredBinding.ExecutorAbility = ExecutorAbility;
+					FMASkillRegisteredEventBinding& RegisteredBinding =
+						BindingsByEventTag.FindOrAdd(Binding.EventTag).Values.AddDefaulted_GetRef();
+					RegisteredBinding.Binding = Binding;
+					RegisteredBinding.ExecutorAbility = ExecutorAbility;
+				}
 			}
 		}
 
@@ -37,13 +39,15 @@ void UMASkillEventDispatcher::Refresh(const TArray<FMASkillSlotRuntimeState>& Sk
 		{
 			if (!ModuleInstance || !ModuleInstance->IsActive()) continue;
 
-			ModuleInstance->ForEachAddon([&](const UMASkillModuleAddon& Addon)
-			{
-				Addon.RegisterEventSubscriptions(
-					*this,
-					*ModuleInstance,
-					*AssembledModuleInstance);
-			});
+			MASkillModuleAddonStatics::ForEachAddon(
+				*ModuleInstance,
+				[&](const UMASkillModuleAddon& Addon)
+				{
+					Addon.RegisterEventSubscriptions(
+						*this,
+						*ModuleInstance,
+						*AssembledModuleInstance);
+				});
 		}
 	}
 }

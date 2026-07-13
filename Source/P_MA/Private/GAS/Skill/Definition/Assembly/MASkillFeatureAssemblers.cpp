@@ -1,7 +1,8 @@
 #include "GAS/Skill/Definition/Assembly/MASkillFeatureAssemblers.h"
 
-#include "GAS/Skill/Action/MASkillAction.h"
 #include "GAS/Skill/Addon/Cooldown/MASkillCooldownAddon.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventBindingAddon.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -37,31 +38,65 @@ void FMASkillPayloadAssembler::AppendFrom(
 	TargetDefinition.Payloads.Append(SourceDefinition.Payloads);
 }
 
-void FMASkillEventAssembler::AppendFrom(
+void FMASkillEventSourceAssembler::AppendFrom(
+	UMASkillDefinition& TargetDefinition,
+	const UMASkillDefinition& SourceDefinition)
+{
+	const UMASkillModuleEventSourceAddon* SourceAddon =
+		SourceDefinition.FindAddon<UMASkillModuleEventSourceAddon>();
+	if (!SourceAddon) return;
+
+	UMASkillModuleEventSourceAddon* TargetAddon = nullptr;
+	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	{
+		TargetAddon = Cast<UMASkillModuleEventSourceAddon>(Addon);
+		if (TargetAddon) break;
+	}
+
+	if (!TargetAddon)
+	{
+		TargetAddon = NewObject<UMASkillModuleEventSourceAddon>(&TargetDefinition);
+		TargetDefinition.Addons.Add(TargetAddon);
+	}
+
+	for (UMASkillEventSource* EventSource : SourceAddon->EventSources)
+	{
+		if (!EventSource) continue;
+
+		UMASkillEventSource* NewEventSource = DuplicateObject<UMASkillEventSource>(EventSource, TargetAddon);
+		if (NewEventSource) TargetAddon->EventSources.Add(NewEventSource);
+	}
+}
+
+void FMASkillEventBindingAssembler::AppendFrom(
 	UMASkillDefinition& TargetDefinition,
 	const UMASkillDefinition& SourceDefinition,
 	UMASkillModuleInstance& SourceModuleInstance,
 	UMASkillModuleInstance& AssembledModuleInstance)
 {
-	for (UMASkillEventSource* EventSource : SourceDefinition.EventSources)
+	const UMASkillModuleEventBindingAddon* SourceAddon =
+		SourceDefinition.FindAddon<UMASkillModuleEventBindingAddon>();
+	if (!SourceAddon) return;
+
+	UMASkillModuleEventBindingAddon* TargetAddon = nullptr;
+	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
 	{
-		if (!EventSource) continue;
-
-		UMASkillEventSource* NewEventSource = DuplicateObject<UMASkillEventSource>(EventSource, &TargetDefinition);
-		if (!NewEventSource) continue;
-
-		TargetDefinition.EventSources.Add(NewEventSource);
+		TargetAddon = Cast<UMASkillModuleEventBindingAddon>(Addon);
+		if (TargetAddon) break;
 	}
 
-	for (const FMASkillEventBinding& EventBinding : SourceDefinition.EventBindings)
+	if (!TargetAddon)
+	{
+		TargetAddon = NewObject<UMASkillModuleEventBindingAddon>(&TargetDefinition);
+		TargetDefinition.Addons.Add(TargetAddon);
+	}
+
+	for (const FMASkillEventBinding& EventBinding : SourceAddon->EventBindings)
 	{
 		FMASkillEventBinding NewEventBinding = EventBinding;
 		NewEventBinding.BindingScopes.Module = &SourceModuleInstance;
 		NewEventBinding.BindingScopes.Skill = &AssembledModuleInstance;
-		NewEventBinding.Action = EventBinding.Action
-			? DuplicateObject<UMASkillAction>(EventBinding.Action, &TargetDefinition)
-			: nullptr;
-		TargetDefinition.EventBindings.Add(MoveTemp(NewEventBinding));
+		TargetAddon->EventBindings.Add(MoveTemp(NewEventBinding));
 	}
 }
 

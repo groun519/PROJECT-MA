@@ -19,9 +19,6 @@ struct P_MA_API FMASkillEventBinding
 	UPROPERTY(EditDefaultsOnly, Category="Event")
 	EMASkillEventBindingScope BindingScope = EMASkillEventBindingScope::Skill;
 
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use BindingScope."))
-	bool bUseLocalBinding = false;
-
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Action")
 	TObjectPtr<UMASkillAction> Action;
 

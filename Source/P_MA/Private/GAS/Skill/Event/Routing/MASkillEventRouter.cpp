@@ -1,6 +1,8 @@
 #include "GAS/Skill/Event/Routing/MASkillEventRouter.h"
 
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventBindingAddon.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -12,30 +14,36 @@ void UMASkillEventRouter::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillS
 
 	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
 	{
-		const UMASkillDefinition* Definition = SlotState.AssembledModuleInstance
-			? SlotState.AssembledModuleInstance->GetDefinition()
-			: nullptr;
-		if (!Definition) continue;
+		UMASkillModuleInstance* AssembledModuleInstance = SlotState.AssembledModuleInstance;
+		if (!AssembledModuleInstance) continue;
 
-		for (const UMASkillEventSource* EventSource : Definition->GetEventSources())
+		if (const UMASkillModuleEventSourceAddon* EventSourceAddon =
+			MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventSourceAddon>(*AssembledModuleInstance))
 		{
-			if (!EventSource || !EventSource->GetEmittedTag().IsValid()) continue;
-
-			const FGameplayTag& EventTag = EventSource->GetEmittedTag();
-			const UMASkillEventSource*& RequiredSource = RequiredRoutes.FindOrAdd(EventTag);
-			if (!RequiredSource)
+			for (const UMASkillEventSource* EventSource : EventSourceAddon->GetEventSources())
 			{
-				RequiredSource = EventSource;
-				continue;
-			}
+				if (!EventSource || !EventSource->GetEmittedTag().IsValid()) continue;
 
-			ensureMsgf(
-				RequiredSource->HasSameRuntimeConfiguration(*EventSource),
-				TEXT("Conflicting EventSource declarations for tag %s."),
-				*EventTag.ToString());
+				const FGameplayTag& EventTag = EventSource->GetEmittedTag();
+				const UMASkillEventSource*& RequiredSource = RequiredRoutes.FindOrAdd(EventTag);
+				if (!RequiredSource)
+				{
+					RequiredSource = EventSource;
+					continue;
+				}
+
+				ensureMsgf(
+					RequiredSource->HasSameRuntimeConfiguration(*EventSource),
+					TEXT("Conflicting EventSource declarations for tag %s."),
+					*EventTag.ToString());
+			}
 		}
 
-		for (const FMASkillEventBinding& Binding : Definition->GetEventBindings())
+		const UMASkillModuleEventBindingAddon* EventBindingAddon =
+			MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventBindingAddon>(*AssembledModuleInstance);
+		if (!EventBindingAddon) continue;
+
+		for (const FMASkillEventBinding& Binding : EventBindingAddon->GetEventBindings())
 		{
 			if (!Binding.EventTag.IsValid() || !Binding.Action) continue;
 

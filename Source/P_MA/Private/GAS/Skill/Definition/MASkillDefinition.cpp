@@ -2,7 +2,6 @@
 
 #include "GAS/Skill/Addon/Cooldown/MASkillCooldownAddon.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
-#include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 
@@ -92,27 +91,6 @@ void UMASkillDefinition::PostLoad()
 		ModuleTags.AddTag(UniqueModuleEffectTag_DEPRECATED);
 	}
 	MoveVisualTags(ModuleTags, ModuleVisualTags);
-
-	for (FMASkillEventBinding& EventBinding : EventBindings)
-	{
-		if (EventBinding.bUseLocalBinding)
-		{
-			EventBinding.BindingScope = EMASkillEventBindingScope::Module;
-		}
-		EventBinding.bUseLocalBinding = false;
-	}
-}
-
-bool UMASkillDefinition::HasEventSource(FGameplayTag EventTag) const
-{
-	if (!EventTag.IsValid()) return false;
-
-	for (const UMASkillEventSource* EventSource : EventSources)
-	{
-		if (EventSource && EventSource->GetEmittedTag() == EventTag) return true;
-	}
-
-	return false;
 }
 
 void UMASkillDefinition::InitializeAddonRuntimeData(
@@ -192,8 +170,6 @@ void UMASkillDefinition::ResetAssemblyData()
 	SequenceModifiers.Reset();
 	AssembledSequences.Reset();
 	Addons.Reset();
-	EventSources.Reset();
-	EventBindings.Reset();
 	Payloads.Reset();
 }
 

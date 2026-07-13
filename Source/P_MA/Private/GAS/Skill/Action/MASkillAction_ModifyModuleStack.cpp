@@ -1,6 +1,8 @@
 #include "GAS/Skill/Action/MASkillAction_ModifyModuleStack.h"
 
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -47,7 +49,9 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	if (!bChanged) return;
 
 	const FGameplayTag StackChangedEventTag = UMAAbilitySystemStatics::GetModuleStackChangedEventTag();
-	if (!ModuleDefinition->HasEventSource(StackChangedEventTag)) return;
+	const UMASkillModuleEventSourceAddon* EventSourceAddon =
+		MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventSourceAddon>(*ModuleInstance);
+	if (!EventSourceAddon || !EventSourceAddon->HasEventSource(StackChangedEventTag)) return;
 
 	UMASkillEventRoutingStatics::TryNotifySkillEvent(
 		&OwnerAbility,

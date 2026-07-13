@@ -3,6 +3,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Cooldown/MASkillModuleCooldownAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -118,13 +119,9 @@ void UMASkillModuleSocketWidget::RefreshCooldownDuration(
 	CooldownDurationSeconds = 0.f;
 	if (!ModuleInstance) return;
 
-	ModuleInstance->ForEachAddon([&](const UMASkillModuleAddon& Addon)
-	{
-		if (const UMASkillModuleCooldownAddon* CooldownAddon = Cast<UMASkillModuleCooldownAddon>(&Addon))
-		{
-			CooldownDurationSeconds = CooldownAddon->GetDurationSeconds();
-		}
-	});
+	const UMASkillModuleCooldownAddon* CooldownAddon =
+		MASkillModuleAddonStatics::FindAddon<UMASkillModuleCooldownAddon>(*ModuleInstance);
+	if (CooldownAddon) CooldownDurationSeconds = CooldownAddon->GetDurationSeconds();
 }
 
 void UMASkillModuleSocketWidget::RefreshCooldownVisual()

@@ -6,6 +6,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
@@ -530,8 +532,9 @@ void UMASkillManagerComponent::NotifyActiveModulesChanged(const FMASkillSlotRunt
 	for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
 	{
 		if (!ModuleInstance || !ModuleInstance->IsActive()) continue;
-		const UMASkillDefinition* ModuleDefinition = ModuleInstance->GetDefinition();
-		if (!ModuleDefinition || !ModuleDefinition->HasEventSource(EventTag)) continue;
+		const UMASkillModuleEventSourceAddon* EventSourceAddon =
+			MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventSourceAddon>(*ModuleInstance);
+		if (!EventSourceAddon || !EventSourceAddon->HasEventSource(EventTag)) continue;
 
 		UMASkillEventRoutingStatics::TryNotifySkillEvent(
 			SkillAbility,

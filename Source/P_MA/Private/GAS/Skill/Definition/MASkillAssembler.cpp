@@ -143,7 +143,8 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 		AppendDisplayData(*Definition);
 		FMASkillCooldownAssembler::AppendFrom(*AssembledDefinition, *Definition);
 		FMASkillPayloadAssembler::AppendFrom(*AssembledDefinition, *Definition);
-		FMASkillEventAssembler::AppendFrom(*AssembledDefinition, *Definition, *RootModuleInstance, *AssembledModuleInstance);
+		FMASkillEventSourceAssembler::AppendFrom(*AssembledDefinition, *Definition);
+		FMASkillEventBindingAssembler::AppendFrom(*AssembledDefinition, *Definition, *RootModuleInstance, *AssembledModuleInstance);
 		FMASkillSequenceAssembler::AppendFrom(*AssembledDefinition, *Definition, TargetScopes);
 	}
 

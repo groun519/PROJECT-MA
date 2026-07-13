@@ -24,12 +24,6 @@ void UMASkillModuleInstance::SetDefinition(UMASkillDefinition* InDefinition)
 	InitializePayloadStore();
 }
 
-void UMASkillModuleInstance::ForEachAddon(
-	TFunctionRef<void(const UMASkillModuleAddon&)> Func) const
-{
-	if (Definition) Definition->ForEachAddon(Func);
-}
-
 void UMASkillModuleInstance::OnRep_Definition()
 {
 	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
