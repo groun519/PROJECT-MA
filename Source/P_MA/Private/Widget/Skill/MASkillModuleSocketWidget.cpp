@@ -3,6 +3,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "GAS/Skill/Addon/Cooldown/MASkillModuleCooldownAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
@@ -40,6 +41,7 @@ void UMASkillModuleSocketWidget::Refresh()
 	CachedDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
 	ApplyDefinitionVisual(CachedDefinition);
 	ApplyModuleStateVisual(ModuleInstance);
+	RefreshCooldownVisual();
 	RefreshStackText(ModuleInstance);
 	RefreshTooltip();
 }
@@ -110,6 +112,69 @@ void UMASkillModuleSocketWidget::ApplyModuleStateVisual(const UMASkillModuleInst
 	}
 }
 
+void UMASkillModuleSocketWidget::RefreshCooldownDuration(
+	const UMASkillModuleInstance* ModuleInstance)
+{
+	CooldownDurationSeconds = 0.f;
+	if (!ModuleInstance) return;
+
+	ModuleInstance->ForEachAddon([&](const UMASkillModuleAddon& Addon)
+	{
+		if (const UMASkillModuleCooldownAddon* CooldownAddon = Cast<UMASkillModuleCooldownAddon>(&Addon))
+		{
+			CooldownDurationSeconds = CooldownAddon->GetDurationSeconds();
+		}
+	});
+}
+
+void UMASkillModuleSocketWidget::RefreshCooldownVisual()
+{
+	if (!CooldownOverlayImage) return;
+
+	const UMASkillModuleInstance* ModuleInstance = BoundModuleInstance.Get();
+	const float RemainingSeconds = ModuleInstance
+		? ModuleInstance->GetCooldownRemainingSeconds()
+		: 0.f;
+	const bool bShowCooldown = CooldownDurationSeconds > 0.f && RemainingSeconds > 0.f;
+	CooldownOverlayImage->SetVisibility(
+		bShowCooldown ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+
+	if (bShowCooldown)
+	{
+		if (UMaterialInstanceDynamic* CooldownMaterial = CooldownOverlayImage->GetDynamicMaterial())
+		{
+			const float CooldownAlpha = FMath::Clamp(
+				1.f - RemainingSeconds / CooldownDurationSeconds,
+				0.f,
+				1.f);
+			CooldownMaterial->SetScalarParameterValue(PARAM_ModuleIcon_CooldownAlpha, CooldownAlpha);
+		}
+
+		if (UWorld* World = GetWorld();
+			World && !World->GetTimerManager().IsTimerActive(CooldownVisualTimerHandle))
+		{
+			World->GetTimerManager().SetTimer(
+				CooldownVisualTimerHandle,
+				this,
+				&UMASkillModuleSocketWidget::RefreshCooldownVisual,
+				CooldownVisualUpdateInterval,
+				true);
+		}
+	}
+	else
+	{
+		ClearCooldownVisualTimer();
+	}
+}
+
+void UMASkillModuleSocketWidget::ClearCooldownVisualTimer()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(CooldownVisualTimerHandle);
+	}
+}
+
 void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
 {
 	const UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
@@ -125,10 +190,15 @@ void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* 
 
 void UMASkillModuleSocketWidget::BindModuleState(UMASkillModuleInstance* ModuleInstance)
 {
-	if (BoundModuleInstance == ModuleInstance) return;
+	if (BoundModuleInstance == ModuleInstance)
+	{
+		RefreshCooldownDuration(ModuleInstance);
+		return;
+	}
 
 	UnbindModuleState();
 	BoundModuleInstance = ModuleInstance;
+	RefreshCooldownDuration(ModuleInstance);
 	if (ModuleInstance)
 	{
 		ModuleStateChangedHandle = ModuleInstance->OnStateChanged.AddUObject(
@@ -139,6 +209,9 @@ void UMASkillModuleSocketWidget::BindModuleState(UMASkillModuleInstance* ModuleI
 
 void UMASkillModuleSocketWidget::UnbindModuleState()
 {
+	ClearCooldownVisualTimer();
+	CooldownDurationSeconds = 0.f;
+
 	if (UMASkillModuleInstance* ModuleInstance = BoundModuleInstance.Get())
 	{
 		ModuleInstance->OnStateChanged.Remove(ModuleStateChangedHandle);
@@ -151,7 +224,9 @@ void UMASkillModuleSocketWidget::UnbindModuleState()
 void UMASkillModuleSocketWidget::HandleModuleStateChanged()
 {
 	UMASkillModuleInstance* ModuleInstance = BoundModuleInstance.Get();
+	RefreshCooldownDuration(ModuleInstance);
 	ApplyModuleStateVisual(ModuleInstance);
+	RefreshCooldownVisual();
 	RefreshStackText(ModuleInstance);
 }
 

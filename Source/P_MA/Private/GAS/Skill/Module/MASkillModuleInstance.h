@@ -9,11 +9,10 @@
 #include "MASkillModuleInstance.generated.h"
 
 class UMASkillDefinition;
-class UMASkillEventDispatcher;
 class UMASkillManagerComponent;
+class UMASkillModuleAddon;
 class UMASkillModuleInventoryComponent;
 class UMASkillRuntimeRegistry;
-struct FMASkillEvent;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillModuleStateChangedSignature);
 
@@ -40,6 +39,7 @@ public:
 	const FGameplayTag& GetInactiveReasonTag() const { return InactiveReasonTag; }
 
 	/** Addon Runtime Data **/
+	void ForEachAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	const FMASkillModuleAddonRuntimeData& GetAddonRuntimeData() const { return AddonRuntimeData; }
 
 	template<typename DataType, typename MutatorType>
@@ -54,9 +54,8 @@ public:
 
 	/** Module Cooldown **/
 	bool IsCooldownActive() const;
-	void RegisterCooldownEvents(
-		UMASkillEventDispatcher& EventDispatcher,
-		UMASkillModuleInstance* SkillScope);
+	float GetCooldownRemainingSeconds() const;
+	void StartCooldown(float DurationSeconds);
 
 	// Add a const getter when a const module instance needs read-only payload access.
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
@@ -101,9 +100,6 @@ private:
 	/** Module Cooldown **/
 	UFUNCTION()
 	void RefreshModuleCooldownState();
-	void HandleCooldownEvent(
-		const FMASkillEvent& Event,
-		TWeakObjectPtr<UMASkillModuleInstance> SkillScope);
 	float GetCurrentServerTimeSeconds() const;
 
 	UPROPERTY(ReplicatedUsing=RefreshModuleCooldownState)

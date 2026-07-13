@@ -1,6 +1,7 @@
 #include "GAS/Skill/Definition/Assembly/MASkillFeatureAssemblers.h"
 
 #include "GAS/Skill/Action/MASkillAction.h"
+#include "GAS/Skill/Addon/Cooldown/MASkillCooldownAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -10,7 +11,23 @@ void FMASkillCooldownAssembler::AppendFrom(
 	UMASkillDefinition& TargetDefinition,
 	const UMASkillDefinition& SourceDefinition)
 {
-	TargetDefinition.CooldownSeconds += SourceDefinition.CooldownSeconds;
+	const float CooldownSeconds = SourceDefinition.GetCooldownSeconds();
+	if (CooldownSeconds <= 0.f) return;
+
+	UMASkillCooldownAddon* TargetAddon = nullptr;
+	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	{
+		TargetAddon = Cast<UMASkillCooldownAddon>(Addon);
+		if (TargetAddon) break;
+	}
+
+	if (!TargetAddon)
+	{
+		TargetAddon = NewObject<UMASkillCooldownAddon>(&TargetDefinition);
+		TargetDefinition.Addons.Add(TargetAddon);
+	}
+
+	TargetAddon->CooldownSeconds += CooldownSeconds;
 }
 
 void FMASkillPayloadAssembler::AppendFrom(

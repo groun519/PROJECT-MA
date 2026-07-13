@@ -1,6 +1,7 @@
 #include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
 
 #include "GAS/Skill/Action/MASkillAction.h"
+#include "GAS/Skill/Addon/MASkillModuleAddon.h"
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -34,14 +35,20 @@ void UMASkillEventDispatcher::Refresh(const TArray<FMASkillSlotRuntimeState>& Sk
 		if (!AssembledModuleInstance) continue;
 		for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
 		{
-			if (!ModuleInstance) continue;
+			if (!ModuleInstance || !ModuleInstance->IsActive()) continue;
 
-			ModuleInstance->RegisterCooldownEvents(*this, AssembledModuleInstance);
+			ModuleInstance->ForEachAddon([&](const UMASkillModuleAddon& Addon)
+			{
+				Addon.RegisterEventSubscriptions(
+					*this,
+					*ModuleInstance,
+					*AssembledModuleInstance);
+			});
 		}
 	}
 }
 
-void UMASkillEventDispatcher::AddEventEvaluatedListener(
+void UMASkillEventDispatcher::Subscribe(
 	FGameplayTag EventTag,
 	const FMASkillEventEvaluatedSignature::FDelegate& Listener)
 {

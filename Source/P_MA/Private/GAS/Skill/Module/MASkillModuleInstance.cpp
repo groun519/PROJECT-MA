@@ -1,7 +1,6 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
 #include "GAS/Skill/Definition/MASkillDefinition.h"
-#include "GAS/Skill/Event/Dispatch/MASkillEventDispatcher.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
@@ -23,6 +22,12 @@ void UMASkillModuleInstance::SetDefinition(UMASkillDefinition* InDefinition)
 	AddonRuntimeData.Reset();
 	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
 	InitializePayloadStore();
+}
+
+void UMASkillModuleInstance::ForEachAddon(
+	TFunctionRef<void(const UMASkillModuleAddon&)> Func) const
+{
+	if (Definition) Definition->ForEachAddon(Func);
 }
 
 void UMASkillModuleInstance::OnRep_Definition()
@@ -79,52 +84,19 @@ void UMASkillModuleInstance::RefreshAddonPayloadMirrors()
 
 bool UMASkillModuleInstance::IsCooldownActive() const
 {
-	return GetCurrentServerTimeSeconds() < ModuleCooldownEndTimeSeconds;
+	return GetCooldownRemainingSeconds() > 0.f;
 }
 
-void UMASkillModuleInstance::RegisterCooldownEvents(
-	UMASkillEventDispatcher& EventDispatcher,
-	UMASkillModuleInstance* SkillScope)
+float UMASkillModuleInstance::GetCooldownRemainingSeconds() const
 {
-	if (!IsActive() || !Definition || !SkillScope) return;
-
-	const FMASkillModuleCooldownConfig& CooldownConfig = Definition->GetModuleCooldownConfig();
-	if (CooldownConfig.DurationSeconds <= 0.f || CooldownConfig.TriggerEventTags.IsEmpty()) return;
-
-	const TWeakObjectPtr<UMASkillModuleInstance> WeakSkillScope = SkillScope;
-	for (const FGameplayTag& EventTag : CooldownConfig.TriggerEventTags)
-	{
-		EventDispatcher.AddEventEvaluatedListener(
-			EventTag,
-			FMASkillEventEvaluatedSignature::FDelegate::CreateUObject(
-				this,
-				&UMASkillModuleInstance::HandleCooldownEvent,
-				WeakSkillScope));
-	}
+	return FMath::Max(ModuleCooldownEndTimeSeconds - GetCurrentServerTimeSeconds(), 0.f);
 }
 
-void UMASkillModuleInstance::HandleCooldownEvent(
-	const FMASkillEvent& Event,
-	TWeakObjectPtr<UMASkillModuleInstance> SkillScope)
+void UMASkillModuleInstance::StartCooldown(float DurationSeconds)
 {
-	if (!Definition || !IsActive() || IsCooldownActive()) return;
+	if (DurationSeconds <= 0.f || IsCooldownActive()) return;
 
-	const FMASkillModuleCooldownConfig& CooldownConfig = Definition->GetModuleCooldownConfig();
-	switch (CooldownConfig.BindingScope)
-	{
-	case EMASkillEventBindingScope::Module:
-		if (Event.SourceScopes.Module != this) return;
-		break;
-
-	case EMASkillEventBindingScope::Skill:
-		if (Event.SourceScopes.Skill != SkillScope.Get()) return;
-		break;
-
-	case EMASkillEventBindingScope::Global:
-		break;
-	}
-
-	ModuleCooldownEndTimeSeconds = GetCurrentServerTimeSeconds() + CooldownConfig.DurationSeconds;
+	ModuleCooldownEndTimeSeconds = GetCurrentServerTimeSeconds() + DurationSeconds;
 	RefreshModuleCooldownState();
 
 	if (AActor* OwnerActor = GetTypedOuter<AActor>())

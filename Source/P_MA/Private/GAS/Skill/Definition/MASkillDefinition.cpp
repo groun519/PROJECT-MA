@@ -1,5 +1,6 @@
 #include "GAS/Skill/Definition/MASkillDefinition.h"
 
+#include "GAS/Skill/Addon/Cooldown/MASkillCooldownAddon.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
@@ -72,6 +73,12 @@ const UMASkillModuleStackAddon* UMASkillDefinition::GetStackAddon() const
 	return FindAddon<UMASkillModuleStackAddon>();
 }
 
+float UMASkillDefinition::GetCooldownSeconds() const
+{
+	const UMASkillCooldownAddon* CooldownAddon = FindAddon<UMASkillCooldownAddon>();
+	return CooldownAddon ? CooldownAddon->GetCooldownSeconds() : 0.f;
+}
+
 void UMASkillDefinition::PostLoad()
 {
 	Super::PostLoad();
@@ -111,7 +118,7 @@ bool UMASkillDefinition::HasEventSource(FGameplayTag EventTag) const
 void UMASkillDefinition::InitializeAddonRuntimeData(
 	FMASkillModuleAddonRuntimeData& RuntimeData) const
 {
-	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	ForEachAddon([&](const UMASkillModuleAddon& Addon)
 	{
 		Addon.InitializeRuntimeData(RuntimeData);
 	});
@@ -121,7 +128,7 @@ void UMASkillDefinition::ApplyAddonPayloadMirrors(
 	const FMASkillModuleAddonRuntimeData& RuntimeData,
 	FMASkillPayloadStore& PayloadStore) const
 {
-	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	ForEachAddon([&](const UMASkillModuleAddon& Addon)
 	{
 		Addon.ApplyPayloadMirror(RuntimeData, PayloadStore);
 	});
@@ -129,7 +136,7 @@ void UMASkillDefinition::ApplyAddonPayloadMirrors(
 
 void UMASkillDefinition::BindAddons(UMASkillModuleInstance& ModuleInstance) const
 {
-	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	ForEachAddon([&](const UMASkillModuleAddon& Addon)
 	{
 		Addon.BindModule(ModuleInstance);
 	});
@@ -140,7 +147,7 @@ bool UMASkillDefinition::TryResolveSocketText(
 	FText& OutText) const
 {
 	bool bResolved = false;
-	ForEachUniqueAddon([&](const UMASkillModuleAddon& Addon)
+	ForEachAddon([&](const UMASkillModuleAddon& Addon)
 	{
 		if (!bResolved)
 		{
@@ -150,7 +157,7 @@ bool UMASkillDefinition::TryResolveSocketText(
 	return bResolved;
 }
 
-void UMASkillDefinition::ForEachUniqueAddon(
+void UMASkillDefinition::ForEachAddon(
 	TFunctionRef<void(const UMASkillModuleAddon&)> Func) const
 {
 	TSet<const UClass*> SeenAddonClasses;
@@ -181,8 +188,6 @@ void UMASkillDefinition::ResetAssemblyData()
 	ModuleVisualTags.Reset();
 	ExclusiveAssemblyTag_DEPRECATED = FGameplayTag();
 	UniqueModuleEffectTag_DEPRECATED = FGameplayTag();
-	CooldownSeconds = 0.f;
-	ModuleCooldown = FMASkillModuleCooldownConfig();
 	BaseSequences.Reset();
 	SequenceModifiers.Reset();
 	AssembledSequences.Reset();

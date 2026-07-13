@@ -41,7 +41,7 @@ public:
 	void Refresh(const TArray<FMASkillSlotRuntimeState>& SkillSlotRuntimeStates);
 	void Dispatch(const FMASkillEvent& Event, UMASkillAbility* ExecutorAbility);
 	void DispatchGroup(TConstArrayView<FMASkillEvent> Events, UMASkillAbility* ExecutorAbility);
-	void AddEventEvaluatedListener(
+	void Subscribe(
 		FGameplayTag EventTag,
 		const FMASkillEventEvaluatedSignature::FDelegate& Listener);
 	void Clear();

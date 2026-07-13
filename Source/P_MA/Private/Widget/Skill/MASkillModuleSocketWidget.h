@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "TimerManager.h"
 #include "MASkillModuleSocketWidget.generated.h"
 
 class UActorComponent;
@@ -40,6 +41,9 @@ protected:
 	TObjectPtr<UImage> ModuleIconImage;
 
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UImage> CooldownOverlayImage;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> StackText;
 
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
@@ -53,12 +57,16 @@ private:
 	static constexpr float DraggedSourceRenderOpacity = 0.45f;
 	static constexpr float NormalIconScaleMultiplier = 0.65f;
 	static constexpr float HighlightedIconScaleMultiplier = 0.75f;
+	static constexpr float CooldownVisualUpdateInterval = 0.05f;
 	UMASkillModuleInstance* ResolveModuleInstance() const;
 	UMASkillDefinition* ResolveDefinition() const;
 	const UDataTable* ResolveWarningTextDataTable() const;
 	bool IsValidSlot() const;
 	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
 	void ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance);
+	void RefreshCooldownDuration(const UMASkillModuleInstance* ModuleInstance);
+	void RefreshCooldownVisual();
+	void ClearCooldownVisualTimer();
 	void RefreshStackText(const UMASkillModuleInstance* ModuleInstance);
 	void BindModuleState(UMASkillModuleInstance* ModuleInstance);
 	void UnbindModuleState();
@@ -81,6 +89,8 @@ private:
 
 	TWeakObjectPtr<UMASkillModuleInstance> BoundModuleInstance;
 	FDelegateHandle ModuleStateChangedHandle;
+	FTimerHandle CooldownVisualTimerHandle;
+	float CooldownDurationSeconds = 0.f;
 	bool bIsHovered = false;
 	bool bIsDropTargetHighlighted = false;
 };

@@ -41,24 +41,6 @@ void UMASkillEventRouter::Refresh(const TArray<FMASkillSlotRuntimeState>& SkillS
 
 			RequiredRoutes.FindOrAdd(Binding.EventTag);
 		}
-
-		for (const UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
-		{
-			if (!ModuleInstance) continue;
-
-			const UMASkillDefinition* ModuleDefinition = ModuleInstance->IsActive()
-				? ModuleInstance->GetDefinition()
-				: nullptr;
-			if (!ModuleDefinition) continue;
-
-			const FMASkillModuleCooldownConfig& CooldownConfig = ModuleDefinition->GetModuleCooldownConfig();
-			if (CooldownConfig.DurationSeconds <= 0.f) continue;
-
-			for (const FGameplayTag& EventTag : CooldownConfig.TriggerEventTags)
-			{
-				if (EventTag.IsValid()) RequiredRoutes.FindOrAdd(EventTag);
-			}
-		}
 	}
 
 	for (auto It = Routes.CreateIterator(); It; ++It)

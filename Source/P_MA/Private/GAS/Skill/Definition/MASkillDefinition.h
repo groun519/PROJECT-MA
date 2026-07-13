@@ -73,21 +73,6 @@ struct FMASkillDefinitionDisplayData
 	FMASkillDefinitionNameData NameData;
 };
 
-USTRUCT(BlueprintType)
-struct FMASkillModuleCooldownConfig
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown")
-	EMASkillEventBindingScope BindingScope = EMASkillEventBindingScope::Skill;
-
-	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown", meta=(Categories="Event"))
-	FGameplayTagContainer TriggerEventTags;
-
-	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown", meta=(ClampMin="0.0", UIMin="0.0"))
-	float DurationSeconds = 0.f;
-};
-
 UCLASS(BlueprintType)
 class P_MA_API UMASkillDefinition : public UDataAsset
 {
@@ -103,8 +88,7 @@ public:
 	FGameplayTagContainer GetTooltipTags() const;
 	FGameplayTag GetVisualElementTag() const;
 	const UMASkillModuleStackAddon* GetStackAddon() const;
-	float GetCooldownSeconds() const { return CooldownSeconds; }
-	const FMASkillModuleCooldownConfig& GetModuleCooldownConfig() const { return ModuleCooldown; }
+	float GetCooldownSeconds() const;
 	const TArray<FMASkillSequence>& GetBaseSequences() const { return BaseSequences; }
 	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
 	const TArray<FMASkillSequence>& GetAssembledSequences() const { return AssembledSequences; }
@@ -114,6 +98,7 @@ public:
 	void InitializeAddonRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const;
 	void ApplyAddonPayloadMirrors(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const;
 	void BindAddons(UMASkillModuleInstance& ModuleInstance) const;
+	void ForEachAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const;
 	virtual void PostLoad() override;
 
@@ -163,7 +148,6 @@ public:
 	}
 
 private:
-	void ForEachUniqueAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	void ResetAssemblyData();
 
 	friend struct FMASkillAssembler;
@@ -192,12 +176,6 @@ private:
 
 	UPROPERTY()
 	FGameplayTag UniqueModuleEffectTag_DEPRECATED;
-
-	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
-	float CooldownSeconds = 0.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="Module Cooldown")
-	FMASkillModuleCooldownConfig ModuleCooldown;
 
 	UPROPERTY(EditDefaultsOnly, Category="Sequence")
 	TArray<FMASkillSequence> BaseSequences;
