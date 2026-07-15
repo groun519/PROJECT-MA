@@ -2,15 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "GAS/Skill/Addon/MASkillModuleAddon.h"
-#include "GAS/Skill/Module/MAModuleQualityData.h"
-#include "GAS/Skill/Payload/MASkillPayloadEntry.h"
-#include "GameplayTagContainer.h"
+#include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 #include "MASkillDefinition.generated.h"
 
 class UMASkillModuleStackAddon;
 class UMASkillModuleInstance;
-class UTexture2D;
 struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
@@ -19,55 +15,6 @@ struct FMASkillPayloadAssembler;
 struct FMASkillEventSourceAssembler;
 struct FMASkillEventBindingAssembler;
 struct FMASkillSequenceAssembler;
-
-USTRUCT(BlueprintType)
-struct FMASkillDefinitionIconData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
-	TObjectPtr<UTexture2D> Icon = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Icon")
-	int32 Priority = 0;
-};
-
-struct FMASkillIconData
-{
-	UTexture2D* Icon = nullptr;
-	FLinearColor IconColor = FLinearColor::White;
-	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
-};
-
-USTRUCT(BlueprintType)
-struct FMASkillDefinitionNameData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Name")
-	FText Keyword;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Name")
-	int32 Priority = 0;
-};
-
-USTRUCT(BlueprintType)
-struct FMASkillDefinitionDisplayData
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
-	FText DisplayName;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display", meta=(MultiLine=true))
-	FText Description;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
-	FMASkillDefinitionIconData IconData;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Display")
-	FMASkillDefinitionNameData NameData;
-};
 
 UCLASS(BlueprintType)
 class P_MA_API UMASkillDefinition : public UDataAsset
