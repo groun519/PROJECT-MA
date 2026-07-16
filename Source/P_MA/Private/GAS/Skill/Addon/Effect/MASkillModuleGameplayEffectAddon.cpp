@@ -8,6 +8,11 @@
 #include "GameFramework/Actor.h"
 
 #if WITH_EDITOR
+void UMASkillModuleGameplayEffectAddon::BuildGeneratedData()
+{
+	RebuildEffectDefinitions();
+}
+
 void FMASkillModuleGameplayEffectConfig::RebuildEffectDefinition(UObject& Outer)
 {
 	if (!EffectDefinition)

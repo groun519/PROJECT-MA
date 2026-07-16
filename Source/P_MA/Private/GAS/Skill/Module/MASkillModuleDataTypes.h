@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataTable.h"
 #include "GAS/Skill/Addon/MASkillModuleAddon.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Payload/MASkillPayloadEntry.h"
@@ -61,7 +60,7 @@ struct FMASkillDefinitionDisplayData
 
 /** Authored module data shared by source modules and assembled runtime results. */
 USTRUCT(BlueprintType)
-struct P_MA_API FMASkillModuleData : public FTableRowBase
+struct P_MA_API FMASkillModuleData
 {
 	GENERATED_BODY()
 

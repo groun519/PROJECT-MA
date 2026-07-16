@@ -10,14 +10,22 @@ public class P_MAEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new[]
 		{
 			"AIModule",
+			"AssetRegistry",
 			"Core",
 			"CoreUObject",
+			"DesktopPlatform",
 			"Engine",
 			"GameplayAbilities",
+			"InputCore",
 			"Json",
 			"JsonUtilities",
 			"P_MA",
-			"StructUtils"
+			"PropertyEditor",
+			"Slate",
+			"SlateCore",
+			"StructUtils",
+			"UnrealEd",
+			"WorkspaceMenuStructure"
 		});
 
 		// PROJECT-MA currently keeps runtime headers under P_MA/Private.

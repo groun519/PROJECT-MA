@@ -75,6 +75,7 @@ public:
 	virtual void BindModule(UMASkillModuleInstance& ModuleInstance) const override;
 
 #if WITH_EDITOR
+	virtual void BuildGeneratedData() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 

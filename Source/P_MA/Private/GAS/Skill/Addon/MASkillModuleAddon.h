@@ -19,6 +19,10 @@ class P_MA_API UMASkillModuleAddon : public UObject
 	GENERATED_BODY()
 
 public:
+#if WITH_EDITOR
+	/** Rebuilds serialized data derived from authored addon fields. */
+	virtual void BuildGeneratedData() {}
+#endif
 	virtual void InitializeRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const {}
 	virtual void ApplyPayloadMirror(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const {}
 	virtual void BindModule(UMASkillModuleInstance& ModuleInstance) const {}

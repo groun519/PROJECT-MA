@@ -9,8 +9,8 @@
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
-#include "GAS/Skill/Module/MASkillModuleJsonReader.h"
-#include "GAS/Skill/Module/MASkillModuleJsonWriter.h"
+#include "GAS/Skill/Module/Json/MASkillModuleJsonReader.h"
+#include "GAS/Skill/Module/Json/MASkillModuleJsonWriter.h"
 #include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Delay.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
@@ -120,16 +120,25 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("JSON excludes text identity fields"), JsonA.Contains(TEXT("\"Key\"")));
 	TestFalse(TEXT("Generated EffectDefinition is excluded"), JsonA.Contains(TEXT("EffectDefinition")));
 
+	int32 HeaderModuleId = 0;
+	FName HeaderModuleName;
+	TestTrue(
+		TEXT("Read module header without importing module data"),
+		FMASkillModuleJsonReader::ReadHeader(JsonA, HeaderModuleId, HeaderModuleName, Error));
+	TestEqual(TEXT("Header contains ModuleId"), HeaderModuleId, 1201);
+	TestEqual(TEXT("Header contains ModuleName"), HeaderModuleName, FName(TEXT("JsonRoundTrip")));
+
 	TStrongObjectPtr<UDataTable> LoadedOwner(NewObject<UDataTable>());
-	int32 LoadedModuleId = 0;
-	FMASkillModuleData LoadedModule;
+	FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner);
 	if (!TestTrue(
 		TEXT("Deserialize module data"),
-		FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner, LoadedModuleId, LoadedModule, Error)))
+		ReadResult.IsValid()))
 	{
-		AddError(Error.ToString());
+		AddError(ReadResult.GetDiagnosticsText().ToString());
 		return false;
 	}
+	const int32 LoadedModuleId = ReadResult.ModuleId;
+	FMASkillModuleData LoadedModule = MoveTemp(ReadResult.ModuleData);
 	TestEqual(TEXT("ModuleId round-trips"), LoadedModuleId, 1201);
 	TestEqual(TEXT("ModuleName round-trips"), LoadedModule.ModuleName, FName(TEXT("JsonRoundTrip")));
 	TestEqual(TEXT("DisplayName round-trips"), LoadedModule.DisplayData.DisplayName.ToString(), FString(TEXT("Slash")));
@@ -207,11 +216,11 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("Canonical JSON is stable"), JsonB, JsonA);
 
-	int32 SecondModuleId = 0;
-	FMASkillModuleData SecondModule;
+	FMASkillModuleReadResult SecondReadResult = FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner);
 	TestTrue(
 		TEXT("Multiple modules can share one addon owner"),
-		FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner, SecondModuleId, SecondModule, Error));
+		SecondReadResult.IsValid());
+	FMASkillModuleData SecondModule = MoveTemp(SecondReadResult.ModuleData);
 	if (SecondModule.Addons.Num() > 0)
 	{
 		TestNotEqual(
@@ -230,44 +239,62 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FMASkillModuleJsonValidationTest::RunTest(const FString& Parameters)
 {
 	TStrongObjectPtr<UDataTable> AddonOwner(NewObject<UDataTable>());
-	FText Error;
-	int32 ModuleId = 0;
-	FMASkillModuleData ModuleData;
 
-	TestFalse(
-		TEXT("ModuleId 0 is rejected"),
-		FMASkillModuleJsonReader::Read(
-			TEXT("{\"ModuleId\":0,\"Module\":{}}"),
-			*AddonOwner,
-			ModuleId,
-			ModuleData,
-			Error));
-	TestEqual(TEXT("Failed import returns no module id"), ModuleId, 0);
-	TestEqual(TEXT("Failed import returns empty module data"), ModuleData.Addons.Num(), 0);
+	FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":0,\"Module\":{}}"),
+		*AddonOwner);
+	TestFalse(TEXT("ModuleId 0 is rejected"), ReadResult.IsValid());
+	TestEqual(TEXT("Failed import returns no module id"), ReadResult.ModuleId, 0);
+	TestEqual(TEXT("Failed import returns empty module data"), ReadResult.ModuleData.Addons.Num(), 0);
+	if (TestFalse(TEXT("Invalid ModuleId returns a diagnostic"), ReadResult.Diagnostics.IsEmpty()))
+	{
+		TestEqual(
+			TEXT("ModuleId diagnostic identifies its field"),
+			ReadResult.Diagnostics[0].Path,
+			FString(TEXT("ModuleId")));
+	}
 
 	const FString WrongClassJson = TEXT(
 		"{\"ModuleId\":1,\"Module\":{\"Addons\":[{\"_ClassName\":"
 		"\"/Script/P_MA.MASkillSequenceModifier_Delay\"}]}}");
-	TestFalse(
-		TEXT("Wrong instanced class is rejected"),
-		FMASkillModuleJsonReader::Read(WrongClassJson, *AddonOwner, ModuleId, ModuleData, Error));
+	ReadResult = FMASkillModuleJsonReader::Read(WrongClassJson, *AddonOwner);
+	TestFalse(TEXT("Wrong instanced class is rejected"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"DisplayData\":{\"IconData\":{\"Icon\":1}}}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Object reference with a non-string value is rejected"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"Addons\":[\"/Script/P_MA.Default__MASkillModuleStackAddon\"]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Instanced addon reference is rejected"), ReadResult.IsValid());
 
 	const FString DuplicateAddonJson = TEXT(
 		"{\"ModuleId\":1,\"Module\":{\"Addons\":["
 		"{\"_ClassName\":\"/Script/P_MA.MASkillModuleStackAddon\"},"
 		"{\"_ClassName\":\"/Script/P_MA.MASkillModuleStackAddon\"}]}}");
-	TestFalse(
-		TEXT("Duplicate addon type is rejected"),
-		FMASkillModuleJsonReader::Read(DuplicateAddonJson, *AddonOwner, ModuleId, ModuleData, Error));
+	ReadResult = FMASkillModuleJsonReader::Read(DuplicateAddonJson, *AddonOwner);
+	TestFalse(TEXT("Duplicate addon type is rejected"), ReadResult.IsValid());
+	if (TestFalse(TEXT("Duplicate addon returns a diagnostic"), ReadResult.Diagnostics.IsEmpty()))
+	{
+		TestEqual(
+			TEXT("Duplicate addon diagnostic identifies its field"),
+			ReadResult.Diagnostics[0].Path,
+			FString(TEXT("Module.Addons[1]")));
+	}
 
-	TestFalse(
-		TEXT("Unknown field is rejected"),
-		FMASkillModuleJsonReader::Read(
-			TEXT("{\"ModuleId\":1,\"Module\":{\"UnknownField\":1}}"),
-			*AddonOwner,
-			ModuleId,
-			ModuleData,
-			Error));
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"UnknownField\":1}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Unknown field is rejected"), ReadResult.IsValid());
+	if (TestFalse(TEXT("Unknown field returns a diagnostic"), ReadResult.Diagnostics.IsEmpty()))
+	{
+		TestEqual(
+			TEXT("Unknown field diagnostic identifies its field"),
+			ReadResult.Diagnostics[0].Path,
+			FString(TEXT("Module.UnknownField")));
+	}
 	return !HasAnyErrors();
 }
 

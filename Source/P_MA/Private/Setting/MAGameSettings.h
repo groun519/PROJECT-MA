@@ -61,6 +61,11 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMAModuleQualityData> ModuleQualityData;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Module")
+	FDirectoryPath SkillModuleJsonDirectory;
+#endif
+
 	UPROPERTY(Config, EditAnywhere, Category="Elemental")
 	TSoftObjectPtr<UMAElementalConfigData> ElementalConfigData;
 

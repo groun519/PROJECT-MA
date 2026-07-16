@@ -9,6 +9,9 @@
 
 UMAGameSettings::UMAGameSettings()
 {
+#if WITH_EDITORONLY_DATA
+	SkillModuleJsonDirectory.Path = TEXT("Data/SkillModules");
+#endif
 	PlayerHitDamageTextStyle.Color = FLinearColor::Red;
 	CriticalDamageTextStyle.Color = FLinearColor(1.f, 0.82f, 0.15f, 1.f);
 	ReverseCriticalDamageTextStyle.Color = FLinearColor(0.25f, 0.25f, 0.25f, 1.f);

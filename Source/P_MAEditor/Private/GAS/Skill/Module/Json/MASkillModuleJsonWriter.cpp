@@ -1,8 +1,8 @@
-#include "GAS/Skill/Module/MASkillModuleJsonWriter.h"
+#include "GAS/Skill/Module/Json/MASkillModuleJsonWriter.h"
 
 #include "Dom/JsonObject.h"
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
-#include "GAS/Skill/Module/MASkillModuleJsonValidator.h"
+#include "GAS/Skill/Module/Json/MASkillModuleDataValidator.h"
 #include "Internationalization/Text.h"
 #include "JsonObjectConverter.h"
 #include "Policies/PrettyJsonPrintPolicy.h"
@@ -28,7 +28,12 @@ bool FMASkillModuleJsonWriter::Write(
 {
 	OutJson.Reset();
 	OutError = FText::GetEmpty();
-	if (!FMASkillModuleJsonValidator::Validate(ModuleId, ModuleData, OutError)) return false;
+	FMASkillModuleDiagnostic Diagnostic;
+	if (!FMASkillModuleDataValidator::Validate(ModuleId, ModuleData, Diagnostic))
+	{
+		OutError = Diagnostic.ToText();
+		return false;
+	}
 
 	TSharedRef<FJsonObject> ModuleObject = MakeShared<FJsonObject>();
 	FJsonObjectConverter::CustomExportCallback ExportCallback;
