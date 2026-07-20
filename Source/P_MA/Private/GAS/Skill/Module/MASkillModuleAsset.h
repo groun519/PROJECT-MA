@@ -13,6 +13,7 @@ class P_MA_API UMASkillModuleAsset : public UPrimaryDataAsset
 
 public:
 	static const FPrimaryAssetType PrimaryAssetType;
+	static FPrimaryAssetId MakePrimaryAssetId(int32 ModuleId);
 	static FName GetModuleIdTag() { return GET_MEMBER_NAME_CHECKED(UMASkillModuleAsset, ModuleId); }
 
 #if WITH_EDITOR

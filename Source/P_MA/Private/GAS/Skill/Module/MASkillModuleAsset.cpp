@@ -2,11 +2,16 @@
 
 const FPrimaryAssetType UMASkillModuleAsset::PrimaryAssetType(TEXT("SkillModule"));
 
-FPrimaryAssetId UMASkillModuleAsset::GetPrimaryAssetId() const
+FPrimaryAssetId UMASkillModuleAsset::MakePrimaryAssetId(const int32 ModuleId)
 {
 	return ModuleId > 0
 		? FPrimaryAssetId(PrimaryAssetType, FName(*LexToString(ModuleId)))
 		: FPrimaryAssetId();
+}
+
+FPrimaryAssetId UMASkillModuleAsset::GetPrimaryAssetId() const
+{
+	return MakePrimaryAssetId(ModuleId);
 }
 
 #if WITH_EDITOR
