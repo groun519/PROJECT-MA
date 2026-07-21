@@ -1,0 +1,99 @@
+{
+	"ModuleId": 34,
+	"Module":
+	{
+		"ModuleName": "DA_Pain",
+		"DisplayData":
+		{
+			"DisplayName": "Pain",
+			"Description": "스킬 사용 시, <HP>현재 체력의 5%</>를 잃습니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Pain.T_Pain'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Pain",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity2"
+		},
+		"ModuleTags": [
+			"Module.Attack"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.DebuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToSelf",
+							"damagePayloadTag": "Damage.Pain"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Pain",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Health"
+								},
+								"payloadTag": "",
+								"coefficient": 0.05000000074505806
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 8,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

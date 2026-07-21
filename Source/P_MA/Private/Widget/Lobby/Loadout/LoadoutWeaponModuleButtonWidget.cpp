@@ -2,7 +2,7 @@
 
 #include "Components/Button.h"
 #include "Components/Image.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
@@ -19,9 +19,9 @@ void ULoadoutWeaponModuleButtonWidget::NativeConstruct()
 	RefreshIcon();
 }
 
-void ULoadoutWeaponModuleButtonWidget::SetModuleDefinition(UMASkillDefinition* InModuleDefinition)
+void ULoadoutWeaponModuleButtonWidget::SetModule(UMASkillModule* InModule)
 {
-	ModuleDefinition = InModuleDefinition;
+	Module = InModule;
 	RefreshIcon();
 }
 
@@ -32,7 +32,7 @@ void ULoadoutWeaponModuleButtonWidget::SetSelected(bool bSelected)
 
 void ULoadoutWeaponModuleButtonWidget::HandleModuleButtonClicked()
 {
-	if (ModuleDefinition)
+	if (Module)
 	{
 		OnModuleSelected.Broadcast(this);
 	}
@@ -57,12 +57,12 @@ void ULoadoutWeaponModuleButtonWidget::RefreshIcon()
 	if (!IconMaterial) return;
 
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillIconData IconData = ModuleDefinition
-		? ModuleDefinition->ResolveIconData(ModuleQualityData)
+	const FMASkillIconData IconData = Module
+		? Module->ResolveIconData(ModuleQualityData)
 		: FMASkillIconData();
-	UTexture2D* SubIcon = ModuleDefinition ? ModuleDefinition->GetAssembledSubIcon() : nullptr;
-	const FLinearColor FrameColor = ModuleDefinition
-		? ModuleDefinition->ResolveFrameColor(ModuleQualityData)
+	UTexture2D* SubIcon = Module ? Module->GetAssembledSubIcon() : nullptr;
+	const FLinearColor FrameColor = Module
+		? Module->ResolveFrameColor(ModuleQualityData)
 		: FLinearColor::White;
 
 	IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);

@@ -1,0 +1,72 @@
+{
+	"ModuleId": 40,
+	"Module":
+	{
+		"ModuleName": "DA_Barrier",
+		"DisplayData":
+		{
+			"DisplayName": "Barrier",
+			"Description": "<HP>체력</>을 잃었을 시, <SHIELD>잃은 체력의 200%를 보호막으로 얻습니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Barrier.T_Barrier'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Barrier",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique",
+			"Module.Passive"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
+						"changedAttribute":
+						{
+							"attribute": "/Script/P_MA.MAAttributeSet:Health"
+						},
+						"changeType": "Decreased"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Attribute.Health.Decreased",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyAttribute",
+							"target": "Self",
+							"targetPayloadTag": "",
+							"attribute":
+							{
+								"attribute": "/Script/P_MA.MAAttributeSet:Shield"
+							},
+							"operation": "Additive",
+							"baseValue": 0,
+							"eventMagnitudeCoefficient": 2,
+							"attributeCoefficients": []
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

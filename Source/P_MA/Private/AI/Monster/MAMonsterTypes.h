@@ -5,7 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "MAMonsterTypes.generated.h"
 
-class UMASkillDefinition;
+class UMASkillModule;
 
 USTRUCT(BlueprintType)
 struct FMonsterSkillSlotData
@@ -22,7 +22,7 @@ struct FMonsterSkillSlotData
 	float UseDistance = 300.f;
 
 	UPROPERTY(EditAnywhere)
-	TArray<TObjectPtr<UMASkillDefinition>> Definitions;
+	TArray<TSoftObjectPtr<UMASkillModule>> Modules;
 };
 
 USTRUCT(BlueprintType)
@@ -37,5 +37,5 @@ struct FMonsterSkillPatternRow : public FTableRowBase
 	float UseDistance = 300.f;
 
 	UPROPERTY(EditAnywhere)
-	TArray<TObjectPtr<UMASkillDefinition>> Definitions;
+	TArray<TSoftObjectPtr<UMASkillModule>> Modules;
 };

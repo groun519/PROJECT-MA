@@ -5,7 +5,7 @@
 #include "Components/PanelWidget.h"
 #include "Components/RichTextBlock.h"
 #include "Components/TextBlock.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "MAMaterialParams.h"
 #include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillTagBadgeWidget.h"
@@ -20,7 +20,7 @@ void UMAShopDetailWidget::NativeConstruct()
 
 void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 {
-	const UMASkillDefinition* SkillDefinition = InEntry ? InEntry->SkillDefinition : nullptr;
+	const UMASkillModule* SkillModule = InEntry ? InEntry->SkillModule : nullptr;
 	const ESlateVisibility EntryVisibility = InEntry ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 	const ESlateVisibility BuyVisibility = InEntry ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
@@ -42,17 +42,17 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 		ItemIconImage->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	NameText->SetText(SkillDefinition ? SkillDefinition->GetDisplayData().DisplayName : FText());
+	NameText->SetText(SkillModule ? SkillModule->GetDisplayData().DisplayName : FText());
 	NameText->SetVisibility(EntryVisibility);
 
 	QualityText->SetText(InEntry ? InEntry->QualityText : FText());
 	QualityText->SetColorAndOpacity(FSlateColor(InEntry ? InEntry->QualityColor : FLinearColor::White));
 	QualityText->SetVisibility(InEntry && !InEntry->QualityText.IsEmpty() ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 
-	DescriptionText->SetText(SkillDefinition ? SkillDefinition->GetDisplayData().Description : FText());
+	DescriptionText->SetText(SkillModule ? SkillModule->GetDisplayData().Description : FText());
 	DescriptionText->SetVisibility(EntryVisibility);
 
-	const float CooldownSeconds = SkillDefinition ? SkillDefinition->GetCooldownSeconds() : 0.f;
+	const float CooldownSeconds = SkillModule ? SkillModule->GetCooldownSeconds() : 0.f;
 	FNumberFormattingOptions CooldownFormatting;
 	CooldownFormatting.MinimumFractionalDigits = 0;
 	CooldownFormatting.MaximumFractionalDigits = FMath::Abs(CooldownSeconds) >= 1.f ? 1 : 2;
@@ -66,7 +66,7 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 	CooldownText->SetVisibility(FMath::IsNearlyZero(CooldownSeconds) ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 
 	const UDataTable* WarningTextDataTable = GameSettings->GetWarningTextDataTable();
-	const FGameplayTagContainer TooltipTags = SkillDefinition ? SkillDefinition->GetTooltipTags() : FGameplayTagContainer();
+	const FGameplayTagContainer TooltipTags = SkillModule ? SkillModule->GetTooltipTags() : FGameplayTagContainer();
 	UMASkillTagBadgeWidget::RefreshTagBadges(
 		this,
 		TagBadgePanel,

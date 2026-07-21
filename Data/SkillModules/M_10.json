@@ -1,0 +1,57 @@
+{
+	"ModuleId": 10,
+	"Module":
+	{
+		"ModuleName": "DA_SmallGolemDash",
+		"DisplayData":
+		{
+			"DisplayName": "Golem Dash",
+			"Description": "골렘이 대시함",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_Monster/Golem_MS/Small/GA/Combo/T_GolemPunch.T_GolemPunch'",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "GroundSlam",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Dash",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_Dash",
+							"dashSpeed": 1000,
+							"dashDuration": 0.40000000596046448
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Dash.AM_SmallGolem_Dash'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": []
+	}
+}

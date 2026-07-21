@@ -2,7 +2,6 @@
 
 ## Asset / JSON Migration
 
-- Later, move skill definitions and related data assets toward the planned JSON-backed structure.
 - Validate duplicate addon types while loading JSON, then keep runtime addon traversal allocation-free and make typed addon lookup return immediately when the requested type is found.
 - If assembly-time addon lookup becomes worth optimizing, collect assembly-relevant addon references once per source module in `FMASkillAssembler` and pass them to the existing feature assemblers. Keep addons as data and do not move assembly routing into addon virtual functions.
 - Keep optional addon state in `FMASkillModuleAddonRuntimeData` instead of expanding `UMASkillModuleInstance` with feature-specific fields. Its current single replicated `TArray<FInstancedStruct>` is acceptable while Stack is the only frequently changing runtime value.

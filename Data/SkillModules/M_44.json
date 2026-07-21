@@ -1,0 +1,86 @@
+{
+	"ModuleId": 44,
+	"Module":
+	{
+		"ModuleName": "DA_Burst",
+		"DisplayData":
+		{
+			"DisplayName": "Burst",
+			"Description": "<DASH>0.2초 간 5m 돌진합니다.</>\r\n종료 시, 1초 간 모듈이 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Burst.T_Burst'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Burst",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Movement"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 2
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Skill",
+				"triggerEventTags": [
+					"Event.Skill.End"
+				],
+				"durationSeconds": 1
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_End"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Burst",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_Dash",
+							"dashSpeed": 2500,
+							"dashDuration": 0.20000000298023224
+						}
+					},
+					{
+						"eventTag": "Event.Skill.End",
+						"bindingScope": "Skill",
+						"action": null
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Burst.AM_Burst'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": []
+	}
+}

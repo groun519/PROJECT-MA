@@ -1,7 +1,7 @@
-#include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
+﻿#include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "GAS/Skill/Module/MASkillModuleAsset.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
 #include "GAS/Skill/Module/Json/MASkillModuleJsonReader.h"
 #include "HAL/FileManager.h"
@@ -10,10 +10,11 @@
 #include "UObject/Package.h"
 #include "UObject/SavePackage.h"
 #include "UObject/StrongObjectPtr.h"
+#include "UObject/UObjectHash.h"
 
-struct FMASkillModuleAddonMove
+struct FMASkillModuleObjectMove
 {
-	UMASkillModuleAddon* Addon = nullptr;
+	UObject* Object = nullptr;
 	UObject* OriginalOuter = nullptr;
 	FName OriginalName;
 };
@@ -24,22 +25,22 @@ static bool Fail(FText& OutError, const FString& Message)
 	return false;
 }
 
-static bool MoveAddon(
-	UMASkillModuleAddon& Addon,
+static bool MoveObject(
+	UObject& Object,
 	UObject& NewOuter,
 	const FName NewName,
-	TArray<FMASkillModuleAddonMove>& OutMoves,
+	TArray<FMASkillModuleObjectMove>& OutMoves,
 	FText& OutError)
 {
-	const FMASkillModuleAddonMove Move{&Addon, Addon.GetOuter(), Addon.GetFName()};
-	if (!Addon.Rename(
+	const FMASkillModuleObjectMove Move{&Object, Object.GetOuter(), Object.GetFName()};
+	if (!Object.Rename(
 		*NewName.ToString(),
 		&NewOuter,
 		REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional))
 	{
 		return Fail(OutError, FString::Printf(
-			TEXT("Failed to move addon '%s' to '%s'."),
-			*Addon.GetPathName(),
+			TEXT("Failed to move module object '%s' to '%s'."),
+			*Object.GetPathName(),
 			*NewOuter.GetPathName()));
 	}
 
@@ -47,13 +48,13 @@ static bool MoveAddon(
 	return true;
 }
 
-static bool RestoreMovedAddons(TArray<FMASkillModuleAddonMove>& Moves, FText& OutError)
+static bool RestoreMovedObjects(TArray<FMASkillModuleObjectMove>& Moves, FText& OutError)
 {
 	bool bRestored = true;
 	for (int32 Index = Moves.Num() - 1; Index >= 0; --Index)
 	{
-		const FMASkillModuleAddonMove& Move = Moves[Index];
-		if (!Move.Addon->Rename(
+		const FMASkillModuleObjectMove& Move = Moves[Index];
+		if (!Move.Object->Rename(
 			*Move.OriginalName.ToString(),
 			Move.OriginalOuter,
 			REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional))
@@ -61,8 +62,8 @@ static bool RestoreMovedAddons(TArray<FMASkillModuleAddonMove>& Moves, FText& Ou
 			if (bRestored)
 			{
 				OutError = FText::FromString(FString::Printf(
-					TEXT("Failed to restore addon '%s'."),
-					*Move.Addon->GetPathName()));
+					TEXT("Failed to restore module object '%s'."),
+					*Move.Object->GetPathName()));
 			}
 			bRestored = false;
 		}
@@ -85,7 +86,7 @@ static EMASkillModuleBuildStatus EvaluateBuildStatus(
 		OutDetail = FText::FromString(TEXT("Generated asset does not exist."));
 		return EMASkillModuleBuildStatus::NeedsBuild;
 	}
-	if (AssetData.AssetClassPath != UMASkillModuleAsset::StaticClass()->GetClassPathName())
+	if (AssetData.AssetClassPath != UMASkillModule::StaticClass()->GetClassPathName())
 	{
 		OutDetail = FText::FromString(FString::Printf(
 			TEXT("Generated asset path is occupied by '%s'."),
@@ -94,7 +95,7 @@ static EMASkillModuleBuildStatus EvaluateBuildStatus(
 	}
 
 	int32 ExistingModuleId = 0;
-	if (!AssetData.GetTagValue(UMASkillModuleAsset::GetModuleIdTag(), ExistingModuleId)
+	if (!AssetData.GetTagValue(UMASkillModule::GetModuleIdTag(), ExistingModuleId)
 		|| ExistingModuleId != ModuleId)
 	{
 		OutDetail = FText::FromString(TEXT("Generated asset has an invalid ModuleId."));
@@ -102,17 +103,17 @@ static EMASkillModuleBuildStatus EvaluateBuildStatus(
 	}
 
 	int32 BuiltVersion = 0;
-	if (!AssetData.GetTagValue(UMASkillModuleAsset::GetGeneratedDataVersionTag(), BuiltVersion)
-		|| BuiltVersion != UMASkillModuleAsset::CurrentGeneratedDataVersion)
+	if (!AssetData.GetTagValue(UMASkillModule::GetGeneratedDataVersionTag(), BuiltVersion)
+		|| BuiltVersion != UMASkillModule::CurrentGeneratedDataVersion)
 	{
 		OutDetail = FText::FromString(FString::Printf(
 			TEXT("Generated data version %d must be rebuilt as version %d."),
 			BuiltVersion,
-			UMASkillModuleAsset::CurrentGeneratedDataVersion));
+			UMASkillModule::CurrentGeneratedDataVersion));
 		return EMASkillModuleBuildStatus::NeedsBuild;
 	}
 	FString ExistingHash;
-	if (!AssetData.GetTagValue(UMASkillModuleAsset::GetSourceHashTag(), ExistingHash)
+	if (!AssetData.GetTagValue(UMASkillModule::GetSourceHashTag(), ExistingHash)
 		|| ExistingHash.IsEmpty()
 		|| ExistingHash != SourceHash)
 	{
@@ -153,11 +154,11 @@ bool FMASkillModuleAssetBuilder::ResolveBuildStatus(
 	const FAssetData AssetData = AssetRegistry.Get().GetAssetByObjectPath(GeneratedAssetPath);
 	if (AssetData.IsValid()
 		&& FPackageName::DoesPackageExist(AssetData.PackageName.ToString())
-		&& AssetData.AssetClassPath == UMASkillModuleAsset::StaticClass()->GetClassPathName())
+		&& AssetData.AssetClassPath == UMASkillModule::StaticClass()->GetClassPathName())
 	{
 		OutItem.GeneratedAssetPath = AssetData.GetSoftObjectPath();
 	}
-	AssetData.GetTagValue(UMASkillModuleAsset::GetLastBuiltAtTag(), OutItem.LastBuiltAt);
+	AssetData.GetTagValue(UMASkillModule::GetLastBuiltAtTag(), OutItem.LastBuiltAt);
 	OutItem.Status = EvaluateBuildStatus(
 		AssetData,
 		OutItem.ModuleId,
@@ -165,7 +166,7 @@ bool FMASkillModuleAssetBuilder::ResolveBuildStatus(
 		OutItem.StatusDetail);
 	if (OutItem.Status != EMASkillModuleBuildStatus::NeedsBuild) return true;
 
-	TStrongObjectPtr<UMASkillModuleAsset> ValidationOwner(NewObject<UMASkillModuleAsset>());
+	TStrongObjectPtr<UMASkillModule> ValidationOwner(NewObject<UMASkillModule>());
 	const FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(Source, *ValidationOwner);
 	if (!ReadResult.IsValid())
 	{
@@ -224,7 +225,7 @@ bool FMASkillModuleAssetBuilder::Build(
 		return true;
 	}
 
-	TStrongObjectPtr<UMASkillModuleAsset> BuildCandidate(NewObject<UMASkillModuleAsset>());
+	TStrongObjectPtr<UMASkillModule> BuildCandidate(NewObject<UMASkillModule>());
 	FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(Source, *BuildCandidate);
 	if (!ReadResult.IsValid())
 	{
@@ -251,12 +252,12 @@ bool FMASkillModuleAssetBuilder::Build(
 		Addon->BuildGeneratedData();
 	}
 
-	UMASkillModuleAsset* TargetAsset = ExistingAssetData.IsValid()
-		? Cast<UMASkillModuleAsset>(ExistingAssetData.GetAsset())
+	UMASkillModule* TargetAsset = ExistingAssetData.IsValid()
+		? Cast<UMASkillModule>(ExistingAssetData.GetAsset())
 		: nullptr;
 	if (!TargetAsset && bPackageExists)
 	{
-		TargetAsset = LoadObject<UMASkillModuleAsset>(nullptr, *AssetPath.ToString());
+		TargetAsset = LoadObject<UMASkillModule>(nullptr, *AssetPath.ToString());
 	}
 	if (bPackageExists && !TargetAsset)
 	{
@@ -269,7 +270,7 @@ bool FMASkillModuleAssetBuilder::Build(
 	const bool bNewAsset = !TargetAsset;
 	if (bNewAsset)
 	{
-		TargetAsset = NewObject<UMASkillModuleAsset>(
+		TargetAsset = NewObject<UMASkillModule>(
 			Package,
 			*AssetName,
 			RF_Public | RF_Standalone | RF_Transactional);
@@ -281,31 +282,33 @@ bool FMASkillModuleAssetBuilder::Build(
 	FString PreviousSourceHash = TargetAsset->GetSourceHash();
 	const int32 PreviousVersion = TargetAsset->GetGeneratedDataVersion();
 	const int64 PreviousLastBuiltAt = TargetAsset->GetLastBuiltAt();
-	TStrongObjectPtr<UMASkillModuleAsset> PreviousAddonOwner(NewObject<UMASkillModuleAsset>());
-	TArray<FMASkillModuleAddonMove> AddonMoves;
-
-	for (UMASkillModuleAddon* Addon : PreviousModuleData.Addons)
+	TStrongObjectPtr<UMASkillModule> PreviousObjectOwner(NewObject<UMASkillModule>());
+	TArray<FMASkillModuleObjectMove> ObjectMoves;
+	TArray<UObject*> PreviousObjects;
+	GetObjectsWithOuter(TargetAsset, PreviousObjects, false);
+	for (UObject* Object : PreviousObjects)
 	{
 		const FName StagingName = MakeUniqueObjectName(
-			PreviousAddonOwner.Get(),
-			Addon->GetClass(),
-			Addon->GetFName());
-		if (!MoveAddon(*Addon, *PreviousAddonOwner, StagingName, AddonMoves, OutError))
+			PreviousObjectOwner.Get(),
+			Object->GetClass(),
+			Object->GetFName());
+		if (!MoveObject(*Object, *PreviousObjectOwner, StagingName, ObjectMoves, OutError))
 		{
-			RestoreMovedAddons(AddonMoves, OutError);
+			RestoreMovedObjects(ObjectMoves, OutError);
 			return false;
 		}
 	}
 
-	for (UMASkillModuleAddon* Addon : ModuleData.Addons)
+	TArray<UObject*> NewObjects;
+	GetObjectsWithOuter(BuildCandidate.Get(), NewObjects, false);
+	for (UObject* Object : NewObjects)
 	{
-		const FName AddonName(*FString::Printf(
-			TEXT("M%d_%s"),
-			ModuleId,
-			*Addon->GetClass()->GetName()));
-		if (!MoveAddon(*Addon, *TargetAsset, AddonName, AddonMoves, OutError))
+		const FName ObjectName = Object->IsA<UMASkillModuleAddon>()
+			? FName(*FString::Printf(TEXT("M%d_%s"), ModuleId, *Object->GetClass()->GetName()))
+			: MakeUniqueObjectName(TargetAsset, Object->GetClass(), Object->GetFName());
+		if (!MoveObject(*Object, *TargetAsset, ObjectName, ObjectMoves, OutError))
 		{
-			RestoreMovedAddons(AddonMoves, OutError);
+			RestoreMovedObjects(ObjectMoves, OutError);
 			return false;
 		}
 	}
@@ -321,7 +324,7 @@ bool FMASkillModuleAssetBuilder::Build(
 	{
 		Fail(OutError, FString::Printf(TEXT("Failed to save generated module asset: %s"), *PackageFilename));
 		if (bNewAsset) FAssetRegistryModule::AssetDeleted(TargetAsset);
-		RestoreMovedAddons(AddonMoves, OutError);
+		RestoreMovedObjects(ObjectMoves, OutError);
 		TargetAsset->SetGeneratedData(
 			PreviousModuleId,
 			MoveTemp(PreviousModuleData),

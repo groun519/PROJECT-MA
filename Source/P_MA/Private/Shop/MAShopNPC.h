@@ -11,7 +11,8 @@
 class AMAPlayerCharacter;
 class UMAHighlightComponent;
 class UMAModuleQualityData;
-class UMASkillDefinition;
+class UMAShopModulePool;
+class UMASkillModule;
 class UMAShopWidget;
 class UCameraComponent;
 class UMAInteractableComponent;
@@ -53,8 +54,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Shop")
 	TSubclassOf<UMAShopWidget> ShopWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category="Shop|Product", meta=(ContentDir))
-	TArray<FDirectoryPath> ModuleRootPaths;
+	UPROPERTY(EditDefaultsOnly, Category="Shop|Product")
+	TObjectPtr<UMAShopModulePool> ModulePool;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
 	FMAShopStockCountRange ModuleStockCountRange;
@@ -81,7 +82,7 @@ private:
 	void HandleSectorStateChanged(EMASectorState NewState);
 	void SetTemporaryShopVisible(bool bVisible);
 	TArray<FMAShopStockEntry> GenerateShopStock() const;
-	int32 ResolveModulePrice(const UMASkillDefinition* SkillDefinition) const;
+	int32 ResolveModulePrice(const UMASkillModule* SkillModule) const;
 
 	UFUNCTION()
 	void OnRep_CurrentStockEntries();

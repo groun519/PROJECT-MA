@@ -5,7 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "MASkillModuleInventoryComponent.generated.h"
 
-class UMASkillDefinition;
+class UMASkillModule;
 class UMASkillModuleInstance;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillModuleInventoryChangedSignature);
@@ -22,7 +22,7 @@ public:
 
 	FMASkillModuleInventoryChangedSignature OnInventoryChanged;
 
-	bool RequestGrantModule(UMASkillDefinition* Definition);
+	bool RequestGrantModule(UMASkillModule* Module);
 	bool RequestMoveModuleSlot(
 		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
 		int32 SourceIndex,
@@ -33,7 +33,7 @@ public:
 	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI();
 
 private:
-	bool AddModule(UMASkillDefinition* Definition);
+	bool AddModule(UMASkillModule* Module);
 	bool CanMutateInventory() const;
 	bool EquipInventorySlotToSkillSlot(int32 SourceSlotIndex, FGameplayTag SlotTag, int32 ModuleIndex);
 	bool SwapInventorySlots(int32 SourceSlotIndex, int32 TargetSlotIndex);
@@ -42,7 +42,7 @@ private:
 	void EnsureSlotCount();
 	void RefreshEntryModuleStates();
 	UFUNCTION(Server, Reliable)
-	void ServerGrantModule(UMASkillDefinition* Definition);
+	void ServerGrantModule(UMASkillModule* Module);
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipInventorySlotToSkillSlot(int32 SourceSlotIndex, FGameplayTag SlotTag, int32 ModuleIndex);

@@ -6,6 +6,7 @@
 #include "Monster.generated.h"
 
 class UStateTree;
+class UMASkillModule;
 
 USTRUCT(BlueprintType)
 struct FMonsterEnvData
@@ -58,6 +59,9 @@ private:
 	void ApplyStatCoefficientEffect();
 	void ApplyEnvMaterials();
 	void InitializeSkills();
+	static bool LoadSkillModules(
+		const TArray<TSoftObjectPtr<UMASkillModule>>& ModuleAssets,
+		TArray<TObjectPtr<UMASkillModule>>& OutModules);
 	bool ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& PatternRow);
 	static const FMonsterSkillPatternRow* ResolvePatternRow(const UDataTable* PatternDataTable, FName RowName, const TCHAR* Context);
 

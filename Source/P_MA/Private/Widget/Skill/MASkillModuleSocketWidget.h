@@ -8,7 +8,7 @@
 class UActorComponent;
 class UImage;
 class UTextBlock;
-class UMASkillDefinition;
+class UMASkillModule;
 class UMASkillModuleInstance;
 class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
@@ -59,10 +59,10 @@ private:
 	static constexpr float HighlightedIconScaleMultiplier = 0.75f;
 	static constexpr float CooldownVisualUpdateInterval = 0.05f;
 	UMASkillModuleInstance* ResolveModuleInstance() const;
-	UMASkillDefinition* ResolveDefinition() const;
+	UMASkillModule* ResolveModule() const;
 	const UDataTable* ResolveWarningTextDataTable() const;
 	bool IsValidSlot() const;
-	void ApplyDefinitionVisual(const UMASkillDefinition* Definition);
+	void ApplyModuleVisual(const UMASkillModule* Module);
 	void ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance);
 	void RefreshCooldownDuration(const UMASkillModuleInstance* ModuleInstance);
 	void RefreshCooldownVisual();
@@ -85,7 +85,7 @@ private:
 	int32 SlotIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> CachedDefinition = nullptr;
+	TObjectPtr<UMASkillModule> CachedModule = nullptr;
 
 	TWeakObjectPtr<UMASkillModuleInstance> BoundModuleInstance;
 	FDelegateHandle ModuleStateChangedHandle;

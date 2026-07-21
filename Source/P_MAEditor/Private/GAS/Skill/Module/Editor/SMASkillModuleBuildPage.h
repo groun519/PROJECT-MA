@@ -24,7 +24,6 @@ private:
 	FReply BuildSelected();
 	FReply BuildRequired();
 	FReply RebuildAll();
-	FReply DeleteGeneratedAsset(FMASkillModuleBuildListItem Item);
 
 	TSharedRef<ITableRow> GenerateBuildRow(
 		FMASkillModuleBuildListItem Item,

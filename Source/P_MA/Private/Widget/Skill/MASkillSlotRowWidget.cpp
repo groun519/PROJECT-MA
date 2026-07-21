@@ -1,7 +1,6 @@
 #include "Widget/Skill/MASkillSlotRowWidget.h"
 
 #include "Components/HorizontalBox.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "Input/MAInputStatics.h"
@@ -64,7 +63,7 @@ void UMASkillSlotRowWidget::Refresh()
 
 	if (SkillIconWidget)
 	{
-		SkillIconWidget->SetSkillDefinition(SkillManager ? SkillManager->GetAssembledDefinition(SlotTag) : nullptr);
+		SkillIconWidget->SetSkillModule(SkillManager ? SkillManager->GetAssembledModule(SlotTag) : nullptr);
 	}
 
 	RebuildModuleSockets(ModuleInstances);

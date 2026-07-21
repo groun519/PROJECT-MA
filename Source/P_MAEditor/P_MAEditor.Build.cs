@@ -11,11 +11,13 @@ public class P_MAEditor : ModuleRules
 		{
 			"AIModule",
 			"AssetRegistry",
+			"AssetTools",
 			"Core",
 			"CoreUObject",
 			"DesktopPlatform",
 			"Engine",
 			"GameplayAbilities",
+			"GameplayTags",
 			"InputCore",
 			"Json",
 			"JsonUtilities",

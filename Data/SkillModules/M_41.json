@@ -1,0 +1,134 @@
+{
+	"ModuleId": 41,
+	"Module":
+	{
+		"ModuleName": "DA_Hematophagy",
+		"DisplayData":
+		{
+			"DisplayName": "Hematophagy",
+			"Description": "<ATK>적중</> 시, <ATK>입힌 피해</>의 <HEAL>10%를 회복</>합니다.\r\n이후 0.2초 간 모듈이 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Hematophagy.T_Hematophagy'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Hematophagy",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.OnHit",
+			"Module.Passive"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Global",
+				"triggerEventTags": [
+					"Event.Skill.Hit"
+				],
+				"durationSeconds": 0.20000000298023224
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SpawnProjectile",
+							"config":
+							{
+								"projectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_Projectile_Hematophagy.BP_Projectile_Hematophagy_C'",
+								"startObjectSource": "ObjectPayload",
+								"startObjectPayloadTag": "Data.Damage.Target",
+								"directionSource": "Self",
+								"directionObjectPayloadTag": "",
+								"bUseTargetTracking": true,
+								"targetTracking":
+								{
+									"targetSource": "Self",
+									"targetObjectPayloadTag": "",
+									"bHitOnlyTarget": false
+								},
+								"spawnSocketName": "None",
+								"maxHitCount": 1,
+								"continuousHitSettings":
+								{
+									"tickInterval": 0.079999998211860657,
+									"minSweepDistance": 10,
+									"maxSweepSegmentLength": 150,
+									"maxSweepSubsteps": 8
+								}
+							},
+							"damagePayloadTag": "Damage.Hematophagy"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Hematophagy",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Heal",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "Data.Damage.Applied",
+								"coefficient": 0.10000000149011612
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 8,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Green"
+						]
+					}
+				}
+			}
+		]
+	}
+}

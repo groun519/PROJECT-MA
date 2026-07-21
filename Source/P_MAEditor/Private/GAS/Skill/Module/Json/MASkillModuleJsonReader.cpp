@@ -1,10 +1,14 @@
-#include "GAS/Skill/Module/Json/MASkillModuleJsonReader.h"
+﻿#include "GAS/Skill/Module/Json/MASkillModuleJsonReader.h"
 
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 #include "GAS/Skill/Module/Json/MASkillModuleDataValidator.h"
 #include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
+#include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
+#include "GameplayTagContainer.h"
+#include "InstancedStruct.h"
+#include "InstancedReferenceSubobjectHelper.h"
 #include "Internationalization/Text.h"
 #include "JsonObjectConverter.h"
 #include "Serialization/JsonReader.h"
@@ -17,6 +21,11 @@ static const FString ClassNameField = TEXT("_ClassName");
 static const FString ModuleIdField = TEXT("ModuleId");
 static const FString ModuleField = TEXT("Module");
 static const FString ModuleNameField = TEXT("ModuleName");
+static const FString ModuleQualityField = TEXT("ModuleQuality");
+static const FString PayloadsField = TEXT("Payloads");
+static const FString RarityField = TEXT("Rarity");
+static const FString StructNameField = TEXT("_StructName");
+static const FString StructValueField = TEXT("Value");
 static const FString TextNamespace = TEXT("SkillModule");
 
 static bool Fail(
@@ -35,14 +44,18 @@ static bool ReadRoot(
 	int32& OutModuleId,
 	TSharedPtr<FJsonObject>& OutModuleObject,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics);
-static bool ValidateJsonObject(
+static bool PrepareJsonObject(
 	const UStruct& Struct,
-	const TSharedRef<FJsonObject>& JsonObject,
+	TSharedRef<FJsonObject> JsonObject,
 	const FString& Path,
 	bool bAllowClassField,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics);
 static void AssignLocalizationKeys(int32 ModuleId, FMASkillModuleData& ModuleData);
-static bool AssignAddonsToOuter(
+static bool ImportPayloadStructs(
+	const TSharedRef<FJsonObject>& ModuleObject,
+	FMASkillModuleData& ModuleData,
+	TArray<FMASkillModuleDiagnostic>& OutDiagnostics);
+static bool AssignInstancedObjectsToOuter(
 	FMASkillModuleData& ModuleData,
 	UObject& Outer,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics);
@@ -75,10 +88,12 @@ bool FMASkillModuleJsonReader::ReadHeader(
 	const FString& Json,
 	int32& OutModuleId,
 	FName& OutModuleName,
+	EMAModuleRarity& OutModuleRarity,
 	FText& OutError)
 {
 	OutModuleId = 0;
 	OutModuleName = NAME_None;
+	OutModuleRarity = FMAModuleQuality().Rarity;
 	OutError = FText::GetEmpty();
 
 	TArray<FMASkillModuleDiagnostic> Diagnostics;
@@ -100,6 +115,36 @@ bool FMASkillModuleJsonReader::ReadHeader(
 	if (ModuleObject->TryGetStringField(ModuleNameField, ModuleName))
 	{
 		OutModuleName = FName(*ModuleName);
+	}
+
+	if (ModuleObject->HasField(ModuleQualityField)
+		&& !ModuleObject->HasTypedField<EJson::Object>(ModuleQualityField))
+	{
+		Fail(Diagnostics, TEXT("Must be an object."), TEXT("Module.ModuleQuality"));
+		OutError = Diagnostics[0].ToText();
+		return false;
+	}
+
+	const TSharedPtr<FJsonObject>* QualityObject = nullptr;
+	if (ModuleObject->TryGetObjectField(ModuleQualityField, QualityObject)
+		&& (*QualityObject)->HasField(RarityField))
+	{
+		FString RarityName;
+		if (!(*QualityObject)->TryGetStringField(RarityField, RarityName))
+		{
+			Fail(Diagnostics, TEXT("Must be a string."), TEXT("Module.ModuleQuality.Rarity"));
+			OutError = Diagnostics[0].ToText();
+			return false;
+		}
+
+		const int64 RarityValue = StaticEnum<EMAModuleRarity>()->GetValueByNameString(RarityName);
+		if (RarityValue == INDEX_NONE)
+		{
+			Fail(Diagnostics, TEXT("Unknown module rarity."), TEXT("Module.ModuleQuality.Rarity"));
+			OutError = Diagnostics[0].ToText();
+			return false;
+		}
+		OutModuleRarity = static_cast<EMAModuleRarity>(RarityValue);
 	}
 	return true;
 }
@@ -140,7 +185,7 @@ static FMASkillModuleReadResult ReadJson(
 			TEXT("ModuleId"));
 		return Result;
 	}
-	if (!ValidateJsonObject(
+	if (!PrepareJsonObject(
 		*FMASkillModuleData::StaticStruct(),
 		ModuleObject.ToSharedRef(),
 		ModuleField,
@@ -168,6 +213,10 @@ static FMASkillModuleReadResult ReadJson(
 				ImportError).ToString());
 		return Result;
 	}
+	if (!ImportPayloadStructs(ModuleObject.ToSharedRef(), ModuleData, Result.Diagnostics))
+	{
+		return Result;
+	}
 
 	FMASkillModuleDiagnostic Diagnostic;
 	if (!FMASkillModuleDataValidator::Validate(ModuleId, ModuleData, Diagnostic))
@@ -176,7 +225,7 @@ static FMASkillModuleReadResult ReadJson(
 		return Result;
 	}
 	AssignLocalizationKeys(ModuleId, ModuleData);
-	if (!AssignAddonsToOuter(ModuleData, AddonOuter, Result.Diagnostics)) return Result;
+	if (!AssignInstancedObjectsToOuter(ModuleData, AddonOuter, Result.Diagnostics)) return Result;
 
 	Result.ModuleId = ModuleId;
 	Result.ModuleData = MoveTemp(ModuleData);
@@ -212,14 +261,68 @@ static FProperty* FindAuthoredProperty(const UStruct& Struct, const FString& Pro
 	return nullptr;
 }
 
-static bool ValidateJsonValue(
-	FProperty& Property,
-	const TSharedPtr<FJsonValue>& JsonValue,
+static UScriptStruct* ResolvePayloadStruct(
+	const TSharedRef<FJsonObject>& JsonObject,
 	const FString& Path,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
 {
-	if (JsonValue->IsNull()) return true;
+	if (JsonObject->Values.Num() != 2
+		|| !JsonObject->HasTypedField<EJson::String>(StructNameField)
+		|| !JsonObject->HasTypedField<EJson::Object>(StructValueField))
+	{
+		Fail(
+			OutDiagnostics,
+			TEXT("Must contain only _StructName and Value."),
+			Path);
+		return nullptr;
+	}
 
+	const FString StructPath = JsonObject->GetStringField(StructNameField);
+	UScriptStruct* ScriptStruct = LoadObject<UScriptStruct>(nullptr, *StructPath);
+	if (!ScriptStruct)
+	{
+		Fail(
+			OutDiagnostics,
+			FString::Printf(TEXT("References unknown struct '%s'."), *StructPath),
+			AppendPropertyPath(Path, StructNameField));
+		return nullptr;
+	}
+	if (!ScriptStruct->IsChildOf(FMASkillPayloadStructBase::StaticStruct()))
+	{
+		Fail(
+			OutDiagnostics,
+			FString::Printf(
+				TEXT("Struct '%s' is not a skill payload struct."),
+				*StructPath),
+			AppendPropertyPath(Path, StructNameField));
+		return nullptr;
+	}
+	return ScriptStruct;
+}
+
+static bool ResolveGameplayTag(
+	const FString& TagName,
+	FGameplayTag& OutTag,
+	const FString& Path,
+	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
+{
+	OutTag = FGameplayTag();
+	if (TagName.IsEmpty()) return true;
+
+	OutTag = FGameplayTag::RequestGameplayTag(FName(*TagName), false);
+	return OutTag.IsValid()
+		|| Fail(
+			OutDiagnostics,
+			FString::Printf(TEXT("References unknown gameplay tag '%s'."), *TagName),
+			Path);
+}
+
+static bool PrepareJsonValue(
+	FProperty& Property,
+	TSharedPtr<FJsonValue>& JsonValue,
+	const FString& Path,
+	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
+{
 	if (FArrayProperty* ArrayProperty = CastField<FArrayProperty>(&Property))
 	{
 		if (JsonValue->Type != EJson::Array)
@@ -227,10 +330,10 @@ static bool ValidateJsonValue(
 			return Fail(OutDiagnostics, TEXT("Must be an array."), Path);
 		}
 
-		const TArray<TSharedPtr<FJsonValue>>& Values = JsonValue->AsArray();
+		TArray<TSharedPtr<FJsonValue>> Values = JsonValue->AsArray();
 		for (int32 Index = 0; Index < Values.Num(); ++Index)
 		{
-			if (!ValidateJsonValue(
+			if (!PrepareJsonValue(
 				*ArrayProperty->Inner,
 				Values[Index],
 				AppendArrayPath(Path, Index),
@@ -239,8 +342,60 @@ static bool ValidateJsonValue(
 				return false;
 			}
 		}
+		JsonValue = MakeShared<FJsonValueArray>(MoveTemp(Values));
 		return true;
 	}
+
+	if (FStructProperty* StructProperty = CastField<FStructProperty>(&Property))
+	{
+		if (StructProperty->Struct == FGameplayTag::StaticStruct())
+		{
+			if (JsonValue->Type != EJson::String)
+			{
+				return Fail(OutDiagnostics, TEXT("Must be a gameplay tag string."), Path);
+			}
+
+			FGameplayTag Tag;
+			return ResolveGameplayTag(JsonValue->AsString(), Tag, Path, OutDiagnostics);
+		}
+		if (StructProperty->Struct == FGameplayTagContainer::StaticStruct())
+		{
+			if (JsonValue->Type != EJson::Array)
+			{
+				return Fail(OutDiagnostics, TEXT("Must be an array of gameplay tag strings."), Path);
+			}
+
+			FGameplayTagContainer Tags;
+			TSet<FGameplayTag> UniqueTags;
+			const TArray<TSharedPtr<FJsonValue>>& Values = JsonValue->AsArray();
+			for (int32 Index = 0; Index < Values.Num(); ++Index)
+			{
+				const FString TagPath = AppendArrayPath(Path, Index);
+				if (Values[Index]->Type != EJson::String)
+				{
+					return Fail(OutDiagnostics, TEXT("Must be a gameplay tag string."), TagPath);
+				}
+
+				FGameplayTag Tag;
+				if (!ResolveGameplayTag(Values[Index]->AsString(), Tag, TagPath, OutDiagnostics)) return false;
+				if (!Tag.IsValid())
+				{
+					return Fail(OutDiagnostics, TEXT("Must not be empty."), TagPath);
+				}
+				if (UniqueTags.Contains(Tag))
+				{
+					return Fail(OutDiagnostics, TEXT("Duplicates a gameplay tag."), TagPath);
+				}
+
+				UniqueTags.Add(Tag);
+				Tags.AddTag(Tag);
+			}
+			JsonValue = MakeShared<FJsonValueString>(Tags.ToString());
+			return true;
+		}
+	}
+
+	if (JsonValue->IsNull()) return true;
 
 	if (CastField<FTextProperty>(&Property))
 	{
@@ -250,8 +405,26 @@ static bool ValidateJsonValue(
 
 	if (FStructProperty* StructProperty = CastField<FStructProperty>(&Property))
 	{
+		if (StructProperty->Struct == FInstancedStruct::StaticStruct())
+		{
+			if (JsonValue->Type != EJson::Object)
+			{
+				return Fail(OutDiagnostics, TEXT("Must be an object."), Path);
+			}
+
+			const TSharedRef<FJsonObject> Object = JsonValue->AsObject().ToSharedRef();
+			UScriptStruct* ScriptStruct = ResolvePayloadStruct(Object, Path, OutDiagnostics);
+			return ScriptStruct
+				&& PrepareJsonObject(
+					*ScriptStruct,
+					Object->GetObjectField(StructValueField).ToSharedRef(),
+					AppendPropertyPath(Path, StructValueField),
+					false,
+					OutDiagnostics);
+		}
+
 		return JsonValue->Type != EJson::Object
-			|| ValidateJsonObject(
+			|| PrepareJsonObject(
 				*StructProperty->Struct,
 				JsonValue->AsObject().ToSharedRef(),
 				Path,
@@ -304,17 +477,17 @@ static bool ValidateJsonValue(
 			Path);
 	}
 
-	return ValidateJsonObject(*ObjectClass, Object, Path, true, OutDiagnostics);
+	return PrepareJsonObject(*ObjectClass, Object, Path, true, OutDiagnostics);
 }
 
-static bool ValidateJsonObject(
+static bool PrepareJsonObject(
 	const UStruct& Struct,
-	const TSharedRef<FJsonObject>& JsonObject,
+	TSharedRef<FJsonObject> JsonObject,
 	const FString& Path,
 	const bool bAllowClassField,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
 {
-	for (const TPair<FString, TSharedPtr<FJsonValue>>& Field : JsonObject->Values)
+	for (TPair<FString, TSharedPtr<FJsonValue>>& Field : JsonObject->Values)
 	{
 		if (Field.Key == ClassNameField)
 		{
@@ -328,7 +501,7 @@ static bool ValidateJsonObject(
 		{
 			return Fail(OutDiagnostics, TEXT("Is not a supported field."), FieldPath);
 		}
-		if (!ValidateJsonValue(*Property, Field.Value, FieldPath, OutDiagnostics)) return false;
+		if (!PrepareJsonValue(*Property, Field.Value, FieldPath, OutDiagnostics)) return false;
 	}
 	return true;
 }
@@ -391,28 +564,127 @@ static bool ReadRoot(
 	return true;
 }
 
-static bool AssignAddonsToOuter(
+static bool ImportPayloadStructs(
+	const TSharedRef<FJsonObject>& ModuleObject,
+	FMASkillModuleData& ModuleData,
+	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
+{
+	const TArray<TSharedPtr<FJsonValue>>* PayloadValues = nullptr;
+	if (!ModuleObject->TryGetArrayField(PayloadsField, PayloadValues)) return true;
+	if (PayloadValues->Num() != ModuleData.Payloads.Num())
+	{
+		return Fail(OutDiagnostics, TEXT("Failed to match imported payload entries."), TEXT("Module.Payloads"));
+	}
+
+	const FProperty* Property = FindFProperty<FProperty>(
+		FMASkillPayloadEntry::StaticStruct(),
+		GET_MEMBER_NAME_CHECKED(FMASkillPayloadEntry, StructValue));
+	check(Property);
+	const FString AuthoredStructValueField =
+		FMASkillPayloadEntry::StaticStruct()->GetAuthoredNameForField(Property);
+
+	for (int32 Index = 0; Index < PayloadValues->Num(); ++Index)
+	{
+		const TSharedPtr<FJsonObject> PayloadObject = (*PayloadValues)[Index]->AsObject();
+		const TSharedPtr<FJsonValue>* StructJsonValue =
+			PayloadObject->Values.Find(AuthoredStructValueField);
+		if (!StructJsonValue || (*StructJsonValue)->IsNull()) continue;
+
+		const FString Path = AppendPropertyPath(
+			AppendArrayPath(TEXT("Module.Payloads"), Index),
+			AuthoredStructValueField);
+		const TSharedRef<FJsonObject> StructObject = (*StructJsonValue)->AsObject().ToSharedRef();
+		UScriptStruct* ScriptStruct = ResolvePayloadStruct(StructObject, Path, OutDiagnostics);
+		if (!ScriptStruct) return false;
+
+		FInstancedStruct& InstancedStruct = ModuleData.Payloads[Index].StructValue;
+		InstancedStruct.InitializeAs(ScriptStruct);
+		FText ImportError;
+		if (!FJsonObjectConverter::JsonObjectToUStruct(
+			StructObject->GetObjectField(StructValueField).ToSharedRef(),
+			ScriptStruct,
+			InstancedStruct.GetMutableMemory(),
+			CPF_Edit,
+			CPF_Transient | CPF_Deprecated | CPF_EditConst,
+			false,
+			&ImportError))
+		{
+			return Fail(
+				OutDiagnostics,
+				FString::Printf(TEXT("Failed to deserialize payload struct: %s"), *ImportError.ToString()),
+				Path);
+		}
+	}
+	return true;
+}
+
+static bool AssignStructObjectsToOuter(
+	const UStruct& Struct,
+	void* StructMemory,
+	UObject& Outer,
+	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
+{
+	bool bSucceeded = true;
+	for (FProperty* Property = Struct.RefLink; Property && bSucceeded; Property = Property->NextRef)
+	{
+		for (int32 ArrayIndex = 0; ArrayIndex < Property->ArrayDim && bSucceeded; ++ArrayIndex)
+		{
+			FInstancedPropertyPath PropertyPath(Property, ArrayIndex);
+			void* Value = Property->ContainerPtrToValuePtr<void>(StructMemory, ArrayIndex);
+			FFindInstancedReferenceSubobjectHelper::ForEachInstancedSubObject<void*>(
+				PropertyPath,
+				Value,
+				[&](const FInstancedSubObjRef& Ref, void*)
+			{
+				UObject* Object = Ref.SubObjInstance;
+				if (!Object || Object->IsIn(&Outer)) return;
+
+				const FName Name = MakeUniqueObjectName(&Outer, Object->GetClass(), Object->GetFName());
+				if (!Object->Rename(
+					*Name.ToString(),
+					&Outer,
+					REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional))
+				{
+					Fail(
+						OutDiagnostics,
+						FString::Printf(
+							TEXT("Failed to assign '%s' to its module owner."),
+							*Object->GetClass()->GetName()),
+						TEXT("Module"));
+					bSucceeded = false;
+				}
+			});
+		}
+	}
+	return bSucceeded;
+}
+
+static bool AssignInstancedObjectsToOuter(
 	FMASkillModuleData& ModuleData,
 	UObject& Outer,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
 {
-	for (int32 Index = 0; Index < ModuleData.Addons.Num(); ++Index)
+	if (!AssignStructObjectsToOuter(
+		*FMASkillModuleData::StaticStruct(),
+		&ModuleData,
+		Outer,
+		OutDiagnostics))
 	{
-		UMASkillModuleAddon* Addon = ModuleData.Addons[Index];
-		if (Addon->GetOuter() == &Outer) continue;
+		return false;
+	}
 
-		const FName Name = MakeUniqueObjectName(&Outer, Addon->GetClass(), Addon->GetFName());
-		if (!Addon->Rename(
-			*Name.ToString(),
-			&Outer,
-			REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional))
+	// FInstancedStruct hides its dynamic property graph from static reflection.
+	for (FMASkillPayloadEntry& Payload : ModuleData.Payloads)
+	{
+		FInstancedStruct& StructValue = Payload.StructValue;
+		if (StructValue.IsValid()
+			&& !AssignStructObjectsToOuter(
+				*StructValue.GetScriptStruct(),
+				StructValue.GetMutableMemory(),
+				Outer,
+				OutDiagnostics))
 		{
-			return Fail(
-				OutDiagnostics,
-				FString::Printf(
-					TEXT("Failed to assign addon '%s' to its owner."),
-					*Addon->GetClass()->GetName()),
-				FString::Printf(TEXT("Module.Addons[%d]"), Index));
+			return false;
 		}
 	}
 	return true;

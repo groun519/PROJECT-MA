@@ -1,10 +1,12 @@
-#if WITH_DEV_AUTOMATION_TESTS
+﻿#if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
 
 #include "Engine/DataTable.h"
 #include "Engine/Texture2D.h"
+#include "GAS/Skill/Action/MASkillAction_MeleeOverlap.h"
 #include "GAS/Skill/Addon/Effect/MASkillModuleGameplayEffectAddon.h"
+#include "GAS/Skill/Addon/Event/MASkillModuleEventBindingAddon.h"
 #include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
@@ -12,6 +14,8 @@
 #include "GAS/Skill/Module/Json/MASkillModuleJsonReader.h"
 #include "GAS/Skill/Module/Json/MASkillModuleJsonWriter.h"
 #include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Delay.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Attribute.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Impulse.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
@@ -30,6 +34,22 @@ namespace
 	{
 		PropertyType* Property = FindPropertyChecked<PropertyType>(*Object.GetClass(), PropertyName);
 		Property->SetPropertyValue_InContainer(&Object, Value);
+	}
+
+	template<typename StructType>
+	void SetStructProperty(UObject& Object, const FName PropertyName, const StructType& Value)
+	{
+		FStructProperty* Property = FindPropertyChecked<FStructProperty>(*Object.GetClass(), PropertyName);
+		check(Property->Struct == StructType::StaticStruct());
+		*Property->ContainerPtrToValuePtr<StructType>(&Object) = Value;
+	}
+
+	template<typename StructType>
+	const StructType& GetStructProperty(const UObject& Object, const FName PropertyName)
+	{
+		FStructProperty* Property = FindPropertyChecked<FStructProperty>(*Object.GetClass(), PropertyName);
+		check(Property->Struct == StructType::StaticStruct());
+		return *Property->ContainerPtrToValuePtr<StructType>(&Object);
 	}
 
 	void AddObjectToArray(UObject& Owner, const FName PropertyName, UObject& Value)
@@ -80,6 +100,17 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 	Module.DisplayData.IconData.Icon = LoadObject<UTexture2D>(
 		nullptr,
 		TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"));
+	const FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Attack"));
+	const FGameplayTag MovementTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Movement"));
+	const FGameplayTag VisualTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Visual.Elemental.Fire"));
+	const FGameplayTag HitEventTag = FGameplayTag::RequestGameplayTag(TEXT("Event.Skill.Hit"));
+	const FGameplayTag DamagePayloadTag = FGameplayTag::RequestGameplayTag(TEXT("Data.Damage.Base"));
+	const FGameplayTag FireDamageTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Fire"));
+	const FGameplayTag HitCueTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Hit.Overlay.Red"));
+	const FGameplayTag StunTag = FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stun"));
+	Module.ModuleTags.AddTag(MovementTag);
+	Module.ModuleTags.AddTag(AttackTag);
+	Module.ModuleVisualTags.AddTag(VisualTag);
 
 	UMASkillModuleStackAddon* StackAddon = NewObject<UMASkillModuleStackAddon>(SourceOwner.Get());
 	SetProperty<int32, FIntProperty>(*StackAddon, TEXT("InitialStack"), 7);
@@ -97,16 +128,43 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 	FMASkillModuleGameplayEffectConfig& EffectConfig =
 		AddStructToArray<FMASkillModuleGameplayEffectConfig>(*EffectAddon, TEXT("GameplayEffects"));
 	EffectConfig.BaseMagnitude = 13.f;
+	EffectConfig.GrantedTags.AddTag(StunTag);
+	EffectConfig.GameplayCueTags.AddTag(HitCueTag);
 	FPropertyChangedEvent EffectPropertyChanged(
 		FindPropertyChecked<FArrayProperty>(*EffectAddon->GetClass(), TEXT("GameplayEffects")));
 	EffectAddon->PostEditChangeProperty(EffectPropertyChanged);
 	TestNotNull(TEXT("Generated EffectDefinition exists before export"), EffectConfig.GetEffectDefinition());
 	Module.Addons.Add(EffectAddon);
 
+	UMASkillModuleEventBindingAddon* EventBindingAddon =
+		NewObject<UMASkillModuleEventBindingAddon>(SourceOwner.Get());
+	FMASkillEventBinding& EventBinding =
+		AddStructToArray<FMASkillEventBinding>(*EventBindingAddon, TEXT("EventBindings"));
+	EventBinding.EventTag = HitEventTag;
+	UMASkillAction_MeleeOverlap* MeleeAction = NewObject<UMASkillAction_MeleeOverlap>(EventBindingAddon);
+	SetStructProperty(*MeleeAction, TEXT("DamagePayloadTag"), DamagePayloadTag);
+	EventBinding.Action = MeleeAction;
+	AddStructToArray<FMASkillEventBinding>(*EventBindingAddon, TEXT("EventBindings"));
+	Module.Addons.Add(EventBindingAddon);
+
 	FMASkillPayloadEntry& Payload = Module.Payloads.AddDefaulted_GetRef();
+	Payload.PayloadTag = DamagePayloadTag;
 	Payload.ValueType = EMASkillPayloadValueType::Struct;
 	Payload.StructValue.InitializeAs<FMASkillDamageConfig>();
-	Payload.StructValue.GetMutable<FMASkillDamageConfig>().BaseDamage = 42.f;
+	FMASkillDamageConfig& DamageConfig = Payload.StructValue.GetMutable<FMASkillDamageConfig>();
+	DamageConfig.BaseDamage = 42.f;
+	DamageConfig.DamageTypeTag = FireDamageTag;
+	DamageConfig.TargetGameplayCueTags.AddTag(HitCueTag);
+	UMASkillStatusEffectKnockback* StatusEffect =
+		NewObject<UMASkillStatusEffectKnockback>(SourceOwner.Get());
+	SetProperty<float, FFloatProperty>(*StatusEffect, TEXT("Magnitude"), 321.f);
+	DamageConfig.StatusEffects.Add(StatusEffect);
+	UMASkillStatusEffect_Slow* SlowStatusEffect = NewObject<UMASkillStatusEffect_Slow>(SourceOwner.Get());
+	FGameplayTagContainer GrantedTags;
+	GrantedTags.AddTag(StunTag);
+	SetStructProperty(*SlowStatusEffect, TEXT("GrantedTags"), GrantedTags);
+	DamageConfig.StatusEffects.Add(SlowStatusEffect);
+	const FString SourceStatusEffectPath = StatusEffect->GetPathName();
 
 	FString JsonA;
 	FText Error;
@@ -116,17 +174,29 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	TestTrue(TEXT("JSON contains polymorphic class data"), JsonA.Contains(TEXT("_ClassName")));
+	TestTrue(TEXT("JSON contains instanced struct type data"), JsonA.Contains(TEXT("_StructName")));
+	TestFalse(TEXT("JSON does not reference the source payload object"), JsonA.Contains(SourceStatusEffectPath));
 	TestTrue(TEXT("JSON contains plain text"), JsonA.Contains(TEXT("\"DisplayName\": \"Slash\"")));
+	TestTrue(TEXT("JSON contains gameplay tag strings"), JsonA.Contains(TEXT("\"DamageTypeTag\": \"DamageType.Fire\"")));
+	TestTrue(TEXT("JSON contains gameplay tag arrays"), JsonA.Contains(TEXT("\"ModuleTags\": [")));
 	TestFalse(TEXT("JSON excludes text identity fields"), JsonA.Contains(TEXT("\"Key\"")));
 	TestFalse(TEXT("Generated EffectDefinition is excluded"), JsonA.Contains(TEXT("EffectDefinition")));
+	TestTrue(TEXT("Null instanced objects serialize as null"), JsonA.Contains(TEXT("\"action\": null")));
 
 	int32 HeaderModuleId = 0;
 	FName HeaderModuleName;
+	EMAModuleRarity HeaderModuleRarity;
 	TestTrue(
 		TEXT("Read module header without importing module data"),
-		FMASkillModuleJsonReader::ReadHeader(JsonA, HeaderModuleId, HeaderModuleName, Error));
+		FMASkillModuleJsonReader::ReadHeader(
+			JsonA,
+			HeaderModuleId,
+			HeaderModuleName,
+			HeaderModuleRarity,
+			Error));
 	TestEqual(TEXT("Header contains ModuleId"), HeaderModuleId, 1201);
 	TestEqual(TEXT("Header contains ModuleName"), HeaderModuleName, FName(TEXT("JsonRoundTrip")));
+	TestEqual(TEXT("Header contains module rarity"), HeaderModuleRarity, EMAModuleRarity::Rarity4);
 
 	TStrongObjectPtr<UDataTable> LoadedOwner(NewObject<UDataTable>());
 	FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner);
@@ -159,7 +229,10 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 		FTextInspector::GetKey(LoadedModule.DisplayData.NameData.Keyword).Get(FString()),
 		FString(TEXT("M_1201_DisplayData_NameData_Keyword")));
 	TestTrue(TEXT("External asset reference round-trips"), LoadedModule.DisplayData.IconData.Icon != nullptr);
-	TestEqual(TEXT("Addon count round-trips"), LoadedModule.Addons.Num(), 3);
+	TestTrue(TEXT("Module tag container round-trips"), LoadedModule.ModuleTags.HasTagExact(AttackTag));
+	TestTrue(TEXT("Module tag order does not lose values"), LoadedModule.ModuleTags.HasTagExact(MovementTag));
+	TestTrue(TEXT("Visual tag container round-trips"), LoadedModule.ModuleVisualTags.HasTagExact(VisualTag));
+	TestEqual(TEXT("Addon count round-trips"), LoadedModule.Addons.Num(), 4);
 	TestTrue(TEXT("StackAddon class round-trips"), LoadedModule.Addons[0]->IsA<UMASkillModuleStackAddon>());
 	TestTrue(TEXT("Loaded addons use the requested owner"), LoadedModule.Addons[0]->IsIn(LoadedOwner.Get()));
 
@@ -196,7 +269,32 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 		if (LoadedConfig)
 		{
 			TestEqual(TEXT("Effect magnitude round-trips"), LoadedConfig->BaseMagnitude, 13.f);
+			TestTrue(TEXT("Effect granted tags round-trip"), LoadedConfig->GrantedTags.HasTagExact(StunTag));
+			TestTrue(TEXT("Effect gameplay cue tags round-trip"), LoadedConfig->GameplayCueTags.HasTagExact(HitCueTag));
 			TestNull(TEXT("Generated EffectDefinition is not source data"), LoadedConfig->GetEffectDefinition());
+		}
+	}
+
+	const UMASkillModuleEventBindingAddon* LoadedEventBinding =
+		Cast<UMASkillModuleEventBindingAddon>(LoadedModule.Addons[3]);
+	TestNotNull(TEXT("EventBindingAddon class round-trips"), LoadedEventBinding);
+	if (LoadedEventBinding)
+	{
+		TestEqual(TEXT("Event binding count round-trips"), LoadedEventBinding->GetEventBindings().Num(), 2);
+		if (LoadedEventBinding->GetEventBindings().Num() == 2)
+		{
+			const FMASkillEventBinding& LoadedBinding = LoadedEventBinding->GetEventBindings()[0];
+			TestEqual(TEXT("Event tag round-trips"), LoadedBinding.EventTag, HitEventTag);
+			const UMASkillAction_MeleeOverlap* LoadedAction = Cast<UMASkillAction_MeleeOverlap>(LoadedBinding.Action);
+			TestNotNull(TEXT("Nested action class round-trips"), LoadedAction);
+			if (LoadedAction)
+			{
+				TestEqual(
+					TEXT("Nested action payload tag round-trips"),
+					GetStructProperty<FGameplayTag>(*LoadedAction, TEXT("DamagePayloadTag")),
+					DamagePayloadTag);
+			}
+			TestNull(TEXT("Null action round-trips"), LoadedEventBinding->GetEventBindings()[1].Action);
 		}
 	}
 
@@ -204,7 +302,38 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 		? LoadedModule.Payloads[0].StructValue.GetPtr<FMASkillDamageConfig>()
 		: nullptr;
 	TestNotNull(TEXT("InstancedStruct type round-trips"), LoadedDamage);
-	if (LoadedDamage) TestEqual(TEXT("InstancedStruct data round-trips"), LoadedDamage->BaseDamage, 42.f);
+	if (LoadedDamage)
+	{
+		TestEqual(TEXT("InstancedStruct data round-trips"), LoadedDamage->BaseDamage, 42.f);
+		TestEqual(TEXT("Damage type tag round-trips"), LoadedDamage->DamageTypeTag, FireDamageTag);
+		TestTrue(TEXT("Damage gameplay cue tags round-trip"), LoadedDamage->TargetGameplayCueTags.HasTagExact(HitCueTag));
+		TestEqual(TEXT("Nested instanced object count round-trips"), LoadedDamage->StatusEffects.Num(), 2);
+		const UMASkillStatusEffectKnockback* LoadedStatusEffect =
+			LoadedDamage->StatusEffects.Num() > 0
+				? Cast<UMASkillStatusEffectKnockback>(LoadedDamage->StatusEffects[0])
+				: nullptr;
+		TestNotNull(TEXT("Nested instanced object class round-trips"), LoadedStatusEffect);
+		if (LoadedStatusEffect)
+		{
+			TestTrue(TEXT("Nested instanced object uses the requested owner"), LoadedStatusEffect->IsIn(LoadedOwner.Get()));
+			const FFloatProperty* MagnitudeProperty =
+				FindPropertyChecked<FFloatProperty>(*LoadedStatusEffect->GetClass(), TEXT("Magnitude"));
+			TestEqual(
+				TEXT("Nested instanced object data round-trips"),
+				MagnitudeProperty->GetPropertyValue_InContainer(LoadedStatusEffect),
+				321.f);
+		}
+		const UMASkillStatusEffect_Slow* LoadedSlow = LoadedDamage->StatusEffects.Num() > 1
+			? Cast<UMASkillStatusEffect_Slow>(LoadedDamage->StatusEffects[1])
+			: nullptr;
+		TestNotNull(TEXT("Nested attribute status effect round-trips"), LoadedSlow);
+		if (LoadedSlow)
+		{
+			TestTrue(
+				TEXT("Nested status effect tags round-trip"),
+				GetStructProperty<FGameplayTagContainer>(*LoadedSlow, TEXT("GrantedTags")).HasTagExact(StunTag));
+		}
+	}
 
 	FString JsonB;
 	if (!TestTrue(
@@ -295,6 +424,47 @@ bool FMASkillModuleJsonValidationTest::RunTest(const FString& Parameters)
 			ReadResult.Diagnostics[0].Path,
 			FString(TEXT("Module.UnknownField")));
 	}
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleTags\":{}}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Gameplay tag container object is rejected"), ReadResult.IsValid());
+	if (TestFalse(TEXT("Invalid gameplay tag container returns a diagnostic"), ReadResult.Diagnostics.IsEmpty()))
+	{
+		TestEqual(
+			TEXT("Gameplay tag container diagnostic identifies its field"),
+			ReadResult.Diagnostics[0].Path,
+			FString(TEXT("Module.ModuleTags")));
+	}
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleTags\":[\"Module.DoesNotExist\"]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Unknown gameplay tag is rejected"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleTags\":[\"Module.Attack\",\"Module.Attack\"]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Duplicate gameplay tag is rejected"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"Payloads\":[{\"structValue\":{\"_StructName\":" )
+		TEXT("\"/Script/P_MA.MASkillDamageConfig\",\"Value\":{\"DamageTypeTag\":{}}}}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Gameplay tag object inside payload is rejected"), ReadResult.IsValid());
+	if (TestFalse(TEXT("Invalid payload tag returns a diagnostic"), ReadResult.Diagnostics.IsEmpty()))
+	{
+		TestEqual(
+			TEXT("Nested gameplay tag diagnostic identifies its field"),
+			ReadResult.Diagnostics[0].Path,
+			FString(TEXT("Module.Payloads[0].structValue.Value.DamageTypeTag")));
+	}
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"Payloads\":[{\"structValue\":{\"_StructName\":")
+		TEXT("\"/Script/CoreUObject.Vector\",\"Value\":{}}}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Non-payload InstancedStruct type is rejected"), ReadResult.IsValid());
 	return !HasAnyErrors();
 }
 

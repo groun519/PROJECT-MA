@@ -9,7 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
@@ -609,11 +609,11 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 	{
 		if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
 		{
-			UMASkillDefinition* AttackSkillDefinition = WeaponDataRow ? WeaponDataRow->AttackSkillDefinition.LoadSynchronous() : nullptr;
-			SkillManager->ReplaceDefinitionAt(
+			UMASkillModule* AttackSkillModule = WeaponDataRow ? WeaponDataRow->AttackSkillModule.LoadSynchronous() : nullptr;
+			SkillManager->ReplaceModuleAt(
 				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.1")),
 				0,
-				AttackSkillDefinition);
+				AttackSkillModule);
 		}
 	}
 

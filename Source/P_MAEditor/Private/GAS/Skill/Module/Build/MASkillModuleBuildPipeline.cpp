@@ -2,7 +2,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Engine/AssetManagerSettings.h"
-#include "GAS/Skill/Module/MASkillModuleAsset.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
 #include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
 #include "HAL/FileManager.h"
@@ -151,7 +151,7 @@ bool FMASkillModuleBuildPipeline::CollectStatus(
 
 	FARFilter Filter;
 	Filter.PackagePaths.Add(*GeneratedAssetDirectory);
-	Filter.ClassPaths.Add(UMASkillModuleAsset::StaticClass()->GetClassPathName());
+	Filter.ClassPaths.Add(UMASkillModule::StaticClass()->GetClassPathName());
 	Filter.bRecursivePaths = true;
 
 	FAssetRegistryModule& AssetRegistry =
@@ -164,8 +164,8 @@ bool FMASkillModuleBuildPipeline::CollectStatus(
 
 		FMASkillModuleBuildItem Item;
 		Item.GeneratedAssetPath = AssetData.GetSoftObjectPath();
-		AssetData.GetTagValue(UMASkillModuleAsset::GetLastBuiltAtTag(), Item.LastBuiltAt);
-		if (!AssetData.GetTagValue(UMASkillModuleAsset::GetModuleIdTag(), Item.ModuleId)
+		AssetData.GetTagValue(UMASkillModule::GetLastBuiltAtTag(), Item.LastBuiltAt);
+		if (!AssetData.GetTagValue(UMASkillModule::GetModuleIdTag(), Item.ModuleId)
 			|| Item.ModuleId <= 0)
 		{
 			Item.StatusDetail = FText::FromString(TEXT("Generated asset has an invalid ModuleId."));
@@ -303,7 +303,7 @@ bool FMASkillModuleBuildPipeline::DeleteGeneratedAsset(
 	{
 		return true;
 	}
-	if (AssetData.AssetClassPath != UMASkillModuleAsset::StaticClass()->GetClassPathName())
+	if (AssetData.AssetClassPath != UMASkillModule::StaticClass()->GetClassPathName())
 	{
 		return Fail(OutError, TEXT("The selected asset is not a generated skill module asset."));
 	}
@@ -344,7 +344,7 @@ bool FMASkillModuleBuildPipeline::ResolveNextModuleId(
 
 	FARFilter Filter;
 	Filter.PackagePaths.Add(*GeneratedAssetDirectory);
-	Filter.ClassPaths.Add(UMASkillModuleAsset::StaticClass()->GetClassPathName());
+	Filter.ClassPaths.Add(UMASkillModule::StaticClass()->GetClassPathName());
 	Filter.bRecursivePaths = true;
 	FAssetRegistryModule& AssetRegistry =
 		FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -355,7 +355,7 @@ bool FMASkillModuleBuildPipeline::ResolveNextModuleId(
 		if (!FPackageName::DoesPackageExist(AssetData.PackageName.ToString())) continue;
 
 		int32 ModuleId = 0;
-		if (AssetData.GetTagValue(UMASkillModuleAsset::GetModuleIdTag(), ModuleId))
+		if (AssetData.GetTagValue(UMASkillModule::GetModuleIdTag(), ModuleId))
 		{
 			MaxModuleId = FMath::Max(MaxModuleId, ModuleId);
 		}
@@ -389,7 +389,7 @@ bool FMASkillModuleBuildPipeline::ResolveGeneratedAssetDirectory(
 	const FPrimaryAssetTypeInfo* TypeInfo = Settings->PrimaryAssetTypesToScan.FindByPredicate(
 		[](const FPrimaryAssetTypeInfo& Candidate)
 		{
-			return Candidate.PrimaryAssetType == UMASkillModuleAsset::PrimaryAssetType;
+			return Candidate.PrimaryAssetType == UMASkillModule::PrimaryAssetType;
 		});
 	if (!TypeInfo)
 	{

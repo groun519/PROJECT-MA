@@ -8,9 +8,9 @@
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
@@ -30,11 +30,11 @@ static FGameplayTag ResolveMovementDamageVisualElementTag(
 	const FMASkillScopes& Scopes,
 	const UMASkillAbility& SkillAbility)
 {
-	const UMASkillDefinition* ModuleDefinition = Scopes.Module
-		? Scopes.Module->GetDefinition()
+	const UMASkillModule* Module = Scopes.Module
+		? Scopes.Module->GetModule()
 		: nullptr;
-	const FGameplayTag ModuleVisualElementTag = ModuleDefinition
-		? ModuleDefinition->GetVisualElementTag()
+	const FGameplayTag ModuleVisualElementTag = Module
+		? Module->GetVisualElementTag()
 		: FGameplayTag();
 	return ModuleVisualElementTag.IsValid()
 		? ModuleVisualElementTag

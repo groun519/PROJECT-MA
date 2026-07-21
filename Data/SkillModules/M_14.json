@@ -1,0 +1,76 @@
+{
+	"ModuleId": 14,
+	"Module":
+	{
+		"ModuleName": "DA_HotBlood",
+		"DisplayData":
+		{
+			"DisplayName": "Cold Blood",
+			"Description": "자신의 온도가 상승한 비율 만큼, 공격력이 증가합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_HotBlood.T_HotBlood'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyAttribute",
+							"target": "Self",
+							"targetPayloadTag": "",
+							"attribute":
+							{
+								"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+							},
+							"operation": "Multiplicitive",
+							"baseValue": 1,
+							"eventMagnitudeCoefficient": 0,
+							"attributeCoefficients": [
+								{
+									"source": "Source",
+									"gameplayAttribute":
+									{
+										"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
+									},
+									"payloadTag": "",
+									"coefficient": 0.0099999997764825821
+								}
+							]
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

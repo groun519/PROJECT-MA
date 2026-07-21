@@ -10,7 +10,7 @@ class UPanelWidget;
 class UTextBlock;
 class UTexture2D;
 class UDataTable;
-class UMASkillDefinition;
+class UMASkillModule;
 class UMASkillTagBadgeWidget;
 class UMASkillTooltipMessageWidget;
 struct FMASkillIconData;
@@ -22,7 +22,7 @@ class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
 
 public:
 	void SetSkillTooltip(
-		const UMASkillDefinition* SkillDefinition,
+		const UMASkillModule* SkillModule,
 		const FGameplayTag& InactiveReasonTag = FGameplayTag(),
 		const UDataTable* WarningTextDataTable = nullptr,
 		bool bShowTagsAndMessages = true);
@@ -51,11 +51,11 @@ protected:
 
 private:
 	void SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
-	void SetCooldown(const UMASkillDefinition* SkillDefinition);
+	void SetCooldown(const UMASkillModule* SkillModule);
 	void SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable);
 	void SetTooltipMessages(
 		const FGameplayTagContainer& TooltipTags,
 		const FGameplayTag& InactiveReasonTag,
 		const UDataTable* WarningTextDataTable);
-	FText ResolveCooldownText(const UMASkillDefinition* SkillDefinition) const;
+	FText ResolveCooldownText(const UMASkillModule* SkillModule) const;
 };

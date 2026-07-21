@@ -7,7 +7,7 @@
 class UButton;
 class UImage;
 class UMaterialInstanceDynamic;
-class UMASkillDefinition;
+class UMASkillModule;
 class ULoadoutWeaponModuleButtonWidget;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutWeaponModuleSelected, ULoadoutWeaponModuleButtonWidget*);
@@ -20,8 +20,8 @@ class P_MA_API ULoadoutWeaponModuleButtonWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
-	void SetModuleDefinition(UMASkillDefinition* InModuleDefinition);
-	UMASkillDefinition* GetModuleDefinition() const { return ModuleDefinition; }
+	void SetModule(UMASkillModule* InModule);
+	UMASkillModule* GetModule() const { return Module; }
 	void SetSelected(bool bSelected);
 
 	FOnLoadoutWeaponModuleSelected OnModuleSelected;
@@ -40,7 +40,7 @@ private:
 	void RefreshIcon();
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> ModuleDefinition;
+	TObjectPtr<UMASkillModule> Module;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> IconMaterial;

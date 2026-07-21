@@ -1,8 +1,8 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 
 #include "GAS/Skill/Definition/Assembly/MASkillFeatureAssemblers.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 
@@ -11,26 +11,26 @@ struct FMASkillModuleActivationResolver
 	explicit FMASkillModuleActivationResolver(bool bInPassiveSlot)
 		: bPassiveSlot(bInPassiveSlot) {}
 
-	const UMASkillDefinition* Resolve(UMASkillModuleInstance& ModuleInstance)
+	const UMASkillModule* Resolve(UMASkillModuleInstance& ModuleInstance)
 	{
-		const UMASkillDefinition* Definition = ModuleInstance.GetDefinition();
-		if (!Definition) return nullptr;
+		const UMASkillModule* Module = ModuleInstance.GetModule();
+		if (!Module) return nullptr;
 
-		if (bPassiveSlot != Definition->GetModuleTags().HasTagExact(PassiveModuleTag))
+		if (bPassiveSlot != Module->GetModuleTags().HasTagExact(PassiveModuleTag))
 		{
 			ModuleInstance.SetActive(false, PassiveModuleTag);
 			return nullptr;
 		}
 
 		FGameplayTag BlockingAssemblyTag;
-		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())
+		for (const FGameplayTag& ModuleTag : Module->GetModuleTags())
 		{
 			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
 			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
-				if (const TSet<const UMASkillDefinition*>* UsedDefinitions = UsedUniqueDefinitionsByTag.Find(ModuleTag);
-					UsedDefinitions && UsedDefinitions->Contains(Definition))
+				if (const TSet<const UMASkillModule*>* UsedModules = UsedUniqueModulesByTag.Find(ModuleTag);
+					UsedModules && UsedModules->Contains(Module))
 				{
 					BlockingAssemblyTag = ModuleTag;
 					break;
@@ -51,13 +51,13 @@ struct FMASkillModuleActivationResolver
 			return nullptr;
 		}
 
-		for (const FGameplayTag& ModuleTag : Definition->GetModuleTags())
+		for (const FGameplayTag& ModuleTag : Module->GetModuleTags())
 		{
 			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
 			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
-				UsedUniqueDefinitionsByTag.FindOrAdd(ModuleTag).Add(Definition);
+				UsedUniqueModulesByTag.FindOrAdd(ModuleTag).Add(Module);
 			}
 			else
 			{
@@ -66,7 +66,7 @@ struct FMASkillModuleActivationResolver
 		}
 
 		ModuleInstance.SetActive(true);
-		return Definition;
+		return Module;
 	}
 
 	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
@@ -74,7 +74,7 @@ struct FMASkillModuleActivationResolver
 	const FGameplayTag PassiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Passive"));
 	const bool bPassiveSlot;
 	TSet<FGameplayTag> UsedExclusiveModuleTags;
-	TMap<FGameplayTag, TSet<const UMASkillDefinition*>> UsedUniqueDefinitionsByTag;
+	TMap<FGameplayTag, TSet<const UMASkillModule*>> UsedUniqueModulesByTag;
 };
 
 UMASkillModuleInstance* FMASkillAssembler::Assemble(
@@ -85,7 +85,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	check(Outer);
 
 	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
-	UMASkillDefinition* AssembledDefinition = nullptr;
+	UMASkillModule* AssembledModule = nullptr;
 	FMASkillModuleActivationResolver ActivationResolver(FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag));
 	TMap<int32, FText> NameKeywordsByPriority;
 	int32 PriorityOneIconCount = 0;
@@ -93,19 +93,19 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	auto AppendDisplayData = [
 		&NameKeywordsByPriority,
 		&PriorityOneIconCount,
-		&AssembledDefinition](const UMASkillDefinition& Definition)
+		&AssembledModule](const UMASkillModule& Module)
 	{
-		const FMASkillDefinitionDisplayData& DisplayData = Definition.GetDisplayData();
+		const FMASkillDefinitionDisplayData& DisplayData = Module.GetDisplayData();
 		const FMASkillDefinitionIconData& IconData = DisplayData.IconData;
 		if (IconData.Priority == 1 && IconData.Icon)
 		{
 			if (PriorityOneIconCount == 0)
 			{
-				AssembledDefinition->DisplayData.IconData.Icon = IconData.Icon;
+				AssembledModule->ModuleData.DisplayData.IconData.Icon = IconData.Icon;
 			}
 			else if (PriorityOneIconCount == 1)
 			{
-				AssembledDefinition->AssembledSubIcon = IconData.Icon;
+				AssembledModule->ModuleData.AssembledSubIcon = IconData.Icon;
 			}
 			++PriorityOneIconCount;
 		}
@@ -121,34 +121,34 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	{
 		if (!RootModuleInstance) continue;
 
-		const UMASkillDefinition* Definition = ActivationResolver.Resolve(*RootModuleInstance);
-		if (!Definition) continue;
+		const UMASkillModule* Module = ActivationResolver.Resolve(*RootModuleInstance);
+		if (!Module) continue;
 
-		if (!AssembledDefinition)
+		if (!AssembledModule)
 		{
 			AssembledModuleInstance = NewObject<UMASkillModuleInstance>(Outer);
 			check(AssembledModuleInstance);
 			AssembledModuleInstance->RuntimeRegistry = NewObject<UMASkillRuntimeRegistry>(AssembledModuleInstance);
 			check(AssembledModuleInstance->RuntimeRegistry);
 
-			AssembledDefinition = NewObject<UMASkillDefinition>(AssembledModuleInstance);
-			check(AssembledDefinition);
-			AssembledDefinition->ResetAssemblyData();
-			AssembledModuleInstance->SetDefinition(AssembledDefinition);
+			AssembledModule = NewObject<UMASkillModule>(AssembledModuleInstance);
+			check(AssembledModule);
+			AssembledModule->ResetAssemblyData();
+			AssembledModuleInstance->SetModule(AssembledModule);
 		}
 
 		const FMASkillScopes TargetScopes(RootModuleInstance, AssembledModuleInstance);
 
-		AssembledDefinition->ModuleVisualTags.AppendTags(Definition->ModuleVisualTags);
-		AppendDisplayData(*Definition);
-		FMASkillCooldownAssembler::AppendFrom(*AssembledDefinition, *Definition);
-		FMASkillPayloadAssembler::AppendFrom(*AssembledDefinition, *Definition);
-		FMASkillEventSourceAssembler::AppendFrom(*AssembledDefinition, *Definition);
-		FMASkillEventBindingAssembler::AppendFrom(*AssembledDefinition, *Definition, *RootModuleInstance, *AssembledModuleInstance);
-		FMASkillSequenceAssembler::AppendFrom(*AssembledDefinition, *Definition, TargetScopes);
+		AssembledModule->ModuleData.ModuleVisualTags.AppendTags(Module->GetModuleData().ModuleVisualTags);
+		AppendDisplayData(*Module);
+		FMASkillCooldownAssembler::AppendFrom(*AssembledModule, *Module);
+		FMASkillPayloadAssembler::AppendFrom(*AssembledModule, *Module);
+		FMASkillEventSourceAssembler::AppendFrom(*AssembledModule, *Module);
+		FMASkillEventBindingAssembler::AppendFrom(*AssembledModule, *Module, *RootModuleInstance, *AssembledModuleInstance);
+		FMASkillSequenceAssembler::AppendFrom(*AssembledModule, *Module, TargetScopes);
 	}
 
-	if (AssembledDefinition && !NameKeywordsByPriority.IsEmpty())
+	if (AssembledModule && !NameKeywordsByPriority.IsEmpty())
 	{
 		TArray<int32> Priorities;
 		NameKeywordsByPriority.GetKeys(Priorities);
@@ -167,13 +167,13 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			AssembledName.Append(Keyword->ToString());
 		}
 
-		AssembledDefinition->DisplayData.DisplayName = FText::FromString(AssembledName);
-		AssembledDefinition->DisplayData.NameData.Keyword = FText::FromString(AssembledName);
+		AssembledModule->ModuleData.DisplayData.DisplayName = FText::FromString(AssembledName);
+		AssembledModule->ModuleData.DisplayData.NameData.Keyword = FText::FromString(AssembledName);
 	}
 
-	if (AssembledDefinition)
+	if (AssembledModule)
 	{
-		FMASkillSequenceAssembler::Finalize(*AssembledDefinition);
+		FMASkillSequenceAssembler::Finalize(*AssembledModule);
 	}
 
 	return AssembledModuleInstance;

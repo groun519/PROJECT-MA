@@ -1,6 +1,6 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
@@ -11,22 +11,22 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UMASkillModuleInstance, Definition);
+	DOREPLIFETIME(UMASkillModuleInstance, Module);
 	DOREPLIFETIME(UMASkillModuleInstance, AddonRuntimeData);
 	DOREPLIFETIME(UMASkillModuleInstance, ModuleCooldownEndTimeSeconds);
 }
 
-void UMASkillModuleInstance::SetDefinition(UMASkillDefinition* InDefinition)
+void UMASkillModuleInstance::SetModule(UMASkillModule* InModule)
 {
-	Definition = InDefinition;
+	Module = InModule;
 	AddonRuntimeData.Reset();
-	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
+	if (Module) Module->InitializeAddonRuntimeData(AddonRuntimeData);
 	InitializePayloadStore();
 }
 
-void UMASkillModuleInstance::OnRep_Definition()
+void UMASkillModuleInstance::OnRep_Module()
 {
-	if (Definition) Definition->InitializeAddonRuntimeData(AddonRuntimeData);
+	if (Module) Module->InitializeAddonRuntimeData(AddonRuntimeData);
 	InitializePayloadStore();
 	OnStateChanged.Broadcast();
 }
@@ -66,14 +66,14 @@ void UMASkillModuleInstance::NotifyAddonRuntimeDataChanged()
 void UMASkillModuleInstance::InitializePayloadStore()
 {
 	PayloadStore.Reset();
-	if (Definition) Definition->ApplyPayloadsTo(PayloadStore);
+	if (Module) Module->ApplyPayloadsTo(PayloadStore);
 	RefreshAddonPayloadMirrors();
 }
 
 void UMASkillModuleInstance::RefreshAddonPayloadMirrors()
 {
-	if (!Definition) return;
-	Definition->ApplyAddonPayloadMirrors(AddonRuntimeData, PayloadStore);
+	if (!Module) return;
+	Module->ApplyAddonPayloadMirrors(AddonRuntimeData, PayloadStore);
 }
 
 bool UMASkillModuleInstance::IsCooldownActive() const

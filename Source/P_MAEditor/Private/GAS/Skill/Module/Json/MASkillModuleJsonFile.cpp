@@ -84,6 +84,7 @@ bool FMASkillModuleJsonFile::ReadHeader(
 	const FString& FilePath,
 	int32& OutModuleId,
 	FName& OutModuleName,
+	EMAModuleRarity& OutModuleRarity,
 	FText& OutError)
 {
 	TArray<uint8> Bytes;
@@ -91,7 +92,12 @@ bool FMASkillModuleJsonFile::ReadHeader(
 
 	FString Json;
 	FFileHelper::BufferToString(Json, Bytes.GetData(), Bytes.Num());
-	return FMASkillModuleJsonReader::ReadHeader(Json, OutModuleId, OutModuleName, OutError);
+	return FMASkillModuleJsonReader::ReadHeader(
+		Json,
+		OutModuleId,
+		OutModuleName,
+		OutModuleRarity,
+		OutError);
 }
 
 bool FMASkillModuleJsonFile::ResolveModuleId(
@@ -122,5 +128,6 @@ bool FMASkillModuleJsonFile::ResolveModuleIdFromContent(
 	FText& OutError)
 {
 	FName IgnoredModuleName;
-	return ReadHeader(SourceFile, OutModuleId, IgnoredModuleName, OutError);
+	EMAModuleRarity IgnoredModuleRarity;
+	return ReadHeader(SourceFile, OutModuleId, IgnoredModuleName, IgnoredModuleRarity, OutError);
 }

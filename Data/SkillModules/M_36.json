@@ -1,0 +1,97 @@
+{
+	"ModuleId": 36,
+	"Module":
+	{
+		"ModuleName": "DA_Elemental_Fire",
+		"DisplayData":
+		{
+			"DisplayName": "Fire Rune",
+			"Description": "<ATK>적중 시</>, 대상에게 <FIRE>10의 화염속성 피해</>를 입힙니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Fire.T_Fire'",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "Fire",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Elemental",
+			"Module.OnHit"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Elemental.Fire"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.Fire"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Fire",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 10,
+						"DamageTypeTag": "DamageType.Fire",
+						"AttributeCoefficients": [],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 5,
+							"TickCount": 4
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red"
+						]
+					}
+				}
+			}
+		]
+	}
+}

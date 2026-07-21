@@ -1,0 +1,194 @@
+{
+	"ModuleId": 13,
+	"Module":
+	{
+		"ModuleName": "DA_Devour",
+		"DisplayData":
+		{
+			"DisplayName": "Devour",
+			"Description": "부채꼴 범위로 공격하며,\r\n조금 더 큰 범위로 대상에게 <STUN>1초의 기절</>을 적용하고, <KNB>0.25초 동안 1m의 그랩</>을 적용합니다.\r\n이후, <BD>25</>+<ATK>100%</>+<HP>최대 체력의 5%</><ATK>의 피해</>를 입힙니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>\r\n이후 60초 동안 모듈이 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Devour.T_Devour'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Devour",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity6"
+		},
+		"ModuleTags": [
+			"Module.Attack",
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Skill",
+				"triggerEventTags": [
+					"Event.Skill.End"
+				],
+				"durationSeconds": 60
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_End"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Devour",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
+							"damagePayloadTag": "Damage"
+						}
+					},
+					{
+						"eventTag": "Event.Montage.Devour.Grab",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
+							"damagePayloadTag": "Damage.Devour.Grab"
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.1499999761581421
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Devour.AM_Devour'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 25,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 1
+							},
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								},
+								"payloadTag": "",
+								"coefficient": 0.05000000074505806
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Golem",
+							"GameplayCue.Hit.Overlay.Red"
+						]
+					}
+				}
+			},
+			{
+				"payloadTag": "Damage.Devour.Grab",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectStun",
+								"duration": 1
+							},
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectGrab",
+								"magnitude": 400,
+								"duration": 0.25,
+								"sourceType": "Instigator"
+							}
+						],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

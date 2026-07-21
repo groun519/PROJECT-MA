@@ -22,6 +22,7 @@ struct FMASkillModuleJsonReader
 		const FString& Json,
 		int32& OutModuleId,
 		FName& OutModuleName,
+		EMAModuleRarity& OutModuleRarity,
 		FText& OutError);
 
 	static FMASkillModuleReadResult Read(const FString& Json, UObject& AddonOuter);

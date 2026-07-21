@@ -4,10 +4,8 @@
 #include "Misc/MessageDialog.h"
 #include "Misc/Paths.h"
 #include "Styling/AppStyle.h"
-#include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
-#include "Widgets/Layout/SSpacer.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/SHeaderRow.h"
@@ -16,7 +14,6 @@
 
 #define LOCTEXT_NAMESPACE "MASkillModuleBuildPage"
 
-static const FName ActionColumn = TEXT("Action");
 static const FName ModuleIdColumn = TEXT("ModuleId");
 static const FName SourceColumn = TEXT("Source");
 static const FName StatusColumn = TEXT("Status");
@@ -66,32 +63,16 @@ class SMASkillModuleBuildRow final : public SMultiColumnTableRow<FMASkillModuleB
 public:
 	SLATE_BEGIN_ARGS(SMASkillModuleBuildRow) {}
 		SLATE_ARGUMENT(FMASkillModuleBuildListItem, Item)
-		SLATE_EVENT(FOnClicked, OnDeleteGeneratedAsset)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTable)
 	{
 		Item = InArgs._Item;
-		OnDeleteGeneratedAsset = InArgs._OnDeleteGeneratedAsset;
 		SMultiColumnTableRow::Construct(FSuperRowType::FArguments().Padding(2.f), OwnerTable);
 	}
 
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
-		if (ColumnName == ActionColumn)
-		{
-			if (!Item->GeneratedAssetPath.IsValid()) return SNew(SSpacer);
-
-			return SNew(SButton)
-				.ButtonColorAndOpacity(FLinearColor(0.45f, 0.04f, 0.03f, 1.f))
-				.ContentPadding(FMargin(4.f, 1.f))
-				.ToolTipText(LOCTEXT("DeleteGeneratedAsset", "Delete generated asset"))
-				.OnClicked(OnDeleteGeneratedAsset)
-				[
-					SNew(SImage)
-					.Image(FAppStyle::GetBrush("Icons.Delete"))
-				];
-		}
 		if (ColumnName == StatusColumn)
 		{
 			return SNew(SHorizontalBox)
@@ -145,7 +126,6 @@ public:
 
 private:
 	FMASkillModuleBuildListItem Item;
-	FOnClicked OnDeleteGeneratedAsset;
 };
 
 void SMASkillModuleBuildPage::Construct(const FArguments&)
@@ -241,8 +221,6 @@ void SMASkillModuleBuildPage::Construct(const FArguments&)
 				.HeaderRow
 				(
 					SNew(SHeaderRow)
-					+ SHeaderRow::Column(ActionColumn)
-					.FixedWidth(34.f)
 					+ SHeaderRow::Column(StatusColumn)
 					.DefaultLabel(LOCTEXT("StatusColumn", "Status"))
 					.FixedWidth(110.f)
@@ -318,39 +296,12 @@ FReply SMASkillModuleBuildPage::RebuildAll()
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleBuildPage::DeleteGeneratedAsset(const FMASkillModuleBuildListItem Item)
-{
-	if (!Item || !Item->GeneratedAssetPath.IsValid()) return FReply::Handled();
-
-	const EAppReturnType::Type Confirmation = FMessageDialog::Open(
-		EAppMsgType::YesNo,
-		FText::Format(
-			LOCTEXT(
-				"ConfirmDeleteGeneratedAsset",
-				"Delete generated asset '{0}'?\nThe source JSON will not be changed."),
-			FText::FromString(Item->GeneratedAssetPath.GetAssetName())));
-	if (Confirmation != EAppReturnType::Yes) return FReply::Handled();
-
-	FText Error;
-	if (!FMASkillModuleBuildPipeline::DeleteGeneratedAsset(Item->GeneratedAssetPath, Error))
-	{
-		ShowError(Error);
-		return FReply::Handled();
-	}
-
-	if (!RefreshItems()) return FReply::Handled();
-	StatusText = LOCTEXT("DeleteGeneratedAssetSucceeded", "Deleted the generated module asset.");
-	return FReply::Handled();
-}
-
 TSharedRef<ITableRow> SMASkillModuleBuildPage::GenerateBuildRow(
 	FMASkillModuleBuildListItem Item,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return SNew(SMASkillModuleBuildRow, OwnerTable)
-		.Item(Item)
-		.OnDeleteGeneratedAsset(
-			FOnClicked::CreateSP(this, &SMASkillModuleBuildPage::DeleteGeneratedAsset, Item));
+		.Item(Item);
 }
 
 bool SMASkillModuleBuildPage::RefreshItems()

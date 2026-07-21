@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
@@ -19,7 +19,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="StatusEffect", meta=(ClampMin="0.0"))
 	float Duration = 3.f;
 
-	UPROPERTY(EditDefaultsOnly, Instanced, Category="Internal")
+	UPROPERTY(VisibleDefaultsOnly, Instanced, Category="Internal")
 	TObjectPtr<UMAGameplayEffect_StatusEffectAttribute> EffectTemplate;
 
 	UPROPERTY(EditDefaultsOnly, Category="Internal")

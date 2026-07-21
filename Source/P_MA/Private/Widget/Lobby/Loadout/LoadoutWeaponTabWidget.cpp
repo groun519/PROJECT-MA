@@ -5,7 +5,7 @@
 #include "Components/ScrollBox.h"
 #include "Engine/DataTable.h"
 #include "Framework/MAGameInstance.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "Level/Lobby/LobbyPlayerController.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
@@ -109,20 +109,20 @@ void ULoadoutWeaponTabWidget::RefreshProvidedModules(const FLoadoutWeaponDataRow
 
 	if (!WeaponData || !ModuleButtonClass) return;
 
-	TArray<UMASkillDefinition*> ProvidedModules;
-	if (UMASkillDefinition* AttackSkillDefinition = WeaponData->AttackSkillDefinition.LoadSynchronous())
+	TArray<UMASkillModule*> ProvidedModules;
+	if (UMASkillModule* AttackSkillModule = WeaponData->AttackSkillModule.LoadSynchronous())
 	{
-		ProvidedModules.Add(AttackSkillDefinition);
+		ProvidedModules.Add(AttackSkillModule);
 	}
 
 	ULoadoutWeaponModuleButtonWidget* DefaultModuleButton = nullptr;
-	for (UMASkillDefinition* ModuleDefinition : ProvidedModules)
+	for (UMASkillModule* Module : ProvidedModules)
 	{
 		ULoadoutWeaponModuleButtonWidget* ModuleButton =
 			CreateWidget<ULoadoutWeaponModuleButtonWidget>(this, ModuleButtonClass);
 		if (!ModuleButton) continue;
 
-		ModuleButton->SetModuleDefinition(ModuleDefinition);
+		ModuleButton->SetModule(Module);
 		ModuleButton->OnModuleSelected.AddUObject(this, &ULoadoutWeaponTabWidget::HandleProvidedModuleSelected);
 		ProvidedModulePanel->AddChild(ModuleButton);
 		if (!DefaultModuleButton) DefaultModuleButton = ModuleButton;
@@ -149,13 +149,13 @@ void ULoadoutWeaponTabWidget::SelectProvidedModule(ULoadoutWeaponModuleButtonWid
 		SelectedModuleButton->SetSelected(true);
 	}
 
-	UMASkillDefinition* ModuleDefinition = ModuleButton ? ModuleButton->GetModuleDefinition() : nullptr;
-	if (ModuleDefinition)
+	UMASkillModule* Module = ModuleButton ? ModuleButton->GetModule() : nullptr;
+	if (Module)
 	{
 		constexpr bool bShowTagsAndMessages = false;
-		ModuleDetailWidget->SetSkillTooltip(ModuleDefinition, FGameplayTag(), nullptr, bShowTagsAndMessages);
+		ModuleDetailWidget->SetSkillTooltip(Module, FGameplayTag(), nullptr, bShowTagsAndMessages);
 	}
-	ModuleDetailWidget->SetVisibility(ModuleDefinition
+	ModuleDetailWidget->SetVisibility(Module
 		? ESlateVisibility::SelfHitTestInvisible
 		: ESlateVisibility::Collapsed);
 }

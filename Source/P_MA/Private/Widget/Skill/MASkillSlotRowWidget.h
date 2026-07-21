@@ -6,7 +6,6 @@
 #include "MASkillSlotRowWidget.generated.h"
 
 class UMASkillIconWidget;
-class UMASkillDefinition;
 class UMASkillManagerComponent;
 class UMASkillModuleInstance;
 class UMASkillModuleSocketWidget;

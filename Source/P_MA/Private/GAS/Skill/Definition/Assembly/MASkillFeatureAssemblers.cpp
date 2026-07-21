@@ -4,20 +4,20 @@
 #include "GAS/Skill/Addon/Event/MASkillModuleEventBindingAddon.h"
 #include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
 #include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
 
 void FMASkillCooldownAssembler::AppendFrom(
-	UMASkillDefinition& TargetDefinition,
-	const UMASkillDefinition& SourceDefinition)
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule)
 {
-	const float CooldownSeconds = SourceDefinition.GetCooldownSeconds();
+	const float CooldownSeconds = SourceModule.GetCooldownSeconds();
 	if (CooldownSeconds <= 0.f) return;
 
 	UMASkillCooldownAddon* TargetAddon = nullptr;
-	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	for (UMASkillModuleAddon* Addon : TargetModule.ModuleData.Addons)
 	{
 		TargetAddon = Cast<UMASkillCooldownAddon>(Addon);
 		if (TargetAddon) break;
@@ -25,30 +25,30 @@ void FMASkillCooldownAssembler::AppendFrom(
 
 	if (!TargetAddon)
 	{
-		TargetAddon = NewObject<UMASkillCooldownAddon>(&TargetDefinition);
-		TargetDefinition.Addons.Add(TargetAddon);
+		TargetAddon = NewObject<UMASkillCooldownAddon>(&TargetModule);
+		TargetModule.ModuleData.Addons.Add(TargetAddon);
 	}
 
 	TargetAddon->CooldownSeconds += CooldownSeconds;
 }
 
 void FMASkillPayloadAssembler::AppendFrom(
-	UMASkillDefinition& TargetDefinition,
-	const UMASkillDefinition& SourceDefinition)
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule)
 {
-	TargetDefinition.Payloads.Append(SourceDefinition.Payloads);
+	TargetModule.ModuleData.Payloads.Append(SourceModule.ModuleData.Payloads);
 }
 
 void FMASkillEventSourceAssembler::AppendFrom(
-	UMASkillDefinition& TargetDefinition,
-	const UMASkillDefinition& SourceDefinition)
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule)
 {
 	const UMASkillModuleEventSourceAddon* SourceAddon =
-		SourceDefinition.FindAddon<UMASkillModuleEventSourceAddon>();
+		SourceModule.FindAddon<UMASkillModuleEventSourceAddon>();
 	if (!SourceAddon) return;
 
 	UMASkillModuleEventSourceAddon* TargetAddon = nullptr;
-	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	for (UMASkillModuleAddon* Addon : TargetModule.ModuleData.Addons)
 	{
 		TargetAddon = Cast<UMASkillModuleEventSourceAddon>(Addon);
 		if (TargetAddon) break;
@@ -56,8 +56,8 @@ void FMASkillEventSourceAssembler::AppendFrom(
 
 	if (!TargetAddon)
 	{
-		TargetAddon = NewObject<UMASkillModuleEventSourceAddon>(&TargetDefinition);
-		TargetDefinition.Addons.Add(TargetAddon);
+		TargetAddon = NewObject<UMASkillModuleEventSourceAddon>(&TargetModule);
+		TargetModule.ModuleData.Addons.Add(TargetAddon);
 	}
 
 	for (UMASkillEventSource* EventSource : SourceAddon->EventSources)
@@ -70,17 +70,17 @@ void FMASkillEventSourceAssembler::AppendFrom(
 }
 
 void FMASkillEventBindingAssembler::AppendFrom(
-	UMASkillDefinition& TargetDefinition,
-	const UMASkillDefinition& SourceDefinition,
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule,
 	UMASkillModuleInstance& SourceModuleInstance,
 	UMASkillModuleInstance& AssembledModuleInstance)
 {
 	const UMASkillModuleEventBindingAddon* SourceAddon =
-		SourceDefinition.FindAddon<UMASkillModuleEventBindingAddon>();
+		SourceModule.FindAddon<UMASkillModuleEventBindingAddon>();
 	if (!SourceAddon) return;
 
 	UMASkillModuleEventBindingAddon* TargetAddon = nullptr;
-	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	for (UMASkillModuleAddon* Addon : TargetModule.ModuleData.Addons)
 	{
 		TargetAddon = Cast<UMASkillModuleEventBindingAddon>(Addon);
 		if (TargetAddon) break;
@@ -88,8 +88,8 @@ void FMASkillEventBindingAssembler::AppendFrom(
 
 	if (!TargetAddon)
 	{
-		TargetAddon = NewObject<UMASkillModuleEventBindingAddon>(&TargetDefinition);
-		TargetDefinition.Addons.Add(TargetAddon);
+		TargetAddon = NewObject<UMASkillModuleEventBindingAddon>(&TargetModule);
+		TargetModule.ModuleData.Addons.Add(TargetAddon);
 	}
 
 	for (const FMASkillEventBinding& EventBinding : SourceAddon->EventBindings)
@@ -102,16 +102,16 @@ void FMASkillEventBindingAssembler::AppendFrom(
 }
 
 void FMASkillSequenceAssembler::AppendFrom(
-	UMASkillDefinition& TargetDefinition,
-	const UMASkillDefinition& SourceDefinition,
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule,
 	const FMASkillScopes& TargetScopes)
 {
 	const UMASkillModuleSequenceAddon* SourceAddon =
-		SourceDefinition.FindAddon<UMASkillModuleSequenceAddon>();
+		SourceModule.FindAddon<UMASkillModuleSequenceAddon>();
 	if (!SourceAddon || SourceAddon->Sequences.IsEmpty()) return;
 
 	UMASkillModuleSequenceAddon* TargetAddon = nullptr;
-	for (UMASkillModuleAddon* Addon : TargetDefinition.Addons)
+	for (UMASkillModuleAddon* Addon : TargetModule.ModuleData.Addons)
 	{
 		TargetAddon = Cast<UMASkillModuleSequenceAddon>(Addon);
 		if (TargetAddon) break;
@@ -119,8 +119,8 @@ void FMASkillSequenceAssembler::AppendFrom(
 
 	if (!TargetAddon)
 	{
-		TargetAddon = NewObject<UMASkillModuleSequenceAddon>(&TargetDefinition);
-		TargetDefinition.Addons.Add(TargetAddon);
+		TargetAddon = NewObject<UMASkillModuleSequenceAddon>(&TargetModule);
+		TargetModule.ModuleData.Addons.Add(TargetAddon);
 	}
 
 	TArray<FMASkillSequence> ModuleSequences;
@@ -143,10 +143,10 @@ void FMASkillSequenceAssembler::AppendFrom(
 	TargetAddon->Sequences.Append(MoveTemp(ModuleSequences));
 }
 
-void FMASkillSequenceAssembler::Finalize(UMASkillDefinition& TargetDefinition)
+void FMASkillSequenceAssembler::Finalize(UMASkillModule& TargetModule)
 {
 	UMASkillModuleSequenceAddon* SequenceAddon =
-		TargetDefinition.FindMutableAddon<UMASkillModuleSequenceAddon>();
+		TargetModule.FindMutableAddon<UMASkillModuleSequenceAddon>();
 	if (!SequenceAddon) return;
 
 	TMap<FString, int32> SequenceCounts;

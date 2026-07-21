@@ -1,0 +1,155 @@
+{
+	"ModuleId": 48,
+	"Module":
+	{
+		"ModuleName": "DA_Slash",
+		"DisplayData":
+		{
+			"DisplayName": "Slash",
+			"Description": "부채꼴 범위로 공격하여, \r\n<BD>11</>+<ATK>50%의 피해</>를 입히고, 대상에게 <KNB>0.1초 동안 0.1m의 넉백</>을 부여합니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Slash.T_Slash'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Slash",
+				"Priority": 3
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity1"
+		},
+		"ModuleTags": [
+			"Module.Attack"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
+						"changedAttribute":
+						{
+							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+						},
+						"changeType": "Changed"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Damage",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
+							"damagePayloadTag": "Damage"
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.44999998807907104
+						}
+					},
+					{
+						"eventTag": "Event.Attribute.AttackSpeed.Changed",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.44999998807907104
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.1499999761581421
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/Overlap/AM_Slash.AM_Slash'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 2
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 11,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 0.5
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 10
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectKnockback",
+								"magnitude": 100,
+								"duration": 0.10000000149011612,
+								"sourceType": "Instigator"
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Sword"
+						]
+					}
+				}
+			}
+		]
+	}
+}

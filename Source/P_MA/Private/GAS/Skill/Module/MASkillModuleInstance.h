@@ -8,8 +8,8 @@
 #include "UObject/Object.h"
 #include "MASkillModuleInstance.generated.h"
 
-class UMASkillDefinition;
 class UMASkillManagerComponent;
+class UMASkillModule;
 class UMASkillModuleInventoryComponent;
 class UMASkillRuntimeRegistry;
 
@@ -26,9 +26,9 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UMASkillDefinition* GetDefinition() const { return Definition; }
-	void SetDefinition(UMASkillDefinition* InDefinition);
-	bool IsValid() const { return Definition != nullptr; }
+	UMASkillModule* GetModule() const { return Module; }
+	void SetModule(UMASkillModule* InModule);
+	bool IsValid() const { return Module != nullptr; }
 	bool IsInSkillSlot() const { return bIsInSkillSlot; }
 	bool IsAssemblyActive() const { return IsValid() && IsInSkillSlot() && IsActive(); }
 	bool IsActive() const { return bIsActive; }
@@ -66,7 +66,7 @@ private:
 	void SetInSkillSlot(bool bInSkillSlot);
 
 	UFUNCTION()
-	void OnRep_Definition();
+	void OnRep_Module();
 	UFUNCTION()
 	void OnRep_AddonRuntimeData();
 	bool CanModifyAddonRuntimeData() const;
@@ -74,8 +74,8 @@ private:
 	void InitializePayloadStore();
 	void RefreshAddonPayloadMirrors();
 
-	UPROPERTY(ReplicatedUsing=OnRep_Definition)
-	TObjectPtr<UMASkillDefinition> Definition;
+	UPROPERTY(ReplicatedUsing=OnRep_Module)
+	TObjectPtr<UMASkillModule> Module;
 
 	UPROPERTY(Transient)
 	bool bIsInSkillSlot = false;

@@ -10,7 +10,6 @@ class UScrollBox;
 class UDataTable;
 class ULoadoutWeaponIconButtonWidget;
 class ULoadoutWeaponModuleButtonWidget;
-class UMASkillDefinition;
 class UMASkillTooltipWidget;
 class UPanelWidget;
 struct FLoadoutWeaponDataRow;

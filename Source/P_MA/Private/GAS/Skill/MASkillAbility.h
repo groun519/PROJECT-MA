@@ -6,8 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "MASkillAbility.generated.h"
 
-class UMASkillDefinition;
 class UMASkillManagerComponent;
+class UMASkillModule;
 class UMASkillModuleInstance;
 class UMASkillSequenceRuntime;
 struct FGameplayEventData;
@@ -33,7 +33,7 @@ public:
 	FGameplayTag GetVisualElementTag() const;
 	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
 	FMASkillPayloadStore& GetAssembledModulePayloadStore();
-	const UMASkillDefinition* GetCurrentSkillDefinition() const;
+	const UMASkillModule* GetCurrentSkillModule() const;
 	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
 	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
 	UMASkillSequenceRuntime* GetSequenceRuntime() const { return SequenceRuntime; }

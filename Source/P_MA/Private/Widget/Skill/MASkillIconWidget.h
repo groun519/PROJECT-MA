@@ -7,7 +7,7 @@
 
 class UImage;
 class UTextBlock;
-class UMASkillDefinition;
+class UMASkillModule;
 class UMASkillTooltipWidget;
 
 UCLASS()
@@ -17,7 +17,7 @@ class P_MA_API UMASkillIconWidget : public UUserWidget
 
 public:
 	void SetHotkeyText(const FText& InText);
-	void SetSkillDefinition(const UMASkillDefinition* SkillDefinition);
+	void SetSkillModule(const UMASkillModule* SkillModule);
 	void SetCooldownTag(FGameplayTag InCooldownTag);
 
 protected:
@@ -39,7 +39,7 @@ protected:
 	TSubclassOf<UMASkillTooltipWidget> TooltipWidgetClass;
 
 private:
-	void RefreshTooltip(const UMASkillDefinition* SkillDefinition);
+	void RefreshTooltip(const UMASkillModule* SkillModule);
 	void RefreshCooldown();
 	void SetCooldownDisplay(float RemainingSeconds, float DurationSeconds);
 

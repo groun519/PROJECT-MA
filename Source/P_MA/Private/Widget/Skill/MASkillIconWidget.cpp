@@ -4,7 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "MAMaterialParams.h"
 #include "GameplayEffect.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -19,14 +19,14 @@ void UMASkillIconWidget::SetHotkeyText(const FText& InText)
 	HotkeyText->SetVisibility(InText.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 }
 
-void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefinition)
+void UMASkillIconWidget::SetSkillModule(const UMASkillModule* SkillModule)
 {
 	if (!SkillIconImage) return;
 
-	const FMASkillIconData IconData = SkillDefinition
-		? SkillDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
+	const FMASkillIconData IconData = SkillModule
+		? SkillModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
 		: FMASkillIconData();
-	UTexture2D* AssembledSubIcon = SkillDefinition ? SkillDefinition->GetAssembledSubIcon() : nullptr;
+	UTexture2D* AssembledSubIcon = SkillModule ? SkillModule->GetAssembledSubIcon() : nullptr;
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
 	{
@@ -47,7 +47,7 @@ void UMASkillIconWidget::SetSkillDefinition(const UMASkillDefinition* SkillDefin
 	}
 
 	SkillIconImage->SetVisibility(ESlateVisibility::Visible);
-	RefreshTooltip(SkillDefinition);
+	RefreshTooltip(SkillModule);
 }
 
 void UMASkillIconWidget::SetCooldownTag(FGameplayTag InCooldownTag)
@@ -63,9 +63,9 @@ void UMASkillIconWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	RefreshCooldown();
 }
 
-void UMASkillIconWidget::RefreshTooltip(const UMASkillDefinition* SkillDefinition)
+void UMASkillIconWidget::RefreshTooltip(const UMASkillModule* SkillModule)
 {
-	if (!SkillDefinition || !TooltipWidgetClass)
+	if (!SkillModule || !TooltipWidgetClass)
 	{
 		SetToolTip(nullptr);
 		return;
@@ -78,7 +78,7 @@ void UMASkillIconWidget::RefreshTooltip(const UMASkillDefinition* SkillDefinitio
 		return;
 	}
 
-	TooltipWidget->SetSkillTooltip(SkillDefinition);
+	TooltipWidget->SetSkillTooltip(SkillModule);
 	SetToolTip(TooltipWidget);
 }
 

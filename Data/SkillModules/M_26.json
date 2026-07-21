@@ -1,0 +1,110 @@
+{
+	"ModuleId": 26,
+	"Module":
+	{
+		"ModuleName": "DA_Knockback",
+		"DisplayData":
+		{
+			"DisplayName": "Knockback",
+			"Description": "<ATK>적중</> 시, <KNB>0.25초 간 대상을 2.5m 넉백</>시킵니다.\r\n이후 0.2초 간 모듈이 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Knockback.T_Knockback'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Knockbacking",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity2"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique",
+			"Module.OnHit"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 1.5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Skill",
+				"triggerEventTags": [
+					"Event.Skill.Hit"
+				],
+				"durationSeconds": 0.20000000298023224
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.Knockback"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Knockback",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectKnockback",
+								"magnitude": 1000,
+								"duration": 0.25,
+								"sourceType": "Instigator"
+							}
+						],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

@@ -7,9 +7,9 @@
 #include "MASkillManagerComponent.generated.h"
 
 class UMASkillAbility;
-class UMASkillDefinition;
 class UMASkillEventDispatcher;
 class UMASkillEventRouter;
+class UMASkillModule;
 class UMASkillModuleInstance;
 class UAnimSequenceBase;
 struct FMASkillEvent;
@@ -32,16 +32,16 @@ public:
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
 	/** Module Lifetime **/
-	UMASkillModuleInstance* CreateModuleInstance(UMASkillDefinition* Definition);
+	UMASkillModuleInstance* CreateModuleInstance(UMASkillModule* Module);
 
 	/** Slot Composition **/
-	bool ReplaceDefinitionAt(
+	bool ReplaceModuleAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
-		UMASkillDefinition* NewDefinition);
-	bool ReplaceDefinitionsAt(
+		UMASkillModule* NewModule);
+	bool ReplaceModulesAt(
 		FGameplayTag SlotTag,
-		const TArray<TObjectPtr<UMASkillDefinition>>& NewDefinitions);
+		const TArray<TObjectPtr<UMASkillModule>>& NewModules);
 	bool ReplaceModuleInstanceAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
@@ -69,7 +69,7 @@ public:
 
 	/** Slot Runtime **/
 	FGameplayTag GetActivePreviewVisualElementTag() const { return ActivePreviewVisualElementTag; }
-	UMASkillDefinition* GetAssembledDefinition(FGameplayTag SlotTag) const;
+	UMASkillModule* GetAssembledModule(FGameplayTag SlotTag) const;
 
 	void RebuildSkill(FGameplayTag SlotTag);
 	void RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass);
@@ -130,7 +130,7 @@ private:
 
 	/** Slot Runtime **/
 	bool EnsureAbilityForSlot(FMASkillSlotRuntimeState& SlotState);
-	void RefreshAbilityDefinition(FMASkillSlotRuntimeState& SlotState);
+	void RefreshAbilityModule(FMASkillSlotRuntimeState& SlotState);
 	UMASkillAbility* ResolveSkillAbility(const FMASkillSlotRuntimeState& SlotState) const;
 	void SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState);
 	void NotifyActiveModulesChanged(const FMASkillSlotRuntimeState& SlotState);

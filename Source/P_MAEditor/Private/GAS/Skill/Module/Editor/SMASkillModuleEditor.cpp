@@ -1,7 +1,8 @@
-#include "GAS/Skill/Module/Editor/SMASkillModuleEditor.h"
+﻿#include "GAS/Skill/Module/Editor/SMASkillModuleEditor.h"
 
 #include "GAS/Skill/Module/Editor/SMASkillModuleBuildPage.h"
 #include "GAS/Skill/Module/Editor/SMASkillModuleEditPage.h"
+#include "GAS/Skill/Module/Editor/SMASkillModuleShopPage.h"
 #include "Widgets/Input/SSegmentedControl.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/SBoxPanel.h"
@@ -24,6 +25,8 @@ void SMASkillModuleEditor::Construct(const FArguments&)
 			.Text(LOCTEXT("EditPage", "Edit"))
 			+ SSegmentedControl<EPage>::Slot(EPage::Build)
 			.Text(LOCTEXT("BuildPage", "Build"))
+			+ SSegmentedControl<EPage>::Slot(EPage::Shop)
+			.Text(LOCTEXT("ShopPage", "Shop"))
 		]
 		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
@@ -38,6 +41,10 @@ void SMASkillModuleEditor::Construct(const FArguments&)
 			[
 				SAssignNew(BuildPage, SMASkillModuleBuildPage)
 			]
+			+ SWidgetSwitcher::Slot()
+			[
+				SAssignNew(ShopPage, SMASkillModuleShopPage)
+			]
 		]
 	];
 }
@@ -50,12 +57,14 @@ bool SMASkillModuleEditor::CanClose()
 void SMASkillModuleEditor::OnPageSelected(const EPage Page)
 {
 	if (Page == ActivePage) return;
-	if (Page == EPage::Build)
+	if (ActivePage == EPage::Edit)
 	{
 		if (!EditPage->ResolvePendingChanges()) return;
 		if (!EditPage->CommitSourceDirectory()) return;
-		BuildPage->Refresh(EditPage->GetSourceDirectory());
 	}
+
+	if (Page == EPage::Build) BuildPage->Refresh(EditPage->GetSourceDirectory());
+	if (Page == EPage::Shop) ShopPage->Refresh(EditPage->GetSourceDirectory());
 
 	ActivePage = Page;
 	PageSwitcher->SetActiveWidgetIndex(static_cast<int32>(Page));

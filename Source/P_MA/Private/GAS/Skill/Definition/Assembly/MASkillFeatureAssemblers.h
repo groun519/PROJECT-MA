@@ -3,35 +3,35 @@
 #include "CoreMinimal.h"
 #include "GAS/Skill/Event/MASkillEventTypes.h"
 
-class UMASkillDefinition;
+class UMASkillModule;
 class UMASkillModuleInstance;
 
 struct FMASkillCooldownAssembler
 {
 	static void AppendFrom(
-		UMASkillDefinition& TargetDefinition,
-		const UMASkillDefinition& SourceDefinition);
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule);
 };
 
 struct FMASkillPayloadAssembler
 {
 	static void AppendFrom(
-		UMASkillDefinition& TargetDefinition,
-		const UMASkillDefinition& SourceDefinition);
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule);
 };
 
 struct FMASkillEventSourceAssembler
 {
 	static void AppendFrom(
-		UMASkillDefinition& TargetDefinition,
-		const UMASkillDefinition& SourceDefinition);
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule);
 };
 
 struct FMASkillEventBindingAssembler
 {
 	static void AppendFrom(
-		UMASkillDefinition& TargetDefinition,
-		const UMASkillDefinition& SourceDefinition,
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule,
 		UMASkillModuleInstance& SourceModuleInstance,
 		UMASkillModuleInstance& AssembledModuleInstance);
 };
@@ -39,9 +39,9 @@ struct FMASkillEventBindingAssembler
 struct FMASkillSequenceAssembler
 {
 	static void AppendFrom(
-		UMASkillDefinition& TargetDefinition,
-		const UMASkillDefinition& SourceDefinition,
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule,
 		const FMASkillScopes& TargetScopes);
 
-	static void Finalize(UMASkillDefinition& TargetDefinition);
+	static void Finalize(UMASkillModule& TargetModule);
 };

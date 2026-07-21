@@ -1,0 +1,59 @@
+{
+	"ModuleId": 21,
+	"Module":
+	{
+		"ModuleName": "DA_Expansion",
+		"DisplayData":
+		{
+			"DisplayName": "Expansion",
+			"Description": "스킬의 <AREA>피격 범위가 25% 증가</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Expaction.T_Expaction'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Expansion",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity2"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 1.25
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAreaScale",
+							"multiplier": 1.25
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

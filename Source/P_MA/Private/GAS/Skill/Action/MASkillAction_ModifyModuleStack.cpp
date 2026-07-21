@@ -3,10 +3,10 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
 void UMASkillAction_ModifyModuleStack::Execute(
@@ -15,10 +15,10 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	const FMASkillScopes& Scopes)
 {
 	UMASkillModuleInstance* ModuleInstance = Scopes.Module.Get();
-	const UMASkillDefinition* ModuleDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
-	if (!ModuleInstance || !ModuleDefinition) return;
+	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	if (!ModuleInstance || !Module) return;
 
-	const UMASkillModuleStackAddon* StackAddon = ModuleDefinition->GetStackAddon();
+	const UMASkillModuleStackAddon* StackAddon = Module->GetStackAddon();
 	if (!StackAddon) return;
 
 	const bool bChanged = ModuleInstance->ModifyAddonRuntimeData<FMASkillModuleStackRuntimeData>(

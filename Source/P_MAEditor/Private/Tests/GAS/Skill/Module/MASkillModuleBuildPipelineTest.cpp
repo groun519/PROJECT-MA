@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "GAS/Skill/Module/MASkillModuleAsset.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
 #include "GAS/Skill/Module/Build/MASkillModuleBuildPipeline.h"
 #include "HAL/FileManager.h"

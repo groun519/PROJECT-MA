@@ -6,7 +6,7 @@
 
 class USkeletalMesh;
 class UTexture2D;
-class UMASkillDefinition;
+class UMASkillModule;
 
 USTRUCT(BlueprintType)
 struct FLoadoutWeaponDataRow : public FTableRowBase
@@ -23,5 +23,5 @@ struct FLoadoutWeaponDataRow : public FTableRowBase
 	FTransform WeaponOffset = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	TSoftObjectPtr<UMASkillDefinition> AttackSkillDefinition;
+	TSoftObjectPtr<UMASkillModule> AttackSkillModule;
 };

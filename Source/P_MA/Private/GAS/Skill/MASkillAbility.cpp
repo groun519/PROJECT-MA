@@ -8,10 +8,10 @@
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 #include "Setting/MAGameSettings.h"
@@ -61,9 +61,9 @@ void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo
 	UpdateCurrentSkillModuleInstance(nullptr);
 }
 
-const UMASkillDefinition* UMASkillAbility::GetCurrentSkillDefinition() const
+const UMASkillModule* UMASkillAbility::GetCurrentSkillModule() const
 {
-	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetDefinition() : nullptr;
+	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetModule() : nullptr;
 }
 
 FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const
@@ -102,12 +102,12 @@ void UMASkillAbility::UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* S
 void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillModuleInstance || !CurrentSkillDefinition) { K2_EndAbility(); return; }
+	const UMASkillModule* CurrentSkillModule = GetCurrentSkillModule();
+	if (!CurrentSkillModuleInstance || !CurrentSkillModule) { K2_EndAbility(); return; }
 	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
 	CurrentSkillModuleInstance->ResetPayloadStore();
-	CurrentSkillDefinition->ApplyPayloadsTo(CurrentSkillModuleInstance->GetPayloadStore());
+	CurrentSkillModule->ApplyPayloadsTo(CurrentSkillModuleInstance->GetPayloadStore());
 
 	SequenceRuntime->SetDesiredPlayRate(1.f);
 	RegisterCancelTriggers();
@@ -206,8 +206,8 @@ void UMASkillAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 
 float UMASkillAbility::GetCooldownSeconds() const
 {
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	return CurrentSkillDefinition ? CurrentSkillDefinition->GetCooldownSeconds() : 0.f;
+	const UMASkillModule* CurrentSkillModule = GetCurrentSkillModule();
+	return CurrentSkillModule ? CurrentSkillModule->GetCooldownSeconds() : 0.f;
 }
 
 FGameplayTag UMASkillAbility::GetCooldownTagForSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
@@ -222,10 +222,10 @@ FGameplayTag UMASkillAbility::GetCooldownTagForSpec(const FGameplayAbilitySpecHa
 FGameplayTag UMASkillAbility::GetVisualElementTag() const
 {
 	static const FGameplayTag DefaultVisualElementTag = UMAAbilitySystemStatics::GetDefaultVisualElementTag();
-	const UMASkillDefinition* CurrentSkillDefinition = GetCurrentSkillDefinition();
-	if (!CurrentSkillDefinition) return DefaultVisualElementTag;
+	const UMASkillModule* CurrentSkillModule = GetCurrentSkillModule();
+	if (!CurrentSkillModule) return DefaultVisualElementTag;
 
-	const FGameplayTag VisualElementTag = CurrentSkillDefinition->GetVisualElementTag();
+	const FGameplayTag VisualElementTag = CurrentSkillModule->GetVisualElementTag();
 	return VisualElementTag.IsValid()
 		? VisualElementTag
 		: DefaultVisualElementTag;

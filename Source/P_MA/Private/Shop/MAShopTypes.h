@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "MAShopTypes.generated.h"
 
-class UMASkillDefinition;
+class UMASkillModule;
 class UTexture2D;
 
 USTRUCT(BlueprintType)
@@ -18,7 +18,7 @@ struct FMAShopStockEntry
 	int32 VisualSeed = 0;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillDefinition> SkillDefinition = nullptr;
+	TObjectPtr<UMASkillModule> SkillModule = nullptr;
 
 	UPROPERTY(Transient)
 	int32 Price = 0;

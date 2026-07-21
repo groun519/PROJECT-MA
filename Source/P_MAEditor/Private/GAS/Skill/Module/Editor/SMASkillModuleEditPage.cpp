@@ -224,10 +224,12 @@ FReply SMASkillModuleEditPage::RefreshJsonFiles()
 		Item->FilePath = MoveTemp(JsonFile);
 
 		FText IgnoredError;
+		EMAModuleRarity IgnoredModuleRarity;
 		if (FMASkillModuleJsonFile::ReadHeader(
 			Item->FilePath,
 			Item->ModuleId,
 			Item->ModuleName,
+			IgnoredModuleRarity,
 			IgnoredError))
 		{
 			Item->bHeaderValid = true;

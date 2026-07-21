@@ -1,0 +1,103 @@
+{
+	"ModuleId": 31,
+	"Module":
+	{
+		"ModuleName": "DA_Inhibited",
+		"DisplayData":
+		{
+			"DisplayName": "Inhibited",
+			"Description": "스킬 사용 시, <SLOW>2.5초 간 50%의 둔화</>에 걸립니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Inhibited.T_Inhibited'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Inhibited",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity2"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.DebuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyStatusEffectToSelf",
+							"statusEffects": [
+								{
+									"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
+									"magnitude": 0.5,
+									"duration": 2.5,
+									"grantedTags": []
+								}
+							]
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Inhibited",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 8,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
+								"magnitude": 0.5,
+								"duration": 2.5,
+								"grantedTags": []
+							}
+						],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

@@ -11,8 +11,8 @@
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 #include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Windup.h"
 
 AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
@@ -168,8 +168,26 @@ void AMonster::InitializeSkills()
 	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
 	{
 		if (!SkillSlot.SlotTag.IsValid()) continue;
-		SkillManager->ReplaceDefinitionsAt(SkillSlot.SlotTag, SkillSlot.Definitions);
+
+		TArray<TObjectPtr<UMASkillModule>> Modules;
+		LoadSkillModules(SkillSlot.Modules, Modules);
+		SkillManager->ReplaceModulesAt(SkillSlot.SlotTag, Modules);
 	}
+}
+
+bool AMonster::LoadSkillModules(
+	const TArray<TSoftObjectPtr<UMASkillModule>>& ModuleAssets,
+	TArray<TObjectPtr<UMASkillModule>>& OutModules)
+{
+	OutModules.Reset(ModuleAssets.Num());
+	for (const TSoftObjectPtr<UMASkillModule>& ModuleAsset : ModuleAssets)
+	{
+		OutModules.Add(ModuleAsset.LoadSynchronous());
+	}
+	return OutModules.ContainsByPredicate([](const UMASkillModule* Module)
+	{
+		return Module != nullptr;
+	});
 }
 
 bool AMonster::SelectWeightedSkill()
@@ -183,7 +201,7 @@ bool AMonster::SelectWeightedSkill()
 	float TotalWeight = 0.f;
 	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
 	{
-		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledDefinition(SkillSlot.SlotTag)) continue;
+		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledModule(SkillSlot.SlotTag)) continue;
 		TotalWeight += SkillSlot.SelectionWeight;
 	}
 	if (TotalWeight <= 0.f) return false;
@@ -191,7 +209,7 @@ bool AMonster::SelectWeightedSkill()
 	float RandomWeight = FMath::FRandRange(0.f, TotalWeight);
 	for (const FMonsterSkillSlotData& SkillSlot : SkillSlots)
 	{
-		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledDefinition(SkillSlot.SlotTag)) continue;
+		if (SkillSlot.SelectionWeight <= 0.f || !SkillManager->GetAssembledModule(SkillSlot.SlotTag)) continue;
 
 		RandomWeight -= SkillSlot.SelectionWeight;
 		if (RandomWeight > 0.f) continue;
@@ -250,38 +268,31 @@ void AMonster::ResetSkillSelection()
 
 bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& PatternRow)
 {
-	if (!PatternRow.Definitions.ContainsByPredicate([](const TObjectPtr<UMASkillDefinition>& Definition)
-	{
-		return Definition != nullptr;
-	}))
-	{
-		return false;
-	}
-
 	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
 	if (!SkillManager) return false;
 
-	TArray<TObjectPtr<UMASkillDefinition>> Definitions = PatternRow.Definitions;
+	TArray<TObjectPtr<UMASkillModule>> Modules;
+	if (!LoadSkillModules(PatternRow.Modules, Modules)) return false;
 	if (PatternRow.WindupDuration > 0.f)
 	{
 		// TODO: After submodule composition is available, express pattern windup as a
-		// parameterized submodule instead of decorating a duplicated Definition here.
-		const int32 TargetDefinitionIndex = Definitions.IndexOfByPredicate([](const UMASkillDefinition* Definition)
+		// parameterized submodule instead of decorating a duplicated module here.
+		const int32 TargetModuleIndex = Modules.IndexOfByPredicate([](const UMASkillModule* Module)
 		{
 			const UMASkillModuleSequenceAddon* SequenceAddon =
-				Definition ? Definition->FindAddon<UMASkillModuleSequenceAddon>() : nullptr;
+				Module ? Module->FindAddon<UMASkillModuleSequenceAddon>() : nullptr;
 			return SequenceAddon && !SequenceAddon->GetSequences().IsEmpty();
 		});
-		if (TargetDefinitionIndex == INDEX_NONE) return false;
+		if (TargetModuleIndex == INDEX_NONE) return false;
 
-		UMASkillDefinition* TargetDefinition = DuplicateObject<UMASkillDefinition>(
-			Definitions[TargetDefinitionIndex],
+		UMASkillModule* TargetModule = DuplicateObject<UMASkillModule>(
+			Modules[TargetModuleIndex],
 			SkillManager);
-		if (!TargetDefinition) return false;
-		TargetDefinition->SetFlags(RF_Transient);
+		if (!TargetModule) return false;
+		TargetModule->SetFlags(RF_Transient);
 
 		UMASkillModuleSequenceAddon* SequenceAddon =
-			TargetDefinition->FindMutableAddon<UMASkillModuleSequenceAddon>();
+			TargetModule->FindMutableAddon<UMASkillModuleSequenceAddon>();
 		if (!SequenceAddon) return false;
 
 		UMASkillSequenceModifier_Windup* WindupModifier =
@@ -289,11 +300,11 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 		if (!WindupModifier) return false;
 
 		WindupModifier->Configure(PatternRow.WindupDuration);
-		Definitions[TargetDefinitionIndex] = TargetDefinition;
+		Modules[TargetModuleIndex] = TargetModule;
 	}
 
-	return SkillManager->ReplaceDefinitionsAt(PatternSlotTag, Definitions)
-		&& SkillManager->GetAssembledDefinition(PatternSlotTag);
+	return SkillManager->ReplaceModulesAt(PatternSlotTag, Modules)
+		&& SkillManager->GetAssembledModule(PatternSlotTag);
 }
 
 const FMonsterSkillPatternRow* AMonster::ResolvePatternRow(const UDataTable* PatternDataTable, FName RowName, const TCHAR* Context)

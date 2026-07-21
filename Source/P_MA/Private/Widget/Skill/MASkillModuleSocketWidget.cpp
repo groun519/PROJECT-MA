@@ -5,9 +5,9 @@
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Cooldown/MASkillModuleCooldownAddon.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -39,8 +39,8 @@ void UMASkillModuleSocketWidget::Refresh()
 
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
-	CachedDefinition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
-	ApplyDefinitionVisual(CachedDefinition);
+	CachedModule = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	ApplyModuleVisual(CachedModule);
 	ApplyModuleStateVisual(ModuleInstance);
 	RefreshCooldownVisual();
 	RefreshStackText(ModuleInstance);
@@ -52,10 +52,10 @@ UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() cons
 	return IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
 }
 
-UMASkillDefinition* UMASkillModuleSocketWidget::ResolveDefinition() const
+UMASkillModule* UMASkillModuleSocketWidget::ResolveModule() const
 {
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
-	return ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
+	return ModuleInstance ? ModuleInstance->GetModule() : nullptr;
 }
 
 const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
@@ -68,13 +68,13 @@ bool UMASkillModuleSocketWidget::IsValidSlot() const
 	return SlotOwner.IsValid() && SlotArray && SlotArray->IsValidIndex(SlotIndex);
 }
 
-void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition* Definition)
+void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 {
 	if (!ModuleIconImage) return;
 
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillIconData IconData = Definition
-		? Definition->ResolveIconData(ModuleQualityData)
+	const FMASkillIconData IconData = Module
+		? Module->ResolveIconData(ModuleQualityData)
 		: FMASkillIconData();
 	const bool bHasIcon = IconData.Icon != nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
@@ -83,7 +83,7 @@ void UMASkillModuleSocketWidget::ApplyDefinitionVisual(const UMASkillDefinition*
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, nullptr);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, Definition ? Definition->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, Module ? Module->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, bHasIcon ? 1.f : 0.f);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, 0.f);
 	}
@@ -174,10 +174,10 @@ void UMASkillModuleSocketWidget::ClearCooldownVisualTimer()
 
 void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
 {
-	const UMASkillDefinition* Definition = ModuleInstance ? ModuleInstance->GetDefinition() : nullptr;
+	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
 	FText StackValueText;
-	const bool bShowStack = Definition
-		&& Definition->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);
+	const bool bShowStack = Module
+		&& Module->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);
 	StackText->SetVisibility(bShowStack ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	if (bShowStack)
 	{
@@ -245,7 +245,7 @@ void UMASkillModuleSocketWidget::NativeOnMouseLeave(const FPointerEvent& InMouse
 
 FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (CachedDefinition && IsValidSlot() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	if (CachedModule && IsValidSlot() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -258,8 +258,8 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	CachedDefinition = ResolveDefinition();
-	if (!CachedDefinition) return;
+	CachedModule = ResolveModule();
+	if (!CachedModule) return;
 
 	UMASkillModuleDragDropOperation* DragOperation = NewObject<UMASkillModuleDragDropOperation>();
 	if (!DragOperation) return;
@@ -272,7 +272,7 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	RefreshHoverVisual();
 	SetDraggedSourceVisual(true);
 
-	const FMASkillIconData IconData = CachedDefinition->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
+	const FMASkillIconData IconData = CachedModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
 	if (DragVisualWidgetClass && IconData.Icon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);
@@ -360,7 +360,7 @@ void UMASkillModuleSocketWidget::RefreshHoverVisual()
 
 void UMASkillModuleSocketWidget::RefreshTooltip()
 {
-	if (!CachedDefinition || !TooltipWidgetClass)
+	if (!CachedModule || !TooltipWidgetClass)
 	{
 		SetToolTip(nullptr);
 		return;
@@ -376,7 +376,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 	const UDataTable* WarningTextDataTable = ResolveWarningTextDataTable();
 	const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	TooltipWidget->SetSkillTooltip(
-		CachedDefinition,
+		CachedModule,
 		ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : FGameplayTag(),
 		WarningTextDataTable);
 	SetToolTip(TooltipWidget);

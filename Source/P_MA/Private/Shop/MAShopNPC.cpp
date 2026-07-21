@@ -5,10 +5,11 @@
 #include "Convenience/MAInteractableComponent.h"
 #include "Convenience/MAHighlightComponent.h"
 #include "Convenience/MAInteractorComponent.h"
+#include "Engine/AssetManager.h"
 #include "Framework/MAGameMode.h"
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerInput.h"
@@ -17,7 +18,7 @@
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "Player/Components/MACurrencyComponent.h"
-#include "Shop/MAShopProductFinder.h"
+#include "Shop/MAShopModulePool.h"
 #include "Widget/Shop/MAShopWidget.h"
 #include "Net/UnrealNetwork.h"
 
@@ -42,10 +43,6 @@ AMAShopNPC::AMAShopNPC()
 	HighlightComponent->AddTarget(MeshComponent);
 	InteractableComponent->CALL_SETUP_HIGHLIGHTER(HighlightComponent);
 	InteractableComponent->CALL_SETUP_INTERACT(HandleInteract);
-
-	FDirectoryPath ModuleRootPath;
-	ModuleRootPath.Path = TEXT("/Game/_WorkSpace/GAS/Module");
-	ModuleRootPaths.Add(ModuleRootPath);
 
 	ModuleStockCountRange.Min = 3;
 	ModuleStockCountRange.Max = 3;
@@ -100,7 +97,7 @@ bool AMAShopNPC::RequestPurchase(APlayerController* PlayerController, int32 Stoc
 	if (StockIndex == INDEX_NONE) return false;
 
 	const FMAShopStockEntry Entry = CurrentStockEntries[StockIndex];
-	if (!PlayerController || !Entry.SkillDefinition) return false;
+	if (!PlayerController || !Entry.SkillModule) return false;
 
 	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(PlayerController->GetPawn());
 	if (!PlayerCharacter) return false;
@@ -109,7 +106,7 @@ bool AMAShopNPC::RequestPurchase(APlayerController* PlayerController, int32 Stoc
 	if (!Currency || !Currency->HasCoin(Entry.Price)) return false;
 
 	UMASkillModuleInventoryComponent* ModuleInventory = PlayerCharacter->GetSkillModuleInventoryComponent();
-	if (!ModuleInventory || !ModuleInventory->RequestGrantModule(Entry.SkillDefinition)) return false;
+	if (!ModuleInventory || !ModuleInventory->RequestGrantModule(Entry.SkillModule)) return false;
 	if (!Currency->TrySpendCoin(Entry.Price)) return false;
 
 	CurrentStockEntries.RemoveAt(StockIndex);
@@ -291,42 +288,37 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 {
 	TArray<FMAShopStockEntry> Stock;
 
-	TArray<UMASkillDefinition*> SkillDefinitions;
-	FMAShopProductFinder::FindSkillModules(ModuleRootPaths, SkillDefinitions);
 	const int32 Count = ModuleStockCountRange.ResolveCount();
-	if (Count <= 0 || SkillDefinitions.IsEmpty()) return Stock;
+	if (Count <= 0 || !ModulePool) return Stock;
 
-	TArray<UMASkillDefinition*> Pool;
-	for (UMASkillDefinition* SkillDefinition : SkillDefinitions)
+	TArray<int32> CandidateModuleIds = ModulePool->GetModuleIds();
+	UAssetManager& AssetManager = UAssetManager::Get();
+	for (int32 Index = 0; Index < CandidateModuleIds.Num() && Stock.Num() < Count; ++Index)
 	{
-		if (!SkillDefinition) continue;
-		if (static_cast<uint8>(SkillDefinition->GetModuleQuality().Rarity)
+		const int32 PickIndex = FMath::RandRange(Index, CandidateModuleIds.Num() - 1);
+		CandidateModuleIds.Swap(Index, PickIndex);
+
+		const int32 ModuleId = CandidateModuleIds[Index];
+		const FSoftObjectPath ModulePath = AssetManager.GetPrimaryAssetPath(
+			UMASkillModule::MakePrimaryAssetId(ModuleId));
+		UMASkillModule* SkillModule = Cast<UMASkillModule>(ModulePath.TryLoad());
+		if (!SkillModule) continue;
+		if (static_cast<uint8>(SkillModule->GetModuleQuality().Rarity)
 			> static_cast<uint8>(MaxModuleRarity)) continue;
 
-		Pool.Add(SkillDefinition);
-	}
-
-	const int32 TargetCount = FMath::Min(Count, Pool.Num());
-	if (TargetCount <= 0) return Stock;
-
-	for (int32 Index = 0; Index < TargetCount; ++Index)
-	{
-		const int32 PickIndex = FMath::RandRange(Index, Pool.Num() - 1);
-		Pool.Swap(Index, PickIndex);
-
 		FMAShopStockEntry Entry;
-		Entry.StockId = Index;
+		Entry.StockId = Stock.Num();
 		Entry.VisualSeed = FMath::Rand();
-		Entry.SkillDefinition = Pool[Index];
-		Entry.Price = ResolveModulePrice(Pool[Index]);
-		const FMASkillIconData IconData = Pool[Index]->ResolveIconData(ModuleQualityData);
+		Entry.SkillModule = SkillModule;
+		Entry.Price = ResolveModulePrice(SkillModule);
+		const FMASkillIconData IconData = SkillModule->ResolveIconData(ModuleQualityData);
 		Entry.Icon = IconData.Icon;
 		Entry.IconColor = IconData.IconColor;
 		Entry.InnerColor = IconData.InnerColor;
-		Entry.QualityColor = Pool[Index]->ResolveFrameColor(ModuleQualityData);
+		Entry.QualityColor = SkillModule->ResolveFrameColor(ModuleQualityData);
 		if (ModuleQualityData)
 		{
-			const FMAModuleQuality& Quality = Pool[Index]->GetModuleQuality();
+			const FMAModuleQuality& Quality = SkillModule->GetModuleQuality();
 			if (const FMAModuleRarityData* RarityData = ModuleQualityData->FindRarityData(Quality.Rarity))
 			{
 				Entry.QualityText = RarityData->DisplayName;
@@ -338,11 +330,11 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 	return Stock;
 }
 
-int32 AMAShopNPC::ResolveModulePrice(const UMASkillDefinition* SkillDefinition) const
+int32 AMAShopNPC::ResolveModulePrice(const UMASkillModule* SkillModule) const
 {
-	if (!SkillDefinition) return 0;
+	if (!SkillModule) return 0;
 	check(ModuleQualityData);
-	return ModuleQualityData->ResolvePrice(SkillDefinition->GetModuleQuality());
+	return ModuleQualityData->ResolvePrice(SkillModule->GetModuleQuality());
 }
 
 void AMAShopNPC::OnRep_CurrentStockEntries()

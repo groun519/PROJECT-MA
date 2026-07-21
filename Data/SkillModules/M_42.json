@@ -1,0 +1,98 @@
+{
+	"ModuleId": 42,
+	"Module":
+	{
+		"ModuleName": "PDA_Sword",
+		"DisplayData":
+		{
+			"DisplayName": "Sword",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/PassiveModuleTexture/T_Sword.T_Sword'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique",
+			"Module.Passive"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
+				"initialStack": 0,
+				"minStack": 0,
+				"maxStack": 999,
+				"bShowStackText": true
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
+				"gameplayEffects": [
+					{
+						"modifiers": [
+							{
+								"attribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"modifierOp": "Additive"
+							}
+						],
+						"baseMagnitude": 0,
+						"magnitudeCoefficients": [
+							{
+								"source": "Payload",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "Data.Module.Stack",
+								"coefficient": 0.10000000149011612
+							}
+						],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
+							"operation": "Add",
+							"value": 1
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

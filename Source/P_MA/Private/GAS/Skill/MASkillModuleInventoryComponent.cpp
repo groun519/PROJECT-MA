@@ -1,7 +1,7 @@
 #include "GAS/Skill/MASkillModuleInventoryComponent.h"
 
-#include "GAS/Skill/Definition/MASkillDefinition.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "Net/UnrealNetwork.h"
 
@@ -25,10 +25,10 @@ void UMASkillModuleInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifeti
 	DOREPLIFETIME_CONDITION(UMASkillModuleInventoryComponent, Entries, COND_OwnerOnly);
 }
 
-bool UMASkillModuleInventoryComponent::AddModule(UMASkillDefinition* Definition)
+bool UMASkillModuleInventoryComponent::AddModule(UMASkillModule* Module)
 {
 	if (!CanMutateInventory()) return false;
-	if (!Definition) return false;
+	if (!Module) return false;
 
 	EnsureSlotCount();
 	const int32 EmptyIndex = Entries.IndexOfByPredicate([](const UMASkillModuleInstance* Candidate)
@@ -40,25 +40,25 @@ bool UMASkillModuleInventoryComponent::AddModule(UMASkillDefinition* Definition)
 	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
 	if (!SkillManager) return false;
 
-	Entries[EmptyIndex] = SkillManager->CreateModuleInstance(Definition);
+	Entries[EmptyIndex] = SkillManager->CreateModuleInstance(Module);
 	if (!Entries[EmptyIndex]) return false;
 	OnInventoryChanged.Broadcast();
 	return true;
 }
 
-bool UMASkillModuleInventoryComponent::RequestGrantModule(UMASkillDefinition* Definition)
+bool UMASkillModuleInventoryComponent::RequestGrantModule(UMASkillModule* Module)
 {
-	if (!Definition) return false;
+	if (!Module) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
 
 	if (OwnerActor->HasAuthority())
 	{
-		return AddModule(Definition);
+		return AddModule(Module);
 	}
 
-	ServerGrantModule(Definition);
+	ServerGrantModule(Module);
 	return true;
 }
 
@@ -141,9 +141,9 @@ bool UMASkillModuleInventoryComponent::EquipInventorySlotToSkillSlot(
 	return true;
 }
 
-void UMASkillModuleInventoryComponent::ServerGrantModule_Implementation(UMASkillDefinition* Definition)
+void UMASkillModuleInventoryComponent::ServerGrantModule_Implementation(UMASkillModule* Module)
 {
-	AddModule(Definition);
+	AddModule(Module);
 }
 
 void UMASkillModuleInventoryComponent::ServerEquipInventorySlotToSkillSlot_Implementation(

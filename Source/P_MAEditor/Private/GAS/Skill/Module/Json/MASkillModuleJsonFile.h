@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 
+enum class EMAModuleRarity : uint8;
+
 struct FMASkillModuleJsonSource
 {
 	int32 ModuleId = 0;
@@ -29,6 +31,7 @@ struct FMASkillModuleJsonFile
 		const FString& FilePath,
 		int32& OutModuleId,
 		FName& OutModuleName,
+		EMAModuleRarity& OutModuleRarity,
 		FText& OutError);
 
 	static bool ResolveModuleId(const FString& SourceFile, int32& OutModuleId, FText& OutError);

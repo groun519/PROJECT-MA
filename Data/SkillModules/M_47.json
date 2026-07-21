@@ -1,0 +1,159 @@
+{
+	"ModuleId": 47,
+	"Module":
+	{
+		"ModuleName": "DA_Slam",
+		"DisplayData":
+		{
+			"DisplayName": "Slam",
+			"Description": "사각 범위로 공격하여, \r\n<BD>15</>+<ATK>75%의 피해</>를 입히고, 대상에게 <STG>0.15초 동안 0.3m의 경직</>을 부여합니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Slam.T_Slam'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Slam",
+				"Priority": 3
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity1"
+		},
+		"ModuleTags": [
+			"Module.Attack"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 0.5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
+						"changedAttribute":
+						{
+							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+						},
+						"changeType": "Changed"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Damage",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
+							"damagePayloadTag": "Damage"
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.89999997615814209
+						}
+					},
+					{
+						"eventTag": "Event.Attribute.AttackSpeed.Changed",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.89999997615814209
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.1499999761581421
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Slam.AM_Slam'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 2
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 15,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 0.75
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectStagger",
+								"magnitude": 200,
+								"duration": 0.15000000596046448,
+								"sourceType": "Instigator"
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Sword"
+						]
+					}
+				}
+			}
+		]
+	}
+}

@@ -1,11 +1,13 @@
-#if WITH_DEV_AUTOMATION_TESTS
+﻿#if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GAS/Skill/Addon/Effect/MASkillModuleGameplayEffectAddon.h"
-#include "GAS/Skill/Module/MASkillModuleAsset.h"
+#include "GAS/Skill/Damage/MASkillDamageTypes.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
+#include "GAS/Skill/StatusEffect/MASkillStatusEffect_Impulse.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
@@ -57,9 +59,16 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	}
 
 	const FString InitialJson = TEXT(
-		"{\"ModuleId\":1201,\"Module\":{\"ModuleName\":\"First\",\"Addons\":["
+		"{\"ModuleId\":1201,\"Module\":{\"ModuleName\":\"First\","
+		"\"ModuleTags\":[\"Module.Attack\"],\"Addons\":["
 		"{\"_ClassName\":\"/Script/P_MA.MASkillModuleGameplayEffectAddon\","
-		"\"GameplayEffects\":[{}]}]}}");
+		"\"GameplayEffects\":[{\"GrantedTags\":[\"State.Debuff.Stun\"]}]}],"
+		"\"Payloads\":[{\"payloadTag\":\"Data.Damage.Base\",\"valueType\":\"Struct\","
+		"\"structValue\":{\"_StructName\":\"/Script/P_MA.MASkillDamageConfig\",\"Value\":{"
+		"\"BaseDamage\":42,\"DamageTypeTag\":\"DamageType.Fire\","
+		"\"TargetGameplayCueTags\":[\"GameplayCue.Hit.Overlay.Red\"],"
+		"\"StatusEffects\":[{\"_ClassName\":"
+		"\"/Script/P_MA.MASkillStatusEffectKnockback\",\"magnitude\":321}]}}}]}}");
 	if (!TestTrue(
 		TEXT("Write source JSON"),
 		FFileHelper::SaveStringToFile(InitialJson, *JsonFile)))
@@ -93,7 +102,7 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	}
 	TestEqual(TEXT("First build writes the asset"), Result, EMASkillModuleAssetBuildResult::Built);
 
-	UMASkillModuleAsset* BuiltAsset = LoadObject<UMASkillModuleAsset>(nullptr, *AssetPath.ToString());
+	UMASkillModule* BuiltAsset = LoadObject<UMASkillModule>(nullptr, *AssetPath.ToString());
 	TestNotNull(TEXT("Generated module asset exists"), BuiltAsset);
 	if (!BuiltAsset) return false;
 	TestEqual(TEXT("Generated asset preserves ModuleId"), BuiltAsset->GetModuleId(), 1201);
@@ -101,19 +110,41 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	TestEqual(
 		TEXT("Generated asset exposes its Primary Asset id"),
 		BuiltAsset->GetPrimaryAssetId(),
-		FPrimaryAssetId(UMASkillModuleAsset::PrimaryAssetType, TEXT("1201")));
+		FPrimaryAssetId(UMASkillModule::PrimaryAssetType, TEXT("1201")));
 	TestFalse(TEXT("Generated asset records its source hash"), BuiltAsset->GetSourceHash().IsEmpty());
 	TestEqual(
 		TEXT("Generated asset records its data version"),
 		BuiltAsset->GetGeneratedDataVersion(),
-		UMASkillModuleAsset::CurrentGeneratedDataVersion);
+		UMASkillModule::CurrentGeneratedDataVersion);
 	TestTrue(TEXT("Generated asset records its build time"), BuiltAsset->GetLastBuiltAt() > 0);
 	const int64 InitialLastBuiltAt = BuiltAsset->GetLastBuiltAt();
+	const FGameplayTag AttackTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Attack"));
+	const FGameplayTag FireDamageTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Fire"));
+	const FGameplayTag HitCueTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Hit.Overlay.Red"));
+	const FGameplayTag StunTag = FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Stun"));
+	TestTrue(TEXT("Generated asset preserves module tags"), BuiltAsset->GetModuleData().ModuleTags.HasTagExact(AttackTag));
 	if (!BuiltAsset->GetModuleData().Addons.IsEmpty())
 	{
 		TestTrue(
 			TEXT("Generated addon is owned by its module asset"),
 			BuiltAsset->GetModuleData().Addons[0]->GetOuter() == BuiltAsset);
+	}
+	const FMASkillDamageConfig* BuiltDamage = BuiltAsset->GetModuleData().Payloads.Num() > 0
+		? BuiltAsset->GetModuleData().Payloads[0].StructValue.GetPtr<FMASkillDamageConfig>()
+		: nullptr;
+	TestNotNull(TEXT("Generated payload struct exists"), BuiltDamage);
+	if (BuiltDamage)
+	{
+		TestEqual(TEXT("Generated payload preserves damage type"), BuiltDamage->DamageTypeTag, FireDamageTag);
+		TestTrue(
+			TEXT("Generated payload preserves gameplay cues"),
+			BuiltDamage->TargetGameplayCueTags.HasTagExact(HitCueTag));
+	}
+	if (BuiltDamage && !BuiltDamage->StatusEffects.IsEmpty())
+	{
+		TestTrue(
+			TEXT("Generated payload object is owned by its module asset"),
+			BuiltDamage->StatusEffects[0]->IsIn(BuiltAsset));
 	}
 	if (!TestTrue(
 		TEXT("Inspect built source"),
@@ -158,7 +189,7 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 		BuiltAsset->GetModuleId(),
 		MoveTemp(PreviousVersionData),
 		FString(BuiltAsset->GetSourceHash()),
-		UMASkillModuleAsset::CurrentGeneratedDataVersion - 1);
+		UMASkillModule::CurrentGeneratedDataVersion - 1);
 	FSavePackageArgs SaveArgs;
 	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
 	SaveArgs.SaveFlags = SAVE_NoError;
@@ -197,9 +228,16 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Previous version is rebuilt"), Result, EMASkillModuleAssetBuildResult::Built);
 
 	const FString UpdatedJson = TEXT(
-		"{\"ModuleId\":1201,\"Module\":{\"ModuleName\":\"Updated\",\"Addons\":["
+		"{\"ModuleId\":1201,\"Module\":{\"ModuleName\":\"Updated\","
+		"\"ModuleTags\":[\"Module.Attack\"],\"Addons\":["
 		"{\"_ClassName\":\"/Script/P_MA.MASkillModuleGameplayEffectAddon\","
-		"\"GameplayEffects\":[{}]}]}}");
+		"\"GameplayEffects\":[{\"GrantedTags\":[\"State.Debuff.Stun\"]}]}],"
+		"\"Payloads\":[{\"payloadTag\":\"Data.Damage.Base\",\"valueType\":\"Struct\","
+		"\"structValue\":{\"_StructName\":\"/Script/P_MA.MASkillDamageConfig\",\"Value\":{"
+		"\"BaseDamage\":84,\"DamageTypeTag\":\"DamageType.Fire\","
+		"\"TargetGameplayCueTags\":[\"GameplayCue.Hit.Overlay.Red\"],"
+		"\"StatusEffects\":[{\"_ClassName\":"
+		"\"/Script/P_MA.MASkillStatusEffectKnockback\",\"magnitude\":642}]}}}]}}");
 	TestTrue(TEXT("Update source JSON"), FFileHelper::SaveStringToFile(UpdatedJson, *JsonFile));
 	if (!TestTrue(
 		TEXT("Inspect changed source"),
@@ -226,6 +264,29 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 		TEXT("Rebuild replaces module data"),
 		BuiltAsset->GetModuleData().ModuleName,
 		FName(TEXT("Updated")));
+
+	const int64 UpdatedLastBuiltAt = BuiltAsset->GetLastBuiltAt();
+	UMASkillModuleAddon* UpdatedAddon = BuiltAsset->GetModuleData().Addons[0];
+	TestTrue(
+		TEXT("Write invalid replacement source"),
+		FFileHelper::SaveStringToFile(
+			TEXT("{\"ModuleId\":1201,\"Module\":{\"ModuleName\":\"Invalid\",\"ModuleTags\":{}}}"),
+			*JsonFile));
+	TestFalse(
+		TEXT("Invalid replacement does not build"),
+		FMASkillModuleAssetBuilder::Build(
+			JsonFile,
+			GeneratedDirectory,
+			EMASkillModuleBuildMode::IfRequired,
+			Result,
+			Error));
+	TestEqual(
+		TEXT("Failed rebuild preserves module data"),
+		BuiltAsset->GetModuleData().ModuleName,
+		FName(TEXT("Updated")));
+	TestEqual(TEXT("Failed rebuild preserves build time"), BuiltAsset->GetLastBuiltAt(), UpdatedLastBuiltAt);
+	TestTrue(TEXT("Failed rebuild preserves addon objects"), BuiltAsset->GetModuleData().Addons[0] == UpdatedAddon);
+	TestTrue(TEXT("Restore valid source JSON"), FFileHelper::SaveStringToFile(UpdatedJson, *JsonFile));
 
 	const FString MismatchedJsonFile = FPaths::Combine(SourceDirectory, TEXT("M_1202.json"));
 	TestTrue(
@@ -277,7 +338,7 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Generated package reloads"), ReloadedPackage);
 	if (!ReloadedPackage) return false;
 
-	UMASkillModuleAsset* ReloadedAsset = FindObject<UMASkillModuleAsset>(ReloadedPackage, *AssetName);
+	UMASkillModule* ReloadedAsset = FindObject<UMASkillModule>(ReloadedPackage, *AssetName);
 	TestNotNull(TEXT("Generated asset survives package reload"), ReloadedAsset);
 	if (!ReloadedAsset || ReloadedAsset->GetModuleData().Addons.IsEmpty()) return false;
 
@@ -285,6 +346,23 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 		Cast<UMASkillModuleGameplayEffectAddon>(ReloadedAsset->GetModuleData().Addons[0]);
 	TestNotNull(TEXT("Generated effect addon survives package reload"), EffectAddon);
 	if (!EffectAddon) return false;
+	const FMASkillDamageConfig* ReloadedDamage = ReloadedAsset->GetModuleData().Payloads.Num() > 0
+		? ReloadedAsset->GetModuleData().Payloads[0].StructValue.GetPtr<FMASkillDamageConfig>()
+		: nullptr;
+	TestNotNull(TEXT("Generated payload struct survives package reload"), ReloadedDamage);
+	if (ReloadedDamage)
+	{
+		TestEqual(TEXT("Reloaded payload preserves damage type"), ReloadedDamage->DamageTypeTag, FireDamageTag);
+		TestTrue(
+			TEXT("Reloaded payload preserves gameplay cues"),
+			ReloadedDamage->TargetGameplayCueTags.HasTagExact(HitCueTag));
+	}
+	if (ReloadedDamage && !ReloadedDamage->StatusEffects.IsEmpty())
+	{
+		TestTrue(
+			TEXT("Generated payload object keeps its module owner after reload"),
+			ReloadedDamage->StatusEffects[0]->IsIn(ReloadedAsset));
+	}
 
 	const FArrayProperty* GameplayEffectsProperty =
 		FindFProperty<FArrayProperty>(EffectAddon->GetClass(), TEXT("GameplayEffects"));
@@ -301,6 +379,7 @@ bool FMASkillModuleAssetBuilderTest::RunTest(const FString& Parameters)
 	const FMASkillModuleGameplayEffectConfig* EffectConfig =
 		reinterpret_cast<const FMASkillModuleGameplayEffectConfig*>(GameplayEffects.GetRawPtr(0));
 	TestNotNull(TEXT("Generated effect definition survives package reload"), EffectConfig->GetEffectDefinition());
+	TestTrue(TEXT("Generated effect preserves granted tags"), EffectConfig->GrantedTags.HasTagExact(StunTag));
 	return !HasAnyErrors();
 }
 

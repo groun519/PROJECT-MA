@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 
-class UMASkillDefinition;
 class UMASkillModuleInstance;
 struct FGameplayTag;
 
