@@ -312,23 +312,12 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	}
 }
 
-/** Command **/
-void AMAPlayerCharacter::AddCoin(float Amount)
-{
-	Server_AddCoin(Amount);
-}
-
 void AMAPlayerCharacter::Server_AddCoin_Implementation(float Amount)
 {
 	if (CurrencyComponent)
 	{
 		CurrencyComponent->AddCoin(Amount);
 	}
-}
-
-void AMAPlayerCharacter::RefreshShopStock()
-{
-	Server_RefreshShopStock();
 }
 
 void AMAPlayerCharacter::Server_RefreshShopStock_Implementation()
@@ -340,11 +329,6 @@ void AMAPlayerCharacter::Server_RefreshShopStock_Implementation()
 	{
 		It->RefreshStock();
 	}
-}
-
-void AMAPlayerCharacter::ShopTest()
-{
-	Server_ShopTest();
 }
 
 void AMAPlayerCharacter::Server_ShopTest_Implementation()

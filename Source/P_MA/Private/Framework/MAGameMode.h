@@ -60,7 +60,6 @@ public:
 	void RequestReturnToLobby(APlayerController* RequestingPlayer);
 
 	/** Debug **/
-	UFUNCTION(Exec)
 	void SetMAState(int32 NewState);
 	
 private:

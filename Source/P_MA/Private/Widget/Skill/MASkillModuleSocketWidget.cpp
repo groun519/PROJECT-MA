@@ -375,10 +375,14 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 
 	const UDataTable* WarningTextDataTable = ResolveWarningTextDataTable();
 	const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
-	TooltipWidget->SetSkillTooltip(
-		CachedModule,
-		ModuleInstance ? ModuleInstance->GetInactiveReasonTag() : FGameplayTag(),
-		WarningTextDataTable);
+	if (ModuleInstance)
+	{
+		TooltipWidget->SetModuleTooltip(*ModuleInstance, WarningTextDataTable);
+	}
+	else
+	{
+		TooltipWidget->SetSkillTooltip(CachedModule, FGameplayTag(), WarningTextDataTable);
+	}
 	SetToolTip(TooltipWidget);
 }
 

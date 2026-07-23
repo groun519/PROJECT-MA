@@ -5,9 +5,11 @@
 #include "Components/TextBlock.h"
 #include "GAS/Skill/Definition/MASkillWarningTextData.h"
 #include "GAS/Skill/Module/MASkillModule.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
+#include "Widget/Skill/MASkillSubModuleTooltipWidget.h"
 #include "Widget/Skill/MASkillTagBadgeWidget.h"
 #include "Widget/Skill/MASkillTooltipMessageWidget.h"
 
@@ -39,6 +41,37 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		bShowTagsAndMessages ? TooltipTags : FGameplayTagContainer(),
 		bShowTagsAndMessages ? InactiveReasonTag : FGameplayTag(),
 		WarningTextDataTable);
+
+	SubModulePanel->ClearChildren();
+	SubModulePanel->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UMASkillTooltipWidget::SetModuleTooltip(
+	const UMASkillModuleInstance& ModuleInstance,
+	const UDataTable* WarningTextDataTable,
+	const bool bShowTagsAndMessages)
+{
+	SetSkillTooltip(
+		ModuleInstance.GetRootModule(),
+		ModuleInstance.GetInactiveReasonTag(),
+		WarningTextDataTable,
+		bShowTagsAndMessages);
+	if (!SubModuleWidgetClass) return;
+
+	for (const UMASkillModule* SubModule : ModuleInstance.GetModuleGroup().SubModules)
+	{
+		if (!SubModule) continue;
+
+		UMASkillSubModuleTooltipWidget* SubModuleWidget =
+			CreateWidget<UMASkillSubModuleTooltipWidget>(this, SubModuleWidgetClass);
+		if (!SubModuleWidget) continue;
+
+		SubModuleWidget->SetSubModule(*SubModule);
+		SubModulePanel->AddChild(SubModuleWidget);
+	}
+	SubModulePanel->SetVisibility(SubModulePanel->GetChildrenCount() > 0
+		? ESlateVisibility::SelfHitTestInvisible
+		: ESlateVisibility::Collapsed);
 }
 
 void UMASkillTooltipWidget::SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)

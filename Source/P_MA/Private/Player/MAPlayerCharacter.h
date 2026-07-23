@@ -41,17 +41,11 @@ public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
 
-	/** Command **/
-	UFUNCTION(Exec)
-	void AddCoin(float Amount = 1000.f);
+	/** Cheat **/
 	UFUNCTION(Server, Reliable)
 	void Server_AddCoin(float Amount);
-	UFUNCTION(Exec)
-	void RefreshShopStock();
 	UFUNCTION(Server, Reliable)
 	void Server_RefreshShopStock();
-	UFUNCTION(Exec)
-	void ShopTest();
 	UFUNCTION(Server, Reliable)
 	void Server_ShopTest();
 

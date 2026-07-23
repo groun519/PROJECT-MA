@@ -1,5 +1,6 @@
 #include "Player/MAPlayerController.h"
 
+#include "Debug/MACheatManager.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Player/MAPlayerCharacter.h"
@@ -20,6 +21,7 @@
 
 AMAPlayerController::AMAPlayerController()
 {
+	CheatClass = UMACheatManager::StaticClass();
 	TeamID = FGenericTeamId(0);
 	FloatingTextComponent = CreateDefaultSubobject<UMAFloatingTextComponent>("Floating Text Component");
 	SpectateComponent = CreateDefaultSubobject<UMAPlayerSpectateComponent>("Spectate Component");

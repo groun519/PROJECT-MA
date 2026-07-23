@@ -11,6 +11,8 @@ class UTextBlock;
 class UTexture2D;
 class UDataTable;
 class UMASkillModule;
+class UMASkillModuleInstance;
+class UMASkillSubModuleTooltipWidget;
 class UMASkillTagBadgeWidget;
 class UMASkillTooltipMessageWidget;
 struct FMASkillIconData;
@@ -24,6 +26,10 @@ public:
 	void SetSkillTooltip(
 		const UMASkillModule* SkillModule,
 		const FGameplayTag& InactiveReasonTag = FGameplayTag(),
+		const UDataTable* WarningTextDataTable = nullptr,
+		bool bShowTagsAndMessages = true);
+	void SetModuleTooltip(
+		const UMASkillModuleInstance& ModuleInstance,
 		const UDataTable* WarningTextDataTable = nullptr,
 		bool bShowTagsAndMessages = true);
 
@@ -48,6 +54,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
 	TSubclassOf<UMASkillTagBadgeWidget> TagBadgeWidgetClass;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UPanelWidget> SubModulePanel;
+
+	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
+	TSubclassOf<UMASkillSubModuleTooltipWidget> SubModuleWidgetClass;
 
 private:
 	void SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);

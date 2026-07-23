@@ -291,6 +291,26 @@ bool UMASkillManagerComponent::ReplaceModuleInstanceAt(
 	return true;
 }
 
+bool UMASkillManagerComponent::AddSubModule(
+	FGameplayTag SlotTag,
+	const int32 ModuleIndex,
+	UMASkillModule* SubModule)
+{
+	if (!CanMutateSkillSlots() || !SubModule) return false;
+	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
+	if (!IsValidModuleSlotIndex(SlotTag, ModuleIndex)) return false;
+
+	FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);
+	if (!SlotState || !SlotState->SourceModuleInstances.IsValidIndex(ModuleIndex)) return false;
+
+	UMASkillModuleInstance* ModuleInstance = SlotState->SourceModuleInstances[ModuleIndex];
+	if (!ModuleInstance || !ModuleInstance->IsValid()) return false;
+
+	return ModuleInstance->SetSubModuleAt(
+		ModuleInstance->GetModuleGroup().SubModules.Num(),
+		SubModule);
+}
+
 bool UMASkillManagerComponent::RequestSwapModuleSlotsBetween(
 	FGameplayTag SlotTagA,
 	int32 IndexA,

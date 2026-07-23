@@ -1,0 +1,67 @@
+{
+	"ModuleId": 52,
+	"Module":
+	{
+		"ModuleName": "DA_FireElemental",
+		"DisplayData":
+		{
+			"DisplayName": "Fire Elemental",
+			"Description": "모듈의 피해 타입이 불 속성이 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Fire.T_Fire'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity7"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Elemental.Fire"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_PatchDamagePayload",
+							"damagePayloadTag": "Damage",
+							"bExactPayloadTagMatch": false,
+							"bOverrideDamageType": true,
+							"damageTypeTag": "DamageType.Fire",
+							"targetRelationModifier":
+							{
+								"operation": "None",
+								"relationMask": 0
+							},
+							"gameplayCuePatchOp": "None",
+							"targetGameplayCueTags": [],
+							"statusEffectPatchOp": "None",
+							"statusEffects": []
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}
