@@ -63,7 +63,7 @@ void UMASkillAbility::OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo
 
 const UMASkillModule* UMASkillAbility::GetCurrentSkillModule() const
 {
-	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetModule() : nullptr;
+	return CurrentSkillModuleInstance ? CurrentSkillModuleInstance->GetRootModule() : nullptr;
 }
 
 FMASkillPayloadStore* UMASkillAbility::GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const

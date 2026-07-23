@@ -6,6 +6,7 @@
 #include "MAMonsterTypes.generated.h"
 
 class UMASkillModule;
+struct FMASkillModuleGroup;
 
 USTRUCT(BlueprintType)
 struct FMonsterSkillSlotData
@@ -38,4 +39,15 @@ struct FMonsterSkillPatternRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere)
 	TArray<TSoftObjectPtr<UMASkillModule>> Modules;
+
+	bool LoadModuleGroups(TArray<FMASkillModuleGroup>& OutModuleGroups) const;
+
+#if WITH_EDITOR
+	virtual void OnDataTableChanged(const UDataTable* InDataTable, FName InRowName) override;
+#endif
+
+private:
+	// Generated from WindupDuration and serialized with the owning DataTable.
+	UPROPERTY(Instanced)
+	TObjectPtr<UMASkillModule> WindupSubModule = nullptr;
 };

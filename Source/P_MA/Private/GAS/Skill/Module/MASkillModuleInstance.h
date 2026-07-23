@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameplayTagContainer.h"
 #include "TimerManager.h"
@@ -10,10 +11,14 @@
 
 class UMASkillManagerComponent;
 class UMASkillModule;
+class UMASkillModuleInstance;
 class UMASkillModuleInventoryComponent;
 class UMASkillRuntimeRegistry;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillModuleStateChangedSignature);
+DECLARE_MULTICAST_DELEGATE_OneParam(
+	FMASkillSubModulesChangedSignature,
+	UMASkillModuleInstance*);
 
 UCLASS()
 class P_MA_API UMASkillModuleInstance : public UObject
@@ -26,9 +31,12 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UMASkillModule* GetModule() const { return Module; }
-	void SetModule(UMASkillModule* InModule);
-	bool IsValid() const { return Module != nullptr; }
+	UMASkillModule* GetRootModule() const { return ModuleGroup.RootModule; }
+	const FMASkillModuleGroup& GetModuleGroup() const { return ModuleGroup; }
+	const UMASkillModule* GetComposedModule();
+	void SetRootModule(UMASkillModule* InRootModule);
+	bool IsValid() const { return ModuleGroup.RootModule != nullptr; }
+	bool SetSubModuleAt(int32 SubModuleIndex, UMASkillModule* SubModule);
 	bool IsInSkillSlot() const { return bIsInSkillSlot; }
 	bool IsAssemblyActive() const { return IsValid() && IsInSkillSlot() && IsActive(); }
 	bool IsActive() const { return bIsActive; }
@@ -61,12 +69,13 @@ public:
 	UMASkillRuntimeRegistry* GetRuntimeRegistry() const { return RuntimeRegistry; }
 
 	FMASkillModuleStateChangedSignature OnStateChanged;
+	FMASkillSubModulesChangedSignature OnSubModulesChanged;
 
 private:
 	void SetInSkillSlot(bool bInSkillSlot);
 
 	UFUNCTION()
-	void OnRep_Module();
+	void OnRep_ModuleGroup(FMASkillModuleGroup& PreviousModuleGroup);
 	UFUNCTION()
 	void OnRep_AddonRuntimeData();
 	bool CanModifyAddonRuntimeData() const;
@@ -74,8 +83,11 @@ private:
 	void InitializePayloadStore();
 	void RefreshAddonPayloadMirrors();
 
-	UPROPERTY(ReplicatedUsing=OnRep_Module)
-	TObjectPtr<UMASkillModule> Module;
+	UPROPERTY(ReplicatedUsing=OnRep_ModuleGroup)
+	FMASkillModuleGroup ModuleGroup;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillModule> ComposedModule;
 
 	UPROPERTY(Transient)
 	bool bIsInSkillSlot = false;

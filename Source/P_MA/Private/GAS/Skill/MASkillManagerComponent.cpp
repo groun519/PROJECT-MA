@@ -144,14 +144,14 @@ void UMASkillManagerComponent::PrepareSkillSlotRuntimeStatesForUI()
 }
 
 /** Module Lifetime **/
-UMASkillModuleInstance* UMASkillManagerComponent::CreateModuleInstance(UMASkillModule* Module)
+UMASkillModuleInstance* UMASkillManagerComponent::CreateModuleInstance(UMASkillModule* RootModule)
 {
 	AActor* OwnerActor = GetOwner();
-	if (!OwnerActor || !OwnerActor->HasAuthority() || !Module) return nullptr;
+	if (!OwnerActor || !OwnerActor->HasAuthority() || !RootModule) return nullptr;
 
 	UMASkillModuleInstance* ModuleInstance = NewObject<UMASkillModuleInstance>(OwnerActor);
-	ModuleInstance->SetModule(Module);
-	Module->BindAddons(*ModuleInstance);
+	ModuleInstance->SetRootModule(RootModule);
+	RootModule->BindAddons(*ModuleInstance);
 	OwnerActor->AddReplicatedSubObject(ModuleInstance, COND_OwnerOnly);
 	return ModuleInstance;
 }
@@ -161,6 +161,7 @@ void UMASkillManagerComponent::UnregisterModuleInstance(UMASkillModuleInstance* 
 	AActor* OwnerActor = GetOwner();
 	if (!OwnerActor || !ModuleInstance) return;
 
+	ModuleInstance->OnSubModulesChanged.RemoveAll(this);
 	OwnerActor->RemoveReplicatedSubObject(ModuleInstance);
 }
 
@@ -197,6 +198,19 @@ bool UMASkillManagerComponent::ReplaceModulesAt(
 	FGameplayTag SlotTag,
 	const TArray<TObjectPtr<UMASkillModule>>& NewModules)
 {
+	TArray<FMASkillModuleGroup> ModuleGroups;
+	ModuleGroups.Reserve(NewModules.Num());
+	for (UMASkillModule* Module : NewModules)
+	{
+		ModuleGroups.AddDefaulted_GetRef().RootModule = Module;
+	}
+	return ReplaceModulesAt(SlotTag, ModuleGroups);
+}
+
+bool UMASkillManagerComponent::ReplaceModulesAt(
+	FGameplayTag SlotTag,
+	const TArray<FMASkillModuleGroup>& NewModuleGroups)
+{
 	if (!CanMutateSkillSlots()) return false;
 	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return false;
 	const int32 ModuleSlotCount = GetModuleSlotCount(SlotTag);
@@ -209,13 +223,26 @@ bool UMASkillManagerComponent::ReplaceModulesAt(
 	NewModuleInstances.SetNum(ModuleSlotCount);
 	for (int32 Index = 0; Index < ModuleSlotCount; ++Index)
 	{
-		UMASkillModule* Module = NewModules.IsValidIndex(Index)
-			? NewModules[Index].Get()
+		const FMASkillModuleGroup* ModuleGroup = NewModuleGroups.IsValidIndex(Index)
+			? &NewModuleGroups[Index]
 			: nullptr;
-		if (!Module) continue;
+		if (!ModuleGroup || !ModuleGroup->RootModule) continue;
 
-		NewModuleInstances[Index] = CreateModuleInstance(Module);
-		if (NewModuleInstances[Index]) continue;
+		UMASkillModuleInstance* ModuleInstance = CreateModuleInstance(ModuleGroup->RootModule);
+		NewModuleInstances[Index] = ModuleInstance;
+		if (ModuleInstance)
+		{
+			for (int32 SubModuleIndex = 0; SubModuleIndex < ModuleGroup->SubModules.Num(); ++SubModuleIndex)
+			{
+				UMASkillModule* SubModule = ModuleGroup->SubModules[SubModuleIndex];
+				if (SubModule && !ModuleInstance->SetSubModuleAt(SubModuleIndex, SubModule))
+				{
+					ModuleInstance = nullptr;
+					break;
+				}
+			}
+		}
+		if (ModuleInstance) continue;
 
 		for (UMASkillModuleInstance* CreatedModuleInstance : NewModuleInstances)
 		{
@@ -398,7 +425,7 @@ UMASkillModule* UMASkillManagerComponent::GetAssembledModule(FGameplayTag SlotTa
 {
 	const FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);
 	const UMASkillModuleInstance* AssembledModuleInstance = SlotState ? SlotState->AssembledModuleInstance : nullptr;
-	return AssembledModuleInstance ? AssembledModuleInstance->GetModule() : nullptr;
+	return AssembledModuleInstance ? AssembledModuleInstance->GetRootModule() : nullptr;
 }
 
 /** Slot Runtime **/
@@ -407,6 +434,15 @@ void UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 	if (!FMASkillSystemStatics::IsSkillSlotTag(SlotTag)) return;
 
 	FMASkillSlotRuntimeState& SlotState = FindOrAddSlotRuntimeState(SlotTag);
+	for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
+	{
+		if (!ModuleInstance) continue;
+
+		ModuleInstance->OnSubModulesChanged.RemoveAll(this);
+		ModuleInstance->OnSubModulesChanged.AddUObject(
+			this,
+			&UMASkillManagerComponent::HandleSubModulesChanged);
+	}
 	UMASkillModuleInstance* PreviousAssembledModuleInstance = SlotState.AssembledModuleInstance;
 	if (UMASkillAbility* SkillAbility = ResolveSkillAbility(SlotState);
 		SkillAbility && SkillAbility->IsActive())
@@ -414,7 +450,10 @@ void UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 		SkillAbility->EndSkill();
 	}
 
-	SlotState.AssembledModuleInstance = FMASkillAssembler::Assemble(this, SlotTag, SlotState.SourceModuleInstances);
+	SlotState.AssembledModuleInstance = FMASkillAssembler::Assemble(
+		this,
+		SlotTag,
+		SlotState.SourceModuleInstances);
 	if (FMASkillSystemStatics::IsActiveSkillSlotTag(SlotTag) || SlotState.AssembledModuleInstance)
 	{
 		EnsureAbilityForSlot(SlotState);
@@ -439,6 +478,19 @@ void UMASkillManagerComponent::RebuildSkill(FGameplayTag SlotTag)
 
 	NotifyActiveModulesChanged(SlotState);
 	OnSkillSlotChanged.Broadcast(SlotTag);
+}
+
+void UMASkillManagerComponent::HandleSubModulesChanged(UMASkillModuleInstance* ModuleInstance)
+{
+	if (!ModuleInstance) return;
+
+	for (const FMASkillSlotRuntimeState& SlotState : SkillSlotRuntimeStates)
+	{
+		if (!SlotState.SourceModuleInstances.Contains(ModuleInstance)) continue;
+
+		RebuildSkill(SlotState.SlotTag);
+		return;
+	}
 }
 
 void UMASkillManagerComponent::RegisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle, TSubclassOf<UMASkillAbility> AbilityClass)
@@ -501,7 +553,7 @@ UMASkillAbility* UMASkillManagerComponent::GetSkillAbility(FGameplayTag SlotTag)
 void UMASkillManagerComponent::SetActivePreviewVisualElementTagFromSlot(const FMASkillSlotRuntimeState& SlotState)
 {
 	const UMASkillModule* SkillModule = SlotState.AssembledModuleInstance
-		? SlotState.AssembledModuleInstance->GetModule()
+		? SlotState.AssembledModuleInstance->GetRootModule()
 		: nullptr;
 	ActivePreviewVisualElementTag = SkillModule
 		? SkillModule->GetVisualElementTag()
@@ -532,9 +584,18 @@ void UMASkillManagerComponent::NotifyActiveModulesChanged(const FMASkillSlotRunt
 	for (UMASkillModuleInstance* ModuleInstance : SlotState.SourceModuleInstances)
 	{
 		if (!ModuleInstance || !ModuleInstance->IsActive()) continue;
-		const UMASkillModuleEventSourceAddon* EventSourceAddon =
-			MASkillModuleAddonStatics::FindAddon<UMASkillModuleEventSourceAddon>(*ModuleInstance);
-		if (!EventSourceAddon || !EventSourceAddon->HasEventSource(EventTag)) continue;
+
+		bool bHasEventSource = false;
+		MASkillModuleAddonStatics::ForEachAddon(
+			*ModuleInstance,
+			[&bHasEventSource, EventTag](const UMASkillModuleAddon& Addon)
+			{
+				const UMASkillModuleEventSourceAddon* EventSourceAddon =
+					Cast<UMASkillModuleEventSourceAddon>(&Addon);
+				bHasEventSource |= EventSourceAddon
+					&& EventSourceAddon->HasEventSource(EventTag);
+			});
+		if (!bHasEventSource) continue;
 
 		UMASkillEventRoutingStatics::TryNotifySkillEvent(
 			SkillAbility,
@@ -712,7 +773,6 @@ void UMASkillManagerComponent::ApplyReplicatedSkillSlotRuntimeStates()
 		{
 			SlotState.SourceModuleInstances[Index] = ReplicatedSlotState.ModuleInstances[Index];
 		}
-
 		RebuildSkill(ReplicatedSlotState.SlotTag);
 	}
 }

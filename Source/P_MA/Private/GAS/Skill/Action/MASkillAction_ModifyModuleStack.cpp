@@ -15,7 +15,7 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	const FMASkillScopes& Scopes)
 {
 	UMASkillModuleInstance* ModuleInstance = Scopes.Module.Get();
-	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 	if (!ModuleInstance || !Module) return;
 
 	const UMASkillModuleStackAddon* StackAddon = Module->GetStackAddon();

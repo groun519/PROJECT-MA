@@ -91,6 +91,13 @@
 					}
 				],
 				"sequenceModifiers": []
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
+				"initialStack": 0,
+				"minStack": 0,
+				"maxStack": 999,
+				"bShowStackText": true
 			}
 		],
 		"Payloads": [

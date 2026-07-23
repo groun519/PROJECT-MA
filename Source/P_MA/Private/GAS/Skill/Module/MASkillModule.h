@@ -11,6 +11,7 @@ class UMASkillModuleStackAddon;
 struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
 struct FMASkillAssembler;
+struct FMASkillModuleAssembler;
 struct FMASkillCooldownAssembler;
 struct FMASkillPayloadAssembler;
 struct FMASkillEventSourceAssembler;
@@ -113,6 +114,7 @@ private:
 	void ResetAssemblyData();
 
 	friend struct FMASkillAssembler;
+	friend struct FMASkillModuleAssembler;
 	friend struct FMASkillCooldownAssembler;
 	friend struct FMASkillPayloadAssembler;
 	friend struct FMASkillEventSourceAssembler;

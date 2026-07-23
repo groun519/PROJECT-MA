@@ -29,16 +29,29 @@ struct FMASkillEventSourceAssembler
 
 struct FMASkillEventBindingAssembler
 {
-	static void AppendFrom(
+	static void AppendDefinitions(
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule);
+
+	static void AppendToSkill(
 		UMASkillModule& TargetModule,
 		const UMASkillModule& SourceModule,
-		UMASkillModuleInstance& SourceModuleInstance,
-		UMASkillModuleInstance& AssembledModuleInstance);
+		const FMASkillScopes& TargetScopes);
+
+private:
+	static void AppendWithScopes(
+		UMASkillModule& TargetModule,
+		const UMASkillModule& SourceModule,
+		const FMASkillScopes& TargetScopes);
 };
 
 struct FMASkillSequenceAssembler
 {
-	static void AppendFrom(
+	static void ComposeModule(
+		UMASkillModule& TargetModule,
+		const TArray<const UMASkillModule*>& SourceModules);
+
+	static void AppendToSkill(
 		UMASkillModule& TargetModule,
 		const UMASkillModule& SourceModule,
 		const FMASkillScopes& TargetScopes);

@@ -32,7 +32,7 @@ public:
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
 	/** Module Lifetime **/
-	UMASkillModuleInstance* CreateModuleInstance(UMASkillModule* Module);
+	UMASkillModuleInstance* CreateModuleInstance(UMASkillModule* RootModule);
 
 	/** Slot Composition **/
 	bool ReplaceModuleAt(
@@ -42,6 +42,9 @@ public:
 	bool ReplaceModulesAt(
 		FGameplayTag SlotTag,
 		const TArray<TObjectPtr<UMASkillModule>>& NewModules);
+	bool ReplaceModulesAt(
+		FGameplayTag SlotTag,
+		const TArray<FMASkillModuleGroup>& NewModuleGroups);
 	bool ReplaceModuleInstanceAt(
 		FGameplayTag SlotTag,
 		int32 ModuleIndex,
@@ -113,6 +116,7 @@ private:
 		int32 IndexA,
 		FGameplayTag SlotTagB,
 		int32 IndexB);
+	void HandleSubModulesChanged(UMASkillModuleInstance* ModuleInstance);
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapModuleSlotsBetween(

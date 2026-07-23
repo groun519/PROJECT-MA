@@ -6,8 +6,8 @@
 #include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
 #include "GAS/Skill/Event/Source/MASkillEventSource.h"
 #include "GAS/Skill/Module/MASkillModule.h"
-#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Sequence/MASkillSequenceModifier.h"
+#include "GAS/Skill/Sequence/MASkillSequenceTask.h"
 
 void FMASkillCooldownAssembler::AppendFrom(
 	UMASkillModule& TargetModule,
@@ -69,11 +69,25 @@ void FMASkillEventSourceAssembler::AppendFrom(
 	}
 }
 
-void FMASkillEventBindingAssembler::AppendFrom(
+void FMASkillEventBindingAssembler::AppendDefinitions(
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule)
+{
+	AppendWithScopes(TargetModule, SourceModule, FMASkillScopes());
+}
+
+void FMASkillEventBindingAssembler::AppendToSkill(
 	UMASkillModule& TargetModule,
 	const UMASkillModule& SourceModule,
-	UMASkillModuleInstance& SourceModuleInstance,
-	UMASkillModuleInstance& AssembledModuleInstance)
+	const FMASkillScopes& TargetScopes)
+{
+	AppendWithScopes(TargetModule, SourceModule, TargetScopes);
+}
+
+void FMASkillEventBindingAssembler::AppendWithScopes(
+	UMASkillModule& TargetModule,
+	const UMASkillModule& SourceModule,
+	const FMASkillScopes& TargetScopes)
 {
 	const UMASkillModuleEventBindingAddon* SourceAddon =
 		SourceModule.FindAddon<UMASkillModuleEventBindingAddon>();
@@ -95,13 +109,65 @@ void FMASkillEventBindingAssembler::AppendFrom(
 	for (const FMASkillEventBinding& EventBinding : SourceAddon->EventBindings)
 	{
 		FMASkillEventBinding NewEventBinding = EventBinding;
-		NewEventBinding.BindingScopes.Module = &SourceModuleInstance;
-		NewEventBinding.BindingScopes.Skill = &AssembledModuleInstance;
+		NewEventBinding.BindingScopes = TargetScopes;
 		TargetAddon->EventBindings.Add(MoveTemp(NewEventBinding));
 	}
 }
 
-void FMASkillSequenceAssembler::AppendFrom(
+void FMASkillSequenceAssembler::ComposeModule(
+	UMASkillModule& TargetModule,
+	const TArray<const UMASkillModule*>& SourceModules)
+{
+	TArray<FMASkillSequence> ModuleSequences;
+	for (const UMASkillModule* SourceModule : SourceModules)
+	{
+		const UMASkillModuleSequenceAddon* SourceAddon = SourceModule
+			? SourceModule->FindAddon<UMASkillModuleSequenceAddon>()
+			: nullptr;
+		if (!SourceAddon) continue;
+
+		for (const FMASkillSequence& SourceSequence : SourceAddon->Sequences)
+		{
+			FMASkillSequence Sequence = SourceSequence;
+			Sequence.TargetScopes = FMASkillScopes();
+			Sequence.Tasks.Reset();
+			Sequence.InitialSequenceIndex = 0;
+			Sequence.SequenceAdvanceCount = 0;
+			ModuleSequences.Add(MoveTemp(Sequence));
+		}
+	}
+	if (ModuleSequences.IsEmpty()) return;
+
+	UMASkillModuleSequenceAddon* TargetAddon = nullptr;
+	for (UMASkillModuleAddon* Addon : TargetModule.ModuleData.Addons)
+	{
+		TargetAddon = Cast<UMASkillModuleSequenceAddon>(Addon);
+		if (TargetAddon) break;
+	}
+
+	if (!TargetAddon)
+	{
+		TargetAddon = NewObject<UMASkillModuleSequenceAddon>(&TargetModule);
+		TargetModule.ModuleData.Addons.Add(TargetAddon);
+	}
+
+	for (const UMASkillModule* SourceModule : SourceModules)
+	{
+		const UMASkillModuleSequenceAddon* SourceAddon = SourceModule
+			? SourceModule->FindAddon<UMASkillModuleSequenceAddon>()
+			: nullptr;
+		if (!SourceAddon) continue;
+
+		for (const UMASkillSequenceModifier* Modifier : SourceAddon->SequenceModifiers)
+		{
+			if (Modifier) Modifier->Apply(ModuleSequences, *TargetAddon);
+		}
+	}
+
+	TargetAddon->Sequences.Append(MoveTemp(ModuleSequences));
+}
+
+void FMASkillSequenceAssembler::AppendToSkill(
 	UMASkillModule& TargetModule,
 	const UMASkillModule& SourceModule,
 	const FMASkillScopes& TargetScopes)
@@ -123,24 +189,25 @@ void FMASkillSequenceAssembler::AppendFrom(
 		TargetModule.ModuleData.Addons.Add(TargetAddon);
 	}
 
-	TArray<FMASkillSequence> ModuleSequences;
-
 	for (const FMASkillSequence& SourceSequence : SourceAddon->Sequences)
 	{
 		FMASkillSequence Sequence = SourceSequence;
 		Sequence.TargetScopes = TargetScopes;
-		Sequence.Tasks.Reset();
+		Sequence.Tasks.Reset(SourceSequence.Tasks.Num());
 		Sequence.InitialSequenceIndex = 0;
 		Sequence.SequenceAdvanceCount = 0;
-		ModuleSequences.Add(MoveTemp(Sequence));
-	}
 
-	for (const UMASkillSequenceModifier* Modifier : SourceAddon->SequenceModifiers)
-	{
-		if (Modifier) Modifier->Apply(ModuleSequences, *TargetAddon);
+		for (const UMASkillSequenceTask* SourceTask : SourceSequence.Tasks)
+		{
+			if (UMASkillSequenceTask* Task = SourceTask
+				? DuplicateObject<UMASkillSequenceTask>(SourceTask, TargetAddon)
+				: nullptr)
+			{
+				Sequence.Tasks.Add(Task);
+			}
+		}
+		TargetAddon->Sequences.Add(MoveTemp(Sequence));
 	}
-
-	TargetAddon->Sequences.Append(MoveTemp(ModuleSequences));
 }
 
 void FMASkillSequenceAssembler::Finalize(UMASkillModule& TargetModule)

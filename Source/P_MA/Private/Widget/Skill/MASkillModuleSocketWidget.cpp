@@ -39,7 +39,7 @@ void UMASkillModuleSocketWidget::Refresh()
 
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
-	CachedModule = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	CachedModule = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 	ApplyModuleVisual(CachedModule);
 	ApplyModuleStateVisual(ModuleInstance);
 	RefreshCooldownVisual();
@@ -55,7 +55,7 @@ UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() cons
 UMASkillModule* UMASkillModuleSocketWidget::ResolveModule() const
 {
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
-	return ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	return ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 }
 
 const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
@@ -174,7 +174,7 @@ void UMASkillModuleSocketWidget::ClearCooldownVisualTimer()
 
 void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
 {
-	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetModule() : nullptr;
+	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 	FText StackValueText;
 	const bool bShowStack = Module
 		&& Module->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);

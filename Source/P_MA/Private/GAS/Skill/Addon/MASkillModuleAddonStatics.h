@@ -8,6 +8,7 @@ class UMASkillModuleInstance;
 class P_MA_API MASkillModuleAddonStatics final
 {
 public:
+	/** Visits root and submodule addons in module composition order. */
 	static void ForEachAddon(
 		const UMASkillModuleInstance& ModuleInstance,
 		TFunctionRef<void(const UMASkillModuleAddon&)> Func);

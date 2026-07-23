@@ -130,7 +130,7 @@ private:
 	UMASkillAbility* GetSkillAbility() const { return SkillAbility.Get(); }
 	UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
-	UPROPERTY(Transient)
+	UPROPERTY()
 	FMASkillSequenceTaskConfig Config;
 
 	TWeakObjectPtr<UMASkillSequenceRuntime> SequenceRuntime;

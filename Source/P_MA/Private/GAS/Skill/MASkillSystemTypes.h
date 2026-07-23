@@ -5,8 +5,22 @@
 #include "GameplayTagContainer.h"
 #include "MASkillSystemTypes.generated.h"
 
+class UMASkillModule;
 class UMASkillModuleInstance;
 struct FGameplayAbilitySpec;
+
+/** One root module and its scope-free submodules, composed as a single module contribution. */
+USTRUCT()
+struct FMASkillModuleGroup
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UMASkillModule> RootModule = nullptr;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UMASkillModule>> SubModules;
+};
 
 USTRUCT()
 struct FMASkillSlotRuntimeState

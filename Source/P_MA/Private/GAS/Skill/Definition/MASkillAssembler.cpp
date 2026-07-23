@@ -11,26 +11,26 @@ struct FMASkillModuleActivationResolver
 	explicit FMASkillModuleActivationResolver(bool bInPassiveSlot)
 		: bPassiveSlot(bInPassiveSlot) {}
 
-	const UMASkillModule* Resolve(UMASkillModuleInstance& ModuleInstance)
+	bool Activate(UMASkillModuleInstance& ModuleInstance)
 	{
-		const UMASkillModule* Module = ModuleInstance.GetModule();
-		if (!Module) return nullptr;
+		const UMASkillModule* RootModule = ModuleInstance.GetRootModule();
+		if (!RootModule) return false;
 
-		if (bPassiveSlot != Module->GetModuleTags().HasTagExact(PassiveModuleTag))
+		if (bPassiveSlot != RootModule->GetModuleTags().HasTagExact(PassiveModuleTag))
 		{
 			ModuleInstance.SetActive(false, PassiveModuleTag);
-			return nullptr;
+			return false;
 		}
 
 		FGameplayTag BlockingAssemblyTag;
-		for (const FGameplayTag& ModuleTag : Module->GetModuleTags())
+		for (const FGameplayTag& ModuleTag : RootModule->GetModuleTags())
 		{
 			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
 			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
 				if (const TSet<const UMASkillModule*>* UsedModules = UsedUniqueModulesByTag.Find(ModuleTag);
-					UsedModules && UsedModules->Contains(Module))
+					UsedModules && UsedModules->Contains(RootModule))
 				{
 					BlockingAssemblyTag = ModuleTag;
 					break;
@@ -48,16 +48,16 @@ struct FMASkillModuleActivationResolver
 		if (BlockingAssemblyTag.IsValid())
 		{
 			ModuleInstance.SetActive(false, BlockingAssemblyTag);
-			return nullptr;
+			return false;
 		}
 
-		for (const FGameplayTag& ModuleTag : Module->GetModuleTags())
+		for (const FGameplayTag& ModuleTag : RootModule->GetModuleTags())
 		{
 			if (!ModuleTag.IsValid() || !ModuleTag.MatchesTag(ExclusiveModuleTag)) continue;
 
 			if (ModuleTag.MatchesTag(UniqueModuleTag))
 			{
-				UsedUniqueModulesByTag.FindOrAdd(ModuleTag).Add(Module);
+				UsedUniqueModulesByTag.FindOrAdd(ModuleTag).Add(RootModule);
 			}
 			else
 			{
@@ -66,7 +66,7 @@ struct FMASkillModuleActivationResolver
 		}
 
 		ModuleInstance.SetActive(true);
-		return Module;
+		return true;
 	}
 
 	const FGameplayTag ExclusiveModuleTag = FGameplayTag::RequestGameplayTag(TEXT("Module.Exclusive"), false);
@@ -121,8 +121,10 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	{
 		if (!RootModuleInstance) continue;
 
-		const UMASkillModule* Module = ActivationResolver.Resolve(*RootModuleInstance);
-		if (!Module) continue;
+		if (!ActivationResolver.Activate(*RootModuleInstance)) continue;
+
+		const UMASkillModule* ComposedModule = RootModuleInstance->GetComposedModule();
+		if (!ComposedModule) continue;
 
 		if (!AssembledModule)
 		{
@@ -134,18 +136,24 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			AssembledModule = NewObject<UMASkillModule>(AssembledModuleInstance);
 			check(AssembledModule);
 			AssembledModule->ResetAssemblyData();
-			AssembledModuleInstance->SetModule(AssembledModule);
+			AssembledModuleInstance->SetRootModule(AssembledModule);
 		}
 
 		const FMASkillScopes TargetScopes(RootModuleInstance, AssembledModuleInstance);
-
-		AssembledModule->ModuleData.ModuleVisualTags.AppendTags(Module->GetModuleData().ModuleVisualTags);
-		AppendDisplayData(*Module);
-		FMASkillCooldownAssembler::AppendFrom(*AssembledModule, *Module);
-		FMASkillPayloadAssembler::AppendFrom(*AssembledModule, *Module);
-		FMASkillEventSourceAssembler::AppendFrom(*AssembledModule, *Module);
-		FMASkillEventBindingAssembler::AppendFrom(*AssembledModule, *Module, *RootModuleInstance, *AssembledModuleInstance);
-		FMASkillSequenceAssembler::AppendFrom(*AssembledModule, *Module, TargetScopes);
+		AppendDisplayData(*ComposedModule);
+		AssembledModule->ModuleData.ModuleVisualTags.AppendTags(
+			ComposedModule->GetModuleData().ModuleVisualTags);
+		FMASkillCooldownAssembler::AppendFrom(*AssembledModule, *ComposedModule);
+		FMASkillPayloadAssembler::AppendFrom(*AssembledModule, *ComposedModule);
+		FMASkillEventSourceAssembler::AppendFrom(*AssembledModule, *ComposedModule);
+		FMASkillEventBindingAssembler::AppendToSkill(
+			*AssembledModule,
+			*ComposedModule,
+			TargetScopes);
+		FMASkillSequenceAssembler::AppendToSkill(
+			*AssembledModule,
+			*ComposedModule,
+			TargetScopes);
 	}
 
 	if (AssembledModule && !NameKeywordsByPriority.IsEmpty())

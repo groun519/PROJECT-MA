@@ -1,5 +1,6 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
+#include "GAS/Skill/Definition/MASkillModuleAssembler.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameStateBase.h"
@@ -11,24 +12,81 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UMASkillModuleInstance, Module);
+	DOREPLIFETIME(UMASkillModuleInstance, ModuleGroup);
 	DOREPLIFETIME(UMASkillModuleInstance, AddonRuntimeData);
 	DOREPLIFETIME(UMASkillModuleInstance, ModuleCooldownEndTimeSeconds);
 }
 
-void UMASkillModuleInstance::SetModule(UMASkillModule* InModule)
+void UMASkillModuleInstance::SetRootModule(UMASkillModule* InRootModule)
 {
-	Module = InModule;
+	ModuleGroup.RootModule = InRootModule;
+	ComposedModule = nullptr;
 	AddonRuntimeData.Reset();
-	if (Module) Module->InitializeAddonRuntimeData(AddonRuntimeData);
+	if (ModuleGroup.RootModule)
+	{
+		ModuleGroup.RootModule->InitializeAddonRuntimeData(AddonRuntimeData);
+	}
 	InitializePayloadStore();
 }
 
-void UMASkillModuleInstance::OnRep_Module()
+void UMASkillModuleInstance::OnRep_ModuleGroup(FMASkillModuleGroup& PreviousModuleGroup)
 {
-	if (Module) Module->InitializeAddonRuntimeData(AddonRuntimeData);
+	ComposedModule = nullptr;
+	if (ModuleGroup.RootModule != PreviousModuleGroup.RootModule
+		&& ModuleGroup.RootModule)
+	{
+		ModuleGroup.RootModule->InitializeAddonRuntimeData(AddonRuntimeData);
+	}
 	InitializePayloadStore();
+	if (ModuleGroup.SubModules != PreviousModuleGroup.SubModules)
+	{
+		OnSubModulesChanged.Broadcast(this);
+	}
 	OnStateChanged.Broadcast();
+}
+
+bool UMASkillModuleInstance::SetSubModuleAt(
+	const int32 SubModuleIndex,
+	UMASkillModule* SubModule)
+{
+	const AActor* OwnerActor = GetTypedOuter<AActor>();
+	if (OwnerActor && !OwnerActor->HasAuthority()) return false;
+	if (SubModuleIndex < 0) return false;
+
+	UMASkillModule* CurrentSubModule = ModuleGroup.SubModules.IsValidIndex(SubModuleIndex)
+		? ModuleGroup.SubModules[SubModuleIndex].Get()
+		: nullptr;
+	if (CurrentSubModule == SubModule) return true;
+
+	if (ModuleGroup.SubModules.Num() <= SubModuleIndex)
+	{
+		ModuleGroup.SubModules.SetNum(SubModuleIndex + 1);
+	}
+	ModuleGroup.SubModules[SubModuleIndex] = SubModule;
+
+	int32 NewNum = ModuleGroup.SubModules.Num();
+	while (NewNum > 0 && !ModuleGroup.SubModules[NewNum - 1]) --NewNum;
+	ModuleGroup.SubModules.SetNum(NewNum);
+
+	ComposedModule = nullptr;
+	InitializePayloadStore();
+	OnSubModulesChanged.Broadcast(this);
+	OnStateChanged.Broadcast();
+	if (AActor* MutableOwnerActor = GetTypedOuter<AActor>())
+	{
+		MutableOwnerActor->ForceNetUpdate();
+	}
+	return true;
+}
+
+const UMASkillModule* UMASkillModuleInstance::GetComposedModule()
+{
+	if (!ModuleGroup.RootModule) return nullptr;
+	if (!ComposedModule)
+	{
+		ComposedModule = FMASkillModuleAssembler::Assemble(this, ModuleGroup);
+	}
+	return ComposedModule;
 }
 
 void UMASkillModuleInstance::OnRep_AddonRuntimeData()
@@ -66,14 +124,21 @@ void UMASkillModuleInstance::NotifyAddonRuntimeDataChanged()
 void UMASkillModuleInstance::InitializePayloadStore()
 {
 	PayloadStore.Reset();
-	if (Module) Module->ApplyPayloadsTo(PayloadStore);
+	if (ModuleGroup.RootModule)
+	{
+		ModuleGroup.RootModule->ApplyPayloadsTo(PayloadStore);
+	}
+	for (const UMASkillModule* SubModule : ModuleGroup.SubModules)
+	{
+		if (SubModule) SubModule->ApplyPayloadsTo(PayloadStore);
+	}
 	RefreshAddonPayloadMirrors();
 }
 
 void UMASkillModuleInstance::RefreshAddonPayloadMirrors()
 {
-	if (!Module) return;
-	Module->ApplyAddonPayloadMirrors(AddonRuntimeData, PayloadStore);
+	if (!ModuleGroup.RootModule) return;
+	ModuleGroup.RootModule->ApplyAddonPayloadMirrors(AddonRuntimeData, PayloadStore);
 }
 
 bool UMASkillModuleInstance::IsCooldownActive() const

@@ -31,7 +31,7 @@ static FGameplayTag ResolveMovementDamageVisualElementTag(
 	const UMASkillAbility& SkillAbility)
 {
 	const UMASkillModule* Module = Scopes.Module
-		? Scopes.Module->GetModule()
+		? Scopes.Module->GetRootModule()
 		: nullptr;
 	const FGameplayTag ModuleVisualElementTag = Module
 		? Module->GetVisualElementTag()

@@ -16,17 +16,12 @@ public:
 	const TArray<FMASkillSequence>& GetSequences() const { return Sequences; }
 	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
 
-	template<typename ModifierType>
-	ModifierType* AddTransientModifier()
+#if WITH_EDITOR
+	void AddGeneratedModifier(UMASkillSequenceModifier& Modifier)
 	{
-		static_assert(TIsDerivedFrom<ModifierType, UMASkillSequenceModifier>::IsDerived,
-			"ModifierType must derive from UMASkillSequenceModifier.");
-		check(GetOuter() && GetOuter()->HasAnyFlags(RF_Transient));
-
-		ModifierType* Modifier = NewObject<ModifierType>(this, NAME_None, RF_Transient);
-		if (Modifier) SequenceModifiers.Add(Modifier);
-		return Modifier;
+		SequenceModifiers.Add(&Modifier);
 	}
+#endif
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Sequence")

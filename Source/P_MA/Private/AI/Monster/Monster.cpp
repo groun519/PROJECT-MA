@@ -10,10 +10,8 @@
 #include "Net/UnrealNetwork.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
-#include "GAS/Skill/Addon/Sequence/MASkillModuleSequenceAddon.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
-#include "GAS/Skill/Sequence/Variants/MASkillSequenceModifier_Windup.h"
 
 AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAMonsterCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -271,39 +269,12 @@ bool AMonster::ApplyPatternRowToActiveSlot(const FMonsterSkillPatternRow& Patter
 	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
 	if (!SkillManager) return false;
 
-	TArray<TObjectPtr<UMASkillModule>> Modules;
-	if (!LoadSkillModules(PatternRow.Modules, Modules)) return false;
-	if (PatternRow.WindupDuration > 0.f)
-	{
-		// TODO: After submodule composition is available, express pattern windup as a
-		// parameterized submodule instead of decorating a duplicated module here.
-		const int32 TargetModuleIndex = Modules.IndexOfByPredicate([](const UMASkillModule* Module)
-		{
-			const UMASkillModuleSequenceAddon* SequenceAddon =
-				Module ? Module->FindAddon<UMASkillModuleSequenceAddon>() : nullptr;
-			return SequenceAddon && !SequenceAddon->GetSequences().IsEmpty();
-		});
-		if (TargetModuleIndex == INDEX_NONE) return false;
+	TArray<FMASkillModuleGroup> ModuleGroups;
+	if (!PatternRow.LoadModuleGroups(ModuleGroups)) return false;
 
-		UMASkillModule* TargetModule = DuplicateObject<UMASkillModule>(
-			Modules[TargetModuleIndex],
-			SkillManager);
-		if (!TargetModule) return false;
-		TargetModule->SetFlags(RF_Transient);
-
-		UMASkillModuleSequenceAddon* SequenceAddon =
-			TargetModule->FindMutableAddon<UMASkillModuleSequenceAddon>();
-		if (!SequenceAddon) return false;
-
-		UMASkillSequenceModifier_Windup* WindupModifier =
-			SequenceAddon->AddTransientModifier<UMASkillSequenceModifier_Windup>();
-		if (!WindupModifier) return false;
-
-		WindupModifier->Configure(PatternRow.WindupDuration);
-		Modules[TargetModuleIndex] = TargetModule;
-	}
-
-	return SkillManager->ReplaceModulesAt(PatternSlotTag, Modules)
+	return SkillManager->ReplaceModulesAt(
+		PatternSlotTag,
+		ModuleGroups)
 		&& SkillManager->GetAssembledModule(PatternSlotTag);
 }
 

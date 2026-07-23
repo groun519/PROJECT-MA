@@ -7,8 +7,15 @@ void MASkillModuleAddonStatics::ForEachAddon(
 	const UMASkillModuleInstance& ModuleInstance,
 	TFunctionRef<void(const UMASkillModuleAddon&)> Func)
 {
-	if (const UMASkillModule* Module = ModuleInstance.GetModule())
+	const auto VisitModule = [&Func](const UMASkillModule* Module)
 	{
-		Module->ForEachAddon(Func);
+		if (Module) Module->ForEachAddon(Func);
+	};
+
+	const FMASkillModuleGroup& ModuleGroup = ModuleInstance.GetModuleGroup();
+	VisitModule(ModuleGroup.RootModule);
+	for (const UMASkillModule* SubModule : ModuleGroup.SubModules)
+	{
+		VisitModule(SubModule);
 	}
 }
