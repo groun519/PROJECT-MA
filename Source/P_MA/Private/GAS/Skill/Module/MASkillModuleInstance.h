@@ -12,7 +12,7 @@
 class UMASkillManagerComponent;
 class UMASkillModule;
 class UMASkillModuleInstance;
-class UMASkillModuleInventoryComponent;
+class UMAInventoryComponent;
 class UMASkillRuntimeRegistry;
 
 DECLARE_MULTICAST_DELEGATE(FMASkillModuleStateChangedSignature);
@@ -118,7 +118,7 @@ private:
 	FTimerHandle ModuleCooldownTimerHandle;
 
 	friend struct FMASkillAssembler;
+	friend class UMAInventoryComponent;
 	friend class UMASkillManagerComponent;
-	friend class UMASkillModuleInventoryComponent;
 };
 

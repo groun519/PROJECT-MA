@@ -25,6 +25,15 @@ public:
 	void SetMAState(int32 NewState);
 
 	UFUNCTION(Exec)
+	void AddItem(FName ItemRowName, int32 Count = 1);
+
+	UFUNCTION(Exec)
+	void ListItems();
+
+	UFUNCTION(Exec)
+	void ConsumeItem(int32 EntryId, int32 Count = 1);
+
+	UFUNCTION(Exec)
 	void AddSkillSubModule(
 		FString SlotTagName,
 		int32 ModuleIndex,

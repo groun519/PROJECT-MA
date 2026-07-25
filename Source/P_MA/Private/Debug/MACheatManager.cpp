@@ -5,6 +5,7 @@
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/PlayerController.h"
+#include "Inventory/MAInventoryComponent.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMACheatManager::AddCoin(const float Amount)
@@ -38,6 +39,71 @@ void UMACheatManager::SetMAState(const int32 NewState)
 		: nullptr)
 	{
 		GameMode->SetMAState(NewState);
+	}
+}
+
+void UMACheatManager::AddItem(const FName ItemRowName, const int32 Count)
+{
+	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
+	UMAInventoryComponent* Inventory = PlayerCharacter
+		? PlayerCharacter->GetInventoryComponent()
+		: nullptr;
+	if (!Inventory || !Inventory->RequestGrantItem(ItemRowName, Count))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("AddItem failed: Item=%s Count=%d"),
+			*ItemRowName.ToString(),
+			Count);
+	}
+}
+
+void UMACheatManager::ListItems()
+{
+	const AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
+	const UMAInventoryComponent* Inventory = PlayerCharacter
+		? PlayerCharacter->GetInventoryComponent()
+		: nullptr;
+	if (!Inventory) return;
+
+	bool bFoundItem = false;
+	for (int32 SlotIndex = 0; SlotIndex < Inventory->GetSlotCount(); ++SlotIndex)
+	{
+		const FMAInventoryEntry* Entry = Inventory->GetEntryAt(SlotIndex);
+		if (!Entry || !Entry->IsItem()) continue;
+
+		bFoundItem = true;
+		UE_LOG(
+			LogTemp,
+			Display,
+			TEXT("Slot=%d EntryId=%d Item=%s Count=%d"),
+			SlotIndex,
+			Entry->EntryId,
+			*Entry->ItemStack.ItemRowName.ToString(),
+			Entry->ItemStack.Count);
+	}
+
+	if (!bFoundItem)
+	{
+		UE_LOG(LogTemp, Display, TEXT("No inventory items."));
+	}
+}
+
+void UMACheatManager::ConsumeItem(const int32 EntryId, const int32 Count)
+{
+	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
+	UMAInventoryComponent* Inventory = PlayerCharacter
+		? PlayerCharacter->GetInventoryComponent()
+		: nullptr;
+	if (!Inventory || !Inventory->RequestConsumeItem(EntryId, Count))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("ConsumeItem failed: EntryId=%d Count=%d"),
+			EntryId,
+			Count);
 	}
 }
 

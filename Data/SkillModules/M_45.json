@@ -39,7 +39,7 @@
 				"sequenceModifiers": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillSequenceModifier_Charge",
-						"timeLimitSeconds": 0,
+						"timeLimitSeconds": 1,
 						"bShowProgress": true,
 						"progressLabel": "Charge",
 						"targetSequenceIndex": 0

@@ -11,9 +11,8 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
-#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
-#include "Inventory/InventoryComponent.h"
+#include "Inventory/MAInventoryComponent.h"
 #include "Weapon/WeaponComponent.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
@@ -65,8 +64,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	GetCharacterMovement()->MaxDepenetrationWithPawn = 8.f;
 	GetCharacterMovement()->MaxDepenetrationWithPawnAsProxy = 4.f;
 
-	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
-	SkillModuleInventoryComponent = CreateDefaultSubobject<UMASkillModuleInventoryComponent>("SkillModuleInventoryComponent");
+	InventoryComponent = CreateDefaultSubobject<UMAInventoryComponent>("InventoryComponent");
 	CurrencyComponent = CreateDefaultSubobject<UMACurrencyComponent>(TEXT("CurrencyComponent"));
 	InteractorComponent = CreateDefaultSubobject<UMAInteractorComponent>(TEXT("InteractorComponent"));
 	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>(TEXT("LoadoutComponent"));
@@ -308,7 +306,6 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
 			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
 		}
-		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
 
@@ -751,13 +748,6 @@ void AMAPlayerCharacter::ClearReviveActor()
 		ActiveReviveActor->Destroy();
 		ActiveReviveActor = nullptr;
 	}
-}
-
-void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
-{
-	if (IsInputBlocked()) return;
-	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
-	InventoryComponent->TryActivateItemInSlot(Value-1);
 }
 
 void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

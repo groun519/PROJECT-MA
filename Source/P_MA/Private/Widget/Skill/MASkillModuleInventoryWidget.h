@@ -6,7 +6,7 @@
 
 class UPanelWidget;
 class UWidgetAnimation;
-class UMASkillModuleInventoryComponent;
+class UMAInventoryComponent;
 class UMASkillModuleSocketWidget;
 
 UCLASS()
@@ -15,8 +15,7 @@ class P_MA_API UMASkillModuleInventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void InitializeInventory(UMASkillModuleInventoryComponent* InInventory);
-	void RefreshSlots();
+	void InitializeInventory(UMAInventoryComponent* InInventory);
 	void ToggleCollapsed();
 	void SetCollapsed(bool bCollapsed);
 
@@ -35,11 +34,12 @@ protected:
 	TSubclassOf<UMASkillModuleSocketWidget> SlotWidgetClass;
 
 private:
+	void RefreshSlots();
 	void UnbindInventory();
 	void EnsureSlotWidgets(int32 TargetCount);
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModuleInventoryComponent> Inventory = nullptr;
+	TObjectPtr<UMAInventoryComponent> Inventory = nullptr;
 
 	FDelegateHandle InventoryChangedHandle;
 	bool bIsCollapsed = false;

@@ -38,7 +38,6 @@ void UMASkillSlotWidget::RebuildSlotRows()
 	SlotRowsBox->ClearChildren();
 	if (!SkillManager || !SlotRowWidgetClass) return;
 
-	SkillManager->PrepareSkillSlotRuntimeStatesForUI();
 	const TArray<FGameplayTag> SlotTags = SkillManager->GetSkillSlotTags();
 	APlayerController* OwningPlayer = GetOwningPlayer();
 	for (const FGameplayTag& SlotTag : SlotTags)

@@ -57,16 +57,12 @@ void UMASkillSlotRowWidget::NativeDestruct()
 
 void UMASkillSlotRowWidget::Refresh()
 {
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleInstances = SkillManager
-		? SkillManager->GetModuleSlotsForUI(SlotTag)
-		: nullptr;
-
 	if (SkillIconWidget)
 	{
 		SkillIconWidget->SetSkillModule(SkillManager ? SkillManager->GetAssembledModule(SlotTag) : nullptr);
 	}
 
-	RebuildModuleSockets(ModuleInstances);
+	RebuildModuleSockets(SkillManager ? SkillManager->GetModuleSlotCount(SlotTag) : 0);
 }
 
 void UMASkillSlotRowWidget::SetCollapsed(bool bCollapsed)
@@ -109,19 +105,19 @@ void UMASkillSlotRowWidget::RefreshHotkeyText()
 		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(SlotTag) : nullptr));
 }
 
-void UMASkillSlotRowWidget::RebuildModuleSockets(const TArray<TObjectPtr<UMASkillModuleInstance>>* InModuleInstances)
+void UMASkillSlotRowWidget::RebuildModuleSockets(const int32 ModuleSlotCount)
 {
 	if (!ModuleSocketBox) return;
 
 	ModuleSocketBox->ClearChildren();
-	if (!ModuleSocketWidgetClass || !SkillManager || !InModuleInstances) return;
+	if (!ModuleSocketWidgetClass || !SkillManager) return;
 
-	for (int32 Index = 0; Index < InModuleInstances->Num(); ++Index)
+	for (int32 Index = 0; Index < ModuleSlotCount; ++Index)
 	{
 		UMASkillModuleSocketWidget* SocketWidget = CreateWidget<UMASkillModuleSocketWidget>(this, ModuleSocketWidgetClass);
 		if (!SocketWidget) continue;
 
-		SocketWidget->InitializeSocket(SkillManager, InModuleInstances, Index);
+		SocketWidget->InitializeSkillSlot(SkillManager, SlotTag, Index);
 		ModuleSocketBox->AddChildToHorizontalBox(SocketWidget);
 	}
 }

@@ -1,7 +1,7 @@
 #include "Widget/Skill/MASkillModuleInventoryWidget.h"
 
 #include "Components/PanelWidget.h"
-#include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "Inventory/MAInventoryComponent.h"
 #include "Widget/Skill/MASkillModuleSocketWidget.h"
 
 void UMASkillModuleInventoryWidget::NativeConstruct()
@@ -10,7 +10,7 @@ void UMASkillModuleInventoryWidget::NativeConstruct()
 	bIsCollapsed = GetVisibility() == ESlateVisibility::Collapsed;
 }
 
-void UMASkillModuleInventoryWidget::InitializeInventory(UMASkillModuleInventoryComponent* InInventory)
+void UMASkillModuleInventoryWidget::InitializeInventory(UMAInventoryComponent* InInventory)
 {
 	UnbindInventory();
 
@@ -28,16 +28,14 @@ void UMASkillModuleInventoryWidget::RefreshSlots()
 	if (!SlotContainer) return;
 	if (!Inventory) return;
 
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* Slots = Inventory->GetModuleSlotsForUI();
-	if (!Slots) return;
-
-	EnsureSlotWidgets(Slots->Num());
-	for (int32 SlotIndex = 0; SlotIndex < Slots->Num(); ++SlotIndex)
+	const int32 SlotCount = Inventory->GetSlotCount();
+	EnsureSlotWidgets(SlotCount);
+	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
 		UMASkillModuleSocketWidget* SlotWidget = Cast<UMASkillModuleSocketWidget>(SlotContainer->GetChildAt(SlotIndex));
 		if (!SlotWidget) continue;
 
-		SlotWidget->InitializeSocket(Inventory, Slots, SlotIndex);
+		SlotWidget->InitializeInventorySlot(Inventory, SlotIndex);
 	}
 }
 

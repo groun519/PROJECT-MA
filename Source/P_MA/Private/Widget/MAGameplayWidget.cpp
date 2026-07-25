@@ -11,7 +11,7 @@
 #include "Components/Button.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
-#include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "Inventory/MAInventoryComponent.h"
 
 void UMAGameplayWidget::NativeConstruct()
 {
@@ -48,7 +48,7 @@ void UMAGameplayWidget::NativeConstruct()
     {
         if (OwningPawn)
         {
-            SkillModuleInventoryWidget->InitializeInventory(OwningPawn->FindComponentByClass<UMASkillModuleInventoryComponent>());
+            SkillModuleInventoryWidget->InitializeInventory(OwningPawn->FindComponentByClass<UMAInventoryComponent>());
         }
     }
 }

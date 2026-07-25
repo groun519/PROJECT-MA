@@ -36,9 +36,6 @@ protected:
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UMATemperatureGauge> TemperatureBar;
 
-	UPROPERTY(meta=(BindWidget))
-	class UInventoryWidget* InventoryWidget;
-
 	UPROPERTY(meta = (BindWidget))
 	ULoopReadyWidget* LoopReadyWidget;
 

@@ -41,6 +41,7 @@ public:
 	const UDataTable* GetElementalDataTable() const;
 	const UDataTable* GetAreaDecalDataTable() const;
 	const UDataTable* GetWarningTextDataTable() const;
+	const UDataTable* GetModuleItemDataTable() const;
 	const UMAModuleQualityData* GetModuleQualityData() const;
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
@@ -77,6 +78,9 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Warning", meta=(RowType="/Script/P_MA.MASkillWarningTextDataRow"))
 	TSoftObjectPtr<UDataTable> WarningTextDataTable;
+
+	UPROPERTY(Config, EditAnywhere, Category="Item", meta=(RowType="/Script/P_MA.MAModuleItemDataRow"))
+	TSoftObjectPtr<UDataTable> ModuleItemDataTable;
 
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Cooldown")
 	FLinearColor PositiveCooldownColor = FLinearColor::White;

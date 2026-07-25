@@ -7,7 +7,7 @@
 #include "Convenience/MAInteractorComponent.h"
 #include "Engine/AssetManager.h"
 #include "Framework/MAGameMode.h"
-#include "GAS/Skill/MASkillModuleInventoryComponent.h"
+#include "Inventory/MAInventoryComponent.h"
 #include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/Pawn.h"
@@ -105,8 +105,8 @@ bool AMAShopNPC::RequestPurchase(APlayerController* PlayerController, int32 Stoc
 	UMACurrencyComponent* Currency = PlayerCharacter->GetCurrencyComponent();
 	if (!Currency || !Currency->HasCoin(Entry.Price)) return false;
 
-	UMASkillModuleInventoryComponent* ModuleInventory = PlayerCharacter->GetSkillModuleInventoryComponent();
-	if (!ModuleInventory || !ModuleInventory->RequestGrantModule(Entry.SkillModule)) return false;
+	UMAInventoryComponent* Inventory = PlayerCharacter->GetInventoryComponent();
+	if (!Inventory || !Inventory->RequestGrantModule(Entry.SkillModule)) return false;
 	if (!Currency->TrySpendCoin(Entry.Price)) return false;
 
 	CurrentStockEntries.RemoveAt(StockIndex);

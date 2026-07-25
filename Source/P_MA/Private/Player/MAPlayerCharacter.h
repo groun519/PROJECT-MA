@@ -11,12 +11,12 @@ class UInputAction;
 class UInputMappingContext;
 class UAnimMontage;
 class UCameraComponent;
+class UMAInventoryComponent;
 class UMAInteractorComponent;
 class UMACurrencyComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
-class UMASkillModuleInventoryComponent;
 class USpringArmComponent;
 class USkeletalMeshComponent;
 class ULoadoutComponent;
@@ -67,7 +67,7 @@ public:
 	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
 	UMAInteractorComponent* GetInteractorComponent() const { return InteractorComponent; }
 	UMACurrencyComponent* GetCurrencyComponent() const { return CurrencyComponent; }
-	UMASkillModuleInventoryComponent* GetSkillModuleInventoryComponent() const { return SkillModuleInventoryComponent; }
+	UMAInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
 private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
 	TObjectPtr<ULoadoutComponent> LoadoutComponent;
@@ -84,8 +84,8 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	UReadyCheckWidgetComponent* ReadyCheckWidget;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Skill")
-	TObjectPtr<UMASkillModuleInventoryComponent> SkillModuleInventoryComponent;
+	UPROPERTY(VisibleDefaultsOnly, Category="Inventory")
+	TObjectPtr<UMAInventoryComponent> InventoryComponent;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Currency")
 	TObjectPtr<UMACurrencyComponent> CurrencyComponent;
@@ -115,9 +115,6 @@ private:
 	UInputAction* InteractInputAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* UseInventoryItemAction;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TMap<FGameplayTag, UInputAction*> GameplayAbilityInputActions;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
@@ -139,7 +136,6 @@ private:
 	void TickHeldAbilityInputs();
 	void SetAbilityInputHeld(FGameplayTag SlotTag, bool bHeld);
 	void TryActivateHeldAbilityInput(FGameplayTag SlotTag);
-	void UseInventoryItem(const FInputActionValue& InputActionValue);
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -201,9 +197,6 @@ public:
 
 	void InitializeMinimapCapture();
 	void TickMinimapCapture(float DeltaTime);
-
-	/** Inventory **/
-	class UInventoryComponent* InventoryComponent;
 
 	TSet<FGameplayTag> HeldAbilitySlotTags;
 	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }

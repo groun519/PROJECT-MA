@@ -54,6 +54,11 @@ const UDataTable* UMAGameSettings::GetWarningTextDataTable() const
 	return WarningTextDataTable.LoadSynchronous();
 }
 
+const UDataTable* UMAGameSettings::GetModuleItemDataTable() const
+{
+	return ModuleItemDataTable.LoadSynchronous();
+}
+
 const UMAModuleQualityData* UMAGameSettings::GetModuleQualityData() const
 {
 	return ModuleQualityData.LoadSynchronous();

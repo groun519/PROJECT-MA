@@ -27,7 +27,6 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void InitializeGrantedAbilities();
-	void PrepareSkillSlotRuntimeStatesForUI();
 
 	FMASkillSlotChangedSignature OnSkillSlotChanged;
 
@@ -60,15 +59,9 @@ public:
 		int32 IndexA,
 		FGameplayTag SlotTagB,
 		int32 IndexB);
-	bool RequestMoveModuleSlot(
-		const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
-		int32 SourceIndex,
-		UActorComponent* TargetOwner,
-		const TArray<TObjectPtr<UMASkillModuleInstance>>* TargetSlots,
-		int32 TargetIndex);
 
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* GetModuleSlotsForUI(FGameplayTag SlotTag);
-	bool FindSlotTagForModuleSlots(const TArray<TObjectPtr<UMASkillModuleInstance>>* ModuleSlots, FGameplayTag& OutSlotTag) const;
+	static int32 GetModuleSlotCount(FGameplayTag SlotTag);
+	UMASkillModuleInstance* GetModuleInstanceAt(FGameplayTag SlotTag, int32 ModuleIndex);
 	TArray<FGameplayTag> GetSkillSlotTags() const
 	{
 		return GatherUniqueSkillSlotTags();
@@ -110,7 +103,6 @@ private:
 	FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag);
 	const FMASkillSlotRuntimeState* FindSlotRuntimeState(FGameplayTag SlotTag) const;
 	FMASkillSlotRuntimeState& FindOrAddSlotRuntimeState(FGameplayTag SlotTag);
-	static int32 GetModuleSlotCount(FGameplayTag SlotTag);
 	static bool IsValidModuleSlotIndex(FGameplayTag SlotTag, int32 Index);
 	static void NormalizeModuleInstanceSlots(FGameplayTag SlotTag, TArray<TObjectPtr<UMASkillModuleInstance>>& ModuleInstances);
 	TArray<FGameplayTag> GatherUniqueSkillSlotTags() const;

@@ -24,16 +24,18 @@ void UMASkillPassiveModuleSlotsWidget::RefreshSlots()
 {
 	if (!SkillManager) return;
 
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* Slots = SkillManager->GetModuleSlotsForUI(
-		FMASkillSystemStatics::GetPassiveSlotTag());
-
-	EnsureSlotWidgets(Slots->Num());
-	for (int32 SlotIndex = 0; SlotIndex < Slots->Num(); ++SlotIndex)
+	const FGameplayTag PassiveSlotTag = FMASkillSystemStatics::GetPassiveSlotTag();
+	const int32 SlotCount = SkillManager->GetModuleSlotCount(PassiveSlotTag);
+	EnsureSlotWidgets(SlotCount);
+	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{
 		UMASkillModuleSocketWidget* SlotWidget = Cast<UMASkillModuleSocketWidget>(SlotContainer->GetChildAt(SlotIndex));
 		if (!SlotWidget) continue;
 
-		SlotWidget->InitializeSocket(SkillManager, Slots, SlotIndex);
+		SlotWidget->InitializeSkillSlot(
+			SkillManager,
+			PassiveSlotTag,
+			SlotIndex);
 	}
 }
 

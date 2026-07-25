@@ -4,7 +4,6 @@
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
 #include "Engine/DataTable.h"
-#include "Inventory/MAItemTypes.h"
 #include "InstancedStruct.h"
 #include "MASkillModuleData.generated.h"
 
@@ -16,18 +15,17 @@ class UGameplayEffect;
  *	모든 스킬 관리 데이터 테이블
  */
 USTRUCT(BlueprintType)
-struct FSkillData : public FBaseItemData
+struct FSkillData : public FTableRowBase
 {
 	GENERATED_BODY()
 
 public:
-	FSkillData();
 	/** 해당 스킬의 GA 블루프린트 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
-	TSubclassOf<UMAGameplayAbility_Skill> GrantedAbility;
+	TSubclassOf<UMAGameplayAbility_Skill> GrantedAbility = nullptr;
 	/** 해당 스킬의 애니메이션 몽타주 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
-	UAnimMontage* SkillMontage;
+	UAnimMontage* SkillMontage = nullptr;
 	/** GA 블루프린트 안에 설정해 놓은 ID값과 동일하게 입력 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	FName SkillID;

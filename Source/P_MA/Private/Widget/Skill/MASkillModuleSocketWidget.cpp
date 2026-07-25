@@ -6,9 +6,10 @@
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Cooldown/MASkillModuleCooldownAddon.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
-#include "GAS/Skill/MASkillModuleInventoryComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "Inventory/MAInventoryComponent.h"
+#include "Item/Data/MAModuleItemData.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
@@ -16,18 +17,33 @@
 #include "Widget/Skill/MASkillModuleDragVisualWidget.h"
 #include "Widget/Skill/MASkillTooltipWidget.h"
 
-void UMASkillModuleSocketWidget::InitializeSocket(
-	UActorComponent* InSlotOwner,
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* InSlotArray,
-	int32 InSlotIndex)
+/** Initialization **/
+void UMASkillModuleSocketWidget::InitializeInventorySlot(
+	UMAInventoryComponent* InInventory,
+	const int32 InSlotIndex)
 {
-	SlotOwner = InSlotOwner;
-	SlotArray = InSlotArray;
+	Inventory = InInventory;
+	SkillManager.Reset();
+	SkillSlotTag = FGameplayTag();
 	SlotIndex = InSlotIndex;
 
 	Refresh();
 }
 
+void UMASkillModuleSocketWidget::InitializeSkillSlot(
+	UMASkillManagerComponent* InSkillManager,
+	const FGameplayTag InSkillSlotTag,
+	const int32 InSlotIndex)
+{
+	Inventory.Reset();
+	SkillManager = InSkillManager;
+	SkillSlotTag = InSkillSlotTag;
+	SlotIndex = InSlotIndex;
+
+	Refresh();
+}
+
+/** Slot Content **/
 void UMASkillModuleSocketWidget::Refresh()
 {
 	if (!ModuleIconImage) return;
@@ -37,45 +53,81 @@ void UMASkillModuleSocketWidget::Refresh()
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();
 
+	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
 	CachedModule = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
-	ApplyModuleVisual(CachedModule);
+
+	if (InventoryEntry && InventoryEntry->IsItem())
+	{
+		ApplyItemVisual(InventoryEntry->ItemStack);
+		SetStackText(InventoryEntry->ItemStack.Count > 1
+			? FText::AsNumber(InventoryEntry->ItemStack.Count)
+			: FText());
+	}
+	else
+	{
+		ApplyModuleVisual(CachedModule);
+		RefreshModuleStackText(ModuleInstance);
+	}
+
 	ApplyModuleStateVisual(ModuleInstance);
 	RefreshCooldownVisual();
-	RefreshStackText(ModuleInstance);
-	RefreshTooltip();
+	RefreshTooltip(InventoryEntry);
+}
+
+const FMAInventoryEntry* UMASkillModuleSocketWidget::ResolveInventoryEntry() const
+{
+	return Inventory.IsValid() ? Inventory->GetEntryAt(SlotIndex) : nullptr;
 }
 
 UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() const
 {
-	return IsValidSlot() ? (*SlotArray)[SlotIndex] : nullptr;
+	if (Inventory.IsValid()) return Inventory->GetModuleAt(SlotIndex);
+	if (SkillManager.IsValid()) return SkillManager->GetModuleInstanceAt(SkillSlotTag, SlotIndex);
+	return nullptr;
 }
 
-UMASkillModule* UMASkillModuleSocketWidget::ResolveModule() const
+const FMAModuleItemDataRow* UMASkillModuleSocketWidget::ResolveItemData(
+	const FMAItemStack& ItemStack) const
 {
-	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
-	return ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
+	const UDataTable* ItemDataTable = UMAGameSettings::Get()->GetModuleItemDataTable();
+	return ItemDataTable && !ItemStack.ItemRowName.IsNone()
+		? ItemDataTable->FindRow<FMAModuleItemDataRow>(
+			ItemStack.ItemRowName,
+			TEXT("InventoryItemVisual"),
+			false)
+		: nullptr;
 }
 
-const UDataTable* UMASkillModuleSocketWidget::ResolveWarningTextDataTable() const
-{
-	return UMAGameSettings::Get()->GetWarningTextDataTable();
-}
-
-bool UMASkillModuleSocketWidget::IsValidSlot() const
-{
-	return SlotOwner.IsValid() && SlotArray && SlotArray->IsValidIndex(SlotIndex);
-}
-
+/** Visuals **/
 void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 {
-	if (!ModuleIconImage) return;
-
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
 	const FMASkillIconData IconData = Module
 		? Module->ResolveIconData(ModuleQualityData)
 		: FMASkillIconData();
+	ApplyIconVisual(
+		IconData,
+		Module ? Module->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+}
+
+void UMASkillModuleSocketWidget::ApplyItemVisual(const FMAItemStack& ItemStack)
+{
+	FMASkillIconData IconData;
+	if (const FMAModuleItemDataRow* ItemData = ResolveItemData(ItemStack))
+	{
+		IconData.Icon = ItemData->Icon.LoadSynchronous();
+	}
+	ApplyIconVisual(IconData, FLinearColor::White);
+}
+
+void UMASkillModuleSocketWidget::ApplyIconVisual(
+	const FMASkillIconData& IconData,
+	const FLinearColor& FrameColor)
+{
+	if (!ModuleIconImage) return;
+
 	const bool bHasIcon = IconData.Icon != nullptr;
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
@@ -83,7 +135,7 @@ void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, nullptr);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, Module ? Module->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, FrameColor);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, bHasIcon ? 1.f : 0.f);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, 0.f);
 	}
@@ -99,6 +151,7 @@ void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 	ModuleIconImage->SetVisibility(ESlateVisibility::Visible);
 }
 
+/** Module State **/
 void UMASkillModuleSocketWidget::ApplyModuleStateVisual(const UMASkillModuleInstance* ModuleInstance)
 {
 	if (!ModuleIconImage) return;
@@ -172,17 +225,24 @@ void UMASkillModuleSocketWidget::ClearCooldownVisualTimer()
 	}
 }
 
-void UMASkillModuleSocketWidget::RefreshStackText(const UMASkillModuleInstance* ModuleInstance)
+void UMASkillModuleSocketWidget::RefreshModuleStackText(
+	const UMASkillModuleInstance* ModuleInstance)
 {
 	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 	FText StackValueText;
-	const bool bShowStack = Module
-		&& Module->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);
-	StackText->SetVisibility(bShowStack ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
-	if (bShowStack)
+	if (Module)
 	{
-		StackText->SetText(StackValueText);
+		Module->TryResolveSocketText(ModuleInstance->GetAddonRuntimeData(), StackValueText);
 	}
+	SetStackText(StackValueText);
+}
+
+void UMASkillModuleSocketWidget::SetStackText(const FText& Text)
+{
+	const bool bShowText = !Text.IsEmpty();
+	StackText->SetVisibility(
+		bShowText ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	if (bShowText) StackText->SetText(Text);
 }
 
 void UMASkillModuleSocketWidget::BindModuleState(UMASkillModuleInstance* ModuleInstance)
@@ -224,9 +284,10 @@ void UMASkillModuleSocketWidget::HandleModuleStateChanged()
 	RefreshCooldownDuration(ModuleInstance);
 	ApplyModuleStateVisual(ModuleInstance);
 	RefreshCooldownVisual();
-	RefreshStackText(ModuleInstance);
+	RefreshModuleStackText(ModuleInstance);
 }
 
+/** Interaction **/
 void UMASkillModuleSocketWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
@@ -245,7 +306,10 @@ void UMASkillModuleSocketWidget::NativeOnMouseLeave(const FPointerEvent& InMouse
 
 FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	if (CachedModule && IsValidSlot() && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
+	const bool bHasDraggableEntry = CachedModule
+		|| (InventoryEntry && InventoryEntry->IsItem());
+	if (bHasDraggableEntry && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -258,27 +322,60 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 	const FPointerEvent& InMouseEvent,
 	UDragDropOperation*& OutOperation)
 {
-	CachedModule = ResolveModule();
-	if (!CachedModule) return;
-
 	UMASkillModuleDragDropOperation* DragOperation = NewObject<UMASkillModuleDragDropOperation>();
 	if (!DragOperation) return;
 
-	DragOperation->SourceOwner = SlotOwner;
-	DragOperation->SourceSlots = SlotArray;
-	DragOperation->SourceIndex = SlotIndex;
+	UTexture2D* DragIcon = nullptr;
+	FLinearColor DragIconColor = FLinearColor::White;
+	if (Inventory.IsValid())
+	{
+		const FMAInventoryEntry* Entry = ResolveInventoryEntry();
+		if (!Entry || !DragOperation->SetSource(Inventory.Get(), *Entry)) return;
+
+		if (Entry->IsModule())
+		{
+			CachedModule = Entry->ModuleInstance->GetRootModule();
+			const FMASkillIconData IconData = CachedModule
+				? CachedModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
+				: FMASkillIconData();
+			DragIcon = IconData.Icon;
+			DragIconColor = IconData.IconColor;
+		}
+		else if (const FMAModuleItemDataRow* ItemData = ResolveItemData(Entry->ItemStack))
+		{
+			DragIcon = ItemData->Icon.LoadSynchronous();
+		}
+	}
+	else if (SkillManager.IsValid())
+	{
+		UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
+		CachedModule = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
+		if (!CachedModule) return;
+		if (!DragOperation->SetSource(SkillManager.Get(), SkillSlotTag, SlotIndex)) return;
+
+		const FMASkillIconData IconData = CachedModule->ResolveIconData(
+			UMAGameSettings::Get()->GetModuleQualityData());
+		DragIcon = IconData.Icon;
+		DragIconColor = IconData.IconColor;
+	}
+	else
+	{
+		return;
+	}
 	DragOperation->Pivot = EDragPivot::CenterCenter;
+	DragOperation->OnDrop.AddUniqueDynamic(
+		this,
+		&UMASkillModuleSocketWidget::HandleDragCompleted);
 	bIsHovered = false;
 	RefreshHoverVisual();
 	SetDraggedSourceVisual(true);
 
-	const FMASkillIconData IconData = CachedModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData());
-	if (DragVisualWidgetClass && IconData.Icon)
+	if (DragVisualWidgetClass && DragIcon)
 	{
 		UMASkillModuleDragVisualWidget* DragVisual = CreateWidget<UMASkillModuleDragVisualWidget>(this, DragVisualWidgetClass);
 		if (DragVisual)
 		{
-			DragVisual->SetIcon(IconData.Icon, IconData.IconColor);
+			DragVisual->SetIcon(DragIcon, DragIconColor);
 			DragOperation->DefaultDragVisual = DragVisual;
 		}
 	}
@@ -301,7 +398,21 @@ void UMASkillModuleSocketWidget::NativeOnDragEnter(
 {
 	Super::NativeOnDragEnter(InGeometry, InDragDropEvent, InOperation);
 
-	if (Cast<UMASkillModuleDragDropOperation>(InOperation) && !IsSelfDragOperation(InOperation))
+	const UMASkillModuleDragDropOperation* DragOperation =
+		Cast<UMASkillModuleDragDropOperation>(InOperation);
+	bool bCanDrop = false;
+	if (DragOperation)
+	{
+		if (Inventory.IsValid())
+		{
+			bCanDrop = DragOperation->CanDropOn(Inventory.Get(), SlotIndex);
+		}
+		else if (SkillManager.IsValid())
+		{
+			bCanDrop = DragOperation->CanDropOn(SkillManager.Get(), SkillSlotTag, SlotIndex);
+		}
+	}
+	if (bCanDrop)
 	{
 		bIsDropTargetHighlighted = true;
 		RefreshHoverVisual();
@@ -324,16 +435,19 @@ bool UMASkillModuleSocketWidget::NativeOnDrop(
 {
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();
-	SetDraggedSourceVisual(false);
 
 	UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(InOperation);
 	if (!DragOperation) return false;
-	if (IsSelfDragOperation(DragOperation)) return true;
 
-	return HandleDropFrom(
-		DragOperation->SourceOwner.Get(),
-		DragOperation->SourceSlots,
-		DragOperation->SourceIndex);
+	if (Inventory.IsValid())
+	{
+		return DragOperation->TryDropOn(Inventory.Get(), SlotIndex);
+	}
+	if (SkillManager.IsValid())
+	{
+		return DragOperation->TryDropOn(SkillManager.Get(), SkillSlotTag, SlotIndex);
+	}
+	return false;
 }
 
 void UMASkillModuleSocketWidget::NativeDestruct()
@@ -358,11 +472,22 @@ void UMASkillModuleSocketWidget::RefreshHoverVisual()
 	}
 }
 
-void UMASkillModuleSocketWidget::RefreshTooltip()
+void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* InventoryEntry)
 {
+	SetToolTip(nullptr);
+	SetToolTipText(FText());
+
+	if (InventoryEntry && InventoryEntry->IsItem())
+	{
+		if (const FMAModuleItemDataRow* ItemData = ResolveItemData(InventoryEntry->ItemStack))
+		{
+			SetToolTipText(ItemData->DisplayName);
+		}
+		return;
+	}
+
 	if (!CachedModule || !TooltipWidgetClass)
 	{
-		SetToolTip(nullptr);
 		return;
 	}
 
@@ -373,7 +498,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip()
 		return;
 	}
 
-	const UDataTable* WarningTextDataTable = ResolveWarningTextDataTable();
+	const UDataTable* WarningTextDataTable = UMAGameSettings::Get()->GetWarningTextDataTable();
 	const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	if (ModuleInstance)
 	{
@@ -391,43 +516,7 @@ void UMASkillModuleSocketWidget::SetDraggedSourceVisual(bool bDragged)
 	SetRenderOpacity(bDragged ? DraggedSourceRenderOpacity : 1.f);
 }
 
-bool UMASkillModuleSocketWidget::HandleDropFrom(
-	UActorComponent* SourceOwner,
-	const TArray<TObjectPtr<UMASkillModuleInstance>>* SourceSlots,
-	int32 SourceIndex)
+void UMASkillModuleSocketWidget::HandleDragCompleted(UDragDropOperation*)
 {
-	if (!SourceOwner || !SourceSlots || SourceIndex == INDEX_NONE || !IsValidSlot()) return false;
-
-	if (UMASkillManagerComponent* SourceSkillManager = Cast<UMASkillManagerComponent>(SourceOwner))
-	{
-		return SourceSkillManager->RequestMoveModuleSlot(
-			SourceSlots,
-			SourceIndex,
-			SlotOwner.Get(),
-			SlotArray,
-			SlotIndex);
-	}
-
-	if (UMASkillModuleInventoryComponent* SourceInventory = Cast<UMASkillModuleInventoryComponent>(SourceOwner))
-	{
-		return SourceInventory->RequestMoveModuleSlot(
-			SourceSlots,
-			SourceIndex,
-			SlotOwner.Get(),
-			SlotArray,
-			SlotIndex);
-	}
-
-	return false;
+	SetDraggedSourceVisual(false);
 }
-
-bool UMASkillModuleSocketWidget::IsSelfDragOperation(const UDragDropOperation* Operation) const
-{
-	const UMASkillModuleDragDropOperation* DragOperation = Cast<UMASkillModuleDragDropOperation>(Operation);
-	return DragOperation
-		&& DragOperation->SourceOwner == SlotOwner
-		&& DragOperation->SourceSlots == SlotArray
-		&& DragOperation->SourceIndex == SlotIndex;
-}
-
-
