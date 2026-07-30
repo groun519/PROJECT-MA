@@ -6,6 +6,7 @@
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/PlayerController.h"
 #include "Inventory/MAInventoryComponent.h"
+#include "Item/MAItemType.h"
 #include "Player/MAPlayerCharacter.h"
 
 void UMACheatManager::AddCoin(const float Amount)
@@ -42,18 +43,34 @@ void UMACheatManager::SetMAState(const int32 NewState)
 	}
 }
 
-void UMACheatManager::AddItem(const FName ItemRowName, const int32 Count)
+void UMACheatManager::AddItem(
+	const FName ItemTypeName,
+	const FName ItemRowName,
+	const int32 Count)
 {
+	TSubclassOf<UMAItemType> ItemType;
+	if (ItemTypeName == TEXT("Consumable"))
+	{
+		ItemType = UMAConsumableItemType::StaticClass();
+	}
+	else if (ItemTypeName == TEXT("Rune"))
+	{
+		ItemType = UMARuneItemType::StaticClass();
+	}
+
 	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
 	UMAInventoryComponent* Inventory = PlayerCharacter
 		? PlayerCharacter->GetInventoryComponent()
 		: nullptr;
-	if (!Inventory || !Inventory->RequestGrantItem(ItemRowName, Count))
+	if (!ItemType
+		|| !Inventory
+		|| !Inventory->RequestGrantItem(FMAItemId(ItemType, ItemRowName), Count))
 	{
 		UE_LOG(
 			LogTemp,
 			Warning,
-			TEXT("AddItem failed: Item=%s Count=%d"),
+			TEXT("AddItem failed: Type=%s Item=%s Count=%d"),
+			*ItemTypeName.ToString(),
 			*ItemRowName.ToString(),
 			Count);
 	}
@@ -77,10 +94,11 @@ void UMACheatManager::ListItems()
 		UE_LOG(
 			LogTemp,
 			Display,
-			TEXT("Slot=%d EntryId=%d Item=%s Count=%d"),
+			TEXT("Slot=%d EntryId=%d Type=%s Item=%s Count=%d"),
 			SlotIndex,
 			Entry->EntryId,
-			*Entry->ItemStack.ItemRowName.ToString(),
+			*GetNameSafe(Entry->ItemStack.ItemId.Type.Get()),
+			*Entry->ItemStack.ItemId.RowName.ToString(),
 			Entry->ItemStack.Count);
 	}
 
@@ -90,21 +108,19 @@ void UMACheatManager::ListItems()
 	}
 }
 
-void UMACheatManager::ConsumeItem(const int32 EntryId, const int32 Count)
+void UMACheatManager::UseItem(const int32 EntryId)
 {
 	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
 	UMAInventoryComponent* Inventory = PlayerCharacter
 		? PlayerCharacter->GetInventoryComponent()
 		: nullptr;
-	if (!Inventory || !Inventory->RequestConsumeItem(EntryId, Count))
+	if (!Inventory)
 	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("ConsumeItem failed: EntryId=%d Count=%d"),
-			EntryId,
-			Count);
+		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: EntryId=%d"), EntryId);
+		return;
 	}
+
+	Inventory->UseEntry(EntryId);
 }
 
 void UMACheatManager::AddSkillSubModule(

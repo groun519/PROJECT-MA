@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Item/MAItemTypes.h"
 #include "MAInventoryTypes.generated.h"
 
 class UMASkillModuleInstance;
@@ -19,7 +20,7 @@ struct P_MA_API FMAItemStack
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
-	FName ItemRowName = NAME_None;
+	FMAItemId ItemId;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
 	int32 Count = 0;
@@ -32,7 +33,7 @@ struct P_MA_API FMAInventoryEntry
 
 	bool IsEmpty() const { return Kind == EMAInventoryEntryKind::Empty; }
 	bool IsModule() const { return Kind == EMAInventoryEntryKind::Module && ModuleInstance != nullptr; }
-	bool IsItem() const { return Kind == EMAInventoryEntryKind::Item && !ItemStack.ItemRowName.IsNone() && ItemStack.Count > 0; }
+	bool IsItem() const { return Kind == EMAInventoryEntryKind::Item && ItemStack.ItemId.IsValid() && ItemStack.Count > 0; }
 
 	void Reset()
 	{
@@ -50,12 +51,12 @@ struct P_MA_API FMAInventoryEntry
 		ModuleInstance = InModuleInstance;
 	}
 
-	void SetItem(int32 InEntryId, FName InItemRowName, int32 InCount)
+	void SetItem(int32 InEntryId, const FMAItemId& InItemId, int32 InCount)
 	{
 		Reset();
 		EntryId = InEntryId;
 		Kind = EMAInventoryEntryKind::Item;
-		ItemStack.ItemRowName = InItemRowName;
+		ItemStack.ItemId = InItemId;
 		ItemStack.Count = InCount;
 	}
 

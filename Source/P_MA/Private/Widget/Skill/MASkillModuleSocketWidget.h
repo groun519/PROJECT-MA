@@ -16,7 +16,7 @@ class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
 struct FMAInventoryEntry;
 struct FMAItemStack;
-struct FMAModuleItemDataRow;
+struct FMAItemDataRow;
 struct FMASkillIconData;
 
 UCLASS()
@@ -73,7 +73,7 @@ private:
 	void Refresh();
 	const FMAInventoryEntry* ResolveInventoryEntry() const;
 	UMASkillModuleInstance* ResolveModuleInstance() const;
-	const FMAModuleItemDataRow* ResolveItemData(const FMAItemStack& ItemStack) const;
+	const FMAItemDataRow* ResolveItemData(const FMAItemStack& ItemStack) const;
 
 	/** Visuals **/
 	void ApplyModuleVisual(const UMASkillModule* Module);
@@ -108,6 +108,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModule> CachedModule = nullptr;
 
+	int32 DisplayedEntryId = INDEX_NONE;
 	TWeakObjectPtr<UMASkillModuleInstance> BoundModuleInstance;
 	FDelegateHandle ModuleStateChangedHandle;
 	FTimerHandle CooldownVisualTimerHandle;

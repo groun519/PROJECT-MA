@@ -9,7 +9,8 @@
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "Inventory/MAInventoryComponent.h"
-#include "Item/Data/MAModuleItemData.h"
+#include "Item/Data/MAItemData.h"
+#include "Item/MAItemType.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
@@ -46,6 +47,9 @@ void UMASkillModuleSocketWidget::InitializeSkillSlot(
 /** Slot Content **/
 void UMASkillModuleSocketWidget::Refresh()
 {
+	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
+	DisplayedEntryId = InventoryEntry ? InventoryEntry->EntryId : INDEX_NONE;
+
 	if (!ModuleIconImage) return;
 
 	SetDraggedSourceVisual(false);
@@ -53,7 +57,6 @@ void UMASkillModuleSocketWidget::Refresh()
 	bIsDropTargetHighlighted = false;
 	RefreshHoverVisual();
 
-	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
 	CachedModule = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
@@ -88,15 +91,13 @@ UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() cons
 	return nullptr;
 }
 
-const FMAModuleItemDataRow* UMASkillModuleSocketWidget::ResolveItemData(
+const FMAItemDataRow* UMASkillModuleSocketWidget::ResolveItemData(
 	const FMAItemStack& ItemStack) const
 {
-	const UDataTable* ItemDataTable = UMAGameSettings::Get()->GetModuleItemDataTable();
-	return ItemDataTable && !ItemStack.ItemRowName.IsNone()
-		? ItemDataTable->FindRow<FMAModuleItemDataRow>(
-			ItemStack.ItemRowName,
-			TEXT("InventoryItemVisual"),
-			false)
+	const FMAItemId& ItemId = ItemStack.ItemId;
+	const UMAItemType* ItemType = ItemId.GetItemType();
+	return ItemType
+		? ItemType->FindItemData(ItemId.RowName)
 		: nullptr;
 }
 
@@ -115,7 +116,7 @@ void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 void UMASkillModuleSocketWidget::ApplyItemVisual(const FMAItemStack& ItemStack)
 {
 	FMASkillIconData IconData;
-	if (const FMAModuleItemDataRow* ItemData = ResolveItemData(ItemStack))
+	if (const FMAItemDataRow* ItemData = ResolveItemData(ItemStack))
 	{
 		IconData.Icon = ItemData->Icon.LoadSynchronous();
 	}
@@ -306,6 +307,12 @@ void UMASkillModuleSocketWidget::NativeOnMouseLeave(const FPointerEvent& InMouse
 
 FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && Inventory.IsValid())
+	{
+		Inventory->UseEntry(DisplayedEntryId);
+		return FReply::Handled();
+	}
+
 	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
 	const bool bHasDraggableEntry = CachedModule
 		|| (InventoryEntry && InventoryEntry->IsItem());
@@ -341,7 +348,7 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 			DragIcon = IconData.Icon;
 			DragIconColor = IconData.IconColor;
 		}
-		else if (const FMAModuleItemDataRow* ItemData = ResolveItemData(Entry->ItemStack))
+		else if (const FMAItemDataRow* ItemData = ResolveItemData(Entry->ItemStack))
 		{
 			DragIcon = ItemData->Icon.LoadSynchronous();
 		}
@@ -479,7 +486,7 @@ void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* Invento
 
 	if (InventoryEntry && InventoryEntry->IsItem())
 	{
-		if (const FMAModuleItemDataRow* ItemData = ResolveItemData(InventoryEntry->ItemStack))
+		if (const FMAItemDataRow* ItemData = ResolveItemData(InventoryEntry->ItemStack))
 		{
 			SetToolTipText(ItemData->DisplayName);
 		}

@@ -27,8 +27,8 @@ public:
 	bool RequestGrantModule(UMASkillModule* Module);
 
 	/** Item **/
-	bool RequestGrantItem(FName ItemRowName, int32 Count);
-	bool RequestConsumeItem(int32 EntryId, int32 Count);
+	bool RequestGrantItem(FMAItemId ItemId, int32 Count);
+	void UseEntry(int32 EntryId);
 
 	/** Entry Transfer **/
 	bool RequestMoveEntry(int32 EntryId, int32 TargetSlotIndex);
@@ -51,8 +51,8 @@ private:
 	bool AddModule(UMASkillModule* Module);
 
 	/** Item **/
-	bool AddItem(FName ItemRowName, int32 Count);
-	bool ConsumeItem(int32 EntryId, int32 Count);
+	bool AddItem(FMAItemId ItemId, int32 Count);
+	EMAItemUseResult ExecuteUseEntry(int32 EntryId);
 
 	/** Entry Transfer **/
 	bool MoveEntry(int32 EntryId, int32 TargetSlotIndex);
@@ -72,16 +72,17 @@ private:
 	void EnsureSlotCount();
 	void RefreshEntryModuleStates();
 	void NotifyInventoryChanged();
+	void ReportEntryUseResult(int32 EntryId, EMAItemUseResult Result) const;
 
 	/** Replication **/
 	UFUNCTION(Server, Reliable)
 	void ServerGrantModule(UMASkillModule* Module);
 
 	UFUNCTION(Server, Reliable)
-	void ServerGrantItem(FName ItemRowName, int32 Count);
+	void ServerGrantItem(FMAItemId ItemId, int32 Count);
 
 	UFUNCTION(Server, Reliable)
-	void ServerConsumeItem(int32 EntryId, int32 Count);
+	void ServerUseEntry(int32 EntryId);
 
 	UFUNCTION(Server, Reliable)
 	void ServerMoveEntry(int32 EntryId, int32 TargetSlotIndex);

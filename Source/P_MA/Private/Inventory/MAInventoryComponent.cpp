@@ -3,9 +3,8 @@
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "Item/Data/MAModuleItemData.h"
+#include "Item/MAItemType.h"
 #include "Net/UnrealNetwork.h"
-#include "Setting/MAGameSettings.h"
 
 UMAInventoryComponent::UMAInventoryComponent()
 {
@@ -41,28 +40,29 @@ bool UMAInventoryComponent::RequestGrantModule(UMASkillModule* Module)
 }
 
 /** Item **/
-bool UMAInventoryComponent::RequestGrantItem(const FName ItemRowName, const int32 Count)
+bool UMAInventoryComponent::RequestGrantItem(const FMAItemId ItemId, const int32 Count)
 {
-	if (ItemRowName.IsNone() || Count <= 0) return false;
+	if (!ItemId.IsValid() || Count <= 0) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
-	if (OwnerActor->HasAuthority()) return AddItem(ItemRowName, Count);
+	if (OwnerActor->HasAuthority()) return AddItem(ItemId, Count);
 
-	ServerGrantItem(ItemRowName, Count);
+	ServerGrantItem(ItemId, Count);
 	return true;
 }
 
-bool UMAInventoryComponent::RequestConsumeItem(const int32 EntryId, const int32 Count)
+void UMAInventoryComponent::UseEntry(const int32 EntryId)
 {
-	if (EntryId == INDEX_NONE || Count <= 0) return false;
-
 	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return false;
-	if (OwnerActor->HasAuthority()) return ConsumeItem(EntryId, Count);
+	check(OwnerActor);
+	if (OwnerActor->HasAuthority())
+	{
+		ReportEntryUseResult(EntryId, ExecuteUseEntry(EntryId));
+		return;
+	}
 
-	ServerConsumeItem(EntryId, Count);
-	return true;
+	ServerUseEntry(EntryId);
 }
 
 /** Entry Transfer **/
@@ -141,21 +141,17 @@ bool UMAInventoryComponent::AddModule(UMASkillModule* Module)
 }
 
 /** Item **/
-bool UMAInventoryComponent::AddItem(const FName ItemRowName, const int32 Count)
+bool UMAInventoryComponent::AddItem(const FMAItemId ItemId, const int32 Count)
 {
-	if (!CanMutateInventory() || ItemRowName.IsNone() || Count <= 0) return false;
+	if (!CanMutateInventory() || !ItemId.IsValid() || Count <= 0) return false;
 
-	const UDataTable* ItemDataTable = UMAGameSettings::Get()->GetModuleItemDataTable();
-	if (!ItemDataTable
-		|| !ItemDataTable->FindRow<FMAModuleItemDataRow>(ItemRowName, TEXT("AddItem")))
-	{
-		return false;
-	}
+	const UMAItemType* ItemType = ItemId.GetItemType();
+	if (!ItemType || !ItemType->FindItemData(ItemId.RowName)) return false;
 
 	EnsureSlotCount();
-	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([ItemRowName](const FMAInventoryEntry& Entry)
+	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([ItemId](const FMAInventoryEntry& Entry)
 	{
-		return Entry.IsItem() && Entry.ItemStack.ItemRowName == ItemRowName;
+		return Entry.IsItem() && Entry.ItemStack.ItemId == ItemId;
 	});
 	if (TargetEntry)
 	{
@@ -170,34 +166,37 @@ bool UMAInventoryComponent::AddItem(const FName ItemRowName, const int32 Count)
 		});
 		if (!TargetEntry) return false;
 
-		TargetEntry->SetItem(AllocateEntryId(), ItemRowName, Count);
+		TargetEntry->SetItem(AllocateEntryId(), ItemId, Count);
 	}
 
 	NotifyInventoryChanged();
 	return true;
 }
 
-bool UMAInventoryComponent::ConsumeItem(const int32 EntryId, const int32 Count)
+EMAItemUseResult UMAInventoryComponent::ExecuteUseEntry(const int32 EntryId)
 {
-	if (!CanMutateInventory() || EntryId == INDEX_NONE || Count <= 0) return false;
+	if (!CanMutateInventory()) return EMAItemUseResult::Failed;
 
 	const int32 SlotIndex = FindEntrySlot(EntryId);
-	if (!Entries.IsValidIndex(SlotIndex)) return false;
+	if (!Entries.IsValidIndex(SlotIndex)) return EMAItemUseResult::InvalidEntry;
 
 	FMAInventoryEntry& Entry = Entries[SlotIndex];
-	if (!Entry.IsItem() || Entry.ItemStack.Count < Count) return false;
+	if (!Entry.IsItem()) return EMAItemUseResult::NotUsable;
 
-	if (Entry.ItemStack.Count == Count)
+	const FMAItemId ItemId = Entry.ItemStack.ItemId;
+	const UMAItemType* ItemType = ItemId.GetItemType();
+	if (!ItemType) return EMAItemUseResult::InvalidData;
+
+	const EMAItemUseResult Result = ItemType->TryUse(*GetOwner(), ItemId.RowName);
+	if (Result != EMAItemUseResult::Success) return Result;
+
+	if (--Entry.ItemStack.Count == 0)
 	{
 		Entry.Reset();
 	}
-	else
-	{
-		Entry.ItemStack.Count -= Count;
-	}
 
 	NotifyInventoryChanged();
-	return true;
+	return EMAItemUseResult::Success;
 }
 
 /** Entry Transfer **/
@@ -331,6 +330,20 @@ void UMAInventoryComponent::NotifyInventoryChanged()
 	OnInventoryChanged.Broadcast();
 }
 
+void UMAInventoryComponent::ReportEntryUseResult(
+	const int32 EntryId,
+	const EMAItemUseResult Result) const
+{
+	if (Result == EMAItemUseResult::Success) return;
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("UseEntry failed: EntryId=%d Result=%s"),
+		EntryId,
+		*StaticEnum<EMAItemUseResult>()->GetNameStringByValue(static_cast<int64>(Result)));
+}
+
 /** Replication **/
 void UMAInventoryComponent::ServerGrantModule_Implementation(UMASkillModule* Module)
 {
@@ -338,17 +351,15 @@ void UMAInventoryComponent::ServerGrantModule_Implementation(UMASkillModule* Mod
 }
 
 void UMAInventoryComponent::ServerGrantItem_Implementation(
-	const FName ItemRowName,
+	const FMAItemId ItemId,
 	const int32 Count)
 {
-	AddItem(ItemRowName, Count);
+	AddItem(ItemId, Count);
 }
 
-void UMAInventoryComponent::ServerConsumeItem_Implementation(
-	const int32 EntryId,
-	const int32 Count)
+void UMAInventoryComponent::ServerUseEntry_Implementation(const int32 EntryId)
 {
-	ConsumeItem(EntryId, Count);
+	ReportEntryUseResult(EntryId, ExecuteUseEntry(EntryId));
 }
 
 void UMAInventoryComponent::ServerMoveEntry_Implementation(
