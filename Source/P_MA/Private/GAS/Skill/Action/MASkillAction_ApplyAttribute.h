@@ -21,8 +21,14 @@ class P_MA_API UMASkillAction_ApplyAttribute : public UMASkillAction
 	GENERATED_BODY()
 
 public:
+	UMASkillAction_ApplyAttribute() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+
 	virtual void PostLoad() override;
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
+	virtual void Execute(
+		AActor& Owner,
+		UMASkillAbility* Ability,
+		const FMASkillEvent& Event,
+		const FMASkillScopes* Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Target")

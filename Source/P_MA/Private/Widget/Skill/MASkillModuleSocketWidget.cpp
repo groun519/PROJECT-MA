@@ -3,14 +3,13 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Display/MADisplayTypes.h"
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Cooldown/MASkillModuleCooldownAddon.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "Inventory/MAInventoryComponent.h"
-#include "Item/Data/MAItemData.h"
-#include "Item/MAItemType.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
@@ -59,18 +58,21 @@ void UMASkillModuleSocketWidget::Refresh()
 
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
-	CachedModule = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
+	CachedModule = ModuleInstance
+		? ModuleInstance->GetRootModule()
+		: InventoryEntry && InventoryEntry->IsItem()
+			? InventoryEntry->ItemStack.Module.Get()
+			: nullptr;
+	ApplyModuleVisual(CachedModule);
 
 	if (InventoryEntry && InventoryEntry->IsItem())
 	{
-		ApplyItemVisual(InventoryEntry->ItemStack);
 		SetStackText(InventoryEntry->ItemStack.Count > 1
 			? FText::AsNumber(InventoryEntry->ItemStack.Count)
 			: FText());
 	}
 	else
 	{
-		ApplyModuleVisual(CachedModule);
 		RefreshModuleStackText(ModuleInstance);
 	}
 
@@ -91,41 +93,15 @@ UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() cons
 	return nullptr;
 }
 
-const FMAItemDataRow* UMASkillModuleSocketWidget::ResolveItemData(
-	const FMAItemStack& ItemStack) const
-{
-	const FMAItemId& ItemId = ItemStack.ItemId;
-	const UMAItemType* ItemType = ItemId.GetItemType();
-	return ItemType
-		? ItemType->FindItemData(ItemId.RowName)
-		: nullptr;
-}
-
 /** Visuals **/
 void UMASkillModuleSocketWidget::ApplyModuleVisual(const UMASkillModule* Module)
 {
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillIconData IconData = Module
-		? Module->ResolveIconData(ModuleQualityData)
-		: FMASkillIconData();
-	ApplyIconVisual(
-		IconData,
-		Module ? Module->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+	ApplyIconVisual(Module
+		? Module->ResolveDisplayData(ModuleQualityData).IconData
+		: FMAIconData());
 }
-
-void UMASkillModuleSocketWidget::ApplyItemVisual(const FMAItemStack& ItemStack)
-{
-	FMASkillIconData IconData;
-	if (const FMAItemDataRow* ItemData = ResolveItemData(ItemStack))
-	{
-		IconData.Icon = ItemData->Icon.LoadSynchronous();
-	}
-	ApplyIconVisual(IconData, FLinearColor::White);
-}
-
-void UMASkillModuleSocketWidget::ApplyIconVisual(
-	const FMASkillIconData& IconData,
-	const FLinearColor& FrameColor)
+void UMASkillModuleSocketWidget::ApplyIconVisual(const FMAIconData& IconData)
 {
 	if (!ModuleIconImage) return;
 
@@ -133,12 +109,12 @@ void UMASkillModuleSocketWidget::ApplyIconVisual(
 	if (UMaterialInstanceDynamic* IconMaterial = ModuleIconImage->GetDynamicMaterial())
 	{
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
-		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, nullptr);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, IconData.SubIcon);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, FrameColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, IconData.FrameColor);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, bHasIcon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, 0.f);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, IconData.SubIcon ? 1.f : 0.f);
 	}
 	else if (bHasIcon)
 	{
@@ -314,9 +290,7 @@ FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGe
 	}
 
 	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
-	const bool bHasDraggableEntry = CachedModule
-		|| (InventoryEntry && InventoryEntry->IsItem());
-	if (bHasDraggableEntry && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	if (CachedModule && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
 	}
@@ -339,19 +313,15 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 		const FMAInventoryEntry* Entry = ResolveInventoryEntry();
 		if (!Entry || !DragOperation->SetSource(Inventory.Get(), *Entry)) return;
 
-		if (Entry->IsModule())
-		{
-			CachedModule = Entry->ModuleInstance->GetRootModule();
-			const FMASkillIconData IconData = CachedModule
-				? CachedModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
-				: FMASkillIconData();
-			DragIcon = IconData.Icon;
-			DragIconColor = IconData.IconColor;
-		}
-		else if (const FMAItemDataRow* ItemData = ResolveItemData(Entry->ItemStack))
-		{
-			DragIcon = ItemData->Icon.LoadSynchronous();
-		}
+		CachedModule = Entry->IsModule()
+			? Entry->ModuleInstance->GetRootModule()
+			: Entry->ItemStack.Module.Get();
+		const FMAIconData IconData = CachedModule
+			? CachedModule->ResolveDisplayData(
+				UMAGameSettings::Get()->GetModuleQualityData()).IconData
+			: FMAIconData();
+		DragIcon = IconData.Icon;
+		DragIconColor = IconData.IconColor;
 	}
 	else if (SkillManager.IsValid())
 	{
@@ -360,8 +330,8 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 		if (!CachedModule) return;
 		if (!DragOperation->SetSource(SkillManager.Get(), SkillSlotTag, SlotIndex)) return;
 
-		const FMASkillIconData IconData = CachedModule->ResolveIconData(
-			UMAGameSettings::Get()->GetModuleQualityData());
+		const FMAIconData IconData = CachedModule->ResolveDisplayData(
+			UMAGameSettings::Get()->GetModuleQualityData()).IconData;
 		DragIcon = IconData.Icon;
 		DragIconColor = IconData.IconColor;
 	}
@@ -484,16 +454,8 @@ void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* Invento
 	SetToolTip(nullptr);
 	SetToolTipText(FText());
 
-	if (InventoryEntry && InventoryEntry->IsItem())
-	{
-		if (const FMAItemDataRow* ItemData = ResolveItemData(InventoryEntry->ItemStack))
-		{
-			SetToolTipText(ItemData->DisplayName);
-		}
-		return;
-	}
-
-	if (!CachedModule || !TooltipWidgetClass)
+	const bool bHasItem = InventoryEntry && InventoryEntry->IsItem();
+	if ((!bHasItem && !CachedModule) || !TooltipWidgetClass)
 	{
 		return;
 	}
@@ -505,15 +467,32 @@ void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* Invento
 		return;
 	}
 
-	const UDataTable* WarningTextDataTable = UMAGameSettings::Get()->GetWarningTextDataTable();
-	const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
-	if (ModuleInstance)
+	if (bHasItem)
 	{
-		TooltipWidget->SetModuleTooltip(*ModuleInstance, WarningTextDataTable);
+		const FMAItemStack& ItemStack = InventoryEntry->ItemStack;
+		FMADisplayData DisplayData = CachedModule->ResolveDisplayData(
+			UMAGameSettings::Get()->GetModuleQualityData());
+		if (ItemStack.Count > 1 && !DisplayData.DisplayName.IsEmpty())
+		{
+			DisplayData.DisplayName = FText::Format(
+				NSLOCTEXT("MASkillTooltipWidget", "ItemCountFormat", "{0} x{1}"),
+				DisplayData.DisplayName,
+				FText::AsNumber(ItemStack.Count));
+		}
+		TooltipWidget->SetDisplayData(DisplayData);
+	}
+	else if (const UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance())
+	{
+		TooltipWidget->SetModuleTooltip(
+			*ModuleInstance,
+			UMAGameSettings::Get()->GetWarningTextDataTable());
 	}
 	else
 	{
-		TooltipWidget->SetSkillTooltip(CachedModule, FGameplayTag(), WarningTextDataTable);
+		TooltipWidget->SetSkillTooltip(
+			CachedModule,
+			FGameplayTag(),
+			UMAGameSettings::Get()->GetWarningTextDataTable());
 	}
 	SetToolTip(TooltipWidget);
 }

@@ -4,13 +4,15 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_PatchDamagePayload::Execute(
-	UMASkillAbility&,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
+	check(Scopes);
 	if (!DamagePayloadTag.IsValid()) return;
 
-	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	if (!Payloads.IsValid()) return;
 
 	TArray<TPair<FGameplayTag, FMASkillDamageConfig>> DamagePayloads;

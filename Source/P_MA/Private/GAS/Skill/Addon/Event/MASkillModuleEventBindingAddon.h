@@ -12,10 +12,7 @@ class P_MA_API UMASkillModuleEventBindingAddon : public UMASkillModuleAddon
 	GENERATED_BODY()
 
 public:
-	UMASkillModuleEventBindingAddon()
-	{
-		SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub;
-	}
+	UMASkillModuleEventBindingAddon() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Item | EMASkillModuleType::Sub; }
 
 	const TArray<FMASkillEventBinding>& GetEventBindings() const { return EventBindings; }
 

@@ -56,20 +56,15 @@ void ULoadoutWeaponModuleButtonWidget::RefreshIcon()
 {
 	if (!IconMaterial) return;
 
-	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillIconData IconData = Module
-		? Module->ResolveIconData(ModuleQualityData)
-		: FMASkillIconData();
-	UTexture2D* SubIcon = Module ? Module->GetAssembledSubIcon() : nullptr;
-	const FLinearColor FrameColor = Module
-		? Module->ResolveFrameColor(ModuleQualityData)
-		: FLinearColor::White;
+	const FMAIconData IconData = Module
+		? Module->ResolveDisplayData(UMAGameSettings::Get()->GetModuleQualityData()).IconData
+		: FMAIconData();
 
 	IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
-	IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, SubIcon);
+	IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, IconData.SubIcon);
 	IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 	IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
-	IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, FrameColor);
+	IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, IconData.FrameColor);
 	IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData.Icon ? 1.f : 0.f);
-	IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, SubIcon ? 1.f : 0.f);
+	IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, IconData.SubIcon ? 1.f : 0.f);
 }

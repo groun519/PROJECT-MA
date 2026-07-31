@@ -10,10 +10,13 @@ class P_MA_API UMASkillAction_AddFocusOffset : public UMASkillAction
 	GENERATED_BODY()
 
 public:
+	UMASkillAction_AddFocusOffset() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+
 	virtual void Execute(
-		UMASkillAbility& OwnerAbility,
+		AActor& Owner,
+		UMASkillAbility* Ability,
 		const FMASkillEvent& Event,
-		const FMASkillScopes& Scopes) override;
+		const FMASkillScopes* Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Focus")

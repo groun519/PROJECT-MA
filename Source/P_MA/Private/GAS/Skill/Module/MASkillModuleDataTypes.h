@@ -21,13 +21,6 @@ struct FMASkillDefinitionIconData
 	int32 Priority = 0;
 };
 
-struct FMASkillIconData
-{
-	UTexture2D* Icon = nullptr;
-	FLinearColor IconColor = FLinearColor::White;
-	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
-};
-
 USTRUCT(BlueprintType)
 struct FMASkillDefinitionNameData
 {

@@ -52,16 +52,18 @@ void UMASkillAction_ApplyAttribute::PostLoad()
 }
 
 void UMASkillAction_ApplyAttribute::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority() || !Attribute.IsValid()) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority() || !Attribute.IsValid()) return;
 
-	UAbilitySystemComponent* SourceASC = OwnerAbility.GetAbilitySystemComponentFromActorInfo();
+	UAbilitySystemComponent* SourceASC = Ability->GetAbilitySystemComponentFromActorInfo();
 	if (!SourceASC) return;
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	UAbilitySystemComponent* TargetASC = SourceASC;
 	if (Target == EMASkillAttributeApplyTarget::TargetPayload)
 	{

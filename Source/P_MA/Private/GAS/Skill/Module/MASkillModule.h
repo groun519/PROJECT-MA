@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Display/MADisplayTypes.h"
 #include "Engine/DataAsset.h"
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 #include "MASkillModule.generated.h"
@@ -19,6 +20,7 @@ class P_MA_API UMASkillModule : public UPrimaryDataAsset
 public:
 	static const FPrimaryAssetType PrimaryAssetType;
 	static FPrimaryAssetId MakePrimaryAssetId(int32 ModuleId);
+	static UMASkillModule* LoadById(int32 ModuleId);
 	static FName GetModuleIdTag() { return GET_MEMBER_NAME_CHECKED(UMASkillModule, ModuleId); }
 
 #if WITH_EDITOR
@@ -39,9 +41,7 @@ public:
 	EMASkillModuleType GetModuleType() const { return ModuleData.ModuleType; }
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return ModuleData.DisplayData; }
 	const FMAModuleQuality& GetModuleQuality() const { return ModuleData.ModuleQuality; }
-	FMASkillIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
-	FLinearColor ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const;
-	UTexture2D* GetAssembledSubIcon() const { return ModuleData.AssembledSubIcon; }
+	FMADisplayData ResolveDisplayData(const UMAModuleQualityData* ModuleQualityData) const;
 	const FGameplayTagContainer& GetModuleTags() const { return ModuleData.ModuleTags; }
 	FGameplayTagContainer GetTooltipTags() const { return ModuleData.ModuleTags; }
 	FGameplayTag GetVisualElementTag() const;

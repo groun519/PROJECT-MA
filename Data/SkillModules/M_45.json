@@ -2,6 +2,7 @@
 	"ModuleId": 45,
 	"Module":
 	{
+		"ModuleType": "Sub",
 		"ModuleName": "DA_Charge",
 		"DisplayData":
 		{

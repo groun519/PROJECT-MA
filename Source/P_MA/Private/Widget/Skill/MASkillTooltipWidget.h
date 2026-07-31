@@ -2,27 +2,25 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Widget/MADescriptionTooltipWidget.h"
+#include "Widget/MADisplayTooltipWidget.h"
 #include "MASkillTooltipWidget.generated.h"
 
 class UImage;
 class UPanelWidget;
 class UTextBlock;
-class UTexture2D;
 class UDataTable;
 class UMASkillModule;
 class UMASkillModuleInstance;
 class UMASkillSubModuleTooltipWidget;
-class UMASkillTagBadgeWidget;
-class UMASkillTooltipMessageWidget;
-struct FMASkillIconData;
+struct FMADisplayData;
 
 UCLASS()
-class P_MA_API UMASkillTooltipWidget : public UMADescriptionTooltipWidget
+class P_MA_API UMASkillTooltipWidget : public UMADisplayTooltipWidget
 {
 	GENERATED_BODY()
 
 public:
+	virtual void SetDisplayData(const FMADisplayData& DisplayData) override;
 	void SetSkillTooltip(
 		const UMASkillModule* SkillModule,
 		const FGameplayTag& InactiveReasonTag = FGameplayTag(),
@@ -34,26 +32,11 @@ public:
 		bool bShowTagsAndMessages = true);
 
 protected:
-	UPROPERTY(meta=(BindWidgetOptional))
-	TObjectPtr<UImage> SkillIconImage;
-
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> CooldownText;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> CooldownIconImage;
-
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UPanelWidget> MessagePanel;
-
-	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
-	TSubclassOf<UMASkillTooltipMessageWidget> MessageWidgetClass;
-
-	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UPanelWidget> TagBadgePanel;
-
-	UPROPERTY(EditDefaultsOnly, Category="Tooltip")
-	TSubclassOf<UMASkillTagBadgeWidget> TagBadgeWidgetClass;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> SubModulePanel;
@@ -62,7 +45,6 @@ protected:
 	TSubclassOf<UMASkillSubModuleTooltipWidget> SubModuleWidgetClass;
 
 private:
-	void SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor);
 	void SetCooldown(const UMASkillModule* SkillModule);
 	void SetTooltipTags(const FGameplayTagContainer& TooltipTags, const UDataTable* WarningTextDataTable);
 	void SetTooltipMessages(

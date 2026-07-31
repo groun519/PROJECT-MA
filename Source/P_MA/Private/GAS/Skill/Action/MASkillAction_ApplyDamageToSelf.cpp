@@ -8,26 +8,25 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_ApplyDamageToSelf::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority()) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority()) return;
 
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!AvatarActor) return;
-
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	if (!Payloads.IsValid()) return;
 
 	FMASkillDamageConfig DamageConfig;
 	if (!Payloads.TryGetStruct(DamagePayloadTag, DamageConfig)) return;
 
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
+	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
 	MASkillDamageApplicator::ApplyToTargetActor(
-		OwnerAbility,
-		Scopes,
-		*AvatarActor,
+		*Ability,
+		*Scopes,
+		Owner,
 		ResolvedDamage,
-		AvatarActor->GetActorLocation());
+		Owner.GetActorLocation());
 }

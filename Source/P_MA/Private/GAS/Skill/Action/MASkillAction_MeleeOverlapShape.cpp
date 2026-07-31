@@ -8,23 +8,24 @@
 
 UMASkillAction_MeleeOverlapShape::UMASkillAction_MeleeOverlapShape()
 {
+	SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub;
 	Config.Shape = EMASkillAreaShape::Circle;
 }
 
 void UMASkillAction_MeleeOverlapShape::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!AvatarActor) return;
+	check(Ability && Scopes);
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	const FMASkillWorldAreaShape Area = Config.ResolveWorld(
-		AvatarActor->GetActorTransform(),
+		Owner.GetActorTransform(),
 		MASkillAreaStatics::ResolveAreaScale(
 			Payloads,
-			OwnerAbility.GetAbilitySystemComponentFromActorInfo()));
+			Ability->GetAbilitySystemComponentFromActorInfo()));
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
-	MASkillDamageApplicator::ApplyArea(OwnerAbility, Scopes, Area, DamageConfig, Payloads);
+	MASkillDamageApplicator::ApplyArea(*Ability, *Scopes, Area, DamageConfig, Payloads);
 }

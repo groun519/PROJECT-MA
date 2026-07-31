@@ -1,16 +1,16 @@
 #include "GAS/Skill/Action/MASkillAction_AttachNiagaraToSelf.h"
 
 #include "Character/MACharacter.h"
-#include "GAS/Skill/MASkillAbility.h"
 
 void UMASkillAction_AttachNiagaraToSelf::Execute(
-	UMASkillAbility& OwnerAbility,
-	const FMASkillEvent&,
-	const FMASkillScopes&)
+	AActor& Owner,
+	UMASkillAbility* Ability,
+	const FMASkillEvent& Event,
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority() || !NiagaraSystem) return;
+	if (!Owner.HasAuthority() || !NiagaraSystem) return;
 
-	AMACharacter* OwnerCharacter = Cast<AMACharacter>(OwnerAbility.GetAvatarActorFromActorInfo());
+	AMACharacter* OwnerCharacter = Cast<AMACharacter>(&Owner);
 	if (!OwnerCharacter) return;
 
 	OwnerCharacter->Multicast_AttachNiagaraToSelf(NiagaraSystem, SocketName, LifeSpan);

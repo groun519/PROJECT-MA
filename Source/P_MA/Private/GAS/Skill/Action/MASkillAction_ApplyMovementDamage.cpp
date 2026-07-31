@@ -201,11 +201,13 @@ void AMASkillMovementDamageRuntime::SpawnTrailDecal(const FVector& Start, const 
 }
 
 void UMASkillAction_ApplyMovementDamage::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority()) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority()) return;
 
 	FMAActionImpulseHandle MovementHandle;
 	if (!Event.Payloads.TryGetStruct(
@@ -215,30 +217,29 @@ void UMASkillAction_ApplyMovementDamage::Execute(
 		return;
 	}
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	FMASkillDamageConfig DamageConfig;
 	if (!Payloads.TryGetStruct(DamagePayloadTag, DamageConfig)) return;
 
-	UWorld* World = OwnerAbility.GetWorld();
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!World || !AvatarActor) return;
+	UWorld* World = Owner.GetWorld();
+	if (!World) return;
 
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = AvatarActor;
-	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
+	SpawnParams.Owner = &Owner;
+	SpawnParams.Instigator = Cast<APawn>(&Owner);
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	AMASkillMovementDamageRuntime* Runtime = World->SpawnActor<AMASkillMovementDamageRuntime>(
-		AvatarActor->GetActorLocation(),
+		Owner.GetActorLocation(),
 		FRotator::ZeroRotator,
 		SpawnParams);
 	if (!Runtime) return;
 
 	if (!Runtime->Initialize(
-		OwnerAbility,
-		Scopes,
+		*Ability,
+		*Scopes,
 		MovementHandle,
-		MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads),
+		MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads),
 		CapsuleRadiusScale,
 		CapsuleHalfHeightScale,
 		bDrawTrailDecal,
@@ -248,5 +249,5 @@ void UMASkillAction_ApplyMovementDamage::Execute(
 		return;
 	}
 
-	Scopes.GetRuntimeRegistry().Register(Runtime);
+	Scopes->GetRuntimeRegistry().Register(Runtime);
 }

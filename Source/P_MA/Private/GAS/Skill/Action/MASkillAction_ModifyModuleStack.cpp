@@ -3,18 +3,19 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Addon/MASkillModuleAddonStatics.h"
 #include "GAS/Skill/Addon/Event/MASkillModuleEventSourceAddon.h"
-#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
-#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
+#include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
 void UMASkillAction_ModifyModuleStack::Execute(
-	UMASkillAbility& OwnerAbility,
-	const FMASkillEvent&,
-	const FMASkillScopes& Scopes)
+	AActor& Owner,
+	UMASkillAbility* Ability,
+	const FMASkillEvent& Event,
+	const FMASkillScopes* Scopes)
 {
-	UMASkillModuleInstance* ModuleInstance = Scopes.Module.Get();
+	check(Ability && Scopes);
+	UMASkillModuleInstance* ModuleInstance = Scopes->Module.Get();
 	const UMASkillModule* Module = ModuleInstance ? ModuleInstance->GetRootModule() : nullptr;
 	if (!ModuleInstance || !Module) return;
 
@@ -54,8 +55,8 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	if (!EventSourceAddon || !EventSourceAddon->HasEventSource(StackChangedEventTag)) return;
 
 	UMASkillEventRoutingStatics::TryNotifySkillEvent(
-		&OwnerAbility,
+		Ability,
 		StackChangedEventTag,
-		FMASkillScopes(ModuleInstance, Scopes.Skill.Get()));
+		FMASkillScopes(ModuleInstance, Scopes->Skill.Get()));
 }
 

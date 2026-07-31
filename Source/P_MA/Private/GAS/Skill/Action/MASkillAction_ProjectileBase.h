@@ -88,7 +88,13 @@ class P_MA_API UMASkillAction_ProjectileBase : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
+	UMASkillAction_ProjectileBase() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+
+	virtual void Execute(
+		AActor& Owner,
+		UMASkillAbility* Ability,
+		const FMASkillEvent& Event,
+		const FMASkillScopes* Scopes) override;
 
 protected:
 	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads);

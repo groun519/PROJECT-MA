@@ -55,10 +55,13 @@ class P_MA_API UMASkillAction_ApplyMovementDamage : public UMASkillAction
 	GENERATED_BODY()
 
 public:
+	UMASkillAction_ApplyMovementDamage() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+
 	virtual void Execute(
-		UMASkillAbility& OwnerAbility,
+		AActor& Owner,
+		UMASkillAbility* Ability,
 		const FMASkillEvent& Event,
-		const FMASkillScopes& Scopes) override;
+		const FMASkillScopes* Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Damage"))

@@ -1,17 +1,17 @@
 ﻿#include "GAS/Skill/Action/MASkillAction_ApplyOverlayToSelf.h"
 
 #include "Character/MAOverlayComponent.h"
-#include "GAS/Skill/MASkillAbility.h"
+#include "GameFramework/Actor.h"
 
 void UMASkillAction_ApplyOverlayToSelf::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes&)
+	const FMASkillScopes* Scopes)
 {
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!AvatarActor || AvatarActor->GetNetMode() == NM_DedicatedServer) return;
+	if (Owner.GetNetMode() == NM_DedicatedServer) return;
 
-	if (UMAOverlayComponent* OverlayComponent = AvatarActor->FindComponentByClass<UMAOverlayComponent>())
+	if (UMAOverlayComponent* OverlayComponent = Owner.FindComponentByClass<UMAOverlayComponent>())
 	{
 		OverlayComponent->ApplyTimedOverlay(BaseColor, Alpha, Duration);
 	}

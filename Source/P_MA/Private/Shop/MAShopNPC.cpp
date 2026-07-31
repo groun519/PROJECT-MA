@@ -311,11 +311,11 @@ TArray<FMAShopStockEntry> AMAShopNPC::GenerateShopStock() const
 		Entry.VisualSeed = FMath::Rand();
 		Entry.SkillModule = SkillModule;
 		Entry.Price = ResolveModulePrice(SkillModule);
-		const FMASkillIconData IconData = SkillModule->ResolveIconData(ModuleQualityData);
+		const FMAIconData IconData = SkillModule->ResolveDisplayData(ModuleQualityData).IconData;
 		Entry.Icon = IconData.Icon;
 		Entry.IconColor = IconData.IconColor;
 		Entry.InnerColor = IconData.InnerColor;
-		Entry.QualityColor = SkillModule->ResolveFrameColor(ModuleQualityData);
+		Entry.QualityColor = IconData.FrameColor;
 		if (ModuleQualityData)
 		{
 			const FMAModuleQuality& Quality = SkillModule->GetModuleQuality();

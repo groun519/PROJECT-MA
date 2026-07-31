@@ -13,7 +13,11 @@ class P_MA_API UMASkillAction_MeleeOverlapShape : public UMASkillAction
 
 public:
 	UMASkillAction_MeleeOverlapShape();
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
+	virtual void Execute(
+		AActor& Owner,
+		UMASkillAbility* Ability,
+		const FMASkillEvent& Event,
+		const FMASkillScopes* Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Action", meta=(ShowOnlyInnerProperties))

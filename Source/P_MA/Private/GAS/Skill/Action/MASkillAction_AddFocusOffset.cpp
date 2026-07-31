@@ -4,11 +4,13 @@
 #include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
 
 void UMASkillAction_AddFocusOffset::Execute(
-	UMASkillAbility&,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	check(Scopes);
+	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	if (!Payloads.IsValid()) return;
 
 	const FGameplayTag FocusOffsetTag = UMAAbilitySystemStatics::GetSkillFocusOffsetTag();

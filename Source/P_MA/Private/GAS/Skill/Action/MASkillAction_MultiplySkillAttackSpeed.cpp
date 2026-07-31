@@ -7,11 +7,13 @@
 #include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 void UMASkillAction_MultiplySkillAttackSpeed::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	check(Ability && Scopes);
+	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	if (!Payloads.IsValid()) return;
 	const FGameplayTag AttackSpeedMultiplierTag = UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag();
 	const float SafeMultiplier = FMath::Max(Multiplier, KINDA_SMALL_NUMBER);
@@ -20,7 +22,7 @@ void UMASkillAction_MultiplySkillAttackSpeed::Execute(
 	Payloads.TryGetScalar(AttackSpeedMultiplierTag, CurrentMultiplier);
 	Payloads.SetScalar(EMASkillPayloadWriteScope::Skill, AttackSpeedMultiplierTag, CurrentMultiplier * SafeMultiplier);
 
-	if (UMASkillSequenceRuntime* SequenceRuntime = OwnerAbility.GetSequenceRuntime())
+	if (UMASkillSequenceRuntime* SequenceRuntime = Ability->GetSequenceRuntime())
 	{
 		SequenceRuntime->SetDesiredPlayRate(SequenceRuntime->GetDesiredPlayRate() * SafeMultiplier);
 	}

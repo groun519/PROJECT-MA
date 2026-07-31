@@ -27,7 +27,7 @@ public:
 	bool RequestGrantModule(UMASkillModule* Module);
 
 	/** Item **/
-	bool RequestGrantItem(FMAItemId ItemId, int32 Count);
+	bool RequestGrantItem(int32 ModuleId, int32 Count);
 	void UseEntry(int32 EntryId);
 
 	/** Entry Transfer **/
@@ -51,7 +51,7 @@ private:
 	bool AddModule(UMASkillModule* Module);
 
 	/** Item **/
-	bool AddItem(FMAItemId ItemId, int32 Count);
+	bool AddItem(int32 ModuleId, int32 Count);
 	EMAItemUseResult ExecuteUseEntry(int32 EntryId);
 
 	/** Entry Transfer **/
@@ -79,7 +79,7 @@ private:
 	void ServerGrantModule(UMASkillModule* Module);
 
 	UFUNCTION(Server, Reliable)
-	void ServerGrantItem(FMAItemId ItemId, int32 Count);
+	void ServerGrantItem(int32 ModuleId, int32 Count);
 
 	UFUNCTION(Server, Reliable)
 	void ServerUseEntry(int32 EntryId);

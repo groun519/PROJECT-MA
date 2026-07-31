@@ -3,11 +3,10 @@
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
+#include "Display/MADisplayTypes.h"
 #include "GAS/Skill/Definition/MASkillWarningTextData.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "MAMaterialParams.h"
-#include "Materials/MaterialInstanceDynamic.h"
 #include "Setting/MAGameSettings.h"
 #include "Widget/Skill/MASkillSubModuleTooltipWidget.h"
 #include "Widget/Skill/MASkillTagBadgeWidget.h"
@@ -19,19 +18,10 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 	const UDataTable* WarningTextDataTable,
 	bool bShowTagsAndMessages)
 {
-	const FMASkillDefinitionDisplayData DisplayData = SkillModule
-		? SkillModule->GetDisplayData()
-		: FMASkillDefinitionDisplayData();
 	const UMAModuleQualityData* ModuleQualityData = UMAGameSettings::Get()->GetModuleQualityData();
-	const FMASkillIconData IconData = SkillModule
-		? SkillModule->ResolveIconData(ModuleQualityData)
-		: FMASkillIconData();
-
-	SetDescription(DisplayData.DisplayName, DisplayData.Description);
-	SetIconData(
-		IconData,
-		SkillModule ? SkillModule->GetAssembledSubIcon() : nullptr,
-		SkillModule ? SkillModule->ResolveFrameColor(ModuleQualityData) : FLinearColor::White);
+	SetDisplayData(SkillModule
+		? SkillModule->ResolveDisplayData(ModuleQualityData)
+		: FMADisplayData());
 	SetCooldown(SkillModule);
 	const FGameplayTagContainer TooltipTags = SkillModule
 		? SkillModule->GetTooltipTags()
@@ -41,9 +31,6 @@ void UMASkillTooltipWidget::SetSkillTooltip(
 		bShowTagsAndMessages ? TooltipTags : FGameplayTagContainer(),
 		bShowTagsAndMessages ? InactiveReasonTag : FGameplayTag(),
 		WarningTextDataTable);
-
-	SubModulePanel->ClearChildren();
-	SubModulePanel->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UMASkillTooltipWidget::SetModuleTooltip(
@@ -74,30 +61,12 @@ void UMASkillTooltipWidget::SetModuleTooltip(
 		: ESlateVisibility::Collapsed);
 }
 
-void UMASkillTooltipWidget::SetIconData(const FMASkillIconData& IconData, UTexture2D* AssembledSubIcon, const FLinearColor& FrameColor)
+void UMASkillTooltipWidget::SetDisplayData(const FMADisplayData& DisplayData)
 {
-	if (!SkillIconImage) return;
-
-	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
-	{
-		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
-		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, AssembledSubIcon);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_FrameColor, FrameColor);
-		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData.Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, AssembledSubIcon ? 1.f : 0.f);
-	}
-	else if (IconData.Icon)
-	{
-		SkillIconImage->SetBrushFromTexture(IconData.Icon);
-	}
-	else
-	{
-		SkillIconImage->SetBrush(FSlateBrush());
-	}
-
-	SkillIconImage->SetVisibility(IconData.Icon || AssembledSubIcon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	Super::SetDisplayData(DisplayData);
+	SetCooldown(nullptr);
+	SubModulePanel->ClearChildren();
+	SubModulePanel->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UMASkillTooltipWidget::SetCooldown(const UMASkillModule* SkillModule)
@@ -158,12 +127,7 @@ void UMASkillTooltipWidget::SetTooltipMessages(
 			: InactiveReasonTag.IsValid() && TextRow->ReasonTag == InactiveReasonTag;
 		if (!bShouldDisplay) continue;
 
-		UMASkillTooltipMessageWidget* MessageWidget =
-			CreateWidget<UMASkillTooltipMessageWidget>(this, MessageWidgetClass);
-		if (!MessageWidget) continue;
-
-		MessageWidget->SetMessage(TextRow->WarningText, TextRow->TextType);
-		MessagePanel->AddChild(MessageWidget);
+		AddMessage(TextRow->WarningText, TextRow->TextType);
 	}
 
 	MessagePanel->SetVisibility(MessagePanel->GetChildrenCount() > 0

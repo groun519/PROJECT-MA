@@ -1,0 +1,50 @@
+{
+	"ModuleId": 53,
+	"Module":
+	{
+		"ModuleType": "Item",
+		"ModuleName": "HealPotion",
+		"DisplayData":
+		{
+			"DisplayName": "HealPotion",
+			"Description": "<HP>체력</>을 30% 회복시킵니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_HealPotion.T_HealPotion'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleItemAddon"
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Item.Use",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyGameplayEffectToSelf",
+							"gameplayEffectClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_Data/GE_TestPotion.GE_TestPotion_C'",
+							"effectLevel": 1
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

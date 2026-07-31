@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/CheatManager.h"
-#include "Item/MAItemTypes.h"
 #include "MACheatManager.generated.h"
 
 class AMAPlayerCharacter;
@@ -26,7 +25,7 @@ public:
 	void SetMAState(int32 NewState);
 
 	UFUNCTION(Exec)
-	void AddItem(FName ItemTypeName, FName ItemRowName, int32 Count = 1);
+	void AddItem(int32 ModuleId, int32 Count = 1);
 
 	UFUNCTION(Exec)
 	void ListItems();

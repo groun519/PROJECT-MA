@@ -13,25 +13,24 @@ namespace
 }
 
 void UMASkillAction_Dash::Execute(
-	UMASkillAbility& OwnerAbility,
-	const FMASkillEvent&,
-	const FMASkillScopes& Scopes)
+	AActor& Owner,
+	UMASkillAbility* Ability,
+	const FMASkillEvent& Event,
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority()) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority()) return;
 
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!AvatarActor) return;
-
-	FVector DashVelocity = AvatarActor->GetActorForwardVector().GetSafeNormal2D() * DashSpeed;
+	FVector DashVelocity = Owner.GetActorForwardVector().GetSafeNormal2D() * DashSpeed;
 	if (DashVelocity.IsNearlyZero()) return;
 	if (DashDuration <= 0.f) return;
 
 	const FGameplayTag DashImpulseTag = GetDashImpulseTag();
-	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(AvatarActor))
+	if (AMACharacter* OwnerCharacter = Cast<AMACharacter>(&Owner))
 	{
 		if (UMAImpulseComponent* ImpulseComponent = OwnerCharacter->GetImpulseComponent())
 		{
-			ImpulseComponent->ApplyActionImpulseVelocity(&OwnerAbility, DashImpulseTag, DashVelocity, DashDuration, true, Scopes.Module);
+			ImpulseComponent->ApplyActionImpulseVelocity(Ability, DashImpulseTag, DashVelocity, DashDuration, true, Scopes->Module);
 		}
 	}
 }

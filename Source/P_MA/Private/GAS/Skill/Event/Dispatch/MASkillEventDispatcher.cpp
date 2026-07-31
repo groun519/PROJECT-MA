@@ -131,16 +131,15 @@ void UMASkillEventDispatcher::DispatchGroup(
 	for (const FPendingEventAction& PendingAction : PendingActions)
 	{
 		UMASkillAbility* BindingAbility = PendingAction.Ability.Get();
-		if (!BindingAbility
-			|| PendingAction.EventIndex < 0
-			|| PendingAction.EventIndex >= Events.Num())
-		{
-			continue;
-		}
+		if (!BindingAbility) continue;
+
+		AActor* Owner = BindingAbility->GetAvatarActorFromActorInfo();
+		if (!Owner) continue;
 
 		PendingAction.Action->Execute(
-			*BindingAbility,
+			*Owner,
+			BindingAbility,
 			Events[PendingAction.EventIndex],
-			PendingAction.Scopes);
+			&PendingAction.Scopes);
 	}
 }

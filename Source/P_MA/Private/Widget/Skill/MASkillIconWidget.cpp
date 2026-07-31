@@ -23,19 +23,18 @@ void UMASkillIconWidget::SetSkillModule(const UMASkillModule* SkillModule)
 {
 	if (!SkillIconImage) return;
 
-	const FMASkillIconData IconData = SkillModule
-		? SkillModule->ResolveIconData(UMAGameSettings::Get()->GetModuleQualityData())
-		: FMASkillIconData();
-	UTexture2D* AssembledSubIcon = SkillModule ? SkillModule->GetAssembledSubIcon() : nullptr;
+	const FMAIconData IconData = SkillModule
+		? SkillModule->ResolveDisplayData(UMAGameSettings::Get()->GetModuleQualityData()).IconData
+		: FMAIconData();
 
 	if (UMaterialInstanceDynamic* IconMaterial = SkillIconImage->GetDynamicMaterial())
 	{
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, IconData.Icon);
-		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, AssembledSubIcon);
+		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_SubIconTexture, IconData.SubIcon);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
 		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
 		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseIcon, IconData.Icon ? 1.f : 0.f);
-		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, AssembledSubIcon ? 1.f : 0.f);
+		IconMaterial->SetScalarParameterValue(PARAM_ModuleIcon_UseSubIcon, IconData.SubIcon ? 1.f : 0.f);
 	}
 	else if (IconData.Icon)
 	{

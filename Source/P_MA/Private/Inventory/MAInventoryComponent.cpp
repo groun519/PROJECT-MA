@@ -1,9 +1,9 @@
 #include "Inventory/MAInventoryComponent.h"
 
+#include "GAS/Skill/Addon/Item/MASkillModuleItemAddon.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "Item/MAItemType.h"
 #include "Net/UnrealNetwork.h"
 
 UMAInventoryComponent::UMAInventoryComponent()
@@ -40,15 +40,15 @@ bool UMAInventoryComponent::RequestGrantModule(UMASkillModule* Module)
 }
 
 /** Item **/
-bool UMAInventoryComponent::RequestGrantItem(const FMAItemId ItemId, const int32 Count)
+bool UMAInventoryComponent::RequestGrantItem(const int32 ModuleId, const int32 Count)
 {
-	if (!ItemId.IsValid() || Count <= 0) return false;
+	if (ModuleId <= 0 || Count <= 0) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
-	if (OwnerActor->HasAuthority()) return AddItem(ItemId, Count);
+	if (OwnerActor->HasAuthority()) return AddItem(ModuleId, Count);
 
-	ServerGrantItem(ItemId, Count);
+	ServerGrantItem(ModuleId, Count);
 	return true;
 }
 
@@ -141,17 +141,22 @@ bool UMAInventoryComponent::AddModule(UMASkillModule* Module)
 }
 
 /** Item **/
-bool UMAInventoryComponent::AddItem(const FMAItemId ItemId, const int32 Count)
+bool UMAInventoryComponent::AddItem(const int32 ModuleId, const int32 Count)
 {
-	if (!CanMutateInventory() || !ItemId.IsValid() || Count <= 0) return false;
+	if (!CanMutateInventory() || ModuleId <= 0 || Count <= 0) return false;
 
-	const UMAItemType* ItemType = ItemId.GetItemType();
-	if (!ItemType || !ItemType->FindItemData(ItemId.RowName)) return false;
+	UMASkillModule* Module = UMASkillModule::LoadById(ModuleId);
+	if (!Module
+		|| (Module->GetModuleType() != EMASkillModuleType::Item
+			&& Module->GetModuleType() != EMASkillModuleType::Sub))
+	{
+		return false;
+	}
 
 	EnsureSlotCount();
-	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([ItemId](const FMAInventoryEntry& Entry)
+	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([Module](const FMAInventoryEntry& Entry)
 	{
-		return Entry.IsItem() && Entry.ItemStack.ItemId == ItemId;
+		return Entry.IsItem() && Entry.ItemStack.Module == Module;
 	});
 	if (TargetEntry)
 	{
@@ -166,7 +171,7 @@ bool UMAInventoryComponent::AddItem(const FMAItemId ItemId, const int32 Count)
 		});
 		if (!TargetEntry) return false;
 
-		TargetEntry->SetItem(AllocateEntryId(), ItemId, Count);
+		TargetEntry->SetItem(AllocateEntryId(), Module, Count);
 	}
 
 	NotifyInventoryChanged();
@@ -175,26 +180,22 @@ bool UMAInventoryComponent::AddItem(const FMAItemId ItemId, const int32 Count)
 
 EMAItemUseResult UMAInventoryComponent::ExecuteUseEntry(const int32 EntryId)
 {
-	if (!CanMutateInventory()) return EMAItemUseResult::Failed;
-
 	const int32 SlotIndex = FindEntrySlot(EntryId);
 	if (!Entries.IsValidIndex(SlotIndex)) return EMAItemUseResult::InvalidEntry;
 
 	FMAInventoryEntry& Entry = Entries[SlotIndex];
 	if (!Entry.IsItem()) return EMAItemUseResult::NotUsable;
 
-	const FMAItemId ItemId = Entry.ItemStack.ItemId;
-	const UMAItemType* ItemType = ItemId.GetItemType();
-	if (!ItemType) return EMAItemUseResult::InvalidData;
+	const UMASkillModuleItemAddon* ItemAddon =
+		Entry.ItemStack.Module->FindAddon<UMASkillModuleItemAddon>();
+	if (!ItemAddon) return EMAItemUseResult::NotUsable;
 
-	const EMAItemUseResult Result = ItemType->TryUse(*GetOwner(), ItemId.RowName);
-	if (Result != EMAItemUseResult::Success) return Result;
+	ItemAddon->Use(*GetOwner(), *Entry.ItemStack.Module);
 
 	if (--Entry.ItemStack.Count == 0)
 	{
 		Entry.Reset();
 	}
-
 	NotifyInventoryChanged();
 	return EMAItemUseResult::Success;
 }
@@ -351,15 +352,15 @@ void UMAInventoryComponent::ServerGrantModule_Implementation(UMASkillModule* Mod
 }
 
 void UMAInventoryComponent::ServerGrantItem_Implementation(
-	const FMAItemId ItemId,
+	const int32 ModuleId,
 	const int32 Count)
 {
-	AddItem(ItemId, Count);
+	AddItem(ModuleId, Count);
 }
 
 void UMAInventoryComponent::ServerUseEntry_Implementation(const int32 EntryId)
 {
-	ReportEntryUseResult(EntryId, ExecuteUseEntry(EntryId));
+	UseEntry(EntryId);
 }
 
 void UMAInventoryComponent::ServerMoveEntry_Implementation(

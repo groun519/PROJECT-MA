@@ -1,10 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/MAItemTypes.h"
 #include "MAInventoryTypes.generated.h"
 
+class UMASkillModule;
 class UMASkillModuleInstance;
+
+UENUM(BlueprintType)
+enum class EMAItemUseResult : uint8
+{
+	Success,
+	NotUsable,
+	InvalidEntry
+};
 
 UENUM()
 enum class EMAInventoryEntryKind : uint8
@@ -20,7 +28,7 @@ struct P_MA_API FMAItemStack
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
-	FMAItemId ItemId;
+	TObjectPtr<UMASkillModule> Module;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
 	int32 Count = 0;
@@ -33,7 +41,7 @@ struct P_MA_API FMAInventoryEntry
 
 	bool IsEmpty() const { return Kind == EMAInventoryEntryKind::Empty; }
 	bool IsModule() const { return Kind == EMAInventoryEntryKind::Module && ModuleInstance != nullptr; }
-	bool IsItem() const { return Kind == EMAInventoryEntryKind::Item && ItemStack.ItemId.IsValid() && ItemStack.Count > 0; }
+	bool IsItem() const { return Kind == EMAInventoryEntryKind::Item && ItemStack.Module && ItemStack.Count > 0; }
 
 	void Reset()
 	{
@@ -51,12 +59,12 @@ struct P_MA_API FMAInventoryEntry
 		ModuleInstance = InModuleInstance;
 	}
 
-	void SetItem(int32 InEntryId, const FMAItemId& InItemId, int32 InCount)
+	void SetItem(int32 InEntryId, UMASkillModule* InModule, int32 InCount)
 	{
 		Reset();
 		EntryId = InEntryId;
 		Kind = EMAInventoryEntryKind::Item;
-		ItemStack.ItemId = InItemId;
+		ItemStack.Module = InModule;
 		ItemStack.Count = InCount;
 	}
 

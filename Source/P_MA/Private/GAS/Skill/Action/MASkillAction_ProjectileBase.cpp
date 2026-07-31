@@ -112,29 +112,30 @@ static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadAcce
 }
 
 void UMASkillAction_ProjectileBase::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes& Scopes)
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority() || !Config.ProjectileClass) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority() || !Config.ProjectileClass) return;
 
-	UWorld* World = OwnerAbility.GetWorld();
-	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
-	if (!World || !AvatarActor) return;
+	UWorld* World = Owner.GetWorld();
+	if (!World) return;
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(Scopes);
+	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
 	if (!Payloads.IsValid()) return;
 
 	FVector SpawnLocation = FVector::ZeroVector;
-	if (!TryResolveSpawnLocation(*AvatarActor, Payloads, Config, SpawnLocation)) return;
+	if (!TryResolveSpawnLocation(Owner, Payloads, Config, SpawnLocation)) return;
 	FRotator SpawnRotation = FRotator::ZeroRotator;
-	if (!TryResolveProjectileRotation(*AvatarActor, Payloads, Config, SpawnLocation, SpawnRotation)) return;
+	if (!TryResolveProjectileRotation(Owner, Payloads, Config, SpawnLocation, SpawnRotation)) return;
 	AActor* TargetActor = nullptr;
-	if (!TryResolveTargetActor(*AvatarActor, Payloads, Config, TargetActor)) return;
+	if (!TryResolveTargetActor(Owner, Payloads, Config, TargetActor)) return;
 
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = AvatarActor;
-	SpawnParams.Instigator = Cast<APawn>(AvatarActor);
+	SpawnParams.Owner = &Owner;
+	SpawnParams.Instigator = Cast<APawn>(&Owner);
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	AMAProjectileBase* Projectile = World->SpawnActor<AMAProjectileBase>(
@@ -148,19 +149,19 @@ void UMASkillAction_ProjectileBase::Execute(
 	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
-	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(OwnerAbility, DamageConfig, Payloads);
+	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
 	ProjectileParams.ProjectileRadiusMultiplier = MASkillAreaStatics::ResolveAreaScale(
 		Payloads,
-		OwnerAbility.GetAbilitySystemComponentFromActorInfo());
+		Ability->GetAbilitySystemComponentFromActorInfo());
 	ProjectileParams.MaxHitCount = Config.MaxHitCount;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;
 	ProjectileParams.TargetSettings.bHitOnlyTarget = Config.bUseTargetTracking && Config.TargetTracking.bHitOnlyTarget;
-	ProjectileParams.EventExecutorAbility = &OwnerAbility;
-	ProjectileParams.EventScopes = Scopes;
+	ProjectileParams.EventExecutorAbility = Ability;
+	ProjectileParams.EventScopes = *Scopes;
 
 	if (const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
-		OwnerAbility.GetVisualElementTag(),
+		Ability->GetVisualElementTag(),
 		TEXT("SkillProjectileElementalLookup")))
 	{
 		ProjectileParams.ElementalSettings.bHasElementalData = true;
@@ -170,12 +171,12 @@ void UMASkillAction_ProjectileBase::Execute(
 	}
 
 	Projectile->InitializeProjectile(ProjectileParams);
-	if (!PostSpawnProjectile(*Projectile, *AvatarActor, Payloads))
+	if (!PostSpawnProjectile(*Projectile, Owner, Payloads))
 	{
 		Projectile->Destroy();
 		return;
 	}
-	Scopes.GetRuntimeRegistry().Register(Projectile);
+	Scopes->GetRuntimeRegistry().Register(Projectile);
 }
 
 bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads)

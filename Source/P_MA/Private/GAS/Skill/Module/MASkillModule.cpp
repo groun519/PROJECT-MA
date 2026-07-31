@@ -4,6 +4,7 @@
 #include "GAS/Skill/Addon/Stack/MASkillModuleStackAddon.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
+#include "Engine/AssetManager.h"
 
 const FPrimaryAssetType UMASkillModule::PrimaryAssetType(TEXT("SkillModule"));
 
@@ -14,31 +15,38 @@ FPrimaryAssetId UMASkillModule::MakePrimaryAssetId(const int32 ModuleId)
 		: FPrimaryAssetId();
 }
 
+UMASkillModule* UMASkillModule::LoadById(const int32 ModuleId)
+{
+	const FSoftObjectPath ModulePath = UAssetManager::Get().GetPrimaryAssetPath(
+		MakePrimaryAssetId(ModuleId));
+	return Cast<UMASkillModule>(ModulePath.TryLoad());
+}
+
 FPrimaryAssetId UMASkillModule::GetPrimaryAssetId() const
 {
 	return MakePrimaryAssetId(ModuleId);
 }
 
-FMASkillIconData UMASkillModule::ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const
+FMADisplayData UMASkillModule::ResolveDisplayData(const UMAModuleQualityData* ModuleQualityData) const
 {
-	FMASkillIconData IconData;
-	IconData.Icon = ModuleData.DisplayData.IconData.Icon;
-	if (!ModuleQualityData) return IconData;
+	FMADisplayData DisplayData;
+	DisplayData.DisplayName = ModuleData.DisplayData.DisplayName;
+	DisplayData.Description = ModuleData.DisplayData.Description;
+	DisplayData.IconData.Icon = ModuleData.DisplayData.IconData.Icon;
+	DisplayData.IconData.SubIcon = ModuleData.AssembledSubIcon;
+	if (!ModuleQualityData) return DisplayData;
 
 	if (const FMAModuleTypeData* VisualData = ModuleQualityData->FindVisualData(ModuleData.ModuleVisualTags))
 	{
-		IconData.IconColor = VisualData->IconColor;
-		IconData.InnerColor = VisualData->InnerColor;
+		DisplayData.IconData.IconColor = VisualData->IconColor;
+		DisplayData.IconData.InnerColor = VisualData->InnerColor;
 	}
-	return IconData;
-}
-
-FLinearColor UMASkillModule::ResolveFrameColor(const UMAModuleQualityData* ModuleQualityData) const
-{
-	const FMAModuleRarityData* RarityData = ModuleQualityData
-		? ModuleQualityData->FindRarityData(ModuleData.ModuleQuality.Rarity)
-		: nullptr;
-	return RarityData ? RarityData->Color : FLinearColor::White;
+	if (const FMAModuleRarityData* RarityData =
+		ModuleQualityData->FindRarityData(ModuleData.ModuleQuality.Rarity))
+	{
+		DisplayData.IconData.FrameColor = RarityData->Color;
+	}
+	return DisplayData;
 }
 
 FGameplayTag UMASkillModule::GetVisualElementTag() const
@@ -136,7 +144,6 @@ FMASkillModuleData& UMASkillModule::BeginAssembly()
 	ModuleData = FMASkillModuleData();
 	return ModuleData;
 }
-
 #if WITH_EDITOR
 void UMASkillModule::SetGeneratedData(
 	const int32 InModuleId,

@@ -6,13 +6,15 @@
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
 void UMASkillAction_ApplyStatusEffectToSelf::Execute(
-	UMASkillAbility& OwnerAbility,
-	const FMASkillEvent&,
-	const FMASkillScopes& Scopes)
+	AActor& Owner,
+	UMASkillAbility* Ability,
+	const FMASkillEvent& Event,
+	const FMASkillScopes* Scopes)
 {
-	if (!OwnerAbility.K2_HasAuthority()) return;
+	check(Ability && Scopes);
+	if (!Owner.HasAuthority()) return;
 
-	UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo();
+	UAbilitySystemComponent* AbilitySystemComponent = Ability->GetAbilitySystemComponentFromActorInfo();
 	if (!AbilitySystemComponent) return;
 
 	TArray<FResolvedStatusEffect> ResolvedEffects;
@@ -20,7 +22,7 @@ void UMASkillAction_ApplyStatusEffectToSelf::Execute(
 	{
 		if (StatusEffect)
 		{
-			StatusEffect->BuildResolvedEffect(OwnerAbility, ResolvedEffects);
+			StatusEffect->BuildResolvedEffect(*Ability, ResolvedEffects);
 		}
 	}
 
@@ -30,7 +32,7 @@ void UMASkillAction_ApplyStatusEffectToSelf::Execute(
 		{
 			const FActiveGameplayEffectHandle EffectHandle =
 				AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*ResolvedEffect.SpecHandle.Data.Get());
-			Scopes.GetRuntimeRegistry().Register(AbilitySystemComponent, EffectHandle);
+			Scopes->GetRuntimeRegistry().Register(AbilitySystemComponent, EffectHandle);
 		}
 	}
 }

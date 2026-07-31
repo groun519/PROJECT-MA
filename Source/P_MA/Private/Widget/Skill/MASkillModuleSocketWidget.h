@@ -15,9 +15,7 @@ class UMASkillModuleInstance;
 class UMASkillModuleDragVisualWidget;
 class UMASkillTooltipWidget;
 struct FMAInventoryEntry;
-struct FMAItemStack;
-struct FMAItemDataRow;
-struct FMASkillIconData;
+struct FMAIconData;
 
 UCLASS()
 class P_MA_API UMASkillModuleSocketWidget : public UUserWidget
@@ -73,12 +71,10 @@ private:
 	void Refresh();
 	const FMAInventoryEntry* ResolveInventoryEntry() const;
 	UMASkillModuleInstance* ResolveModuleInstance() const;
-	const FMAItemDataRow* ResolveItemData(const FMAItemStack& ItemStack) const;
 
 	/** Visuals **/
 	void ApplyModuleVisual(const UMASkillModule* Module);
-	void ApplyItemVisual(const FMAItemStack& ItemStack);
-	void ApplyIconVisual(const FMASkillIconData& IconData, const FLinearColor& FrameColor);
+	void ApplyIconVisual(const FMAIconData& IconData);
 	void RefreshModuleStackText(const UMASkillModuleInstance* ModuleInstance);
 	void SetStackText(const FText& Text);
 	void RefreshHoverVisual();

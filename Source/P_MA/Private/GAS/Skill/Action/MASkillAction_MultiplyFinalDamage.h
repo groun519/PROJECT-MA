@@ -10,7 +10,13 @@ class P_MA_API UMASkillAction_MultiplyFinalDamage : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	virtual void Execute(UMASkillAbility& OwnerAbility, const FMASkillEvent& Event, const FMASkillScopes& Scopes) override;
+	UMASkillAction_MultiplyFinalDamage() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+
+	virtual void Execute(
+		AActor& Owner,
+		UMASkillAbility* Ability,
+		const FMASkillEvent& Event,
+		const FMASkillScopes* Scopes) override;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")

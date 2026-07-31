@@ -8,25 +8,27 @@
 #include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 void UMASkillAction_SetMontagePlayRateByAttackSpeed::Execute(
-	UMASkillAbility& OwnerAbility,
+	AActor& Owner,
+	UMASkillAbility* Ability,
 	const FMASkillEvent& Event,
-	const FMASkillScopes&)
+	const FMASkillScopes* Scopes)
 {
+	check(Ability);
 	float AttackSpeed = 1.f;
-	if (UAbilitySystemComponent* AbilitySystemComponent = OwnerAbility.GetAbilitySystemComponentFromActorInfo())
+	if (UAbilitySystemComponent* AbilitySystemComponent = Ability->GetAbilitySystemComponentFromActorInfo())
 	{
 		AttackSpeed = AbilitySystemComponent->GetNumericAttribute(UMAAttributeSet::GetAttackSpeedAttribute());
 	}
 
 	float SkillAttackSpeedMultiplier = 1.f;
-	OwnerAbility.GetAssembledModulePayloadStore().TryGetScalar(
+	Ability->GetAssembledModulePayloadStore().TryGetScalar(
 		UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag(),
 		SkillAttackSpeedMultiplier);
 
 	const float FinalPlayRate = BasePlayRate
 		* (AttackSpeed > 0.f ? AttackSpeed : 1.f)
 		* FMath::Max(SkillAttackSpeedMultiplier, KINDA_SMALL_NUMBER);
-	if (UMASkillSequenceRuntime* SequenceRuntime = OwnerAbility.GetSequenceRuntime())
+	if (UMASkillSequenceRuntime* SequenceRuntime = Ability->GetSequenceRuntime())
 	{
 		SequenceRuntime->SetDesiredPlayRate(FinalPlayRate);
 	}

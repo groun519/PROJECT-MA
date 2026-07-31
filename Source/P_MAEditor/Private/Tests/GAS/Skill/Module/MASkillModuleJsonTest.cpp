@@ -426,6 +426,52 @@ bool FMASkillModuleJsonValidationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Sub module accepts a supported addon"), ReadResult.IsValid());
 
 	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\"}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Item module requires an Item addon"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleItemAddon\"}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Item module requires a use binding"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleItemAddon\"},")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleEventBindingAddon\",\"EventBindings\":[{")
+		TEXT("\"EventTag\":\"Event.Item.Use\",\"BindingScope\":\"Global\"}]}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Item use binding requires an action"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleItemAddon\"},")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleEventBindingAddon\",\"EventBindings\":[{")
+		TEXT("\"EventTag\":\"Event.Item.Use\",\"BindingScope\":\"Global\",\"Action\":{")
+		TEXT("\"_ClassName\":\"/Script/P_MA.MASkillAction_MeleeOverlap\"}}]}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Item module rejects an unsupported action"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleItemAddon\"},")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleEventBindingAddon\",\"EventBindings\":[{")
+		TEXT("\"EventTag\":\"Event.Item.Use\",\"BindingScope\":\"Module\",\"Action\":{")
+		TEXT("\"_ClassName\":\"/Script/P_MA.MASkillAction_ApplyGameplayEffectToSelf\"}}]}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Item module rejects scoped event bindings"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Item\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleItemAddon\"},")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleEventBindingAddon\",\"EventBindings\":[{")
+		TEXT("\"EventTag\":\"Event.Item.Use\",\"BindingScope\":\"Global\",\"Action\":{")
+		TEXT("\"_ClassName\":\"/Script/P_MA.MASkillAction_ApplyGameplayEffectToSelf\"}}]}]}}"),
+		*AddonOwner);
+	TestTrue(TEXT("Item module accepts a supported action"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
 		TEXT("{\"ModuleId\":1,\"Module\":{\"UnknownField\":1}}"),
 		*AddonOwner);
 	TestFalse(TEXT("Unknown field is rejected"), ReadResult.IsValid());
