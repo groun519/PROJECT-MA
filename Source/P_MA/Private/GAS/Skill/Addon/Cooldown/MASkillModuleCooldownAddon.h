@@ -14,6 +14,11 @@ class P_MA_API UMASkillModuleCooldownAddon : public UMASkillModuleAddon
 	GENERATED_BODY()
 
 public:
+	UMASkillModuleCooldownAddon()
+	{
+		SupportedModuleTypes = EMASkillModuleType::Module;
+	}
+
 	float GetDurationSeconds() const { return DurationSeconds; }
 
 	virtual void RegisterEventSubscriptions(

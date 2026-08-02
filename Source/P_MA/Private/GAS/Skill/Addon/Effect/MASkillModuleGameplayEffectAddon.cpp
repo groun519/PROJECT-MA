@@ -58,6 +58,25 @@ void UMASkillModuleGameplayEffectAddon::RebuildEffectDefinitions()
 }
 #endif
 
+UMASkillModuleAddon* UMASkillModuleGameplayEffectAddon::AssembleInto(
+	UObject& ResultOuter,
+	UMASkillModuleAddon* ResultAddon,
+	const EMASkillAddonAssemblyStage Stage,
+	const FMASkillScopes&) const
+{
+	if (Stage != EMASkillAddonAssemblyStage::ModuleComposition || GameplayEffects.IsEmpty())
+	{
+		return ResultAddon;
+	}
+
+	UMASkillModuleGameplayEffectAddon* Result = ResultAddon
+		? static_cast<UMASkillModuleGameplayEffectAddon*>(ResultAddon)
+		: NewObject<UMASkillModuleGameplayEffectAddon>(&ResultOuter, GetClass());
+	// Generated GE definitions remain owned by their built module assets.
+	Result->GameplayEffects.Append(GameplayEffects);
+	return Result;
+}
+
 float FMASkillModuleGameplayEffectConfig::ResolveMagnitude(
 	const UAbilitySystemComponent& AbilitySystemComponent,
 	const FMASkillPayloadStore& PayloadStore) const
@@ -86,17 +105,27 @@ float FMASkillModuleGameplayEffectConfig::ResolveMagnitude(
 
 void UMASkillModuleGameplayEffectAddon::BindModule(UMASkillModuleInstance& ModuleInstance) const
 {
+	ModuleInstance.OnStateChanged.RemoveAll(this);
 	const TWeakObjectPtr<UMASkillModuleInstance> WeakModuleInstance = &ModuleInstance;
-	ModuleInstance.OnStateChanged.AddWeakLambda(&ModuleInstance, [this, WeakModuleInstance]
+	ModuleInstance.OnStateChanged.AddWeakLambda(this, [this, WeakModuleInstance]
 	{
 		if (UMASkillModuleInstance* BoundModuleInstance = WeakModuleInstance.Get())
 		{
-			SyncEffect(*BoundModuleInstance);
+			SetEffectsActive(*BoundModuleInstance, BoundModuleInstance->IsAssemblyActive());
 		}
 	});
+	SetEffectsActive(ModuleInstance, ModuleInstance.IsAssemblyActive());
 }
 
-void UMASkillModuleGameplayEffectAddon::SyncEffect(UMASkillModuleInstance& ModuleInstance) const
+void UMASkillModuleGameplayEffectAddon::UnbindModule(UMASkillModuleInstance& ModuleInstance) const
+{
+	ModuleInstance.OnStateChanged.RemoveAll(this);
+	SetEffectsActive(ModuleInstance, false);
+}
+
+void UMASkillModuleGameplayEffectAddon::SetEffectsActive(
+	UMASkillModuleInstance& ModuleInstance,
+	const bool bActive) const
 {
 	AActor* OwnerActor = ModuleInstance.GetTypedOuter<AActor>();
 	if (!OwnerActor || !OwnerActor->HasAuthority()) return;
@@ -105,6 +134,7 @@ void UMASkillModuleGameplayEffectAddon::SyncEffect(UMASkillModuleInstance& Modul
 		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OwnerActor);
 	if (!AbilitySystemComponent) return;
 	const FMASkillPayloadStore& PayloadStore = ModuleInstance.GetPayloadStore();
+	TSet<FActiveGameplayEffectHandle> ClaimedEffectHandles;
 
 	for (const FMASkillModuleGameplayEffectConfig& Config : GameplayEffects)
 	{
@@ -118,7 +148,7 @@ void UMASkillModuleGameplayEffectAddon::SyncEffect(UMASkillModuleInstance& Modul
 			return ActiveEffect.Spec.Def == GameplayEffect;
 		});
 
-		if (!ModuleInstance.IsAssemblyActive())
+		if (!bActive)
 		{
 			AbilitySystemComponent->RemoveActiveEffects(Query);
 			continue;
@@ -128,12 +158,18 @@ void UMASkillModuleGameplayEffectAddon::SyncEffect(UMASkillModuleInstance& Modul
 		const float Magnitude = Config.ResolveMagnitude(*AbilitySystemComponent, PayloadStore);
 
 		const TArray<FActiveGameplayEffectHandle> EffectHandles = AbilitySystemComponent->GetActiveEffects(Query);
-		if (!EffectHandles.IsEmpty())
+		const FActiveGameplayEffectHandle* ExistingHandle = EffectHandles.FindByPredicate(
+			[&ClaimedEffectHandles](const FActiveGameplayEffectHandle& Handle)
+			{
+				return !ClaimedEffectHandles.Contains(Handle);
+			});
+		if (ExistingHandle)
 		{
 			AbilitySystemComponent->UpdateActiveGameplayEffectSetByCallerMagnitude(
-				EffectHandles[0],
+				*ExistingHandle,
 				MagnitudeTag,
 				Magnitude);
+			ClaimedEffectHandles.Add(*ExistingHandle);
 			continue;
 		}
 
@@ -143,6 +179,8 @@ void UMASkillModuleGameplayEffectAddon::SyncEffect(UMASkillModuleInstance& Modul
 		FGameplayEffectSpec EffectSpec(GameplayEffect, EffectContext, 1.f);
 		EffectSpec.DynamicGrantedTags.AppendTags(Config.GrantedTags);
 		EffectSpec.SetSetByCallerMagnitude(MagnitudeTag, Magnitude);
-		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(EffectSpec);
+		const FActiveGameplayEffectHandle AppliedHandle =
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(EffectSpec);
+		if (AppliedHandle.IsValid()) ClaimedEffectHandles.Add(AppliedHandle);
 	}
 }

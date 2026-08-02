@@ -6,17 +6,9 @@
 #include "MASkillModule.generated.h"
 
 class UMAModuleQualityData;
-class UMASkillModuleInstance;
 class UMASkillModuleStackAddon;
 struct FMASkillModuleAddonRuntimeData;
 struct FMASkillPayloadStore;
-struct FMASkillAssembler;
-struct FMASkillModuleAssembler;
-struct FMASkillCooldownAssembler;
-struct FMASkillPayloadAssembler;
-struct FMASkillEventSourceAssembler;
-struct FMASkillEventBindingAssembler;
-struct FMASkillSequenceAssembler;
 
 /** Skill module data object used by generated sources and transient assembly results. */
 UCLASS(NotBlueprintable)
@@ -43,6 +35,8 @@ public:
 
 	int32 GetModuleId() const { return ModuleId; }
 	const FMASkillModuleData& GetModuleData() const { return ModuleData; }
+	FMASkillModuleData& BeginAssembly();
+	EMASkillModuleType GetModuleType() const { return ModuleData.ModuleType; }
 	const FMASkillDefinitionDisplayData& GetDisplayData() const { return ModuleData.DisplayData; }
 	const FMAModuleQuality& GetModuleQuality() const { return ModuleData.ModuleQuality; }
 	FMASkillIconData ResolveIconData(const UMAModuleQualityData* ModuleQualityData) const;
@@ -57,7 +51,6 @@ public:
 	void ApplyAddonPayloadMirrors(
 		const FMASkillModuleAddonRuntimeData& RuntimeData,
 		FMASkillPayloadStore& PayloadStore) const;
-	void BindAddons(UMASkillModuleInstance& ModuleInstance) const;
 	void ForEachAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const;
 	bool TryResolveSocketText(
 		const FMASkillModuleAddonRuntimeData& RuntimeData,
@@ -72,22 +65,6 @@ public:
 		for (const TObjectPtr<UMASkillModuleAddon>& Addon : ModuleData.Addons)
 		{
 			if (const AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
-			{
-				return TypedAddon;
-			}
-		}
-		return nullptr;
-	}
-
-	template<typename AddonType>
-	AddonType* FindMutableAddon()
-	{
-		static_assert(TIsDerivedFrom<AddonType, UMASkillModuleAddon>::IsDerived,
-			"AddonType must derive from UMASkillModuleAddon.");
-
-		for (const TObjectPtr<UMASkillModuleAddon>& Addon : ModuleData.Addons)
-		{
-			if (AddonType* TypedAddon = Cast<AddonType>(Addon.Get()))
 			{
 				return TypedAddon;
 			}
@@ -111,16 +88,6 @@ public:
 #endif
 
 private:
-	void ResetAssemblyData();
-
-	friend struct FMASkillAssembler;
-	friend struct FMASkillModuleAssembler;
-	friend struct FMASkillCooldownAssembler;
-	friend struct FMASkillPayloadAssembler;
-	friend struct FMASkillEventSourceAssembler;
-	friend struct FMASkillEventBindingAssembler;
-	friend struct FMASkillSequenceAssembler;
-
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category="Module")
 	int32 ModuleId = 0;
 

@@ -84,14 +84,6 @@ void UMASkillModule::ApplyAddonPayloadMirrors(
 	});
 }
 
-void UMASkillModule::BindAddons(UMASkillModuleInstance& ModuleInstance) const
-{
-	ForEachAddon([&](const UMASkillModuleAddon& Addon)
-	{
-		Addon.BindModule(ModuleInstance);
-	});
-}
-
 void UMASkillModule::ForEachAddon(TFunctionRef<void(const UMASkillModuleAddon&)> Func) const
 {
 	TSet<const UClass*> SeenAddonClasses;
@@ -137,10 +129,12 @@ void UMASkillModule::ApplyPayloadsTo(FMASkillPayloadStore& PayloadStore) const
 	}
 }
 
-void UMASkillModule::ResetAssemblyData()
+FMASkillModuleData& UMASkillModule::BeginAssembly()
 {
+	checkf(!IsAsset(), TEXT("Built skill module assets cannot be modified by runtime assembly."));
 	ModuleId = 0;
 	ModuleData = FMASkillModuleData();
+	return ModuleData;
 }
 
 #if WITH_EDITOR

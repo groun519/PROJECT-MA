@@ -414,6 +414,18 @@ bool FMASkillModuleJsonValidationTest::RunTest(const FString& Parameters)
 	}
 
 	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Sub\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleStackAddon\"}]}}"),
+		*AddonOwner);
+	TestFalse(TEXT("Sub module rejects a root-only addon"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
+		TEXT("{\"ModuleId\":1,\"Module\":{\"ModuleType\":\"Sub\",\"Addons\":[")
+		TEXT("{\"_ClassName\":\"/Script/P_MA.MASkillModuleGameplayEffectAddon\"}]}}"),
+		*AddonOwner);
+	TestTrue(TEXT("Sub module accepts a supported addon"), ReadResult.IsValid());
+
+	ReadResult = FMASkillModuleJsonReader::Read(
 		TEXT("{\"ModuleId\":1,\"Module\":{\"UnknownField\":1}}"),
 		*AddonOwner);
 	TestFalse(TEXT("Unknown field is rejected"), ReadResult.IsValid());

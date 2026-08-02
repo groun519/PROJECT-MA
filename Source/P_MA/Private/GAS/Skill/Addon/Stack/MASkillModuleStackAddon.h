@@ -19,6 +19,11 @@ class P_MA_API UMASkillModuleStackAddon : public UMASkillModuleAddon
 	GENERATED_BODY()
 
 public:
+	UMASkillModuleStackAddon()
+	{
+		SupportedModuleTypes = EMASkillModuleType::Module;
+	}
+
 	virtual void InitializeRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const override;
 	virtual void ApplyPayloadMirror(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const override;
 	virtual bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const override;

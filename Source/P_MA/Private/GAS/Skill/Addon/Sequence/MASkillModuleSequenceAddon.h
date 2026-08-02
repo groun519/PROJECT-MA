@@ -13,6 +13,11 @@ class P_MA_API UMASkillModuleSequenceAddon : public UMASkillModuleAddon
 	GENERATED_BODY()
 
 public:
+	UMASkillModuleSequenceAddon()
+	{
+		SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub;
+	}
+
 	const TArray<FMASkillSequence>& GetSequences() const { return Sequences; }
 	const TArray<TObjectPtr<UMASkillSequenceModifier>>& GetSequenceModifiers() const { return SequenceModifiers; }
 
@@ -24,11 +29,16 @@ public:
 #endif
 
 private:
+	virtual UMASkillModuleAddon* AssembleInto(
+		UObject& ResultOuter,
+		UMASkillModuleAddon* ResultAddon,
+		EMASkillAddonAssemblyStage Stage,
+		const FMASkillScopes& SourceScopes) const override;
+	virtual bool Finalize(EMASkillAddonAssemblyStage Stage) override;
+
 	UPROPERTY(EditDefaultsOnly, Category="Sequence")
 	TArray<FMASkillSequence> Sequences;
 
 	UPROPERTY(EditDefaultsOnly, Instanced, Category="Sequence")
 	TArray<TObjectPtr<UMASkillSequenceModifier>> SequenceModifiers;
-
-	friend struct FMASkillSequenceAssembler;
 };

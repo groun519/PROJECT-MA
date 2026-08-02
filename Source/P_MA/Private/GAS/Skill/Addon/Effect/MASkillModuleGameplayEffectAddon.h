@@ -72,7 +72,13 @@ class P_MA_API UMASkillModuleGameplayEffectAddon : public UMASkillModuleAddon
 	GENERATED_BODY()
 
 public:
+	UMASkillModuleGameplayEffectAddon()
+	{
+		SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub;
+	}
+
 	virtual void BindModule(UMASkillModuleInstance& ModuleInstance) const override;
+	virtual void UnbindModule(UMASkillModuleInstance& ModuleInstance) const override;
 
 #if WITH_EDITOR
 	virtual void BuildGeneratedData() override;
@@ -80,7 +86,12 @@ public:
 #endif
 
 private:
-	void SyncEffect(UMASkillModuleInstance& ModuleInstance) const;
+	virtual UMASkillModuleAddon* AssembleInto(
+		UObject& ResultOuter,
+		UMASkillModuleAddon* ResultAddon,
+		EMASkillAddonAssemblyStage Stage,
+		const FMASkillScopes& SourceScopes) const override;
+	void SetEffectsActive(UMASkillModuleInstance& ModuleInstance, bool bActive) const;
 #if WITH_EDITOR
 	void RebuildEffectDefinitions();
 #endif

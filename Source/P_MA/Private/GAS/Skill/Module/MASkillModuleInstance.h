@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Module/MASkillComposedModule.h"
 #include "GAS/Skill/Module/MASkillModuleAddonRuntimeData.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
@@ -33,8 +34,8 @@ public:
 
 	UMASkillModule* GetRootModule() const { return ModuleGroup.RootModule; }
 	const FMASkillModuleGroup& GetModuleGroup() const { return ModuleGroup; }
-	const UMASkillModule* GetComposedModule();
-	void SetRootModule(UMASkillModule* InRootModule);
+	const UMASkillModule* ResolveComposedModule();
+	bool SetRootModule(UMASkillModule* InRootModule);
 	bool IsValid() const { return ModuleGroup.RootModule != nullptr; }
 	bool SetSubModuleAt(int32 SubModuleIndex, UMASkillModule* SubModule);
 	bool IsInSkillSlot() const { return bIsInSkillSlot; }
@@ -87,7 +88,7 @@ private:
 	FMASkillModuleGroup ModuleGroup;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModule> ComposedModule;
+	FMASkillComposedModule ComposedModule;
 
 	UPROPERTY(Transient)
 	bool bIsInSkillSlot = false;

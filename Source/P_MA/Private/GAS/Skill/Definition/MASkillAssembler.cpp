@@ -1,6 +1,6 @@
 #include "GAS/Skill/Definition/MASkillAssembler.h"
 
-#include "GAS/Skill/Definition/Assembly/MASkillFeatureAssemblers.h"
+#include "GAS/Skill/Definition/Assembly/MASkillAddonAssembler.h"
 #include "GAS/Skill/MASkillSystemTypes.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -86,6 +86,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 	UMASkillModuleInstance* AssembledModuleInstance = nullptr;
 	UMASkillModule* AssembledModule = nullptr;
+	FMASkillModuleData* AssembledData = nullptr;
 	FMASkillModuleActivationResolver ActivationResolver(FMASkillSystemStatics::IsPassiveSkillSlotTag(SlotTag));
 	TMap<int32, FText> NameKeywordsByPriority;
 	int32 PriorityOneIconCount = 0;
@@ -93,7 +94,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 	auto AppendDisplayData = [
 		&NameKeywordsByPriority,
 		&PriorityOneIconCount,
-		&AssembledModule](const UMASkillModule& Module)
+		&AssembledData](const UMASkillModule& Module)
 	{
 		const FMASkillDefinitionDisplayData& DisplayData = Module.GetDisplayData();
 		const FMASkillDefinitionIconData& IconData = DisplayData.IconData;
@@ -101,11 +102,11 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 		{
 			if (PriorityOneIconCount == 0)
 			{
-				AssembledModule->ModuleData.DisplayData.IconData.Icon = IconData.Icon;
+				AssembledData->DisplayData.IconData.Icon = IconData.Icon;
 			}
 			else if (PriorityOneIconCount == 1)
 			{
-				AssembledModule->ModuleData.AssembledSubIcon = IconData.Icon;
+				AssembledData->AssembledSubIcon = IconData.Icon;
 			}
 			++PriorityOneIconCount;
 		}
@@ -123,7 +124,7 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 		if (!ActivationResolver.Activate(*RootModuleInstance)) continue;
 
-		const UMASkillModule* ComposedModule = RootModuleInstance->GetComposedModule();
+		const UMASkillModule* ComposedModule = RootModuleInstance->ResolveComposedModule();
 		if (!ComposedModule) continue;
 
 		if (!AssembledModule)
@@ -135,24 +136,19 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 
 			AssembledModule = NewObject<UMASkillModule>(AssembledModuleInstance);
 			check(AssembledModule);
-			AssembledModule->ResetAssemblyData();
-			AssembledModuleInstance->SetRootModule(AssembledModule);
+			AssembledData = &AssembledModule->BeginAssembly();
 		}
 
 		const FMASkillScopes TargetScopes(RootModuleInstance, AssembledModuleInstance);
 		AppendDisplayData(*ComposedModule);
-		AssembledModule->ModuleData.ModuleVisualTags.AppendTags(
+		AssembledData->ModuleVisualTags.AppendTags(
 			ComposedModule->GetModuleData().ModuleVisualTags);
-		FMASkillCooldownAssembler::AppendFrom(*AssembledModule, *ComposedModule);
-		FMASkillPayloadAssembler::AppendFrom(*AssembledModule, *ComposedModule);
-		FMASkillEventSourceAssembler::AppendFrom(*AssembledModule, *ComposedModule);
-		FMASkillEventBindingAssembler::AppendToSkill(
+		AssembledData->Payloads.Append(ComposedModule->GetModuleData().Payloads);
+		FMASkillAddonAssembler::AppendFrom(
 			*AssembledModule,
+			*AssembledData,
 			*ComposedModule,
-			TargetScopes);
-		FMASkillSequenceAssembler::AppendToSkill(
-			*AssembledModule,
-			*ComposedModule,
+			EMASkillAddonAssemblyStage::SkillAssembly,
 			TargetScopes);
 	}
 
@@ -175,13 +171,16 @@ UMASkillModuleInstance* FMASkillAssembler::Assemble(
 			AssembledName.Append(Keyword->ToString());
 		}
 
-		AssembledModule->ModuleData.DisplayData.DisplayName = FText::FromString(AssembledName);
-		AssembledModule->ModuleData.DisplayData.NameData.Keyword = FText::FromString(AssembledName);
+		AssembledData->DisplayData.DisplayName = FText::FromString(AssembledName);
+		AssembledData->DisplayData.NameData.Keyword = FText::FromString(AssembledName);
 	}
 
 	if (AssembledModule)
 	{
-		FMASkillSequenceAssembler::Finalize(*AssembledModule);
+		FMASkillAddonAssembler::Finalize(
+			*AssembledData,
+			EMASkillAddonAssemblyStage::SkillAssembly);
+		verify(AssembledModuleInstance->SetRootModule(AssembledModule));
 	}
 
 	return AssembledModuleInstance;

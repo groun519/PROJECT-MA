@@ -9,7 +9,7 @@ class UMASkillModule;
 class UMASkillModuleInstance;
 struct FGameplayAbilitySpec;
 
-/** One root module and its scope-free submodules, composed as a single module contribution. */
+/** One Module root and its scope-free Sub modules, composed as a single contribution. */
 USTRUCT()
 struct FMASkillModuleGroup
 {

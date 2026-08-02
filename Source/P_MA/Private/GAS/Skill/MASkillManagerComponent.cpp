@@ -138,8 +138,7 @@ UMASkillModuleInstance* UMASkillManagerComponent::CreateModuleInstance(UMASkillM
 	if (!OwnerActor || !OwnerActor->HasAuthority() || !RootModule) return nullptr;
 
 	UMASkillModuleInstance* ModuleInstance = NewObject<UMASkillModuleInstance>(OwnerActor);
-	ModuleInstance->SetRootModule(RootModule);
-	RootModule->BindAddons(*ModuleInstance);
+	if (!ModuleInstance->SetRootModule(RootModule)) return nullptr;
 	OwnerActor->AddReplicatedSubObject(ModuleInstance, COND_OwnerOnly);
 	return ModuleInstance;
 }

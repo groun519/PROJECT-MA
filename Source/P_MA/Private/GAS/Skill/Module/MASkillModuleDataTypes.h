@@ -65,6 +65,9 @@ struct P_MA_API FMASkillModuleData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category="Module")
+	EMASkillModuleType ModuleType = EMASkillModuleType::Module;
+
+	UPROPERTY(EditAnywhere, Category="Module")
 	FName ModuleName = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Display")

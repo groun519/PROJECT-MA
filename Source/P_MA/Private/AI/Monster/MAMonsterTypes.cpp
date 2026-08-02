@@ -67,6 +67,7 @@ void FMonsterSkillPatternRow::OnDataTableChanged(
 	SequenceAddon->AddGeneratedModifier(*WindupModifier);
 
 	FMASkillModuleData ModuleData;
+	ModuleData.ModuleType = EMASkillModuleType::Sub;
 	ModuleData.Addons.Add(SequenceAddon);
 	GeneratedModule->SetGeneratedData(0, MoveTemp(ModuleData), FString());
 	WindupSubModule = GeneratedModule;

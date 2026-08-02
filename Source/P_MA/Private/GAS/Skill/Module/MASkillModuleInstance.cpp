@@ -1,6 +1,5 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 
-#include "GAS/Skill/Definition/MASkillModuleAssembler.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameStateBase.h"
@@ -17,21 +16,27 @@ void UMASkillModuleInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(UMASkillModuleInstance, ModuleCooldownEndTimeSeconds);
 }
 
-void UMASkillModuleInstance::SetRootModule(UMASkillModule* InRootModule)
+bool UMASkillModuleInstance::SetRootModule(UMASkillModule* InRootModule)
 {
+	if (InRootModule && InRootModule->GetModuleType() != EMASkillModuleType::Module)
+	{
+		return false;
+	}
+
+	ComposedModule.Reset(*this);
 	ModuleGroup.RootModule = InRootModule;
-	ComposedModule = nullptr;
 	AddonRuntimeData.Reset();
 	if (ModuleGroup.RootModule)
 	{
 		ModuleGroup.RootModule->InitializeAddonRuntimeData(AddonRuntimeData);
 	}
 	InitializePayloadStore();
+	return true;
 }
 
 void UMASkillModuleInstance::OnRep_ModuleGroup(FMASkillModuleGroup& PreviousModuleGroup)
 {
-	ComposedModule = nullptr;
+	ComposedModule.Reset(*this);
 	if (ModuleGroup.RootModule != PreviousModuleGroup.RootModule
 		&& ModuleGroup.RootModule)
 	{
@@ -52,6 +57,7 @@ bool UMASkillModuleInstance::SetSubModuleAt(
 	const AActor* OwnerActor = GetTypedOuter<AActor>();
 	if (OwnerActor && !OwnerActor->HasAuthority()) return false;
 	if (SubModuleIndex < 0) return false;
+	if (SubModule && SubModule->GetModuleType() != EMASkillModuleType::Sub) return false;
 
 	UMASkillModule* CurrentSubModule = ModuleGroup.SubModules.IsValidIndex(SubModuleIndex)
 		? ModuleGroup.SubModules[SubModuleIndex].Get()
@@ -68,7 +74,7 @@ bool UMASkillModuleInstance::SetSubModuleAt(
 	while (NewNum > 0 && !ModuleGroup.SubModules[NewNum - 1]) --NewNum;
 	ModuleGroup.SubModules.SetNum(NewNum);
 
-	ComposedModule = nullptr;
+	ComposedModule.Reset(*this);
 	InitializePayloadStore();
 	OnSubModulesChanged.Broadcast(this);
 	OnStateChanged.Broadcast();
@@ -79,14 +85,9 @@ bool UMASkillModuleInstance::SetSubModuleAt(
 	return true;
 }
 
-const UMASkillModule* UMASkillModuleInstance::GetComposedModule()
+const UMASkillModule* UMASkillModuleInstance::ResolveComposedModule()
 {
-	if (!ModuleGroup.RootModule) return nullptr;
-	if (!ComposedModule)
-	{
-		ComposedModule = FMASkillModuleAssembler::Assemble(this, ModuleGroup);
-	}
-	return ComposedModule;
+	return ComposedModule.Resolve(*this, ModuleGroup);
 }
 
 void UMASkillModuleInstance::OnRep_AddonRuntimeData()
