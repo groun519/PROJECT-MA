@@ -1,33 +1,28 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Character/MACharacter.h"
+#include "GameplayTagContainer.h"
 #include "InputActionValue.h"
-#include "GAS/MAGameplayAbilityTypes.h"
-#include "Inventory/SkillBookComponent.h"
-#include "Loadout/Data/LoadoutWeaponData.h"
+#include "Player/Loadout/LoadoutTypes.h"
 #include "MAPlayerCharacter.generated.h"
 
 class UInputAction;
-class UNiagaraComponent;
+class UInputMappingContext;
 class UAnimMontage;
-class UInteractComponent;
+class UCameraComponent;
+class UMAInventoryComponent;
+class UMAInteractorComponent;
+class UMACurrencyComponent;
 class UReadyStateComponent;
 class UReadyRideComponent;
 class UReadyCheckWidgetComponent;
+class USpringArmComponent;
 class USkeletalMeshComponent;
+class ULoadoutComponent;
 class AMAPlayerState;
-class UPlayerCameraManagerComponent;
+class AMAReviveActor;
 
-// 모든 충전/홀딩 스킬 UI가 공유할 델리게이트를 선언
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMAChargeAbilityStateChanged);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMAChargeAbilityUpdate, float, ChargePercentage);
-
-/**
- * 
- */
 UCLASS()
 class AMAPlayerCharacter : public AMACharacter
 {
@@ -46,24 +41,13 @@ public:
 	void SetInputEnabledFromPlayerController(bool bEnabled);
 	void SnapRotationToMouse();
 
-	UFUNCTION(Exec)
-	void SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
+	/** Cheat **/
 	UFUNCTION(Server, Reliable)
-	void Server_SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString);
-	UFUNCTION(Exec)
-	void SetAttribute(const FString& SkillClassName, const FString& AttributeName);
+	void Server_AddCoin(float Amount);
 	UFUNCTION(Server, Reliable)
-	void Server_SetAttribute(const FString& SkillClassName, const FString& AttributeName);
-	UFUNCTION(Exec)
-	void SetUtility(const FString& SkillClassName, const FString& UtilityName);
+	void Server_RefreshShopStock();
 	UFUNCTION(Server, Reliable)
-	void Server_SetUtility(const FString& SkillClassName, const FString& UtilityName);
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RotationLockTag;
-
-	UPROPERTY(EditDefaultsOnly, Category = "State")
-	FGameplayTag RushingTag;
+	void Server_ShopTest();
 
 	/** Ready State Component **/
 	FORCEINLINE UReadyStateComponent* GetReadyStateComponent() const { return ReadyStateComponent; }
@@ -73,20 +57,21 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetMountMesh() const { return MountMesh; }
 	FORCEINLINE float GetRideHorizontalInput() const { return RideHorizontalInput; }
 
-	/** Interact **/
-	UFUNCTION()
-	void SetCurrentInteractComp(UInteractComponent* NewComp);
-
-	UFUNCTION()
-	void ClearCurrentInteractComp(UInteractComponent* Comp);
-
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UInteractComponent> CurrentInteractComp;
-	
 	/** Cam **/
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	UCameraComponent* GetPlayerCamera() const { return Cam; }
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
-	
+
+	/** Input **/
+	UInputAction* GetGameplayAbilityInputAction(FGameplayTag SlotTag) const;
+	UInputMappingContext* GetGameplayInputMappingContext() const { return GameplayInputMappingContext; }
+	UMAInteractorComponent* GetInteractorComponent() const { return InteractorComponent; }
+	UMACurrencyComponent* GetCurrencyComponent() const { return CurrencyComponent; }
+	UMAInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
 private:
+	UPROPERTY(VisibleDefaultsOnly, Category = "Loadout")
+	TObjectPtr<ULoadoutComponent> LoadoutComponent;
+
 	/** Ready State Component **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ready")
 	UReadyStateComponent* ReadyStateComponent;
@@ -99,26 +84,29 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category = "UI")
 	UReadyCheckWidgetComponent* ReadyCheckWidget;
 
+	UPROPERTY(VisibleDefaultsOnly, Category="Inventory")
+	TObjectPtr<UMAInventoryComponent> InventoryComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Currency")
+	TObjectPtr<UMACurrencyComponent> CurrencyComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Interaction")
+	TObjectPtr<UMAInteractorComponent> InteractorComponent;
+
 	/** Mount **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "Mount")
 	USkeletalMeshComponent* MountMesh;
 
 	/** Cam **/
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	class USpringArmComponent* CameraBoom;
+	USpringArmComponent* CameraBoom;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	class UCameraComponent* Cam;
-
-	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	UPlayerCameraManagerComponent* PlayerCameraManagerComponent;
+	UCameraComponent* Cam;
 	
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;
 
-	UPROPERTY()
-	class UMAPlayerAttributeSet* PlayerAttributeSet;
-	
 	/** Input **/
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* MoveInputAction;
@@ -127,13 +115,10 @@ private:
 	UInputAction* InteractInputAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	UInputAction* UseInventoryItemAction;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	TMap<EMAAbilityInputID, class UInputAction*> GameplayAbilityInputActions;
+	TMap<FGameplayTag, UInputAction*> GameplayAbilityInputActions;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputMappingContext* GameplayInputMappingContext;
+	UInputMappingContext* GameplayInputMappingContext;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float RotationInterpSpeed = 15.f;
@@ -146,14 +131,19 @@ private:
 	
 	void HandleMoveInput(const FInputActionValue& InputActionValue);
 	void HandleInteractInput(const FInputActionValue& InputActionValue);
-	void HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID);
-	void UseInventoryItem(const FInputActionValue& InputActionValue);
+	void HandleAbilityInputStarted(const FInputActionValue& InputActionValue, FGameplayTag SlotTag);
+	void HandleAbilityInputReleased(const FInputActionValue& InputActionValue, FGameplayTag SlotTag);
+	void TickHeldAbilityInputs();
+	void SetAbilityInputHeld(FGameplayTag SlotTag, bool bHeld);
+	void TryActivateHeldAbilityInput(FGameplayTag SlotTag);
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Player Rotate **/
 	void UpdateRotationByReadyRide(float DeltaTime);
 	void TrySendRotationToServer(const FVector& LookDirection);
+	bool IsRotationBlocked() const;
+	bool IsInputBlocked() const;
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SetRotation(FVector LookDirection);
@@ -172,10 +162,6 @@ public:
 	void HandleLoadoutWeaponChanged(FName WeaponId);
 	void HandleLoadoutMountChanged(FName MountId);
 
-	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle CurrentBasicAttackHandle;
-	void EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData);
-	
 	FDelegateHandle LoadoutChangedHandle;
 
 	UPROPERTY()
@@ -185,35 +171,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
-	UPROPERTY(Transient)
-	FGameplayAbilitySpecHandle CurrentAttackAbilityHandle;
-
-	/** Stun **/
-	virtual void OnStun() override;
-	virtual void OnRecoverFromStun() override;
-	
 	/** Death and Respawn **/
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
-	void EnableInputAfterRespawnMontage();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Death|Revive")
+	TSubclassOf<AMAReviveActor> ReviveActorClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	float DeadColorSaturationScale = 0.25f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<class UNiagaraSystem> RespawnVFX = nullptr;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Death")
-	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
-
-	FTimerHandle RespawnInputEnableTimerHandle;
-
 	/** MiniMap **/
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	class USpringArmComponent* MinimapCameraBoom;
+	USpringArmComponent* MinimapCameraBoom;
 
 	UPROPERTY(VisibleAnywhere, Category="MinimapCamera")
-	class USceneCaptureComponent2D* MinimapCapture;
+	USceneCaptureComponent2D* MinimapCapture;
 
 	UPROPERTY(EditDefaultsOnly, Category="MinimapCamera", meta=(ClampMin="0.01"))
 	float MinimapCaptureInterval = 0.05f;
@@ -225,55 +198,13 @@ public:
 	void InitializeMinimapCapture();
 	void TickMinimapCapture(float DeltaTime);
 
-	/** Inventory **/
-	class UInventoryComponent* InventoryComponent;
+	TSet<FGameplayTag> HeldAbilitySlotTags;
+	UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 
-	/** SkillBook **/
-	UPROPERTY(VisibleAnywhere, Category = "Skill")
-	class USkillBookComponent* SkillBookComponent;
-public:
-	USkillBookComponent* GetSkillBookComponent() const { return SkillBookComponent; }
-	class UWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
-	
-	/** Skill **/
-	// Charge스킬을 위한 코드
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityStarted;
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<AMAReviveActor> ActiveReviveActor = nullptr;
 
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityUpdate OnChargeAbilityUpdate;
-
-	UPROPERTY(BlueprintAssignable, Category = "Abilities | UI")
-	FOnMAChargeAbilityStateChanged OnChargeAbilityEnded;
-	// 여기까지
-
-	void SetCurrentVFXColor(FLinearColor NewColor) {CurrentVFXColor = NewColor;}
-	FLinearColor GetCurrentVFXColor() const {return CurrentVFXColor;}
-
-	void SetCurrentElementTag(FGameplayTag NewTag) {CurrentElementTag = NewTag;}
-	FGameplayTag GetCurrentElementTag() const {return CurrentElementTag;}
-
-	void SetCurrentVFXLength(float NewLength) {CurrentVFXLength = NewLength;}
-	float GetCurrentVFXLength() const {return CurrentVFXLength;}
-
-	void SetAllowVFX(bool bAllow) {bAllowVFX = bAllow;}
-	bool GetAllowVFX() const {return bAllowVFX;}
-	
-protected:
-	UPROPERTY(Transient, Replicated)
-	FLinearColor CurrentVFXColor = FLinearColor::White;
-	
-	UPROPERTY(Transient, Replicated)
-	FGameplayTag CurrentElementTag;
-	
-	UPROPERTY(Transient, Replicated)
-	float CurrentVFXLength = 0.f;
-	
-	UPROPERTY(Transient, Replicated)
-	bool bAllowVFX = true;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* ChatInputAction;
-	
-	void HandleChatInput();
+	void SpawnReviveActor();
+	void ClearReviveActor();
 };

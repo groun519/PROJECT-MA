@@ -1,8 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MAAbilitySystemStatics.generated.h"
@@ -11,6 +10,9 @@
 class UGameplayAbility;
 struct FGameplayAbilitySpec;
 class UAbilitySystemComponent;
+enum class EMACoefficientSource : uint8;
+struct FGameplayAttribute;
+struct FMADamageExecutionConfig;
 /**
  * 
  */
@@ -19,53 +21,64 @@ class UMAAbilitySystemStatics : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-	static FGameplayTag GetBasicAttackAbilityTag();
-	static FGameplayTag GetBasicAttackInputPressedTag();
-	static FGameplayTag GetBasicAttackInputReleasedTag();
-	static FGameplayTag GetSkillAttackTag();
-	static FGameplayTag GetIgnoreClearTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
+	static FGameplayTag GetFrozenStatTag();
+	static FGameplayTag GetRootStatTag();
+	static FGameplayTag GetAirborneStatTag();
+	static FGameplayTag GetAirborneRiseTimeTag();
+	static FGameplayTag GetGrabStatTag();
+	static FGameplayTag GetStaggerStatTag();
+	static FGameplayTag GetKnockbackStatTag();
 	
 	static FGameplayTag GetRotationLockTag();
-	static FGameplayTag GetRushingTag();
-	static FGameplayTag GetAimingTag();
+	static FGameplayTag GetInputBlockTag();
 	static FGameplayTag GetMoveBlockTag();
+	static FGameplayTag GetAbilityBlockTag();
+	static FGameplayTag GetReactionSourceXTag();
+	static FGameplayTag GetReactionSourceYTag();
+	static FGameplayTag GetReactionSourceZTag();
 
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
 
-	static FGameplayTag GetPlayerRoleTag();
-	static FGameplayTag GetGoldAttributeTag();
-
-	static FGameplayTag GetMeleeActionTag();
-	static FGameplayTag GetProjectileActionTag();
-	static FGameplayTag GetTargetingActionTag();
+	static FGameplayTag GetDefaultVisualElementTag();
+	static FGameplayTag GetPlayerRespawnGameplayCueTag();
 	
-	static FGameplayTag GetMontageDamageTag();
-	static FGameplayTag GetMontageProjectileTag();
-	
-	static FGameplayTag GetLaunchActivateTag();
-
 	static FGameplayTag GetBehaviorMultiplierTag();
-	static FGameplayTag GetElementalMultiplierTag();
-	static FGameplayTag GetUtilityMultiplierTag();
+	static FGameplayTag GetDamageBaseTag();
+	static FGameplayTag GetAppliedDamageTag();
+	static FGameplayTag GetDamageTargetTag();
+	static FGameplayTag GetFinalDamageMultiplierTag();
+	static FGameplayTag GetDamageVarianceTag();
+	static FGameplayTag GetModuleEffectMagnitudeTag();
+	static FGameplayTag GetModuleStackTag();
+	static FGameplayTag GetSkillAttackSpeedMultiplierTag();
+	static FGameplayTag GetSkillFocusOffsetTag();
+	static FGameplayTag GetSkillAreaScaleTag();
+	static FGameplayTag GetSkillChargeRatioTag();
+	static FGameplayTag GetHitEventTag();
+	static FGameplayTag GetMovementStartEventTag();
+	static FGameplayTag GetChargeCompletedEventTag();
+	static FGameplayTag GetModuleActivationChangedEventTag();
+	static FGameplayTag GetModuleStackChangedEventTag();
+	static FGameplayTag GetMovementHandleTag();
+	static FGameplayTag GetDefaultDamageTypeTag();
+	static FGameplayTag GetHealDamageTypeTag();
+	static FGameplayTag GetFireDamageTypeTag();
+	static FGameplayTag GetIceDamageTypeTag();
+	static FGameplayTag GetFixedDamageTypeTag();
+	static FName GetDamageAttributeCoefficientName(EMACoefficientSource Side, const FGameplayAttribute& Attribute);
+	static void ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig);
+	static void SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint);
+	static bool TryGetReactionSourcePoint(const FGameplayEffectSpec& Spec, FVector& OutSourcePoint);
 
-	static FGameplayTag GetHitReactTag();
 	static FGameplayTag GetAnyReactionStateTag();
-	static FGameplayTag GetAirborneTag();
-	static FGameplayTag GetKnockdownTag();
-	static FGameplayTag GetRecoveryTag();
-	
 	static bool IsPlayer(const AActor* ActorToCheck);
-
-	static float GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability);
-	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
 
 	static bool CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC);
 	static bool CheckAbilityCostStatic(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 
-	static float GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent* ASC);
 };

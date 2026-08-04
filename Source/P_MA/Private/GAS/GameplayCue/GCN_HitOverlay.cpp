@@ -1,10 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "GAS/GameplayCue/GCN_HitOverlay.h"
 
-#include "GameFramework/Character.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Materials/MaterialInterface.h"
+#include "Character/MAOverlayComponent.h"
+#include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 AGCN_HitOverlay::AGCN_HitOverlay()
@@ -17,12 +14,9 @@ void AGCN_HitOverlay::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Typ
 {
 	Super::HandleGameplayCue(MyTarget, EventType, Parameters);
 
-	if (EventType != EGameplayCueEvent::Executed || !OverlayMaterial) return;
+	if (EventType != EGameplayCueEvent::Executed) return;
 
-	USkeletalMeshComponent* MeshComp = ResolveTargetMesh(MyTarget);
-	if (!MeshComp) return;
-
-	StartOrRestartFade(MeshComp);
+	StartFade(MyTarget, ResolveOverlayColor(Parameters));
 }
 
 void AGCN_HitOverlay::Tick(float DeltaSeconds)
@@ -39,25 +33,19 @@ void AGCN_HitOverlay::Tick(float DeltaSeconds)
 	for (int32 Index = ActiveFades.Num() - 1; Index >= 0; --Index)
 	{
 		FActiveOverlayFade& FadeState = ActiveFades[Index];
-		USkeletalMeshComponent* MeshComp = FadeState.MeshComp.Get();
 		UMaterialInstanceDynamic* OverlayMID = FadeState.OverlayMID.Get();
-		if (!MeshComp || !OverlayMID)
+		if (!OverlayMID)
 		{
-			if (MeshComp)
-			{
-				MeshComp->SetOverlayMaterial(nullptr);
-			}
 			ActiveFades.RemoveAtSwap(Index);
 			continue;
 		}
 
 		FadeState.Elapsed += DeltaSeconds;
 		const float Alpha = FMath::Clamp(FadeState.Elapsed / SafeFadeDuration, 0.f, 1.f);
-		OverlayMID->SetScalarParameterValue(OpacityParamName, 1.f - Alpha);
+		OverlayMID->SetScalarParameterValue(PARAM_Overlay_Alpha, 1.f - Alpha);
 
 		if (Alpha >= 1.f)
 		{
-			MeshComp->SetOverlayMaterial(nullptr);
 			ActiveFades.RemoveAtSwap(Index);
 		}
 	}
@@ -68,55 +56,90 @@ void AGCN_HitOverlay::Tick(float DeltaSeconds)
 	}
 }
 
-void AGCN_HitOverlay::StartOrRestartFade(USkeletalMeshComponent* MeshComp)
+FGameplayTag AGCN_HitOverlay::ResolveRequestedCueTag(const FGameplayCueParameters& Parameters) const
 {
-	if (!MeshComp || !OverlayMaterial) return;
-
-	UMaterialInstanceDynamic* OverlayMID = UMaterialInstanceDynamic::Create(OverlayMaterial, this);
-	if (!OverlayMID) return;
-
-	OverlayMID->SetScalarParameterValue(OpacityParamName, 1.f);
-	MeshComp->SetOverlayMaterial(OverlayMID);
-
-	const int32 ExistingIndex = FindFadeIndex(MeshComp);
-	if (ExistingIndex == INDEX_NONE)
+	const FGameplayTag OverlayRootTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Hit.Overlay"));
+	const auto IsOverlayColorTag = [&OverlayRootTag](const FGameplayTag& CueTag)
 	{
-		FActiveOverlayFade NewFade;
-		NewFade.MeshComp = MeshComp;
-		NewFade.OverlayMID = OverlayMID;
-		NewFade.Elapsed = 0.f;
-		ActiveFades.Add(MoveTemp(NewFade));
-	}
-	else
+		return CueTag.IsValid()
+			&& CueTag.MatchesTag(OverlayRootTag)
+			&& CueTag != OverlayRootTag;
+	};
+
+	if (IsOverlayColorTag(Parameters.OriginalTag))
 	{
-		ActiveFades[ExistingIndex].OverlayMID = OverlayMID;
-		ActiveFades[ExistingIndex].Elapsed = 0.f;
+		return Parameters.OriginalTag;
 	}
 
-	SetActorTickEnabled(true);
-}
-
-int32 AGCN_HitOverlay::FindFadeIndex(const USkeletalMeshComponent* MeshComp) const
-{
-	for (int32 Index = 0; Index < ActiveFades.Num(); ++Index)
+	for (const FGameplayTag& SourceTag : Parameters.AggregatedSourceTags)
 	{
-		if (ActiveFades[Index].MeshComp.Get() == MeshComp)
+		if (IsOverlayColorTag(SourceTag))
 		{
-			return Index;
+			return SourceTag;
 		}
 	}
-	return INDEX_NONE;
-}
 
-USkeletalMeshComponent* AGCN_HitOverlay::ResolveTargetMesh(AActor* TargetActor) const
-{
-	if (!TargetActor) return nullptr;
-
-	if (ACharacter* Character = Cast<ACharacter>(TargetActor))
+	for (const FGameplayTag& TargetTag : Parameters.AggregatedTargetTags)
 	{
-		return Character->GetMesh();
+		if (IsOverlayColorTag(TargetTag))
+		{
+			return TargetTag;
+		}
 	}
 
-	return TargetActor->FindComponentByClass<USkeletalMeshComponent>();
+	if (IsOverlayColorTag(Parameters.MatchedTagName))
+	{
+		return Parameters.MatchedTagName;
+	}
+
+	return Parameters.MatchedTagName;
+}
+
+FLinearColor AGCN_HitOverlay::ResolveOverlayColor(const FGameplayCueParameters& Parameters) const
+{
+	const FGameplayTag RequestedCueTag = ResolveRequestedCueTag(Parameters);
+	if (!RequestedCueTag.IsValid())
+	{
+		return DefaultOverlayColor;
+	}
+
+	FString ColorName;
+	if (!RequestedCueTag.GetTagName().ToString().Split(TEXT("."), nullptr, &ColorName, ESearchCase::IgnoreCase, ESearchDir::FromEnd))
+	{
+		return DefaultOverlayColor;
+	}
+
+	if (ColorName.Equals(TEXT("Red"), ESearchCase::IgnoreCase)) return FLinearColor::Red;
+	if (ColorName.Equals(TEXT("White"), ESearchCase::IgnoreCase)) return FLinearColor::White;
+	if (ColorName.Equals(TEXT("Blue"), ESearchCase::IgnoreCase)) return FLinearColor::Blue;
+	if (ColorName.Equals(TEXT("Green"), ESearchCase::IgnoreCase)) return FLinearColor::Green;
+	if (ColorName.Equals(TEXT("Cyan"), ESearchCase::IgnoreCase)) return FLinearColor(0.f, 1.f, 1.f);
+	if (ColorName.Equals(TEXT("Yellow"), ESearchCase::IgnoreCase)) return FLinearColor::Yellow;
+	if (ColorName.Equals(TEXT("Orange"), ESearchCase::IgnoreCase)) return FLinearColor(1.f, 0.5f, 0.f);
+
+	return DefaultOverlayColor;
+}
+
+void AGCN_HitOverlay::StartFade(AActor* TargetActor, const FLinearColor& OverlayColor)
+{
+	if (!TargetActor) return;
+
+	UMAOverlayComponent* OverlayComponent = TargetActor->FindComponentByClass<UMAOverlayComponent>();
+	if (!OverlayComponent) return;
+
+	UMaterialInstanceDynamic* OverlayMID = OverlayComponent->GetOrCreateOverlay();
+	if (!OverlayMID) return;
+
+	OverlayMID->SetScalarParameterValue(PARAM_Overlay_Alpha, 1.f);
+	OverlayMID->SetVectorParameterValue(PARAM_Overlay_BaseColor, OverlayColor);
+
+	FActiveOverlayFade* ExistingFade = ActiveFades.FindByPredicate([OverlayMID](const FActiveOverlayFade& FadeState)
+	{
+		return FadeState.OverlayMID == OverlayMID;
+	});
+	FActiveOverlayFade& FadeState = ExistingFade ? *ExistingFade : ActiveFades.AddDefaulted_GetRef();
+	FadeState.OverlayMID = OverlayMID;
+	FadeState.Elapsed = 0.f;
+	SetActorTickEnabled(true);
 }
 

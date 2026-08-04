@@ -1,0 +1,105 @@
+{
+	"ModuleId": 37,
+	"Module":
+	{
+		"ModuleName": "DA_Elemental_Ice",
+		"DisplayData":
+		{
+			"DisplayName": "Ice Rune",
+			"Description": "<ATK>적중 시</>, 대상에게 <ICE>2초 간 10의 얼음속성 피해</>를 입힙니다.\r\n이후 모듈이 0.2초 간 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Ice.T_Ice'",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "Ice",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Elemental",
+			"Module.OnHit"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Elemental.Ice"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Skill",
+				"triggerEventTags": [
+					"Event.Skill.Hit"
+				],
+				"durationSeconds": 0.20000000298023224
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.Ice"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Ice",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 10,
+						"DamageTypeTag": "DamageType.Ice",
+						"AttributeCoefficients": [],
+						"ApplicationMode": "DamageOverTime",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 5
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Cyan"
+						]
+					}
+				}
+			}
+		]
+	}
+}

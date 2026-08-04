@@ -1,0 +1,59 @@
+{
+	"ModuleId": 22,
+	"Module":
+	{
+		"ModuleName": "DA_FastStrike",
+		"DisplayData":
+		{
+			"DisplayName": "Fast Strike",
+			"Description": "스킬의 <AS>시행 속도가 35% 증가</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_FastStrike.T_FastStrike'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Fast",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 1.5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.3500000238418579
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

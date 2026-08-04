@@ -1,0 +1,68 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GAS/MAGameplayAbility.h"
+#include "GAS/Skill/Event/MASkillEventTypes.h"
+#include "GameplayTagContainer.h"
+#include "MASkillAbility.generated.h"
+
+class UMASkillManagerComponent;
+class UMASkillModule;
+class UMASkillModuleInstance;
+class UMASkillSequenceRuntime;
+struct FGameplayEventData;
+struct FMASkillPayloadStore;
+
+DECLARE_MULTICAST_DELEGATE(FMASkillAbilityLifecycleDelegate);
+
+UCLASS()
+class P_MA_API UMASkillAbility : public UMAGameplayAbility
+{
+	GENERATED_BODY()
+
+public:
+	UMASkillAbility();
+	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
+	virtual void OnRemoveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
+	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	FGameplayTag GetVisualElementTag() const;
+	FMASkillPayloadStore* GetModulePayloadStore(UMASkillModuleInstance* BindingScope) const;
+	FMASkillPayloadStore& GetAssembledModulePayloadStore();
+	const UMASkillModule* GetCurrentSkillModule() const;
+	void UpdateCurrentSkillModuleInstance(UMASkillModuleInstance* SourceSkillModuleInstance);
+	UMASkillModuleInstance* GetCurrentSkillModuleInstance() const { return CurrentSkillModuleInstance; }
+	UMASkillSequenceRuntime* GetSequenceRuntime() const { return SequenceRuntime; }
+	UMASkillModuleInstance* GetCurrentBindingScope() const;
+	FMASkillAbilityLifecycleDelegate& OnSkillActivated() { return SkillActivatedDelegate; }
+	FMASkillAbilityLifecycleDelegate& OnSkillDeactivated() { return SkillDeactivatedDelegate; }
+	void EndSkill() { K2_EndAbility(); }
+	bool CanPlaySkillMontageLocally() const;
+	UMASkillManagerComponent* GetSkillManagerComponent() const;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category="Cancel", meta=(Categories="State,Effect"))
+	// TODO: Move cancel trigger registration to UMAGameplayAbility after the remaining legacy skill-specific paths are removed.
+	FGameplayTagContainer CancelTriggerTags;
+
+private:
+	void RegisterCancelTriggers();
+	void UnregisterCancelTriggers();
+	void HandleCancelTriggerTagChanged(FGameplayTag Tag, int32 NewCount);
+	float GetCooldownSeconds() const;
+	FGameplayTag GetCooldownTagForSpec(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillModuleInstance> CurrentSkillModuleInstance;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillSequenceRuntime> SequenceRuntime;
+
+	FMASkillAbilityLifecycleDelegate SkillActivatedDelegate;
+	FMASkillAbilityLifecycleDelegate SkillDeactivatedDelegate;
+	TMap<FGameplayTag, FDelegateHandle> CancelTriggerDelegateHandles;
+};

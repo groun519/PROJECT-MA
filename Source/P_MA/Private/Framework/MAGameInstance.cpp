@@ -13,7 +13,7 @@
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
-#include "Player/MAPlayerController.h"
+#include "Player/MAPlayerControllerBase.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Framework/LoadoutSaveGame.h"
@@ -189,6 +189,7 @@ void UMAGameInstance::StartLoadingScreen()
 	LoadingScreenStartTime = FPlatformTime::Seconds();
 	bLoadingScreenActive = true;
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	LoadingStatusLastUpdateSeconds = FPlatformTime::Seconds();
 
@@ -228,6 +229,7 @@ void UMAGameInstance::StopLoadingScreen()
 
 	bLoadingScreenActive = false;
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	GetMoviePlayer()->StopMovie();
 	LoadingScreenSlateWidget.Reset();
@@ -252,6 +254,7 @@ void UMAGameInstance::StopLoadingScreen()
 void UMAGameInstance::HandlePreLoadMap(const FString& MapName)
 {
 	bLocalMainMapLoaded = false;
+	bLocalLoadingVisualComplete = false;
 	bLocalLoadedNotifySent = false;
 	if (UWorld* World = GetWorld())
 	{
@@ -329,7 +332,7 @@ bool UMAGameInstance::TrySendLocalLoadedNotify()
 {
 	if (bLocalLoadedNotifySent) return true;
 
-	AMAPlayerController* LocalController = Cast<AMAPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	AMAPlayerControllerBase* LocalController = Cast<AMAPlayerControllerBase>(UGameplayStatics::GetPlayerController(this, 0));
 	if (!LocalController)
 	{
 		return false;
@@ -347,8 +350,11 @@ bool UMAGameInstance::TrySendLocalLoadedNotify()
 
 void UMAGameInstance::NotifyLocalLoadingVisualComplete()
 {
-	if (bLocalLoadedNotifySent || !bLocalMainMapLoaded) return;
-	TrySendLocalLoadedNotify();
+	bLocalLoadingVisualComplete = true;
+	if (bLocalMainMapLoaded && !bLocalLoadedNotifySent)
+	{
+		TrySendLocalLoadedNotify();
+	}
 }
 
 /** Online **/
@@ -370,6 +376,11 @@ void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
 void UMAGameInstance::HandleBeginFrame()
 {
 	if (!bLoadingScreenActive) return;
+
+	if (bLocalMainMapLoaded && bLocalLoadingVisualComplete && !bLocalLoadedNotifySent)
+	{
+		TrySendLocalLoadedNotify();
+	}
 
 	if (LoadingScreenSlateWidget.IsValid() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
 	{

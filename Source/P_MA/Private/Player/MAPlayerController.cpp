@@ -1,49 +1,44 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Player/MAPlayerController.h"
+
+#include "Debug/MACheatManager.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Widget/MAGameplayWidget.h"
-#include "Widget/SkillBookWidget.h" // 디버깅을 위해
 #include "Widget/Battle/InBattleStageWidget.h"
-#include "Widget/System/SystemMenuWidget.h"
-#include "Widget/SkillBookWidget.h"
-#include "Player/MAPlayerCharacter.h"
-#include "Inventory/MAFieldItem.h"
-#include "Inventory/InventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PlayerState.h" 
 #include "Player/MAPlayerState.h"
 #include "Framework/MAGameInstance.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
-#include "GAS/Passive/MADamageNumberActor.h"
+#include "Input/MAInputStatics.h"
+#include "Player/Feedback/MAFloatingTextComponent.h"
+#include "Player/GameOver/MAPlayerGameOverComponent.h"
+#include "Player/Spectate/MAPlayerSpectateComponent.h"
+#include "Shop/MAShopNPC.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
 {
+	CheatClass = UMACheatManager::StaticClass();
 	TeamID = FGenericTeamId(0);
+	FloatingTextComponent = CreateDefaultSubobject<UMAFloatingTextComponent>("Floating Text Component");
+	SpectateComponent = CreateDefaultSubobject<UMAPlayerSpectateComponent>("Spectate Component");
+	GameOverComponent = CreateDefaultSubobject<UMAPlayerGameOverComponent>("Game Over Component");
 }
 
 void AMAPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalController())
+	if (!IsLocalController()) return;
+	
+	if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
 	{
-		if (AMAGameState* GS = GetWorld() ? GetWorld()->GetGameState<AMAGameState>() : nullptr)
-		{
-			GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
-			HandleSectorStateChanged(GS->GetMASectorState());
-		}
-	}
-
-	if (!IsLocalController())
-	{
-		return;
-	}
+		GS->OnMASectorStateChanged.AddUObject(this, &AMAPlayerController::HandleSectorStateChanged);
+		HandleSectorStateChanged(GS->GetMASectorState());
+	}	
 
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 	{
@@ -77,6 +72,8 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 		}
 		MAPlayerCharacter->ServerSideInit();
 		MAPlayerCharacter->SetGenericTeamId(TeamID);
+		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
+		SpectateComponent->BindToPawn(MAPlayerCharacter);
 	}
 }
 
@@ -87,24 +84,10 @@ void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 	if (MAPlayerCharacter)
 	{
 		MAPlayerCharacter->ClientSideInit();
+		FloatingTextComponent->BindToPawn(MAPlayerCharacter);
+		SpectateComponent->BindToPawn(MAPlayerCharacter);
 		SpawnGameplayWidget();
 	}
-
-
-	/** 아래는 별로 코드입니다 **/
-	bShowMouseCursor = true;
-	DefaultMouseCursor = EMouseCursor::Default;
-	CurrentMouseCursor = EMouseCursor::Default;
-	/** 위에까지는 별로 코드입니다 **/
-
-	bEnableClickEvents = true;      
-	bEnableMouseOverEvents = true;
-
-	// 마우스 삭제떄문에 일단 추가해봄 테스트
-	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); 
-	InputMode.SetHideCursorDuringCapture(false);
-	SetInputMode(InputMode);
 }
 
 void AMAPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
@@ -123,34 +106,17 @@ void AMAPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AMAPlayerController, TeamID);
 }
 
-void AMAPlayerController::ClientShowDamageNumber_Implementation(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit)
+void AMAPlayerController::ClientPlayCoinRewardFeedback_Implementation(const FMACoinRewardFeedbackParams& Params)
 {
-	if (DamageNumberActorClass && TargetActor)
-	{
-		FVector DamageSpawnLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 100.f);
-		
-		DamageSpawnLocation.X += FMath::RandRange(-40.f, 40.f);
-		DamageSpawnLocation.Y += FMath::RandRange(-40.f, 40.f);
-		
-		AMADamageNumberActor* DamageActor = GetWorld()->SpawnActor<AMADamageNumberActor>(DamageNumberActorClass, DamageSpawnLocation, FRotator::ZeroRotator);
-		
-		if (DamageActor)
-		{
-			DamageActor->PlayDamageText(DamageAmount, bIsCriticalHit,bIsPlayerHit);
-		}
+	if (!Params.RewardVFX || !Params.TargetActor) return;
 
-		if (!RegularCameraShake || !CriticalCameraShake)
-		{
-			return;
-		}
-		if (!bIsPlayerHit)
-		{
-			TSubclassOf<UCameraShakeBase> ShakeToPlay = bIsCriticalHit ? CriticalCameraShake : RegularCameraShake;
-			if (ShakeToPlay)
-			{
-				ClientStartCameraShake(ShakeToPlay);
-			}
-		}
+	AMACoinRewardVFXActor* CoinRewardActor = GetWorld()->SpawnActor<AMACoinRewardVFXActor>(
+		AMACoinRewardVFXActor::StaticClass(),
+		Params.SourceLocation,
+		FRotator::ZeroRotator);
+	if (CoinRewardActor)
+	{
+		CoinRewardActor->Play(Params);
 	}
 }
 
@@ -158,11 +124,15 @@ void AMAPlayerController::SpawnGameplayWidget()
 {
 	if (!IsLocalPlayerController()) return;
 
+	if (MAPlayerCharacter)
+	{
+		FMAInputStatics::RegisterInputMappingContextDefaults(this, MAPlayerCharacter->GetGameplayInputMappingContext());
+	}
+
 	GameplayWidget = CreateWidget<UMAGameplayWidget>(this, GameplayWidgetClass);
 	if (GameplayWidget)
 	{
 		GameplayWidget->AddToViewport();
-		GameplayWidget->ConfigureAbilities(MAPlayerCharacter->GetAbilities());
 		if (bHasPendingLoopReadyVisibility)
 		{
 			GameplayWidget->SetLoopReadyVisible(bPendingLoopReadyVisible);
@@ -184,42 +154,48 @@ void AMAPlayerController::SetupInputComponent()
 	UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComp)
 	{
-		EnhancedInputComp->BindAction(ShopToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleShop);
-		EnhancedInputComp->BindAction(SkillBookToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillBook);
+		EnhancedInputComp->BindAction(SkillSlotToggleInputAction, ETriggerEvent::Started, this, &AMAPlayerController::ToggleSkillSlots);
+		SpectateComponent->BindInput(EnhancedInputComp);
 	}
 }
 
-void AMAPlayerController::ToggleShop()
-{	
-	if(GameplayWidget)
-	{
-		GameplayWidget->ToggleShop();
-	}
-}
-
-void AMAPlayerController::ToggleSkillBook()
+void AMAPlayerController::NotifyInputBindingsChanged()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] ToggleSkillBook Function Called! (Key Input Received)"));
+	OnInputBindingsChanged.Broadcast();
+}
 
-	if (!GameplayWidget)
+void AMAPlayerController::SetGameplayWidgetVisible(bool bVisible)
+{
+	if (GameplayWidget)
 	{
-		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] GameplayWidget is NULL! Check SpawnGameplayWidget() or Blueprint Class settings."));
+		GameplayWidget->SetVisibility(bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
+void AMAPlayerController::RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId)
+{
+	if (!ShopNPC || StockId == INDEX_NONE) return;
+
+	if (HasAuthority())
+	{
+		ShopNPC->RequestPurchase(this, StockId);
 		return;
 	}
-	
-	//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] Found GameplayWidget. Trying to toggle SkillBook..."));
-	
-	GameplayWidget->ToggleSkillBook();
-	
-	if (USkillBookWidget* SkillBook = GameplayWidget->GetSkillBookWidget())
+
+	ServerRequestShopPurchase(ShopNPC, StockId);
+}
+
+void AMAPlayerController::ServerRequestShopPurchase_Implementation(AMAShopNPC* ShopNPC, int32 StockId)
+{
+	if (!ShopNPC || StockId == INDEX_NONE) return;
+	ShopNPC->RequestPurchase(this, StockId);
+}
+
+void AMAPlayerController::ToggleSkillSlots()
+{
+	if (GameplayWidget)
 	{
-		bool bIsVisible = SkillBook->GetVisibility() == ESlateVisibility::Visible;
-		//FString StateStr = bIsVisible ? TEXT("Visible") : TEXT("Hidden");
-		//UE_LOG(LogTemp, Warning, TEXT("[DEBUG] SkillBookWidget Found! Current State: %s"), *StateStr);
-	}
-	else
-	{
-		//UE_LOG(LogTemp, Error, TEXT("[DEBUG] SkillBookWidget is NULL in GameplayWidget! Check Widget Blueprint Name (must be 'SkillBookWidget')."));
+		GameplayWidget->ToggleSkillSlotsCollapsed();
 	}
 }
 
@@ -253,19 +229,6 @@ void AMAPlayerController::Client_ReceiveChatMessage_Implementation(const FString
 {
 	// UI에게 알림 방송 (이전에 작성한 코드)
 	OnChatMessageReceived.Broadcast(SenderName, Message, ChatType);
-}
-
-void AMAPlayerController::ServerNotifyLoaded_Implementation()
-{
-	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
-	{
-		PS->SetLoadingComplete(true);
-	}
-
-	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
-	{
-		GI->UpdateLoadingStatus();
-	}
 }
 
 void AMAPlayerController::ServerSetLoadoutSelection_Implementation(const FLoadoutSelection& Loadout)
@@ -305,10 +268,7 @@ void AMAPlayerController::HandleSectorStateChanged(EMASectorState NewState)
 
 void AMAPlayerController::ShowInBattleStageWidget()
 {
-	if (!IsLocalController())
-	{
-		return;
-	}
+	if (!IsLocalController()) return;
 
 	if (!InBattleStageWidgetClass)
 	{
@@ -328,10 +288,7 @@ void AMAPlayerController::ShowInBattleStageWidget()
 	}
 
 	InBattleStageWidget = CreateWidget<UInBattleStageWidget>(this, InBattleStageWidgetClass);
-	if (!InBattleStageWidget)
-	{
-		return;
-	}
+	if (!InBattleStageWidget) return;
 
 	InBattleStageWidget->AddToViewport();
 

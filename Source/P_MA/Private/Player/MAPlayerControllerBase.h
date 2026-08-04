@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,6 +6,7 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UMAPlayerCameraDirectorComponent;
 class USettingsWidget;
 class USystemMenuWidget;
 class UUserWidget;
@@ -20,7 +19,16 @@ class P_MA_API AMAPlayerControllerBase : public APlayerController
 	GENERATED_BODY()
 
 public:
+	AMAPlayerControllerBase();
+
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void SetupInputComponent() override;
+
+	UFUNCTION(Server, Reliable)
+	void ServerNotifyLoaded();
+
+	UMAPlayerCameraDirectorComponent* GetCameraDirector() const { return CameraDirectorComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleSystemMenu();
@@ -37,12 +45,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ReopenSettingsWidget();
 
+	void OpenSettings(ESettingsCategory InitialCategory);
+	void ApplyWidgetFocusInputMode(UUserWidget* TargetWidget);
+	void ApplyGameAndUiInputMode();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* SystemMenuInputMapping;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputAction* SystemMenuToggleInputAction;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	TObjectPtr<UMAPlayerCameraDirectorComponent> CameraDirectorComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<USystemMenuWidget> SystemMenuWidgetClass;
@@ -58,8 +73,6 @@ protected:
 
 	virtual void ApplySystemMenuOpenInputMode();
 	virtual void ApplySystemMenuClosedInputMode();
-	void ApplyWidgetFocusInputMode(UUserWidget* TargetWidget);
-	void ApplyGameAndUiInputMode();
 
 private:
 	void HandleSystemMenuActionRequested(ESystemMenuAction Action);

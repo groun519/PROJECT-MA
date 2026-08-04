@@ -31,6 +31,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnLoopReadyEntriesChanged);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMASectorStateChanged, EMASectorState);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageCycleChanged, const FStageCycle&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameOverChanged, bool);
 
 	AMAGameState();
 
@@ -58,6 +59,12 @@ public:
 	void GetPlayerCharacters(TArray<AMAPlayerCharacter*>& OutPlayers, bool bAliveOnly = false) const;
 	/**/
 
+	/** GameOver **/
+	void SetGameOver(bool bNewGameOver);
+	bool IsGameOver() const { return bGameOver; }
+	FOnGameOverChanged OnGameOverChanged;
+	/**/
+
 private:
 	UPROPERTY(ReplicatedUsing=OnRep_MASectorState)
 	EMASectorState ReplicatedState = EMASectorState::Wait;
@@ -79,5 +86,13 @@ private:
 
 	UFUNCTION()
 	void OnRep_StageCycle();
+	/**/
+
+	/** GameOver **/
+	UPROPERTY(ReplicatedUsing=OnRep_GameOver)
+	bool bGameOver = false;
+
+	UFUNCTION()
+	void OnRep_GameOver();
 	/**/
 };

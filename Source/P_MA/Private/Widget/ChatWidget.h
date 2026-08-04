@@ -16,8 +16,6 @@ class UChatWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
-	void SetChatFocus();
-
 protected:
 	UPROPERTY(meta = (BindWidget))
 	UScrollBox* ChatScrollBox;

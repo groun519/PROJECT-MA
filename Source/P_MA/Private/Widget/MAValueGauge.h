@@ -1,7 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,9 +6,6 @@
 #include "GameplayEffectTypes.h"
 #include "MAValueGauge.generated.h"
 
-/**
- *
- */
 UCLASS()
 class UMAValueGauge : public UUserWidget
 {
@@ -20,40 +13,54 @@ class UMAValueGauge : public UUserWidget
 
 public:
 	virtual void NativePreConstruct() override;
-	void SetAndBoundToGameplayAttribute(class UAbilitySystemComponent* AbilitySystemComponent, const FGameplayAttribute& Attribute, const FGameplayAttribute& MaxAttribute);
-	void SetValue(float NewValue, float NewMaxValue);
+	void Bind3Attributes(
+		UAbilitySystemComponent* ASC,
+		const FGameplayAttribute& HealthAttribute,
+		const FGameplayAttribute& MaxHealthAttribute,
+		const FGameplayAttribute& ShieldAttribute);
+	void Set3Values(float NewHealth, float NewMaxHealth, float NewShield);
 
 private:
-	void ValueChanged(const FOnAttributeChangeData& ChangedData);
-	void MaxValueChanged(const FOnAttributeChangeData& ChangedData);
+	void SetFillRatio(UWidget* FillRoot, float FillRatio);
+	void HealthChanged(const FOnAttributeChangeData& ChangedData);
+	void MaxHealthChanged(const FOnAttributeChangeData& ChangedData);
+	void ShieldChanged(const FOnAttributeChangeData& ChangedData);
 
-	float CachedValue;
-	float CachedMaxValue;
-
+	/** Color **/
 	UPROPERTY(EditAnywhere, Category = "Visual")
-	FLinearColor BarColor;
-
+	FLinearColor HealthColor = FLinearColor::Red;
 	UPROPERTY(EditAnywhere, Category = "Visual")
-	FSlateFontInfo ValueTextFont;
+	FLinearColor ShieldColor = FLinearColor(0.1f, 0.5f, 1.f, 1.f);
 
+	/** Text **/
 	UPROPERTY(EditAnywhere, Category = "Visual")
-	bool bValueTextVisible = true;
+	bool bShowValueText = true;
+	UPROPERTY(EditAnywhere, Category = "Visual", meta=(ClampMin="1.0", UIMin="1.0"))
+	float ValueTextSize = 20.f;
+
+	/** Health **/
+	UPROPERTY(meta = (BindWidget))
+	UWidget* HealthFillRoot;
+	UPROPERTY(meta = (BindWidget))
+	class UImage* HealthFillImage;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* HealthText;
+
+	/** Shield **/
+	UPROPERTY(meta = (BindWidget))
+	UWidget* ShieldFillRoot;
+	UPROPERTY(meta = (BindWidget))
+	UImage* ShieldFillImage;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* ShieldText;
+
+	/** EmptyField(LostHealth) **/
+	UPROPERTY(meta = (BindWidget))
+	class USpacer* EmptyFillSpacer;
 	
-	UPROPERTY(EditAnywhere, Category = "Visual")
-	bool bProgressBarVisible = true;
-
-	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
-	class UProgressBar* HealthBar;
-
-	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
-	class UTextBlock* ValueText;
-	
-	UPROPERTY(VisibleAnywhere, meta = (BindWidget))
-	class UProgressBar* GhostProgressBar;
-
-	FTimerHandle GhostTimerHandle;
-	void UpdateGhostBar();
-
-	float TargetPercent = 1.0f;
-	float CurrentGhostPercent = 1.0f;
+	/** Caches **/
+	float CachedHealth = 0.f;
+	float CachedMaxHealth = 0.f;
+	float CachedShield = 0.f;
+	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;
 };

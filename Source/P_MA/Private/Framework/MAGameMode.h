@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,15 +11,11 @@ class UPCGGraph;
 class AMAGameState;
 class APlayerState;
 class UReadyManagerComponent;
-class UGameOverManagerComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnMASectorStateChanged, EMASectorState);
 DECLARE_MULTICAST_DELEGATE(FOnAllPlayersReady);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnReadyCountChanged, int32, int32);
 
-/**
- * 
- */
 UCLASS()
 class AMAGameMode : public AGameModeBase
 {
@@ -61,8 +55,11 @@ public:
 	void GetReadyCounts(int32& OutReady, int32& OutTotal) const;
 	void BroadcastReadyCounts();
 
+	/** GameOver **/
+	void CheckGameOver();
+	void RequestReturnToLobby(APlayerController* RequestingPlayer);
+
 	/** Debug **/
-	UFUNCTION(Exec)
 	void SetMAState(int32 NewState);
 	
 private:
@@ -70,9 +67,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Ready")
 	TObjectPtr<UReadyManagerComponent> ReadyManagerComponent = nullptr;
-
-	UPROPERTY(VisibleAnywhere, Category = "Game Over")
-	TObjectPtr<UGameOverManagerComponent> GameOverManagerComponent = nullptr;
 
 	AActor* FIndNextStartSpotForTeam(const FGenericTeamId& TeamID) const;
 	void HandleReadyCountsChanged(int32 ReadyCount, int32 TotalCount);

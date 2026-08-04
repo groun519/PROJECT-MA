@@ -1,6 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "RideRoot.h"
+
 #include "Components/TextRenderComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SphereComponent.h"
@@ -131,6 +130,35 @@ void ARideRoot::SetCurSpline(USplineComponent* Spline)
 	}
 }
 
+void ARideRoot::ApplyCurrentSplineTransform(float DeltaTime)
+{
+	if (!IsValid(CurSpline))
+	{
+		CurSpline = nullptr;
+		return;
+	}
+
+	FVector TargetLoc =
+		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	FRotator TargetRot =
+		CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+	TargetRot.Pitch = 0.f;
+	TargetRot.Roll  = 0.f;
+
+	const float RotationInterpSpeed = 1.0f;
+	const FRotator CurrentRot = GetActorRotation();
+	const FRotator SmoothedRot =
+		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
+
+	TargetLoc.Z = GetActorLocation().Z;
+
+	SetActorLocation(TargetLoc);
+	SetActorRotation(SmoothedRot);
+	UpdateRangeClampVFXWorldLocation();
+}
+
 void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 {
 	if (HasAuthority())
@@ -140,8 +168,13 @@ void ARideRoot::SetReadyText(int32 ReadyCount, int32 TotalCount)
 	
 	if (!ReadyText) return;
 
-	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	const FString NewText = FormatReadyText(ReadyCount, TotalCount);
 	ReadyText->SetText(FText::FromString(NewText));
+}
+
+void ARideRoot::SetReadyCountdownText(int32 RemainingSeconds)
+{
+	SetReadyText(RemainingSeconds, -1);
 }
 
 void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
@@ -168,7 +201,7 @@ void ARideRoot::SetRangeClampVisual(bool bVisible, float InSize)
 void ARideRoot::OnRep_ReadyCounts()
 {
 	if (!ReadyText) return;
-	const FString NewText = FString::Printf(TEXT("[ %d / %d ]"), ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
+	const FString NewText = FormatReadyText(ReplicatedReadyCounts.X, ReplicatedReadyCounts.Y);
 	ReadyText->SetText(FText::FromString(NewText));
 }
 
@@ -224,25 +257,7 @@ void ARideRoot::Tick(float DeltaTime)
 		if (!IsValid(CurSpline)) return;
 	}
 
-	FVector TargetLoc =
-		CurSpline->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-
-	FRotator TargetRot =
-		CurSpline->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-
-	TargetRot.Pitch = 0.f;
-	TargetRot.Roll  = 0.f;
-
-	const float RotationInterpSpeed = 1.0f; 
-	const FRotator CurrentRot = GetActorRotation();
-	const FRotator SmoothedRot =
-		FMath::RInterpTo(CurrentRot, TargetRot, DeltaTime, RotationInterpSpeed);
-
-	TargetLoc.Z = GetActorLocation().Z;
-
-	SetActorLocation(TargetLoc);
-	SetActorRotation(SmoothedRot);
-	UpdateRangeClampVFXWorldLocation();
+	ApplyCurrentSplineTransform(DeltaTime);
 }
 
 void ARideRoot::MoveEnd()

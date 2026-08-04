@@ -11,13 +11,12 @@
 void UStatsGauge::NativePreConstruct()
 {
 	Super::NativePreConstruct();
-	Icon->SetBrushFromTexture(IconTexture);
+	Icon->SetBrushFromMaterial(IconMaterial);
 }
 
 void UStatsGauge::NativeConstruct()
 {
 	Super::NativeConstruct();
-	NumberFormattingOptions.MaximumFractionalDigits = 0;
 	APawn* OwnerPlayerPawn = GetOwningPlayerPawn();
 	if (!OwnerPlayerPawn)
 		return;
@@ -36,7 +35,10 @@ void UStatsGauge::NativeConstruct()
 
 void UStatsGauge::SetValue(float NewVal)
 {
-	AttributeText->SetText(FText::AsNumber(NewVal, &NumberFormattingOptions));
+	FNumberFormattingOptions FormattingOptions;
+	FormattingOptions.MinimumFractionalDigits = MinimumFractionalDigits;
+	FormattingOptions.MaximumFractionalDigits = FMath::Max(MaximumFractionalDigits, MinimumFractionalDigits);
+	AttributeText->SetText(FText::AsNumber(NewVal, &FormattingOptions));
 }
 
 void UStatsGauge::AttributeChanged(const FOnAttributeChangeData& Data)

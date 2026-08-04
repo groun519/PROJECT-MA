@@ -1,0 +1,59 @@
+{
+	"ModuleId": 15,
+	"Module":
+	{
+		"ModuleName": "DA_Composure",
+		"DisplayData":
+		{
+			"DisplayName": "Composure",
+			"Description": "스킬의 <FINAL>집중력이 25% 증가</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Composure.T_Composure'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Composure",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 2
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_AddFocusOffset",
+							"focusOffset": 0.25
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

@@ -1,22 +1,19 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Framework/MAGameMode.h"
+
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerState.h"
 #include "EngineUtils.h"
 #include "Player/MAPlayerState.h"
+#include "Player/MAPlayerCharacter.h"
 #include "Framework/MAGameState.h"
 #include "Framework/ReadyManagerComponent.h"
-#include "Framework/GameOverManagerComponent.h"
 
 AMAGameMode::AMAGameMode()
 {
 	CurrentMASectorState = EMASectorState::Wait;
 	GameStateClass = AMAGameState::StaticClass();
 	ReadyManagerComponent = CreateDefaultSubobject<UReadyManagerComponent>(TEXT("ReadyManagerComponent"));
-	GameOverManagerComponent = CreateDefaultSubobject<UGameOverManagerComponent>(TEXT("GameOverManagerComponent"));
 }
 
 APlayerController* AMAGameMode::SpawnPlayerController(ENetRole InRemoteRole, const FString& Options)
@@ -130,6 +127,38 @@ void AMAGameMode::GetReadyCounts(int32& OutReady, int32& OutTotal) const
 void AMAGameMode::BroadcastReadyCounts()
 {
 	ReadyManagerComponent->BroadcastReadyCounts();
+}
+
+void AMAGameMode::CheckGameOver()
+{
+	AMAGameState* GS = GetGameState<AMAGameState>();
+	if (!GS || GS->IsGameOver()) return;
+
+	int32 PlayerCount = 0;
+	for (APlayerState* PS : GS->PlayerArray)
+	{
+		if (!PS) continue;
+
+		const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(PS->GetPawn());
+		if (!PlayerCharacter) continue;
+
+		++PlayerCount;
+		if (!PlayerCharacter->IsDead()) return;
+	}
+
+	if (PlayerCount > 0)
+	{
+		GS->SetGameOver(true);
+	}
+}
+
+void AMAGameMode::RequestReturnToLobby(APlayerController* RequestingPlayer)
+{
+	const AMAGameState* GS = GetGameState<AMAGameState>();
+	if (!GS || !GS->IsGameOver()) return;
+	if (!RequestingPlayer || !RequestingPlayer->IsLocalController()) return;
+
+	GetWorld()->ServerTravel(TEXT("/Game/_Map/LobbyMap?listen"));
 }
 
 void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)

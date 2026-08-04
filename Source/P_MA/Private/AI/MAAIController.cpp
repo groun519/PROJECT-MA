@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "AI/MAAIController.h"
+
 #include "Character/MACharacter.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -50,12 +48,23 @@ void AMAAIController::OnPossess(APawn* NewPawn)
 		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMAAIController::PawnDeadTagUpdated);
 		PawnASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAnyReactionStateTag()).AddUObject(this, &AMAAIController::PawnReactionTagUpdated);
 	}
+
+	if (TargetRefreshInterval > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(TargetRefreshTimerHandle, this, &AMAAIController::RefreshCurrentTarget, TargetRefreshInterval, true);
+	}
 }
 
 void AMAAIController::BeginPlay()
 {
 	Super::BeginPlay();
 	RunBehaviorTree(BehaviorTree);
+}
+
+void AMAAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(TargetRefreshTimerHandle);
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMAAIController::TargetPerceptionUpdated(AActor* TargetActor, FAIStimulus Stimulus)
@@ -75,29 +84,63 @@ void AMAAIController::TargetPerceptionUpdated(AActor* TargetActor, FAIStimulus S
 
 void AMAAIController::TargetForgotten(AActor* ForgottenActor)
 {
-	if (!ForgottenActor)
-		return;
+	if (!ForgottenActor) return;
+	if (GetCurrentTarget() != ForgottenActor) return;
 
-	if (GetCurrentTarget() == ForgottenActor)
+	AActor* NextTarget = GetNextPerceivedActor();
+	if (NextTarget)
 	{
-		SetCurrentTarget(GetNextPerceivedActor());
+		SetCurrentTarget(NextTarget);
+		return;
+	}
+
+	const UAbilitySystemComponent* ForgottenActorASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(ForgottenActor);
+	const bool bForgottenActorDead = ForgottenActorASC && ForgottenActorASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+	if (bForgottenActorDead)
+	{
+		SetCurrentTarget(nullptr);
 	}
 }
 
 AActor* AMAAIController::GetNextPerceivedActor() const
 {
-	if (PerceptionComponent)
+	if (AIPerceptionComponent)
 	{
 		TArray<AActor*> Actors;
 		AIPerceptionComponent->GetPerceivedHostileActors(Actors);
 
-		if (Actors.Num() != 0)
+		APawn* ControlledPawn = GetPawn();
+		AActor* BestActor = nullptr;
+		float BestDistanceSq = TNumericLimits<float>::Max();
+		for (AActor* Actor : Actors)
 		{
-			return Actors[0];
-		}
-	}
+			if (!Actor) continue;
 
+			const UAbilitySystemComponent* ActorASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Actor);
+			if (ActorASC && ActorASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag())) continue;
+
+			const float DistanceSq = ControlledPawn
+				? FVector::DistSquared(ControlledPawn->GetActorLocation(), Actor->GetActorLocation())
+				: 0.f;
+			if (DistanceSq >= BestDistanceSq) continue;
+
+			BestActor = Actor;
+			BestDistanceSq = DistanceSq;
+		}
+		return BestActor;
+	}
 	return nullptr;
+}
+
+void AMAAIController::RefreshCurrentTarget()
+{
+	if (bIsPawnDead || bIsPawnReacting) return;
+
+	AActor* NextTarget = GetNextPerceivedActor();
+	if (NextTarget && NextTarget != GetCurrentTarget())
+	{
+		SetCurrentTarget(NextTarget);
+	}
 }
 
 void AMAAIController::ForgetActorIfDead(AActor* ActorToForget)
@@ -110,10 +153,7 @@ void AMAAIController::ForgetActorIfDead(AActor* ActorToForget)
 	{
 		for (UAIPerceptionComponent::TActorPerceptionContainer::TIterator Iter = AIPerceptionComponent->GetPerceptualDataIterator(); Iter; ++Iter)
 		{
-			if (Iter->Key != ActorToForget)
-			{
-				continue;
-			}
+			if (Iter->Key != ActorToForget) continue;
 
 			for (FAIStimulus& Stimuli : Iter->Value.LastSensedStimuli)
 			{
@@ -123,12 +163,12 @@ void AMAAIController::ForgetActorIfDead(AActor* ActorToForget)
 	}
 }
 
-const UObject* AMAAIController::GetCurrentTarget() const
+AActor* AMAAIController::GetCurrentTarget() const
 {
 	const UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
 	if (BlackboardComponent)
 	{
-		return GetBlackboardComponent()->GetValueAsObject(TargetBlackboardKeyName);
+		return Cast<AActor>(GetBlackboardComponent()->GetValueAsObject(TargetBlackboardKeyName));
 	}
 	return nullptr;
 }
@@ -136,8 +176,7 @@ const UObject* AMAAIController::GetCurrentTarget() const
 void AMAAIController::SetCurrentTarget(AActor* NewTarget)
 {
 	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
-	if (!BlackboardComponent)
-		return;
+	if (!BlackboardComponent) return;
 
 	if (NewTarget)
 	{
@@ -189,12 +228,20 @@ void AMAAIController::PawnDeadTagUpdated(const FGameplayTag Tag, int32 Count)
 	}
 }
 
-void AMAAIController::PawnReactionTagUpdated(const FGameplayTag Tag, int32 Count)
+void AMAAIController::PawnReactionTagUpdated(const FGameplayTag /*Tag*/, int32 /*Count*/)
 {
-	if (bIsPawnDead)
-		return;
-	
-	if (Count != 0)
+	if (bIsPawnDead) return;
+
+	FGameplayTagContainer OwnedTags;
+	if (UAbilitySystemComponent* PawnASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn()))
+	{
+		PawnASC->GetOwnedGameplayTags(OwnedTags);
+	}
+
+	OwnedTags.RemoveTag(UMAAbilitySystemStatics::GetKnockbackStatTag());
+	const bool bShouldReact = OwnedTags.HasTag(UMAAbilitySystemStatics::GetAnyReactionStateTag());
+
+	if (bShouldReact)
 	{
 		if (!bIsPawnReacting)
 		{
@@ -209,6 +256,4 @@ void AMAAIController::PawnReactionTagUpdated(const FGameplayTag Tag, int32 Count
 			bIsPawnReacting = false;
 		}
 	}
-	
-	
 }

@@ -1,0 +1,123 @@
+#include "Widget/Skill/MASkillSlotRowWidget.h"
+
+#include "Components/HorizontalBox.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
+#include "Input/MAInputStatics.h"
+#include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerController.h"
+#include "Widget/Skill/MASkillIconWidget.h"
+#include "Widget/Skill/MASkillModuleSocketWidget.h"
+
+void UMASkillSlotRowWidget::InitializeSlot(UMASkillManagerComponent* InSkillManager, FGameplayTag InSlotTag)
+{
+	if (SkillManager)
+	{
+		SkillManager->OnSkillSlotChanged.RemoveAll(this);
+	}
+	if (InputBindingsOwner.IsValid())
+	{
+		InputBindingsOwner->OnInputBindingsChanged.RemoveAll(this);
+	}
+
+	SkillManager = InSkillManager;
+	SlotTag = InSlotTag;
+	if (SkillIconWidget)
+	{
+		SkillIconWidget->SetCooldownTag(FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(SlotTag));
+	}
+
+	if (SkillManager)
+	{
+		SkillManager->OnSkillSlotChanged.AddUObject(this, &UMASkillSlotRowWidget::HandleSkillSlotChanged);
+	}
+	InputBindingsOwner = GetOwningPlayer<AMAPlayerController>();
+	if (InputBindingsOwner.IsValid())
+	{
+		InputBindingsOwner->OnInputBindingsChanged.AddUObject(this, &UMASkillSlotRowWidget::RefreshHotkeyText);
+	}
+
+	Refresh();
+	RefreshHotkeyText();
+}
+
+void UMASkillSlotRowWidget::NativeDestruct()
+{
+	if (SkillManager)
+	{
+		SkillManager->OnSkillSlotChanged.RemoveAll(this);
+	}
+	if (InputBindingsOwner.IsValid())
+	{
+		InputBindingsOwner->OnInputBindingsChanged.RemoveAll(this);
+	}
+
+	Super::NativeDestruct();
+}
+
+void UMASkillSlotRowWidget::Refresh()
+{
+	if (SkillIconWidget)
+	{
+		SkillIconWidget->SetSkillModule(SkillManager ? SkillManager->GetAssembledModule(SlotTag) : nullptr);
+	}
+
+	RebuildModuleSockets(SkillManager ? SkillManager->GetModuleSlotCount(SlotTag) : 0);
+}
+
+void UMASkillSlotRowWidget::SetCollapsed(bool bCollapsed)
+{
+	if (bIsCollapsed == bCollapsed) return;
+
+	bIsCollapsed = bCollapsed;
+	if (!RowCollapse) return;
+
+	StopAnimation(RowCollapse);
+	if (bIsCollapsed)
+	{
+		PlayAnimationForward(RowCollapse);
+	}
+	else
+	{
+		PlayAnimationReverse(RowCollapse);
+	}
+}
+
+void UMASkillSlotRowWidget::HandleSkillSlotChanged(FGameplayTag ChangedSlotTag)
+{
+	if (ChangedSlotTag != SlotTag) return;
+
+	Refresh();
+}
+
+void UMASkillSlotRowWidget::RefreshHotkeyText()
+{
+	if (!SkillIconWidget) return;
+
+	const APlayerController* PlayerController = GetOwningPlayer();
+	const AMAPlayerCharacter* PlayerCharacter = PlayerController
+		? Cast<AMAPlayerCharacter>(PlayerController->GetPawn())
+		: Cast<AMAPlayerCharacter>(GetOwningPlayerPawn());
+
+	SkillIconWidget->SetHotkeyText(FMAInputStatics::GetInputActionText(
+		PlayerController,
+		PlayerCharacter ? PlayerCharacter->GetGameplayInputMappingContext() : nullptr,
+		PlayerCharacter ? PlayerCharacter->GetGameplayAbilityInputAction(SlotTag) : nullptr));
+}
+
+void UMASkillSlotRowWidget::RebuildModuleSockets(const int32 ModuleSlotCount)
+{
+	if (!ModuleSocketBox) return;
+
+	ModuleSocketBox->ClearChildren();
+	if (!ModuleSocketWidgetClass || !SkillManager) return;
+
+	for (int32 Index = 0; Index < ModuleSlotCount; ++Index)
+	{
+		UMASkillModuleSocketWidget* SocketWidget = CreateWidget<UMASkillModuleSocketWidget>(this, ModuleSocketWidgetClass);
+		if (!SocketWidget) continue;
+
+		SocketWidget->InitializeSkillSlot(SkillManager, SlotTag, Index);
+		ModuleSocketBox->AddChildToHorizontalBox(SocketWidget);
+	}
+}

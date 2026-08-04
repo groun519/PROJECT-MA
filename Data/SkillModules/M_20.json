@@ -1,0 +1,113 @@
+{
+	"ModuleId": 20,
+	"Module":
+	{
+		"ModuleName": "DA_Death",
+		"DisplayData":
+		{
+			"DisplayName": "Death",
+			"Description": "<FINAL>스킬의 최종 피해를 666% 증가</>시킵니다. 스킬 종료 시, <HP>현재 체력의 100%</>의 <ATK>고정 피해</>를 입습니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Death.T_Death'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Death",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity7"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.DebuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_End"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
+							"multiplier": 6.6599998474121094,
+							"multiplierPayloadTag": "",
+							"payloadBaseMultiplier": 0
+						}
+					},
+					{
+						"eventTag": "Event.Skill.End",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToSelf",
+							"damagePayloadTag": "Damage.Death"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Death",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Fixed",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Health"
+								},
+								"payloadTag": "",
+								"coefficient": 1
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 8,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

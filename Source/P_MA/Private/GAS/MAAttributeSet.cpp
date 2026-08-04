@@ -1,11 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAAttributeSet.h"
+
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
-#include "MAGameplayAbilityTypes.h"
-#include "Player/MAPlayerController.h"
+#include "GameplayEffectAggregatorLibrary.h"
+#include "GAS/MAAbilitySystemComponent.h"
 
 /*
 * void UNVAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
@@ -24,85 +22,93 @@ const FGameplayAttributeData& OldValue)                     \
 GAMEPLAYATTRIBUTE_REPNOTIFY(UMAAttributeSet, PropertyName, OldValue); \
 }
 
+UMAAttributeSet::UMAAttributeSet()
+	: SlowMultiplier(1.f)
+	, CriticalDamage(1.5f)
+	, ReverseCriticalDamage(0.5f)
+	, AttackRange(1.f)
+{}
+
 void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Shield, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Attack, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, DamageVariance, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, SlowMultiplier, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Armor, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ArmorPenetration, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Fury, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MaxFury, COND_None, REPNOTIFY_Always)
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalChance, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Focus, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, CriticalDamage, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ReverseCriticalDamage, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Temperature, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Coin, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackRange, COND_None, REPNOTIFY_Always)
+}
+
+void UMAAttributeSet::OnAttributeAggregatorCreated(const FGameplayAttribute& Attribute, FAggregator* NewAggregator) const
+{
+	Super::OnAttributeAggregatorCreated(Attribute, NewAggregator);
+
+	if (Attribute == GetSlowMultiplierAttribute())
+	{
+		NewAggregator->EvaluationMetaData = &FAggregatorEvaluateMetaDataLibrary::MostNegativeMod_AllPositiveMods;
+	}
 }
 
 void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
 	if (Attribute == GetHealthAttribute())
 		NewValue = FMath::Clamp(NewValue, 0.f, GetMaxHealth());
+	else if (Attribute == GetShieldAttribute())
+		NewValue = FMath::Max(NewValue, 0.f);
+	else if (Attribute == GetSlowMultiplierAttribute())
+		NewValue = FMath::Clamp(NewValue, 0.f, 1.f);
+	else if (Attribute == GetFocusAttribute())
+		NewValue = FMath::Clamp(NewValue, -1.f, 1.f);
+	else if (Attribute == GetTemperatureAttribute())
+		NewValue = FMath::Clamp(NewValue, -100.f, 100.f);
 }
 
-void UMAAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data)
+void UMAAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
-		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
-
-	float DeltaHealth = Data.EvaluatedData.Magnitude;
-
-	if (DeltaHealth < 0.f)
 	{
-		float FinalDamage = -DeltaHealth;
+		SetHealth(FMath::Clamp(GetHealth(), 0.f, GetMaxHealth()));
+	}
+	else if (Data.EvaluatedData.Attribute == GetShieldAttribute())
+	{
+		SetShield(FMath::Max(GetShield(), 0.f));
+		return;
+	}
+	else if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
+	{
+		SetTemperature(FMath::Clamp(GetTemperature(), -100.f, 100.f));
+	}
+	else return;
 
-		bool bIsCriticalHit = false;
-		FGameplayEffectContextHandle ContextHandle = Data.EffectSpec.GetContext();
-		if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
-		{
-			bIsCriticalHit = MAContext->IsCriticalHit();
-		}
-		AActor* TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
-		
-		AMAPlayerController* AttackerPC = nullptr;
-		if (AActor* Instigator = Data.EffectSpec.GetContext().GetOriginalInstigator())
-		{
-			if (APawn* Pawn = Cast<APawn>(Instigator))	AttackerPC = Cast<AMAPlayerController>(Pawn->GetController());
-			else AttackerPC = Cast<AMAPlayerController>(Instigator);
-		}
-
-		AMAPlayerController* VictimPC = nullptr;
-		if (TargetActor)
-		{
-			if (APawn* Pawn = Cast<APawn>(TargetActor))	VictimPC = Cast<AMAPlayerController>(Pawn->GetController());
-			else VictimPC = Cast<AMAPlayerController>(TargetActor);
-		}
-
-		if (AttackerPC && AttackerPC!= VictimPC)
-		{
-			AttackerPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,false);
-		}
-		if (VictimPC)
-		{
-			VictimPC->ClientShowDamageNumber(FinalDamage,TargetActor,bIsCriticalHit,true);
-		}
+	if (UMAAbilitySystemComponent* TargetASC = Cast<UMAAbilitySystemComponent>(&Data.Target))
+	{
+		TargetASC->NotifyDamageAppliedFromGameplayEffect(Data);
 	}
 }
 
-
 DEFINE_REPNOTIFY(Health)
 DEFINE_REPNOTIFY(MaxHealth)
+DEFINE_REPNOTIFY(Shield)
 DEFINE_REPNOTIFY(Attack)
-DEFINE_REPNOTIFY(DamageVariance)
 DEFINE_REPNOTIFY(MoveSpeed)
+DEFINE_REPNOTIFY(SlowMultiplier)
 DEFINE_REPNOTIFY(AttackSpeed)
 DEFINE_REPNOTIFY(Armor)
 DEFINE_REPNOTIFY(ArmorPenetration)
-DEFINE_REPNOTIFY(Fury)
-DEFINE_REPNOTIFY(MaxFury)
-DEFINE_REPNOTIFY(CriticalChance)
+DEFINE_REPNOTIFY(Focus)
 DEFINE_REPNOTIFY(CriticalDamage)
-
+DEFINE_REPNOTIFY(ReverseCriticalDamage)
+DEFINE_REPNOTIFY(Temperature)
+DEFINE_REPNOTIFY(Coin)
+DEFINE_REPNOTIFY(AttackRange)

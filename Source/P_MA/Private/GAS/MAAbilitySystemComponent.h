@@ -1,17 +1,15 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
-#include "PA_AbilitySystemGenerics.h"
-#include "GAS/MAGameplayAbilityTypes.h"
 #include "MAAbilitySystemComponent.generated.h"
 
-/**
- * 
- */
+struct FGameplayEffectModCallbackData;
+class UAnimMontage;
+class UGameplayAbility;
+
 UCLASS()
 class UMAAbilitySystemComponent : public UAbilitySystemComponent
 {
@@ -22,23 +20,33 @@ public:
 	void InitializeBaseAttributes();
 	void ServerSideInit();
 	void ApplyFullStatEffect();
-	const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
-	const UPA_AbilitySystemGenerics* GetSystemGenerics() const {return AbilitySystemGenerics;};
+	void ApplyReviveStatEffect();
+	void NotifyDamageAppliedFromGameplayEffect(const FGameplayEffectModCallbackData& Data);
+	float PlayMontageWithBlendIn(
+		UGameplayAbility* AnimatingAbility,
+		FGameplayAbilityActivationInfo ActivationInfo,
+		UAnimMontage* Montage,
+		float PlayRate,
+		FName StartSectionName,
+		float BlendInTime);
+	virtual float PlayMontageSimulated(
+		UAnimMontage* Montage,
+		float PlayRate,
+		FName StartSectionName = NAME_None) override;
 
 	UPROPERTY(Transient)
 	FGameplayTagContainer AppliedBaseTags;
+	
 private:
-	void ApplyInitialEffects();
 	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdated(const FOnAttributeChangeData& ChangeData);
+	void ShowDamageText(const FGameplayEffectModCallbackData& Data, bool bIsIncoming) const;
+	void ApplyMontageBlendIn(UAnimMontage* Montage, float PlayRate, float BlendInTime) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
+	TArray<TSubclassOf<UGameplayAbility>> Abilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	UPA_AbilitySystemGenerics* AbilitySystemGenerics;
+	TArray<TSubclassOf<UGameplayAbility>> BasicAbilities;
 };

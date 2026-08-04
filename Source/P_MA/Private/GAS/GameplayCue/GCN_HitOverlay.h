@@ -6,9 +6,7 @@
 #include "GameplayCueNotify_Actor.h"
 #include "GCN_HitOverlay.generated.h"
 
-class UMaterialInterface;
 class UMaterialInstanceDynamic;
-class USkeletalMeshComponent;
 
 UCLASS()
 class P_MA_API AGCN_HitOverlay : public AGameplayCueNotify_Actor
@@ -23,10 +21,7 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	TObjectPtr<UMaterialInterface> OverlayMaterial;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Overlay")
-	FName OpacityParamName = TEXT("Opacity");
+	FLinearColor DefaultOverlayColor = FLinearColor::White;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Overlay", meta = (ClampMin = "0.01"))
 	float FadeDuration = 0.08f;
@@ -34,14 +29,13 @@ protected:
 private:
 	struct FActiveOverlayFade
 	{
-		TWeakObjectPtr<USkeletalMeshComponent> MeshComp;
 		TWeakObjectPtr<UMaterialInstanceDynamic> OverlayMID;
 		float Elapsed = 0.f;
 	};
 
-	void StartOrRestartFade(USkeletalMeshComponent* MeshComp);
-	int32 FindFadeIndex(const USkeletalMeshComponent* MeshComp) const;
-	USkeletalMeshComponent* ResolveTargetMesh(AActor* TargetActor) const;
+	FGameplayTag ResolveRequestedCueTag(const FGameplayCueParameters& Parameters) const;
+	FLinearColor ResolveOverlayColor(const FGameplayCueParameters& Parameters) const;
+	void StartFade(AActor* TargetActor, const FLinearColor& OverlayColor);
 
 	TArray<FActiveOverlayFade> ActiveFades;
 };

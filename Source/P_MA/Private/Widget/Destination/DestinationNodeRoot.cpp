@@ -22,14 +22,14 @@ namespace
 		return X;
 	}
 
-	uint32 HashCombine(uint32 A, uint32 B)
+	uint32 CombineNodeHash(uint32 A, uint32 B)
 	{
 		return HashUint(A ^ (B + 0x9e3779b9U + (A << 6) + (A >> 2)));
 	}
 
 	uint32 Hash3(uint32 A, uint32 B, uint32 C)
 	{
-		return HashCombine(HashCombine(A, B), C);
+		return CombineNodeHash(CombineNodeHash(A, B), C);
 	}
 
 	float UintToUnitFloat(uint32 X)

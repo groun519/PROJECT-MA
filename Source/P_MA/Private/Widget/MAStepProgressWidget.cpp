@@ -1,0 +1,72 @@
+#include "Widget/MAStepProgressWidget.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+#include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
+
+void UMAStepProgressWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	ClearStepProgress();
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UMAStepProgressWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	RefreshFromOwner();
+}
+
+void UMAStepProgressWidget::SetStepProgress(const FText& InLabel, float InDuration, float InRemainingDuration)
+{
+	LabelText->SetText(InLabel);
+	const float ElapsedDuration = FMath::Max(InDuration - InRemainingDuration, 0.f);
+	DurationProgressBar->SetPercent(InDuration > 0.f ? FMath::Clamp(ElapsedDuration / InDuration, 0.f, 1.f) : 0.f);
+	SetRenderOpacity(1.f);
+}
+
+void UMAStepProgressWidget::ClearStepProgress()
+{
+	LabelText->SetText(FText::GetEmpty());
+	DurationProgressBar->SetPercent(0.f);
+	SetRenderOpacity(0.f);
+}
+
+void UMAStepProgressWidget::RefreshFromOwner()
+{
+	UAbilitySystemComponent* OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
+	if (!OwnerAbilitySystemComponent)
+	{
+		ClearStepProgress();
+		return;
+	}
+
+	const TArray<FGameplayAbilitySpec>& AbilitySpecs = OwnerAbilitySystemComponent->GetActivatableAbilities();
+	for (const FGameplayAbilitySpec& AbilitySpec : AbilitySpecs)
+	{
+		if (!AbilitySpec.IsActive()) continue;
+
+		for (UGameplayAbility* AbilityInstance : AbilitySpec.GetAbilityInstances())
+		{
+			UMASkillAbility* SkillAbility = Cast<UMASkillAbility>(AbilityInstance);
+			if (!SkillAbility) continue;
+
+			UMASkillSequenceRuntime* SequenceRuntime = SkillAbility->GetSequenceRuntime();
+			if (!SequenceRuntime) continue;
+
+			FText StepLabel;
+			float StepDuration = 0.f;
+			float StepRemainingDuration = 0.f;
+			if (SequenceRuntime->GetProgressInfo(StepLabel, StepDuration, StepRemainingDuration))
+			{
+				SetStepProgress(StepLabel, StepDuration, StepRemainingDuration);
+				return;
+			}
+		}
+	}
+
+	ClearStepProgress();
+}

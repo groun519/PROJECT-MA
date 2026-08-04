@@ -1,0 +1,123 @@
+{
+	"ModuleId": 17,
+	"Module":
+	{
+		"ModuleName": "DA_Crash",
+		"DisplayData":
+		{
+			"DisplayName": "Crash",
+			"Description": "<DASH>기동</> 시, 대상에게 접촉하면 <BD>5</>+<ATK>200%의 피해</>를 입힙니다.\r\n접촉 범위는 플레이어 크기의 150%로 설정됨니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Crash.T_Crash'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Expansion",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity5"
+		},
+		"ModuleTags": [
+			"Module.Attack",
+			"Module.Exclusive.Unique",
+			"Module.Movement"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_MovementStart"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.MovementStart",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyMovementDamage",
+							"damagePayloadTag": "Damage.Crash",
+							"capsuleRadiusScale": 1.5,
+							"capsuleHalfHeightScale": 1.1000000238418579,
+							"bDrawTrailDecal": true,
+							"minTrailDecalDistance": 10
+						}
+					},
+					{
+						"eventTag": "Event.Skill.MovementStart",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_AttachNiagaraToSelf",
+							"niagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/_WorkSpace/GAS/Elemental/Effect/NS_Trail_Default.NS_Trail_Default'",
+							"socketName": "spine_05",
+							"lifeSpan": 2.5
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Crash",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 2
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Sword"
+						]
+					}
+				}
+			}
+		]
+	}
+}

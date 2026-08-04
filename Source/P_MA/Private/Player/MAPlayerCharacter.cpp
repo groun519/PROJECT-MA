@@ -1,35 +1,27 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "MAPlayerCharacter.h"
-#include "AbilitySystemBlueprintLibrary.h"
+﻿#include "MAPlayerCharacter.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Framework/MAGameMode.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/MAPlayerAttributeSet.h"
-#include "Inventory/SkillBookComponent.h"
-#include "Inventory/InventoryComponent.h"
-#include "GAS/MAGameplayAbilityTypes.h"
+#include "GAS/Skill/Module/MASkillModule.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
+#include "GAS/Skill/MASkillSystemTypes.h"
+#include "Inventory/MAInventoryComponent.h"
 #include "Weapon/WeaponComponent.h"
-#include "DrawDebugHelpers.h"
 #include "PaperSpriteComponent.h"
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
 #include "Player/Components/ReadyCheckWidgetComponent.h"
-#include "Player/Components/PlayerCameraManagerComponent.h"
+#include "Player/Components/MACurrencyComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Convenience/InteractComponent.h"
+#include "Convenience/MAInteractorComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
-#include "Widget/MAGameplayWidget.h"
-#include "Widget/ChatWidget.h"
-#include "Blueprint/UserWidget.h"
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
@@ -39,8 +31,10 @@
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
+#include "Player/Revive/MAReviveActor.h"
 #include "Engine/DataTable.h"
-#include "Net/UnrealNetwork.h"
+#include "EngineUtils.h"
+#include "Shop/MAShopNPC.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -58,9 +52,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
-	PlayerCameraManagerComponent = CreateDefaultSubobject<UPlayerCameraManagerComponent>(TEXT("PlayerCameraManagerComponent"));
-	PlayerCameraManagerComponent->Initialize(CameraBoom, Cam);
-
 	/** Controller Set **/
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -73,11 +64,10 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	GetCharacterMovement()->MaxDepenetrationWithPawn = 8.f;
 	GetCharacterMovement()->MaxDepenetrationWithPawnAsProxy = 4.f;
 
-	PlayerAttributeSet = CreateDefaultSubobject<UMAPlayerAttributeSet>("Player Attribute Set");
-
-	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>("Inventory Component");
-
-	SkillBookComponent = CreateDefaultSubobject<USkillBookComponent>(TEXT("SkillBookComponent"));
+	InventoryComponent = CreateDefaultSubobject<UMAInventoryComponent>("InventoryComponent");
+	CurrencyComponent = CreateDefaultSubobject<UMACurrencyComponent>(TEXT("CurrencyComponent"));
+	InteractorComponent = CreateDefaultSubobject<UMAInteractorComponent>(TEXT("InteractorComponent"));
+	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>(TEXT("LoadoutComponent"));
 
 	/** Create SKCs **/
 	// Create and Attach Weapon
@@ -98,7 +88,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
     if (MinimapSprite)
     {
         MinimapSprite->SetupAttachment(GetMesh());
-        // 네비게이션 경고해결
         MinimapSprite->SetCanEverAffectNavigation(false);
     }
 
@@ -119,11 +108,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
         MinimapCapture->SetupAttachment(MinimapCameraBoom);
         MinimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
         MinimapCapture->OrthoWidth = 7000.0f;
-    	
-        if (MinimapSprite)
-        {
-            MinimapCapture->ShowOnlyComponents.Add(MinimapSprite);
-        }
     }
 
 	static ConstructorHelpers::FObjectFinder<UCanvasRenderTarget2D> renderObj(TEXT("/Game/_Widget/Gameplay/MiniMap/CRT_MiniMap.CRT_MiniMap"));
@@ -137,8 +121,6 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_ReadyWall, ECR_Overlap);
 	
 	/** Tag Init **/
-	RotationLockTag	= UMAAbilitySystemStatics::GetRotationLockTag();
-	RushingTag		= UMAAbilitySystemStatics::GetRushingTag();
 	
 	/** Ready State&Ride Component **/
 	ReadyStateComponent = CreateDefaultSubobject<UReadyStateComponent>(TEXT("ReadyStateComponent"));
@@ -152,11 +134,17 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	ReadyCheckWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ReadyCheckWidget->SetHiddenInGame(true);
 	ReadyCheckWidget->SetRelativeLocation(FVector(0.f, 0.f, 220.f));
+
+	ReviveActorClass = AMAReviveActor::StaticClass();
 }
 
 void AMAPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (LoadoutComponent)
+	{
+		LoadoutComponent->InitializeMaterial(GetMesh());
+	}
 	InitializeMinimapCapture();
 	BindLoadoutDelegates();
 }
@@ -185,26 +173,20 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 
 	UpdateRotationByReadyRide(DeltaTime);
 	TickMinimapCapture(DeltaTime);
-
-	// Skill-only movement path. This is unrelated to ready-ride movement sync,
-	// so ride fixes must not change behavior here.
-	if (GetAbilitySystemComponent()->HasMatchingGameplayTag(RushingTag))
-	{
-		AddMovementInput(GetActorForwardVector(), 2.f);
-	}
+	TickHeldAbilityInputs();
 }
 
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
-	const bool bBlockManualRotation = ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked();
-	if (!bBlockManualRotation)
+	if (IsInputBlocked()) return;
+	if (!IsRotationBlocked())
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
 		if (!IsLocallyControlled()) return;
 
 		FVector LookDir;
-		if (GetLookDirectionToMouse(LookDir) && !GetAbilitySystemComponent()->HasMatchingGameplayTag(RotationLockTag))
+		if (GetLookDirectionToMouse(LookDir))
 		{
 			const FRotator CurrentRotation = GetActorRotation();
 			const FRotator TargetRotation = FRotator(0.f, LookDir.Rotation().Yaw, 0.f);
@@ -223,6 +205,23 @@ void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 	{
 		SetActorRotation(FRotator(0.f, AttachedYaw, 0.f));
 	}
+}
+
+bool AMAPlayerCharacter::IsRotationBlocked() const
+{
+	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return true;
+	if (IsDead()) return true;
+
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC && ASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetRotationLockTag());
+}
+
+bool AMAPlayerCharacter::IsInputBlocked() const
+{
+	if (IsDead()) return true;
+
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC && ASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetInputBlockTag());
 }
 
 void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
@@ -248,8 +247,7 @@ void AMAPlayerCharacter::TrySendRotationToServer(const FVector& LookDirection)
 
 void AMAPlayerCharacter::Server_SetRotation_Implementation(FVector LookDirection)
 {
-	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
-	if (IsDead()) return;
+	if (IsRotationBlocked()) return;
 	SetActorRotation(FRotator(0.f, LookDirection.Rotation().Yaw, 0.f));
 }
 
@@ -279,6 +277,12 @@ void AMAPlayerCharacter::PawnClientRestart()
 	}
 }
 
+UInputAction* AMAPlayerCharacter::GetGameplayAbilityInputAction(FGameplayTag SlotTag) const
+{
+	if (UInputAction* const* FoundAction = GameplayAbilityInputActions.Find(SlotTag)) return *FoundAction;
+	return nullptr;
+}
+
 void AMAPlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
@@ -296,99 +300,54 @@ void AMAPlayerCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		EnhancedInputComp->BindAction(MoveInputAction, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleMoveInput);
 		EnhancedInputComp->BindAction(InteractInputAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleInteractInput);
 		
-		for (const TPair<EMAAbilityInputID, UInputAction*> InputActionPair : GameplayAbilityInputActions)
+		for (const TPair<FGameplayTag, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
 		{
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
-			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInput, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, this, &AMAPlayerCharacter::HandleAbilityInputStarted, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
+			EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Canceled, this, &AMAPlayerCharacter::HandleAbilityInputReleased, InputActionPair.Key);
 		}
-		EnhancedInputComp->BindAction(UseInventoryItemAction, ETriggerEvent::Started, this, &AMAPlayerCharacter::UseInventoryItem);
 	}
 }
-// 스킬 행동 로직 변형 시스템 테스트용	- 사용 법 SetSkillBehavior [BP이름] [태그]
-void AMAPlayerCharacter::SetAttribute(const FString& SkillClassName, const FString& AttributeName)
+
+void AMAPlayerCharacter::Server_AddCoin_Implementation(float Amount)
 {
-	Server_SetAttribute(SkillClassName, AttributeName);
-}
-void AMAPlayerCharacter::Server_SetAttribute_Implementation(const FString& SkillClassName,
-                                                                 const FString& AttributeName)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-
-	FGameplayTag AttributeTag = FGameplayTag::RequestGameplayTag("Ability.Attribute");
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(AttributeTag)));
-	FGameplayTag NewTag = FGameplayTag::RequestGameplayTag(FName(*AttributeName));
-	if (NewTag.IsValid() && !AttributeName.Equals("None", ESearchCase::IgnoreCase))
+	if (CurrencyComponent)
 	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewTag);
+		CurrencyComponent->AddCoin(Amount);
 	}
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 
-void AMAPlayerCharacter::SetBehavior(const FString& SkillClassName, const FString& BehaviorTagString)
+void AMAPlayerCharacter::Server_RefreshShopStock_Implementation()
 {
-	Server_SetBehavior(SkillClassName, BehaviorTagString);
-}
-void AMAPlayerCharacter::Server_SetBehavior_Implementation(const FString& SkillClassName,
-                                                                const FString& BehaviorTagString)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
+	UWorld* World = GetWorld();
+	if (!World) return;
 
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-
-	// 1. 기존의 모든 Behavior 관련 태그를 제거합니다.
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Ability.Behavior"));
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
-
-	// 2. "None"이 아닐 경우에만 새로운 태그를 추가합니다.
-	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*BehaviorTagString));
-	if (NewBehaviorTag.IsValid() && !BehaviorTagString.Equals("None", ESearchCase::IgnoreCase))
+	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
 	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+		It->RefreshStock();
 	}
-
-	// 3. 변경사항을 모든 클라이언트에 동기화합니다.
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
 }
 
-void AMAPlayerCharacter::SetUtility(const FString& SkillClassName, const FString& UtilityName)
+void AMAPlayerCharacter::Server_ShopTest_Implementation()
 {
-	Server_SetUtility(SkillClassName, UtilityName);
-}
+	UWorld* World = GetWorld();
+	if (!World) return;
 
-void AMAPlayerCharacter::Server_SetUtility_Implementation(const FString& SkillClassName, const FString& UtilityName)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC) return;
-
-	TSubclassOf<UGameplayAbility> SkillClass = FindObject<UClass>(ANY_PACKAGE, *("GA_"+SkillClassName + "_C"));
-	if (!SkillClass) return;
-
-	FGameplayAbilitySpec* AbilitySpec = ASC->FindAbilitySpecFromClass(SkillClass);
-	if (!AbilitySpec) return;
-	
-	FGameplayTag BehaviorCategoryTag = FGameplayTag::RequestGameplayTag(FName("Module.Utility"));
-	AbilitySpec->DynamicAbilityTags.RemoveTags(AbilitySpec->DynamicAbilityTags.Filter(FGameplayTagContainer(BehaviorCategoryTag)));
-	
-	FGameplayTag NewBehaviorTag = FGameplayTag::RequestGameplayTag(FName(*UtilityName));
-	if (NewBehaviorTag.IsValid() && !UtilityName.Equals("None", ESearchCase::IgnoreCase))
+	if (AMAGameMode* GameMode = World->GetAuthGameMode<AMAGameMode>())
 	{
-		AbilitySpec->DynamicAbilityTags.AddTag(NewBehaviorTag);
+		GameMode->SetMAState(4);
 	}
-	
-	ASC->MarkAbilitySpecDirty(*AbilitySpec);
+
+	if (CurrencyComponent)
+	{
+		CurrencyComponent->AddCoin(99999.f);
+	}
+
+	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
+	{
+		It->SetModuleStockCountForTest(99);
+		It->RefreshStock();
+	}
 }
 //******************************************************************************//
 
@@ -411,6 +370,13 @@ FVector AMAPlayerCharacter::GetMoveRightDir() const
 void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionValue)
 {
 	FVector2D InputVal = InputActionValue.Get<FVector2D>();
+	if (IsInputBlocked() || IsMovementBlocked())
+	{
+		RideHorizontalInput = 0.f;
+		return;
+	}
+
+	RideHorizontalInput = FMath::Clamp(InputVal.X, -1.f, 1.f);
 	if (InputVal.IsNearlyZero()) return;
 
 	InputVal.Normalize();
@@ -418,35 +384,62 @@ void AMAPlayerCharacter::HandleMoveInput(const FInputActionValue& InputActionVal
 	AddMovementInput(GetMoveForwardDir() * InputVal.Y + GetMoveRightDir() * InputVal.X);
 }
 
-
 void AMAPlayerCharacter::HandleInteractInput(const FInputActionValue& InputActionValue)
 {
 	const bool bPressed = InputActionValue.Get<bool>();
 	if (!bPressed) return;
+	if (IsInputBlocked()) return;
 
-	if (UInteractComponent* Comp = CurrentInteractComp.Get())
+	InteractorComponent->Interact(this);
+}
+
+void AMAPlayerCharacter::HandleAbilityInputStarted(const FInputActionValue& InputActionValue, FGameplayTag SlotTag)
+{
+	if (!InputActionValue.Get<bool>()) return;
+	if (IsInputBlocked()) return;
+
+	SetAbilityInputHeld(SlotTag, true);
+	TryActivateHeldAbilityInput(SlotTag);
+}
+
+void AMAPlayerCharacter::HandleAbilityInputReleased(const FInputActionValue& /*InputActionValue*/, FGameplayTag SlotTag)
+{
+	SetAbilityInputHeld(SlotTag, false);
+}
+
+void AMAPlayerCharacter::TickHeldAbilityInputs()
+{
+	if (IsInputBlocked()) return;
+
+	for (const FGameplayTag& SlotTag : HeldAbilitySlotTags)
 	{
-		Comp->RequestInteract(this);
+		TryActivateHeldAbilityInput(SlotTag);
 	}
 }
 
-void AMAPlayerCharacter::HandleAbilityInput(const FInputActionValue& InputActionValue, EMAAbilityInputID InputID)
+void AMAPlayerCharacter::SetAbilityInputHeld(FGameplayTag SlotTag, bool bHeld)
 {
-	bool bPressed = InputActionValue.Get<bool>();
-	if (bPressed)
-	{
-		GetAbilitySystemComponent()->AbilityLocalInputPressed((int32)InputID);
-	}
-	else
-	{
-		GetAbilitySystemComponent()->AbilityLocalInputReleased((int32)InputID);
-	}
-	if (InputID == EMAAbilityInputID::Attack)
-	{
-		FGameplayTag BasicAttackTag = bPressed ? UMAAbilitySystemStatics::GetBasicAttackInputPressedTag() : UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag();
+	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotTag);
+	if (SlotInputID == INDEX_NONE) return;
 
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, BasicAttackTag, FGameplayEventData());
-		Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
+	if (bHeld)
+	{
+		HeldAbilitySlotTags.Add(SlotTag);
+		GetAbilitySystemComponent()->AbilityLocalInputPressed(SlotInputID);
+		return;
+	}
+
+	HeldAbilitySlotTags.Remove(SlotTag);
+	GetAbilitySystemComponent()->AbilityLocalInputReleased(SlotInputID);
+}
+
+void AMAPlayerCharacter::TryActivateHeldAbilityInput(FGameplayTag SlotTag)
+{
+	if (!SlotTag.IsValid()) return;
+
+	if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
+	{
+		SkillManager->TryActivateSkill(SlotTag);
 	}
 }
 
@@ -458,7 +451,8 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 	if (bEnabled)
 	{
 		EnableInput(PlayerController);
-	}else
+	}
+	else
 	{
 		DisableInput(PlayerController);
 	}
@@ -466,8 +460,8 @@ void AMAPlayerCharacter::SetInputEnabledFromPlayerController(bool bEnabled)
 
 void AMAPlayerCharacter::SnapRotationToMouse()
 {
-	if (ReadyRideComponent && ReadyRideComponent->IsRideRotationLocked()) return;
-	if (IsDead()) return;
+	if (IsInputBlocked()) return;
+	if (IsRotationBlocked()) return;
 	FVector LookDir;
 	if (GetLookDirectionToMouse(LookDir))
 	{
@@ -486,10 +480,7 @@ void AMAPlayerCharacter::InitializeMinimapCapture()
 	MinimapCapture->bCaptureOnMovement = false;
 	MinimapCaptureAccumulatedTime = 0.f;
 
-	if (bEnableCapture)
-	{
-		MinimapCapture->CaptureScene();
-	}
+	if (bEnableCapture) MinimapCapture->CaptureScene();
 }
 
 void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
@@ -501,27 +492,6 @@ void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
 
 	MinimapCaptureAccumulatedTime = 0.f;
 	MinimapCapture->CaptureScene();
-}
-
-void AMAPlayerCharacter::SetCurrentInteractComp(UInteractComponent* NewComp)
-{
-	if (!NewComp || CurrentInteractComp == NewComp) return;
-
-	if (CurrentInteractComp.IsValid())
-		CurrentInteractComp->SetActive(false);
-	
-	CurrentInteractComp = NewComp;
-}
-
-void AMAPlayerCharacter::ClearCurrentInteractComp(UInteractComponent* Comp)
-{
-	if (CurrentInteractComp.Get() != Comp)
-		return;
-
-	if (Comp)
-		Comp->SetActive(false);
-	
-	CurrentInteractComp = nullptr;
 }
 
 void AMAPlayerCharacter::BindLoadoutDelegates()
@@ -600,7 +570,7 @@ void AMAPlayerCharacter::HandleLoadoutEyeShapeChanged(FName EyeShapeId)
 
 void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 {
-	if (WeaponId.IsNone()) return;
+	const FLoadoutWeaponDataRow* WeaponDataRow = nullptr;
 
 	const UDataTable* ResolvedWeaponDataTable = nullptr;
 	if (LoadoutComponent)
@@ -611,41 +581,39 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 		}
 	}
 
-	if (!ResolvedWeaponDataTable) return;
+	if (ResolvedWeaponDataTable && !WeaponId.IsNone())
+	{
+		WeaponDataRow = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
+	}
 
-	const FLoadoutWeaponDataRow* Row = ResolvedWeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("LoadoutWeapon"));
-	if (!Row) return;
+	if (HasAuthority())
+	{
+		if (UMASkillManagerComponent* SkillManager = GetSkillManagerComponent())
+		{
+			UMASkillModule* AttackSkillModule = WeaponDataRow ? WeaponDataRow->AttackSkillModule.LoadSynchronous() : nullptr;
+			SkillManager->ReplaceModuleAt(
+				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.1")),
+				0,
+				AttackSkillModule);
+		}
+	}
 
-	USkeletalMesh* WeaponMesh = Row->WeaponMesh.LoadSynchronous();
+	if (!WeaponDataRow) return;
+
+	USkeletalMesh* WeaponMesh = WeaponDataRow->WeaponMesh.LoadSynchronous();
 	if (WeaponMesh)
 	{
 		WeaponComponent->SetSkeletalMesh(WeaponMesh);
 	}
 
-	WeaponComponent->SetRelativeTransform(Row->WeaponOffset);
-	EquipWeaponFromData(Row);
-}
-
-void AMAPlayerCharacter::EquipWeaponFromData(const struct FLoadoutWeaponDataRow* WeaponData)
-{
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	if (!ASC || !WeaponData || !WeaponData->AttackAbility)
-		return;
-
-	if (CurrentBasicAttackHandle.IsValid())
-	{
-		ASC->ClearAbility(CurrentBasicAttackHandle);
-		CurrentBasicAttackHandle = FGameplayAbilitySpecHandle();
-	}
-
-	int32 BasicAttackInputID = static_cast<int32>(EMAAbilityInputID::Attack);
-	FGameplayAbilitySpec Spec(WeaponData->AttackAbility, 1, BasicAttackInputID,this);
-	CurrentBasicAttackHandle = ASC->GiveAbility(Spec);
+	WeaponComponent->SetRelativeTransform(WeaponDataRow->WeaponOffset);
 }
 
 void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 {
 	UAnimSequence* RiderSequence = nullptr;
+	USkeletalMesh* MountSkeletalMesh = nullptr;
+	TSubclassOf<UAnimInstance> MountAnimClass = nullptr;
 
 	if (!MountId.IsNone() && LoadoutComponent)
 	{
@@ -653,36 +621,22 @@ void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 		const UDataTable* MountDataTable = LoadoutDataSet ? LoadoutDataSet->MountDataTable : nullptr;
 		if (MountDataTable)
 		{
-			const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount"));
-			if (Row)
+			if (const FMountDataRow* Row = MountDataTable->FindRow<FMountDataRow>(MountId, TEXT("LoadoutMount")))
 			{
-				MountMesh->SetSkeletalMesh(Row->MountMesh.LoadSynchronous());
-				MountMesh->SetAnimInstanceClass(Row->MountAnimClass);
+				MountSkeletalMesh = Row->MountMesh.LoadSynchronous();
+				MountAnimClass = Row->MountAnimClass;
 				RiderSequence = Row->RiderPose.LoadSynchronous();
 			}
-			else
-			{
-				MountMesh->SetSkeletalMesh(nullptr);
-				MountMesh->SetAnimInstanceClass(nullptr);
-			}
-		}
-		else
-		{
-			MountMesh->SetSkeletalMesh(nullptr);
-			MountMesh->SetAnimInstanceClass(nullptr);
 		}
 	}
-	else
-	{
-		MountMesh->SetSkeletalMesh(nullptr);
-		MountMesh->SetAnimInstanceClass(nullptr);
-	}
+
+	MountMesh->SetSkeletalMesh(MountSkeletalMesh);
+	MountMesh->SetAnimInstanceClass(MountAnimClass);
 
 	if (UMAAnimInstance* MAAnim = Cast<UMAAnimInstance>(GetMesh() ? GetMesh()->GetAnimInstance() : nullptr))
 	{
 		MAAnim->SetCurrentRideSequence(RiderSequence);
 	}
-
 }
 
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
@@ -710,21 +664,17 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 	return true;
 }
 
-void AMAPlayerCharacter::OnStun()
-{
-	SetInputEnabledFromPlayerController(false);
-}
-
-void AMAPlayerCharacter::OnRecoverFromStun()
-{
-	if (IsDead()) return;
-	SetInputEnabledFromPlayerController(true);
-}
-
 void AMAPlayerCharacter::OnDead()
 {
-	GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
 	SetInputEnabledFromPlayerController(false);
+	SpawnReviveActor();
+	if (HasAuthority())
+	{
+		if (AMAGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMAGameMode>() : nullptr)
+		{
+			GameMode->CheckGameOver();
+		}
+	}
 	if (LoadoutComponent)
 	{
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue(), DeadColorSaturationScale);
@@ -733,73 +683,74 @@ void AMAPlayerCharacter::OnDead()
 
 void AMAPlayerCharacter::OnRespawn()
 {
-	bool bDeferredInputEnable = false;
-
-	if (RespawnMontage)
-	{
-		const float MontageDuration = PlayAnimMontage(RespawnMontage);
-		if (MontageDuration > 0.f)
-		{
-			bDeferredInputEnable = true;
-			GetWorldTimerManager().ClearTimer(RespawnInputEnableTimerHandle);
-			GetWorldTimerManager().SetTimer(
-				RespawnInputEnableTimerHandle,
-				this,
-				&AMAPlayerCharacter::EnableInputAfterRespawnMontage,
-				MontageDuration,
-				false);
-		}
-	}
-
-	if (!bDeferredInputEnable)
-	{
-		EnableInputAfterRespawnMontage();
-	}
+	ClearReviveActor();
+	SetInputEnabledFromPlayerController(true);
 
 	if (LoadoutComponent)
 	{
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
 	}
 
-	if (HasAuthority() && RespawnVFX)
+	if (HasAuthority() && GetAbilitySystemComponent())
 	{
-		Multicast_PlayNiagara(RespawnVFX, GetActorTransform());
+		FGameplayCueParameters CueParams;
+		CueParams.Location = GetActorLocation();
+		CueParams.Normal = GetActorUpVector();
+		CueParams.Instigator = this;
+		CueParams.EffectCauser = this;
+		GetAbilitySystemComponent()->ExecuteGameplayCue(
+			UMAAbilitySystemStatics::GetPlayerRespawnGameplayCueTag(),
+			CueParams);
 	}
 }
 
-void AMAPlayerCharacter::EnableInputAfterRespawnMontage()
+void AMAPlayerCharacter::SpawnReviveActor()
 {
-	SetInputEnabledFromPlayerController(true);
+	if (!HasAuthority() || ActiveReviveActor || !ReviveActorClass) return;
+
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	static constexpr float ReviveGroundTraceUp = 200.f;
+	static constexpr float ReviveGroundTraceDown = 1000.f;
+
+	FVector SpawnLocation = GetActorLocation();
+	FHitResult GroundHit;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(SpawnReviveActor), false, this);
+	const FVector TraceStart = SpawnLocation + FVector::UpVector * ReviveGroundTraceUp;
+	const FVector TraceEnd = SpawnLocation - FVector::UpVector * ReviveGroundTraceDown;
+	if (World->LineTraceSingleByChannel(GroundHit, TraceStart, TraceEnd, ECC_Visibility, Params))
+	{
+		SpawnLocation = GroundHit.ImpactPoint;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ActiveReviveActor = World->SpawnActor<AMAReviveActor>(
+		ReviveActorClass,
+		SpawnLocation,
+		FRotator::ZeroRotator,
+		SpawnParams);
+	if (ActiveReviveActor)
+	{
+		ActiveReviveActor->InitializeReviveTarget(this);
+	}
 }
 
-void AMAPlayerCharacter::UseInventoryItem(const FInputActionValue& InputActionValue)
+void AMAPlayerCharacter::ClearReviveActor()
 {
-	int Value = FMath::RoundToInt(InputActionValue.Get<float>());
-	InventoryComponent->TryActivateItemInSlot(Value-1);
+	if (!HasAuthority()) return;
+
+	if (ActiveReviveActor)
+	{
+		ActiveReviveActor->Destroy();
+		ActiveReviveActor = nullptr;
+	}
 }
 
 void AMAPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXColor);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentElementTag);
-	DOREPLIFETIME(AMAPlayerCharacter, CurrentVFXLength);
-	DOREPLIFETIME(AMAPlayerCharacter, bAllowVFX);
-}
-
-void AMAPlayerCharacter::HandleChatInput()
-{
-	TArray<UUserWidget*> FoundWidgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), FoundWidgets, UMAGameplayWidget::StaticClass(), false);
-
-	if (FoundWidgets.Num() > 0)
-	{
-		if (UMAGameplayWidget* GameplayWidget = Cast<UMAGameplayWidget>(FoundWidgets[0]))
-		{
-			if (UChatWidget* Chat = GameplayWidget->GetChatWidget())
-			{
-				Chat->SetChatFocus(); 
-			}
-		}
-	}
 }

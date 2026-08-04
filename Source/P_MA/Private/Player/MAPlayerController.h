@@ -1,13 +1,19 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GenericTeamAgentInterface.h"
+#include "GameplayTagContainer.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "Framework/MAGameStateTypes.h"
+#include "Player/Feedback/MACoinRewardVFXActor.h"
 #include "MAPlayerController.generated.h"
+
+class AMAShopNPC;
+class UMAFloatingTextComponent;
+class UMAPlayerGameOverComponent;
+class UMAPlayerSpectateComponent;
 
 UENUM(BlueprintType)
 enum class EChatType : uint8
@@ -15,12 +21,11 @@ enum class EChatType : uint8
 	Normal		UMETA(DisplayName = "Normal"), // 일반 채팅 
 	System		UMETA(DisplayName = "System")  // 시스템 공지
 };
-// UI 알림용 델리게이트 정의
+// 채팅UI 델리게이트
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FString&, SenderName, const FString&, Message, EChatType, ChatType);
+// 바인딩 변경 델리게이트
+DECLARE_MULTICAST_DELEGATE(FMAInputBindingsChangedSignature);
 
-/**
- * 
- */
 UCLASS()
 class AMAPlayerController : public AMAPlayerControllerBase, public IGenericTeamAgentInterface
 {
@@ -45,8 +50,11 @@ public:
 	
 	virtual void SetupInputComponent() override;
 
-	UFUNCTION(Server, Reliable)
-	void ServerNotifyLoaded();
+	FMAInputBindingsChangedSignature OnInputBindingsChanged;
+	void NotifyInputBindingsChanged();
+	void SetGameplayWidgetVisible(bool bVisible);
+	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
+	UMAFloatingTextComponent* GetFloatingTextComponent() const { return FloatingTextComponent; }
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
@@ -55,6 +63,9 @@ public:
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoopReady(bool bReady);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 
 	/** ChatMessage **/
 	UPROPERTY(BlueprintAssignable, Category = "Chat")
@@ -66,10 +77,8 @@ public:
 	UFUNCTION(Client, Reliable, Category = "Chat")
 	void Client_ReceiveChatMessage(const FString& SenderName, const FString& Message, EChatType ChatType);
 
-	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<class AMADamageNumberActor> DamageNumberActorClass;
 	UFUNCTION(Client, Unreliable)
-	void ClientShowDamageNumber(float DamageAmount, AActor* TargetActor, bool bIsCriticalHit, bool bIsPlayerHit);
+	void ClientPlayCoinRewardFeedback(const FMACoinRewardFeedbackParams& Params);
 	
 private:
 	void SpawnGameplayWidget();
@@ -80,17 +89,26 @@ private:
 	UPROPERTY()
 	class AMAPlayerCharacter* MAPlayerCharacter;
 
+	UPROPERTY(VisibleDefaultsOnly, Category="Feedback")
+	TObjectPtr<UMAFloatingTextComponent> FloatingTextComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Spectate")
+	TObjectPtr<UMAPlayerSpectateComponent> SpectateComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Game Over")
+	TObjectPtr<UMAPlayerGameOverComponent> GameOverComponent;
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UMAGameplayWidget> GameplayWidgetClass;
 
 	UPROPERTY()
-	class UMAGameplayWidget* GameplayWidget;
+	UMAGameplayWidget* GameplayWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UInBattleStageWidget> InBattleStageWidgetClass;
 
 	UPROPERTY()
-	class UInBattleStageWidget* InBattleStageWidget;
+	UInBattleStageWidget* InBattleStageWidget;
 
 	FTimerHandle InBattleStageWidgetTimer;
 
@@ -101,24 +119,10 @@ private:
 	FGenericTeamId TeamID;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputMappingContext* UIInputMapping;
+	UInputMappingContext* UIInputMapping;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* ShopToggleInputAction;
+	UInputAction* SkillSlotToggleInputAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
-	class UInputAction* SkillBookToggleInputAction;
-
-	UFUNCTION()
-	void ToggleShop();
-	
-	UFUNCTION()
-	void ToggleSkillBook();
-
-	/** Camera Shake **/
-	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<class UCameraShakeBase> RegularCameraShake;
-
-	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
-	TSubclassOf<class UCameraShakeBase> CriticalCameraShake;
+	void ToggleSkillSlots();
 };

@@ -1,50 +1,54 @@
-
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "TimerManager.h"
 #include "GameplayTagContainer.h"
 #include "MAAIController.generated.h"
 
 struct FAIStimulus;
-/**
- * 
- */
+class UBehaviorTree;
+class UAIPerceptionComponent;
+class UAISenseConfig_Sight;
+
 UCLASS()
 class AMAAIController : public AAIController
 {
 	GENERATED_BODY()
-
+protected:
+	virtual void OnPossess(APawn* NewPawn) override;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 public:
 	AMAAIController();
 
-	virtual void OnPossess(APawn* NewPawn) override;
-	virtual void BeginPlay() override;
-	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "AI Behavior")
 	FName TargetBlackboardKeyName = "Target";
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI Behavior")
-	class UBehaviorTree* BehaviorTree;
+	UBehaviorTree* BehaviorTree;
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI Behavior", meta=(ClampMin="0.0"))
+	float TargetRefreshInterval = 0.5f;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Perception")
-	class UAIPerceptionComponent* AIPerceptionComponent;
+	UAIPerceptionComponent* AIPerceptionComponent;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "Perception")
-	class UAISenseConfig_Sight* SightConfig;
+	UAISenseConfig_Sight* SightConfig;
 
 	UFUNCTION()
 	void TargetPerceptionUpdated(AActor* TargetActor, FAIStimulus Stimulus);
 	UFUNCTION()
 	void TargetForgotten(AActor* ForgottenActor);
 
-	const UObject* GetCurrentTarget() const;
+	AActor* GetCurrentTarget() const;
 	void SetCurrentTarget(AActor* NewTarget);
 
 	AActor* GetNextPerceivedActor() const;
+	void RefreshCurrentTarget();
 
 	void ForgetActorIfDead(AActor* ActorToForget);
 
@@ -56,4 +60,5 @@ private:
 	
 	bool bIsPawnDead = false;
 	bool bIsPawnReacting = false;
+	FTimerHandle TargetRefreshTimerHandle;
 };

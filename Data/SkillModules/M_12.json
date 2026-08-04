@@ -1,0 +1,118 @@
+{
+	"ModuleId": 12,
+	"Module":
+	{
+		"ModuleName": "DA_ColdBlood",
+		"DisplayData":
+		{
+			"DisplayName": "Cold Blood",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_ColdBlood.T_ColdBlood'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Event.TargetData",
+							"damagePayloadTag": "Damage.Frostbite"
+						}
+					},
+					{
+						"eventTag": "",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyAttribute",
+							"target": "TargetPayload",
+							"targetPayloadTag": "Data.Event.TargetData",
+							"attribute":
+							{
+								"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
+							},
+							"operation": "Override",
+							"baseValue": 0,
+							"eventMagnitudeCoefficient": 0,
+							"attributeCoefficients": []
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Frostbite",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 10,
+						"DamageTypeTag": "DamageType.Fixed",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								},
+								"payloadTag": "",
+								"coefficient": 0.10000000149011612
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectStun",
+								"duration": 3
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Ice",
+							"GameplayCue.Hit.Overlay.Red"
+						]
+					}
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,65 @@
+{
+	"ModuleId": 5,
+	"Module":
+	{
+		"ModuleName": "DA_GoblinDashFast",
+		"DisplayData":
+		{
+			"DisplayName": "",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "None",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_MontageStart"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.MontageStart",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_Dash",
+							"dashSpeed": 750,
+							"dashDuration": 0.75
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Goblin_MS/AM_GblinDash.AM_GblinDash'",
+						"sequenceSectionNameBase": "None",
+						"maxSectionCount": 0
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": []
+	}
+}

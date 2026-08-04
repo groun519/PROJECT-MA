@@ -1,0 +1,72 @@
+{
+	"ModuleId": 18,
+	"Module":
+	{
+		"ModuleName": "DA_CrushingStrike",
+		"DisplayData":
+		{
+			"DisplayName": "Crushing Strike",
+			"Description": "스킬의 <AS>시행 속도가 15% 느려</>지는 대신,\r\n스킬의 <FINAL>최종 피해량이 45% 증가</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Crushing_Strike.T_Crushing_Strike'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Crushing",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity6"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Modifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
+							"multiplier": 1.4500000476837158,
+							"multiplierPayloadTag": "",
+							"payloadBaseMultiplier": 0
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 0.85000002384185791
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

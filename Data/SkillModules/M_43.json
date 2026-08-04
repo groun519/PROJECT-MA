@@ -1,0 +1,134 @@
+{
+	"ModuleId": 43,
+	"Module":
+	{
+		"ModuleName": "DA_Berserker",
+		"DisplayData":
+		{
+			"DisplayName": "Berserker Fury",
+			"Description": "현재 체력의 30%에 해당하는 <ATK>피해를 스스로에게 입힙니다</>.\r\n대신 10초 동안, 입은 피해 비율 만큼, <ATK>공격력</>, <AS>공격 속도</>, <MS>이동 속도</>가 증가합니다.\r\n<BD>해당 효과가 활성화중일 때 재사용 시 활성 시간이 갱신되지만, 중첩되지 않습니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Berserker.T_Berserker'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Fury",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity6"
+		},
+		"ModuleTags": [
+			"Module.Attack",
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 12
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Berserker",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToSelf",
+							"damagePayloadTag": "Damage.Berserker.Health"
+						}
+					},
+					{
+						"eventTag": "Event.Montage.Berserker",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyGameplayEffectToSelf",
+							"gameplayEffectClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/GE_Berserker.GE_Berserker_C'",
+							"effectLevel": 1
+						}
+					},
+					{
+						"eventTag": "Event.Montage.Berserker",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyOverlayToSelf",
+							"baseColor":
+							{
+								"r": 5,
+								"g": 0.25,
+								"b": 0,
+								"a": 1
+							},
+							"alpha": 0.5,
+							"duration": 10
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Berserker.AM_Berserker'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Berserker.Health",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Health"
+								},
+								"payloadTag": "",
+								"coefficient": 0.30000001192092896
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 2,
+							"TickCount": 6
+						},
+						"TargetRelationMask": 8,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
+	}
+}

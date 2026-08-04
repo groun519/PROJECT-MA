@@ -1,115 +1,96 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Widget/MAValueGauge.h"
-#include "Components/ProgressBar.h"
+
 #include "AbilitySystemComponent.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Image.h"
+#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
-#include "TimerManager.h" // 💡 타이머를 위해 추가
-#include "Math/UnrealMathUtility.h" // 💡 FInterpTo (서서히 줄어드는 수학 함수)를 위해 추가
+#include "Components/Widget.h"
 
 void UMAValueGauge::NativePreConstruct()
 {
-    Super::NativePreConstruct();
-    HealthBar->SetFillColorAndOpacity(BarColor);
+	Super::NativePreConstruct();
+	
+	HealthFillImage->SetColorAndOpacity(HealthColor);
+	ShieldFillImage->SetColorAndOpacity(ShieldColor);
+	
+	FSlateFontInfo HealthFont = HealthText->GetFont();
+	HealthFont.Size = ValueTextSize;
+	HealthText->SetFont(HealthFont);
 
-    ValueText->SetFont(ValueTextFont);
-
-    ValueText->SetVisibility(bValueTextVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
-    HealthBar->SetVisibility(bProgressBarVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
-
-    // 고스트 바 가시성 설정
-    if (GhostProgressBar)
-    {
-        GhostProgressBar->SetVisibility(bProgressBarVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
-        // 고스트 바는 항상 하얀색으로 고정
-        GhostProgressBar->SetFillColorAndOpacity(FLinearColor::White); 
-    }
+	FSlateFontInfo ShieldFont = ShieldText->GetFont();
+	ShieldFont.Size = ValueTextSize;
+	ShieldText->SetFont(ShieldFont);
 }
 
-void UMAValueGauge::SetAndBoundToGameplayAttribute(UAbilitySystemComponent* AbilitySystemComponent, const FGameplayAttribute& Attribute, const FGameplayAttribute& MaxAttribute)
+void UMAValueGauge::Bind3Attributes(
+	UAbilitySystemComponent* ASC,
+	const FGameplayAttribute& HealthAttribute,
+	const FGameplayAttribute& MaxHealthAttribute,
+	const FGameplayAttribute& ShieldAttribute)
 {
-    // 범님 원본 100% 동일
-    if (AbilitySystemComponent)
-    {
-       bool bFound;
-       float Value = AbilitySystemComponent->GetGameplayAttributeValue(Attribute, bFound);
-       float MaxValue = AbilitySystemComponent->GetGameplayAttributeValue(MaxAttribute, bFound);
-       if (bFound)
-       {
-          SetValue(Value, MaxValue);
-       }
+	if (BoundASC.Get() == ASC) return;
+	BoundASC = ASC;
 
-       AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(Attribute).AddUObject(this, &UMAValueGauge::ValueChanged);
-       AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(MaxAttribute).AddUObject(this, &UMAValueGauge::MaxValueChanged);
-    }
+	if (ASC)
+	{
+		bool bFound;
+		float Health	= ASC->GetGameplayAttributeValue(HealthAttribute, bFound);
+		float MaxHealth = ASC->GetGameplayAttributeValue(MaxHealthAttribute, bFound);
+		float Shield	= ASC->GetGameplayAttributeValue(ShieldAttribute, bFound);
+		if (bFound) Set3Values(Health, MaxHealth, Shield);
+
+		ASC->GetGameplayAttributeValueChangeDelegate(HealthAttribute).AddUObject(this, &UMAValueGauge::HealthChanged);
+		ASC->GetGameplayAttributeValueChangeDelegate(MaxHealthAttribute).AddUObject(this, &UMAValueGauge::MaxHealthChanged);
+		ASC->GetGameplayAttributeValueChangeDelegate(ShieldAttribute).AddUObject(this, &UMAValueGauge::ShieldChanged);
+	}
 }
 
-void UMAValueGauge::SetValue(float NewValue, float NewMaxValue)
+void UMAValueGauge::SetFillRatio(UWidget* FillRoot, float FillRatio)
 {
-    CachedValue = NewValue;
-    CachedMaxValue = NewMaxValue;
+	UHorizontalBoxSlot* HorizontalBoxSlot = CastChecked<UHorizontalBoxSlot>(FillRoot->Slot);
 
-    if (NewMaxValue == 0) return;
+	FSlateChildSize Size(ESlateSizeRule::Fill);
+	Size.Value = FMath::Max(FillRatio, 0.f);
 
-    // 1. 목표 퍼센트 계산 및 메인 바 즉시 깎기
-    TargetPercent = NewValue / NewMaxValue;
-    HealthBar->SetPercent(TargetPercent);
-
-    // ✨ 2. 고스트 바 타이머 로직
-    if (CurrentGhostPercent <= TargetPercent) 
-    {
-        // 피가 차오를 때: 하얀 바도 즉시 채우고 타이머 끄기
-        CurrentGhostPercent = TargetPercent;
-        if (GhostProgressBar) GhostProgressBar->SetPercent(CurrentGhostPercent);
-        
-        GetWorld()->GetTimerManager().ClearTimer(GhostTimerHandle);
-    }
-    else 
-    {
-        // 피가 깎였을 때: 하얀 바가 서서히 줄어들도록 타이머 켜기
-        if (!GetWorld()->GetTimerManager().IsTimerActive(GhostTimerHandle))
-        {
-            GetWorld()->GetTimerManager().SetTimer(GhostTimerHandle, this, &UMAValueGauge::UpdateGhostBar, 0.016f, true);
-        }
-    }
-
-    // 3. 텍스트 설정 (범님 원본 100% 동일)
-    FNumberFormattingOptions FormatOps = FNumberFormattingOptions().SetMaximumFractionalDigits(0);
-    ValueText->SetText(
-       FText::Format(
-          FTextFormat::FromString("{0}/{1}"),
-          FText::AsNumber(NewValue, &FormatOps),
-          FText::AsNumber(NewMaxValue, &FormatOps)
-       )
-    );
+	HorizontalBoxSlot->SetSize(Size);
 }
 
-// ✨ 3. 타이머가 0.016초마다 호출해서 하얀 바를 서서히 줄이는 함수
-void UMAValueGauge::UpdateGhostBar()
+void UMAValueGauge::Set3Values(float NewHealth, float NewMaxHealth, float NewShield)
 {
-    CurrentGhostPercent = FMath::FInterpTo(CurrentGhostPercent, TargetPercent, 0.016f, 1.0f);
+	CachedHealth = NewHealth;
+	CachedMaxHealth = NewMaxHealth;
+	CachedShield = NewShield;
 
-    if (GhostProgressBar)
-    {
-        GhostProgressBar->SetPercent(CurrentGhostPercent);
-    }
+	const float EmptyValue = FMath::Max(NewMaxHealth - NewHealth, 0.f);
+	const float TotalValue = FMath::Max(NewMaxHealth + NewShield, KINDA_SMALL_NUMBER);
 
-    // 다 줄어들면 타이머 끄기
-    if (FMath::IsNearlyEqual(CurrentGhostPercent, TargetPercent, 0.001f))
-    {
-        CurrentGhostPercent = TargetPercent;
-        if (GhostProgressBar) GhostProgressBar->SetPercent(CurrentGhostPercent);
-        
-        GetWorld()->GetTimerManager().ClearTimer(GhostTimerHandle);
-    }
+	SetFillRatio(HealthFillRoot, NewHealth / TotalValue);
+	SetFillRatio(EmptyFillSpacer, EmptyValue / TotalValue);
+	SetFillRatio(ShieldFillRoot, NewShield / TotalValue);
+
+	// 소수점x
+	FNumberFormattingOptions NoDecimalFormat =
+		FNumberFormattingOptions().SetMaximumFractionalDigits(0);
+	
+	HealthText->SetVisibility(bShowValueText ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	HealthText->SetText(FText::AsNumber(NewHealth, &NoDecimalFormat));
+
+	ShieldText->SetVisibility(bShowValueText && NewShield > 0.f ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	ShieldText->SetText(FText::AsNumber(NewShield, &NoDecimalFormat));
 }
 
-void UMAValueGauge::ValueChanged(const FOnAttributeChangeData& ChangedData)
+void UMAValueGauge::HealthChanged(const FOnAttributeChangeData& ChangedData)
 {
-    SetValue(ChangedData.NewValue, CachedMaxValue);
+	Set3Values(ChangedData.NewValue, CachedMaxHealth, CachedShield);
 }
 
-void UMAValueGauge::MaxValueChanged(const FOnAttributeChangeData& ChangedData)
+void UMAValueGauge::MaxHealthChanged(const FOnAttributeChangeData& ChangedData)
 {
-    SetValue(CachedValue, ChangedData.NewValue);
+	Set3Values(CachedHealth, ChangedData.NewValue, CachedShield);
+}
+
+void UMAValueGauge::ShieldChanged(const FOnAttributeChangeData& ChangedData)
+{
+	Set3Values(CachedHealth, CachedMaxHealth, ChangedData.NewValue);
 }

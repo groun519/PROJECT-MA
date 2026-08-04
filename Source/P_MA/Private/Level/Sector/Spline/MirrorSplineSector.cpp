@@ -1,15 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Level/Sector/Spline/MirrorSplineSector.h"
+
 #include "Level/Sector/Spline/SplineSector.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "PCGComponent.h"
 #include "PCGGraph.h"
-
-AMirrorSplineSector::AMirrorSplineSector()
-{
-}
 
 void AMirrorSplineSector::BeginPlay()
 {

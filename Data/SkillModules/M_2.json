@@ -1,0 +1,72 @@
+{
+	"ModuleId": 2,
+	"Module":
+	{
+		"ModuleName": "DA_Ready_Red",
+		"DisplayData":
+		{
+			"DisplayName": "Ready",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "None",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "GroundSlam",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyOverlayToSelf",
+							"baseColor":
+							{
+								"r": 1,
+								"g": 0,
+								"b": 0,
+								"a": 1
+							},
+							"alpha": 0.5,
+							"duration": 1
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_AttachNiagaraToSelf",
+							"niagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/ProjectileHitVFX/NS/NS_Hit_Eletric_01.NS_Hit_Eletric_01'",
+							"socketName": "head",
+							"lifeSpan": 1
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

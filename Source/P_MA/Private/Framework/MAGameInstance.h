@@ -132,6 +132,7 @@ private:
 	double LoadingScreenStartTime = 0.0;
 	bool bLoadingScreenActive = false;
 	bool bLocalMainMapLoaded = false;
+	bool bLocalLoadingVisualComplete = false;
 	bool bLocalLoadedNotifySent = false;
 
 	/** Online **/

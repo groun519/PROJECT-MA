@@ -1,0 +1,65 @@
+{
+	"ModuleId": 7,
+	"Module":
+	{
+		"ModuleName": "DA_MiddleGolemDash",
+		"DisplayData":
+		{
+			"DisplayName": "",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "None",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_MontageStart"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.MontageStart",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_Dash",
+							"dashSpeed": 350,
+							"dashDuration": 1
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MM/AM_GolemDash.AM_GolemDash'",
+						"sequenceSectionNameBase": "None",
+						"maxSectionCount": 0
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": []
+	}
+}

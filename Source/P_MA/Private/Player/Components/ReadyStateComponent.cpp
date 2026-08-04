@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "ReadyStateComponent.h"
+
 #include "Player/MAPlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -9,12 +7,24 @@
 #include "P_MA/P_MA.h"
 #include "Framework/MAGameMode.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/MAPlayerControllerBase.h"
+#include "TimerManager.h"
 
 UReadyStateComponent::UReadyStateComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
 
+void UReadyStateComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick(this, &UReadyStateComponent::ApplyReadyCameraTransition);
+	}
 }
 
 void UReadyStateComponent::ReadyAndMoveIn(FVector InDir, float MovingUnit)
@@ -144,12 +154,28 @@ void UReadyStateComponent::HandleReadyStateChanged()
 		}
 	}
 
+	ApplyReadyCameraTransition();
 	OnReadyStateChanged.Broadcast(IsReady());
 }
 
 void UReadyStateComponent::HandleLoopReadyStateChanged()
 {
 	OnLoopReadyStateChanged.Broadcast(IsLoopReady());
+}
+
+void UReadyStateComponent::ApplyReadyCameraTransition()
+{
+	const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
+	if (!PlayerCharacter || !PlayerCharacter->IsLocallyControlled()) return;
+
+	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(PlayerCharacter->GetController());
+	if (!PlayerController || !PlayerController->IsLocalController()) return;
+
+	UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController->GetCameraDirector();
+	if (!CameraDirector) return;
+
+	CameraDirector->RefreshPawnCamera();
+	CameraDirector->TransitionPawnCamera(IsReady() ? ReadyCameraSettings : NotReadyCameraSettings);
 }
 
 void UReadyStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

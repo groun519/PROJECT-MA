@@ -1,0 +1,189 @@
+{
+	"ModuleId": 51,
+	"Module":
+	{
+		"ModuleName": "DA_Throw",
+		"DisplayData":
+		{
+			"DisplayName": "Throwing",
+			"Description": "투사체를 발사하여, \r\n<BD>10</>+<ATK>75%의 피해</>를 입히고, 대상에게 <KNB>0.35초 동안 0.35m의 넉백</>, <SLOW>0.75초 동안 75%의 둔화</>를 부여합니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Throw.T_Throw'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Throw",
+				"Priority": 3
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [
+			"Module.Attack"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 2
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
+						"changedAttribute":
+						{
+							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+						},
+						"changeType": "Changed"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Damage",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ThrowWeaponProjectile",
+							"config":
+							{
+								"projectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_WeaponProjectile.BP_WeaponProjectile_C'",
+								"startObjectSource": "Self",
+								"startObjectPayloadTag": "",
+								"directionSource": "Forward",
+								"directionObjectPayloadTag": "",
+								"bUseTargetTracking": false,
+								"targetTracking":
+								{
+									"targetSource": "Self",
+									"targetObjectPayloadTag": "",
+									"bHitOnlyTarget": false
+								},
+								"spawnSocketName": "WeaponHandSocket",
+								"maxHitCount": 1,
+								"continuousHitSettings":
+								{
+									"tickInterval": 0.079999998211860657,
+									"minSweepDistance": 10,
+									"maxSweepSegmentLength": 150,
+									"maxSweepSubsteps": 8
+								}
+							},
+							"damagePayloadTag": "Damage"
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.81999999284744263
+						}
+					},
+					{
+						"eventTag": "Event.Attribute.AttackSpeed.Changed",
+						"bindingScope": "Global",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.81999999284744263
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.1499999761581421
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Throw.AM_Throw'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 10,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 0.75
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectKnockback",
+								"magnitude": 100,
+								"duration": 0.34999999403953552,
+								"sourceType": "Instigator"
+							},
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
+								"magnitude": 0.25,
+								"duration": 0.75,
+								"grantedTags": []
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Golem",
+							"GameplayCue.Hit.Overlay.Red"
+						]
+					}
+				}
+			}
+		]
+	}
+}

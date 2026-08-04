@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Player/Components/ReadyRideComponent.h"
 
 #include "Components/CapsuleComponent.h"
@@ -82,11 +80,6 @@ void UReadyRideComponent::SetRidingRoot(ARideRoot* InRideRoot)
 	}
 
 	ApplyRideState(IsRiding());
-}
-
-bool UReadyRideComponent::IsRiding() const
-{
-	return RidingRoot != nullptr;
 }
 
 bool UReadyRideComponent::TryGetRideYaw(float& OutYaw) const

@@ -1,0 +1,53 @@
+{
+	"ModuleId": 45,
+	"Module":
+	{
+		"ModuleType": "Sub",
+		"ModuleName": "DA_Charge",
+		"DisplayData":
+		{
+			"DisplayName": "Charge",
+			"Description": "최대 1.5초 간 차지하고, \r\n종료 시, 차지 시간 만큼, 스킬의 <FINAL>최종 피해량을 0~150% 증가</>시킵니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Charge.T_Charge'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Charging",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity5"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [],
+				"sequenceModifiers": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillSequenceModifier_Charge",
+						"timeLimitSeconds": 1,
+						"bShowProgress": true,
+						"progressLabel": "Charge",
+						"targetSequenceIndex": 0
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

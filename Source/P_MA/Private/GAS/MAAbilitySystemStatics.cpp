@@ -1,40 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Abilities/GameplayAbility.h"
-#include "AbilitySystemInterface.h"
-#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayTagsManager.h"
-#include "MAAbilitySystemComponent.h"
-#include "Ability/MAGameplayAbility_Skill.h"
-#include "Setting/MASkillSubsystem.h"
-
-FGameplayTag UMAAbilitySystemStatics::GetBasicAttackAbilityTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputPressedTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Pressed");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetBasicAttackInputReleasedTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attack.Basic.Released");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetSkillAttackTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Attack.Skill");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetIgnoreClearTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Combo.Clear");
-}
+#include "MAGameplayAbilityTypes.h"
+#include "Player/MAPlayerCharacter.h"
 
 FGameplayTag UMAAbilitySystemStatics::GetDeadStatTag()
 {
@@ -46,19 +14,34 @@ FGameplayTag UMAAbilitySystemStatics::GetRotationLockTag()
 	return FGameplayTag::RequestGameplayTag("State.RotationLock");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetRushingTag()
+FGameplayTag UMAAbilitySystemStatics::GetInputBlockTag()
 {
-	return FGameplayTag::RequestGameplayTag("State.Rushing");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetAimingTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Aiming");
+	return FGameplayTag::RequestGameplayTag("State.InputBlocked");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMoveBlockTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.MoveBlocked");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetAbilityBlockTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.AbilityBlocked");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceXTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.X");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceYTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.Y");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetReactionSourceZTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Source.Z");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetHealthFullStatTag()
@@ -71,44 +54,14 @@ FGameplayTag UMAAbilitySystemStatics::GetHealthEmptyStatTag()
 	return FGameplayTag::RequestGameplayTag("Stats.Health.Empty");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetPlayerRoleTag()
+FGameplayTag UMAAbilitySystemStatics::GetDefaultVisualElementTag()
 {
-	return FGameplayTag::RequestGameplayTag("role.Player");
+	return FGameplayTag::RequestGameplayTag("Module.Visual.Elemental.Default");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetGoldAttributeTag()
+FGameplayTag UMAAbilitySystemStatics::GetPlayerRespawnGameplayCueTag()
 {
-	return FGameplayTag::RequestGameplayTag("attr.gold");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMeleeActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Melee");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetProjectileActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Projectile");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetTargetingActionTag()
-{
-	return FGameplayTag::RequestGameplayTag("Ability.Action.Targeting");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMontageDamageTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.Damage");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetMontageProjectileTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.SpawnProjectile");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetLaunchActivateTag()
-{
-	return FGameplayTag::RequestGameplayTag("Event.Montage.LaunchActivate");
+	return FGameplayTag::RequestGameplayTag("GameplayCue.Player.Respawn");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
@@ -116,14 +69,187 @@ FGameplayTag UMAAbilitySystemStatics::GetBehaviorMultiplierTag()
 	return FGameplayTag::RequestGameplayTag("Data.Damage.BehaviorModifier");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetElementalMultiplierTag()
+FGameplayTag UMAAbilitySystemStatics::GetDamageBaseTag()
 {
-	return FGameplayTag::RequestGameplayTag("Data.Damage.ElementalModifier");
+	return FGameplayTag::RequestGameplayTag("Data.Damage.Base");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetUtilityMultiplierTag()
+FGameplayTag UMAAbilitySystemStatics::GetAppliedDamageTag()
 {
-	return FGameplayTag::RequestGameplayTag("Data.Damage.UtilityModifier");
+	return FGameplayTag::RequestGameplayTag("Data.Damage.Applied");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDamageTargetTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.Target");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetFinalDamageMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.FinalModifier");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDamageVarianceTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Damage.Variance");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleEffectMagnitudeTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Module.Effect.Magnitude");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleStackTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Module.Stack");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.AttackSpeedMultiplier");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillFocusOffsetTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.FocusOffset");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillAreaScaleTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.AreaScale");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetSkillChargeRatioTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.Payload.Scalar.ChargeRatio");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.Hit");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.MovementStart");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetChargeCompletedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.ChargeCompleted");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleActivationChangedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Module.ActivationChanged");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetModuleStackChangedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Module.StackChanged");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetMovementHandleTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Event.MovementHandle");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetDefaultDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Damage");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHealDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Heal");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetFireDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Fire");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetIceDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Ice");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetFixedDamageTypeTag()
+{
+	return FGameplayTag::RequestGameplayTag("DamageType.Fixed");
+}
+
+FName UMAAbilitySystemStatics::GetDamageAttributeCoefficientName(
+	EMACoefficientSource Side,
+	const FGameplayAttribute& Attribute)
+{
+	if (!Attribute.IsValid() || Side == EMACoefficientSource::Payload) return NAME_None;
+
+	const TCHAR* SideName = Side == EMACoefficientSource::Source ? TEXT("Source") : TEXT("Target");
+	return FName(*FString::Printf(
+		TEXT("Data.Damage.Coeff.%s.%s.%s"),
+		SideName,
+		*GetNameSafe(Attribute.GetAttributeSetClass()),
+		*Attribute.GetName()));
+}
+
+void UMAAbilitySystemStatics::ApplyDamageExecutionConfig(FGameplayEffectSpecHandle& SpecHandle, const FMADamageExecutionConfig& DamageConfig)
+{
+	if (!SpecHandle.IsValid()) return;
+
+	TMap<FName, float> SummedAttributeCoefficients;
+	SpecHandle.Data->SetSetByCallerMagnitude(GetDamageBaseTag(), DamageConfig.BaseDamage);
+
+	for (const FMAAttributeCoefficient& Coefficient : DamageConfig.AttributeCoefficients)
+	{
+		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
+		if (Coefficient.Source == EMACoefficientSource::Payload) continue;
+
+		const FName CoefficientName = GetDamageAttributeCoefficientName(
+			Coefficient.Source,
+			Coefficient.GameplayAttribute);
+		if (!CoefficientName.IsNone())
+		{
+			SummedAttributeCoefficients.FindOrAdd(CoefficientName) += Coefficient.Coefficient;
+		}
+	}
+
+	for (const TPair<FName, float>& Pair : SummedAttributeCoefficients)
+	{
+		if (FMath::IsNearlyZero(Pair.Value)) continue;
+
+		SpecHandle.Data->SetSetByCallerMagnitude(Pair.Key, Pair.Value);
+	}
+
+	FGameplayEffectContextHandle ContextHandle = SpecHandle.Data->GetContext();
+	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(ContextHandle.Get()))
+	{
+		MAContext->SetDamageTypeTag(DamageConfig.DamageTypeTag);
+	}
+}
+
+void UMAAbilitySystemStatics::SetReactionSourcePoint(FGameplayEffectSpecHandle& SpecHandle, const FVector& SourcePoint)
+{
+	if (!SpecHandle.IsValid()) return;
+
+	// TODO: If reaction payload grows beyond SourcePoint, move this data to a custom GameplayEffectContext.
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceXTag(), SourcePoint.X);
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceYTag(), SourcePoint.Y);
+	SpecHandle.Data->SetSetByCallerMagnitude(GetReactionSourceZTag(), SourcePoint.Z);
+}
+
+bool UMAAbilitySystemStatics::TryGetReactionSourcePoint(const FGameplayEffectSpec& Spec, FVector& OutSourcePoint)
+{
+	// TODO: If reaction payload grows beyond SourcePoint, read it from a custom GameplayEffectContext instead.
+	const float* SourceX = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceXTag());
+	const float* SourceY = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceYTag());
+	const float* SourceZ = Spec.SetByCallerTagMagnitudes.Find(GetReactionSourceZTag());
+	if (!SourceX || !SourceY || !SourceZ) return false;
+
+	OutSourcePoint.X = *SourceX;
+	OutSourcePoint.Y = *SourceY;
+	OutSourcePoint.Z = *SourceZ;
+	return true;
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
@@ -131,9 +257,39 @@ FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Stun");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetHitReactTag()
+FGameplayTag UMAAbilitySystemStatics::GetFrozenStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("State.Debuff.HitReact");
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Frozen");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetRootStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Root");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetAirborneStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Airborne");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetAirborneRiseTimeTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Reaction.Airborne.RiseTime");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetGrabStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Grab");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetStaggerStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Stagger");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetKnockbackStatTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockback");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetAnyReactionStateTag()
@@ -141,62 +297,9 @@ FGameplayTag UMAAbilitySystemStatics::GetAnyReactionStateTag()
 	return FGameplayTag::RequestGameplayTag("State.Debuff");
 }
 
-FGameplayTag UMAAbilitySystemStatics::GetAirborneTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Debuff.Airborne");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetKnockdownTag()
-{
-	return FGameplayTag::RequestGameplayTag("State.Debuff.Knockdown");
-}
-
-FGameplayTag UMAAbilitySystemStatics::GetRecoveryTag()
-{
-	return FGameplayTag::RequestGameplayTag("Stats.Recovery");
-}
-
 bool UMAAbilitySystemStatics::IsPlayer(const AActor* ActorToCheck)
 {
-	const IAbilitySystemInterface* ActorISA = Cast<IAbilitySystemInterface>(ActorToCheck);
-	if (ActorISA)
-	{
-		UAbilitySystemComponent* ActorASC = ActorISA->GetAbilitySystemComponent();
-		if (ActorASC)
-		{
-			return ActorASC->HasMatchingGameplayTag(GetPlayerRoleTag());
-		}
-	}
-	return false;
-}
-
-float UMAAbilitySystemStatics::GetStaticCooldownDurationForAbility(const UGameplayAbility* Ability)
-{
-	if (!Ability)
-		return 0.f;
-	
-	const UGameplayEffect* CooldownEffect = Ability->GetCooldownGameplayEffect();
-	if (!CooldownEffect)
-		return 0.f;
-
-	float CooldownDuration = 0.f;
-
-	CooldownEffect->DurationMagnitude.GetStaticMagnitudeIfPossible(1, CooldownDuration);
-	return CooldownDuration;
-}
-
-float UMAAbilitySystemStatics::GetStaticCostForAbility(const UGameplayAbility* Ability)
-{
-	if (!Ability)
-		return 0.f;
-
-	const UGameplayEffect* CostEffect = Ability->GetCostGameplayEffect();
-	if (!CostEffect || CostEffect->Modifiers.Num() == 0)
-		return 0.f;
-
-	float Cost = 0.f;
-	CostEffect->Modifiers[0].ModifierMagnitude.GetStaticMagnitudeIfPossible(1, Cost);
-	return FMath::Abs(Cost);
+	return ActorToCheck && ActorToCheck->IsA<AMAPlayerCharacter>();
 }
 
 bool UMAAbilitySystemStatics::CheckAbilityCost(const FGameplayAbilitySpec& AbilitySpec, const UAbilitySystemComponent& ASC)
@@ -260,35 +363,4 @@ float UMAAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* A
 	}
 
 	return CooldownRemaining;
-}
-
-float UMAAbilitySystemStatics::GetExpectedCooldownDuration(const UGameplayAbility* AbilityCDO,	const UAbilitySystemComponent* ASC)
-{
-	if (!AbilityCDO || !ASC)
-		return 0.f;
-
-	const UMAGameplayAbility_Skill* SkillAbility = Cast<UMAGameplayAbility_Skill>(AbilityCDO);
-	if (!SkillAbility)
-		return 0.f;
-
-	float FinalCooldown = 0.f;
-	const FSkillData* FetchedSkillData = nullptr;
-	
-	if (UWorld* World = ASC->GetWorld())
-	{
-		if (UMASkillSubsystem* SkillSys = World->GetGameInstance()->GetSubsystem<UMASkillSubsystem>())
-		{
-			FetchedSkillData = SkillSys->GetSkillData(SkillAbility->GetSkillID());
-			if (FetchedSkillData)
-			{
-				FinalCooldown = FetchedSkillData->BaseCooldown;
-
-				if (const FModuleUtilityData* UtilityRow = SkillSys->GetUtilityData(FetchedSkillData->DefaultUtilityTag))
-				{
-					FinalCooldown *= UtilityRow->CooldownMultiplier;
-				}
-			}
-		}
-	}
-	return FinalCooldown;
 }

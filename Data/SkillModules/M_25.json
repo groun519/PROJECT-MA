@@ -1,0 +1,123 @@
+{
+	"ModuleId": 25,
+	"Module":
+	{
+		"ModuleName": "DA_Hurt",
+		"DisplayData":
+		{
+			"DisplayName": "Hurt",
+			"Description": "<ATK>적중</> 시, 0.9초 동안 <ATK>3번에 걸쳐 50%의 피해</>를 입히고, 3초 동안 <SLOW>50% 슬로우</>를 적용합니다.\r\n이후 1초 간 모듈이 비활성화 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Hurt.T_Hurt'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Hurt",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [
+			"Module.Attack",
+			"Module.Exclusive.Unique",
+			"Module.OnHit"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
+				"bindingScope": "Skill",
+				"triggerEventTags": [
+					"Event.Skill.Hit"
+				],
+				"durationSeconds": 1
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Hit",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.Hurt"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage.Hurt",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 0.44999998807907104
+							}
+						],
+						"ApplicationMode": "DamageOverTime",
+						"DamageOverTime":
+						{
+							"Duration": 0.89999997615814209,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
+								"magnitude": 0.5,
+								"duration": 3,
+								"grantedTags": []
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Sword"
+						]
+					}
+				}
+			}
+		]
+	}
+}

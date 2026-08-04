@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -14,6 +12,4 @@ class P_MA_API ABattleSector : public ASplineSector
 	
 public:
 	ABattleSector();
-	virtual void BeginPlay() override;
-	virtual void OnConstruction(const FTransform& Transform) override;
 };

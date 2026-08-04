@@ -1,0 +1,63 @@
+{
+	"ModuleId": 19,
+	"Module":
+	{
+		"ModuleName": "DA_Dash",
+		"DisplayData":
+		{
+			"DisplayName": "Dash",
+			"Description": "시퀀스 시작 시, <DASH>0.2초 간 2.4m의 대쉬</>를 합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Dash.T_Dash'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Dash",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique",
+			"Module.Movement"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.BuffModifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 2.5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_MontageStart"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.MontageStart",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_Dash",
+							"dashSpeed": 1200,
+							"dashDuration": 0.20000000298023224
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

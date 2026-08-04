@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -51,7 +49,9 @@ public:
 	void SetWaitMoveIn(bool bWaitMoveIn);
 	void ReleaseAttachedPlayers();
 	void SetCurSpline(USplineComponent* Spline);
+	void ApplyCurrentSplineTransform(float DeltaTime = 0.f);
 	void SetReadyText(int32 ReadyCount, int32 TotalCount);
+	void SetReadyCountdownText(int32 RemainingSeconds);
 	void SetRangeClampVisual(bool bVisible, float InSize);
 	UPrimitiveComponent* GetRideBaseComponent() const;
 	
@@ -66,6 +66,12 @@ private:
 	/** Ready Text **/
 	UPROPERTY(VisibleAnywhere)
 	UTextRenderComponent* ReadyText = nullptr;
+	FORCEINLINE FString FormatReadyText(int32 ReadyCount, int32 TotalCount)
+	{
+		return TotalCount < 0
+		? FString::Printf(TEXT("%d"), ReadyCount)
+		: FString::Printf(TEXT("[ %d / %d ]"), ReadyCount, TotalCount);
+	};
 
 	/** VFX **/
 	UPROPERTY(VisibleAnywhere)
@@ -109,5 +115,4 @@ private:
 
 	UFUNCTION()
 	void HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
 };

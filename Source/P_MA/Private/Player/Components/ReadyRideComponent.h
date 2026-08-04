@@ -1,10 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "ReadyRideComponent.generated.h"
 
 class AMAPlayerCharacter;
@@ -31,7 +28,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	void SetRidingRoot(ARideRoot* InRideRoot);
-	bool IsRiding() const;
+	bool IsRiding() const { return RidingRoot != nullptr; };
 	ARideRoot* GetRidingRoot() const { return RidingRoot; }
 	bool IsRideRotationLocked() const { return IsRiding(); }
 	bool TryGetRideYaw(float& OutYaw) const;

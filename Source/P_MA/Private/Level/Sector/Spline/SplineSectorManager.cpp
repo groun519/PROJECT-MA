@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "SplineSectorManager.h"
+
 #include "DrawDebugHelpers.h"
 #include "Framework/MAGameMode.h"
 #include "Framework/MAGameState.h"
@@ -10,6 +8,8 @@
 #include "PCGGraph.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerControllerBase.h"
+#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "TimerManager.h"
 
 ASplineSectorManager::ASplineSectorManager()
@@ -70,6 +70,8 @@ void ASplineSectorManager::BeginPlay()
 
 void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 {
+	CancelReadyCountdown();
+	GetWorldTimerManager().ClearTimer(LoopReadyCompletionTimerHandle);
 	LogStateChange(NewState);
 	bool bWasMoving = bIsMoving;
 	
@@ -86,11 +88,11 @@ void ASplineSectorManager::OnHandleSectorStateChanged(EMASectorState NewState)
 		CurSectorIndex = 0;
 		SetSectorsByState(NewState);
 		
-	if (CachedRideRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
-	{
-		USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
-		if (IsValid(CurSpline)) CachedRideRoot->SetCurSpline(CurSpline);
-	}
+		if (CachedRideRoot && bIsMoving && !CurSectors.IsEmpty() && CurSectors[0])
+		{
+			USplineComponent* CurSpline = CurSectors[0]->RoadSpline;
+			if (IsValid(CurSpline)) CachedRideRoot->SetCurSpline(CurSpline);
+		}
 	}
 
 	// 스테이트 캐시
@@ -146,20 +148,55 @@ void ASplineSectorManager::OnHandlePlatformReachedEnd()
 void ASplineSectorManager::OnHandleReadyCountChanged(int32 ReadyCount, int32 TotalCount)
 {
 	if (!CachedRideRoot) return;
+
+	if (CanUseReadyCountdown() && ReadyCount > 0 && ReadyCount == TotalCount)
+	{
+		StartReadyCountdown();
+		return;
+	}
+
+	CancelReadyCountdown();
 	CachedRideRoot->SetReadyText(ReadyCount, TotalCount);
+}
+
+void ASplineSectorManager::CompleteLoopReady()
+{
+	if (!HasAuthority() || !CachedRideRoot || !CachedMAGameMode || !GetWorld()) return;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AMAPlayerControllerBase* PC = Cast<AMAPlayerControllerBase>(It->Get());
+		if (!PC) continue;
+
+		if (UMAPlayerCameraDirectorComponent* CameraDirector = PC->GetCameraDirector())
+		{
+			CameraDirector->RequestFade(LoopReadyFadeSettings);
+		}
+	}
+
+	GetWorldTimerManager().SetTimer(
+		LoopReadyCompletionTimerHandle,
+		[this]()
+		{
+			if (!HasAuthority() || !CachedRideRoot || !CachedMAGameMode) return;
+
+			const EMASectorState NewState = EMASectorState::InBattle;
+			CachedMAGameMode->RequestStateChange(NewState);
+			CurSectorIndex = 0;
+			SetSectorsByState(NewState);
+			ApplyCurSplineAndSeed();
+			CachedRideRoot->ApplyCurrentSplineTransform();
+		},
+		LoopReadyFadeSettings.FadeOutSeconds,
+		false);
 }
 
 int32 ASplineSectorManager::GetNextSectorIndex(int32 InSectorIndex)
 {
 	int32 LastSectorIndex = CurSectors.Num() - 1;
-	if (InSectorIndex == LastSectorIndex)
-	{
-		return 0;
-	}
-	else
-	{
-		return InSectorIndex + 1;
-	}
+	if (InSectorIndex == LastSectorIndex) return 0;
+	
+	return InSectorIndex + 1;
 }
 
 EMASectorState ASplineSectorManager::GetMASectorState() const
@@ -176,6 +213,54 @@ ASplineSectorManager* ASplineSectorManager::FindSplineSectorManager(UWorld* Worl
 	AActor* Found = UGameplayStatics::GetActorOfClass(World, ASplineSectorManager::StaticClass());
 	ASplineSectorManager* SSM = Cast<ASplineSectorManager>(Found);
 	return SSM;
+}
+
+bool ASplineSectorManager::CanUseReadyCountdown() const
+{
+	return CachedMAGameMode &&
+		(CachedMASectorState == EMASectorState::Wait || CachedMASectorState == EMASectorState::EndBattle);
+}
+
+void ASplineSectorManager::StartReadyCountdown()
+{
+	if (!CachedRideRoot || !CachedMAGameMode) return;
+	if (GetWorldTimerManager().IsTimerActive(ReadyCountdownTimerHandle)) return;
+
+	if (ReadyStartDelay <= 0.f)
+	{
+		CachedMAGameMode->RequestNextState(CachedMAGameMode->GetMASectorState());
+		return;
+	}
+
+	ReadyCountdownRemainingSeconds = FMath::Max(1, FMath::CeilToInt(ReadyStartDelay));
+	TickReadyCountdown();
+	GetWorldTimerManager().SetTimer(
+		ReadyCountdownTimerHandle,
+		this,
+		&ASplineSectorManager::TickReadyCountdown,
+		1.f,
+		true);
+}
+
+void ASplineSectorManager::CancelReadyCountdown()
+{
+	GetWorldTimerManager().ClearTimer(ReadyCountdownTimerHandle);
+	ReadyCountdownRemainingSeconds = 0;
+}
+
+void ASplineSectorManager::TickReadyCountdown()
+{
+	if (!CachedRideRoot || !CachedMAGameMode) return;
+
+	if (ReadyCountdownRemainingSeconds <= 0)
+	{
+		GetWorldTimerManager().ClearTimer(ReadyCountdownTimerHandle);
+		CachedMAGameMode->RequestNextState(CachedMAGameMode->GetMASectorState());
+		return;
+	}
+
+	CachedRideRoot->SetReadyCountdownText(ReadyCountdownRemainingSeconds);
+	--ReadyCountdownRemainingSeconds;
 }
 
 void ASplineSectorManager::SetSectorsByState(EMASectorState InState)

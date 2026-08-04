@@ -1,17 +1,15 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
-#include "AI/Golem/Monster.h"
 #include "Level/Sector/Battle/BattleSpaceSpline.h"
 #include "Framework/MAGameStateTypes.h"
 #include "WaveManager.generated.h"
 
 class UDataTable;
 class AMAGameMode;
+class AMonster;
 
 USTRUCT()
 struct FWaveMonster
@@ -22,7 +20,7 @@ struct FWaveMonster
 	TSubclassOf<AMonster> Class;
 
 	UPROPERTY()
-	int32 Gold = 0;
+	int32 SpawnCostCoin = 0;
 };
 
 USTRUCT(BlueprintType)
@@ -31,9 +29,9 @@ struct FWaveSetting
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
-	int32 BaseGold = 1000;
+	int32 BaseCoin = 1000;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
-	int32 AddingGoldPerWave = 50;
+	int32 AddingCoinPerWave = 50;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	int32 MaxMonsterNum = 30;
@@ -49,15 +47,13 @@ class P_MA_API AWaveManager : public AActor
 {
 	GENERATED_BODY()
 
-public:
-	AWaveManager();
-
 protected:
 	virtual void BeginPlay() override;
 	void OnHandleSectorStateChanged(EMASectorState NewState);
 
-	/** Wave **/
 public:
+	AWaveManager();
+	
 	UPROPERTY(EditAnywhere, Category = "Wave")
 	ABattleSpaceSpline* SpawnSpline = nullptr;
 	
@@ -67,6 +63,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FGameplayTag CurEnvTag;
 
+private:
 	TArray<FWaveMonster> WaveMonsters;
 
 	void StartWave();
@@ -78,15 +75,14 @@ public:
 	// 몬스터를 데이터에서 뽑아 배열에 저장
 	TArray<FWaveMonster> GetNewWaveMonsters();
 	// 몬스터 뽑기
-	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutGold, FGameplayTag InEnvTag);
+	void GetRandomMonsterByEnv(TSubclassOf<AMonster>& OutMonster, int32& OutSpawnCostCoin, FGameplayTag InEnvTag, int32 MaxSpawnCostCoin);
 
 	void CreateBaseIntervalTimer();
-	// 개수만큼 몬스터 생성 후 골드량 리턴
-	int32 SpawnMonstersAndReturnGold(int32 SpawnAtOnce = 3);
+	// 개수만큼 몬스터 생성 후 코인량 리턴
+	int32 SpawnMonstersAndReturnCoin(int32 SpawnAtOnce = 3);
 	void OnMonsterDead();
 	void TryEndWave();
 
-private:
 	// 몬스터 스폰
 	FTimerHandle BaseIntervalTimerHandle;
 	float SpawnInterval = 1.f;
@@ -100,15 +96,15 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave", meta = (AllowPrivateAccess = "true"))
 	FWaveSetting WaveSetting;
 	
-	int32 TotalGold = 0;
+	int32 TotalCoin = 0;
 	int32 Wave = 1;
 	float MonsterStatCoefficient = 1.0;
-	int32 LastGold = 0;
+	int32 LastCoin = 0;
 	
-	FORCEINLINE void SetTotalGoldByWave()
+	FORCEINLINE void SetTotalCoinByWave()
 	{
-		TotalGold =
-			WaveSetting.BaseGold + WaveSetting.AddingGoldPerWave * Wave;
+		TotalCoin =
+			WaveSetting.BaseCoin + WaveSetting.AddingCoinPerWave * Wave;
 	}
 	FORCEINLINE void SetStatCoefficientByWave()
 	{

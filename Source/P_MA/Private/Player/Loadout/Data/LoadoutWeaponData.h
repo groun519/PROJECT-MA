@@ -1,14 +1,12 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "LoadoutWeaponData.generated.h"
 
-class UGameplayAbility;
 class USkeletalMesh;
 class UTexture2D;
+class UMASkillModule;
 
 USTRUCT(BlueprintType)
 struct FLoadoutWeaponDataRow : public FTableRowBase
@@ -25,5 +23,5 @@ struct FLoadoutWeaponDataRow : public FTableRowBase
 	FTransform WeaponOffset = FTransform::Identity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
-	TSubclassOf<UGameplayAbility> AttackAbility;
+	TSoftObjectPtr<UMASkillModule> AttackSkillModule;
 };

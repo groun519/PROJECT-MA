@@ -1,7 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Animation/MAAnimInstance.h"
+
+#include "GAS/Skill/MASkillAbility.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Player/MAPlayerCharacter.h"
@@ -66,4 +65,64 @@ void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void UMAAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 
+}
+
+void UMAAnimInstance::RegisterAnimationOwner(const UAnimSequenceBase* Animation, UMASkillAbility* SkillAbility)
+{
+	if (!Animation || !SkillAbility) return;
+	AnimationOwners.FindOrAdd(Animation) = SkillAbility;
+}
+
+UMASkillAbility* UMAAnimInstance::FindAnimationOwner(const UAnimSequenceBase* Animation) const
+{
+	if (!Animation) return nullptr;
+
+	const TWeakObjectPtr<UMASkillAbility>* FoundOwner = AnimationOwners.Find(Animation);
+	return FoundOwner ? FoundOwner->Get() : nullptr;
+}
+
+void UMAAnimInstance::UnregisterAnimationOwner(const UAnimSequenceBase* Animation, const UMASkillAbility* SkillAbility)
+{
+	if (!Animation) return;
+
+	const TWeakObjectPtr<UMASkillAbility>* FoundOwner = AnimationOwners.Find(Animation);
+	if (!FoundOwner) return;
+	if (SkillAbility && FoundOwner->Get() != SkillAbility) return;
+
+	AnimationOwners.Remove(Animation);
+}
+
+void UMAAnimInstance::RegisterSkillAreaPreviewContext(
+	const UAnimSequenceBase* Animation,
+	float AreaScale,
+	FGameplayTag VisualTag)
+{
+	if (!Animation) return;
+
+	SkillAreaPreviewScales.FindOrAdd(Animation) = AreaScale;
+	SkillAreaPreviewVisualTags.FindOrAdd(Animation) = VisualTag;
+}
+
+bool UMAAnimInstance::FindSkillAreaPreviewContext(
+	const UAnimSequenceBase* Animation,
+	float& OutAreaScale,
+	FGameplayTag& OutVisualTag) const
+{
+	if (!Animation) return false;
+
+	const float* FoundAreaScale = SkillAreaPreviewScales.Find(Animation);
+	const FGameplayTag* FoundVisualTag = SkillAreaPreviewVisualTags.Find(Animation);
+	if (!FoundAreaScale || !FoundVisualTag) return false;
+
+	OutAreaScale = *FoundAreaScale;
+	OutVisualTag = *FoundVisualTag;
+	return true;
+}
+
+void UMAAnimInstance::UnregisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation)
+{
+	if (!Animation) return;
+
+	SkillAreaPreviewScales.Remove(Animation);
+	SkillAreaPreviewVisualTags.Remove(Animation);
 }

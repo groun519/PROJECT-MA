@@ -10,6 +10,6 @@ public class P_MAEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V5;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
-		ExtraModuleNames.Add("P_MA");
+		ExtraModuleNames.AddRange(new[] { "P_MA", "P_MAEditor" });
 	}
 }

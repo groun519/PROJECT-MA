@@ -1,0 +1,70 @@
+{
+	"ModuleId": 23,
+	"Module":
+	{
+		"ModuleName": "DA_Gamble",
+		"DisplayData":
+		{
+			"DisplayName": "Gamble",
+			"Description": "<FINAL>최종 피해량이 5% 증가</>하며, <DV>랜덤적으로 최대 20% 더하거나 뺍니다.</>",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Gamble.T_Gamble'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "Gamble",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Modifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 1.5
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_AddDamageVariance",
+							"varianceAdditive": 0.20000000298023224
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
+							"multiplier": 1.0499999523162842,
+							"multiplierPayloadTag": "",
+							"payloadBaseMultiplier": 0
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

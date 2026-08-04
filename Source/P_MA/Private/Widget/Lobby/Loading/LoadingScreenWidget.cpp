@@ -46,7 +46,8 @@ void ULoadingScreenWidget::NativeConstruct()
 
 void ULoadingScreenWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	Super::NativeTick(MyGeometry, InDeltaTime);
+	// MoviePlayer can tick this widget from its loading Slate thread.
+	// UUserWidget::NativeTick may touch game-thread-only state there, so keep this tick self-contained.
 
 	if (!bHasPendingProgress)
 	{

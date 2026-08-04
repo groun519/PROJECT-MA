@@ -1,21 +1,32 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GenericTeamAgentInterface.h"
 #include "GameplayEffect.h"
+#include "GameplayTagContainer.h"
 #include "MAGameplayAbilityTypes.generated.h"
 
 struct FMAGameplayEffectContext;
+
+UENUM(BlueprintType)
+enum class EMADamageCriticalResult : uint8
+{
+	None,
+	Critical,
+	ReverseCritical
+};
 
 USTRUCT()
 struct FMAGameplayEffectContext : public FGameplayEffectContext
 {
 	GENERATED_BODY()
 
-public:
-	bool IsCriticalHit() const {return bIsCriticalHit;}
-	void SetIsCriticalHit(bool bInIsCriticalHit) {bIsCriticalHit = bInIsCriticalHit;}
+	EMADamageCriticalResult GetCriticalResult() const { return CriticalResult; }
+	void SetCriticalResult(EMADamageCriticalResult InCriticalResult) { CriticalResult = InCriticalResult; }
+	const FGameplayTag& GetDamageTypeTag() const { return DamageTypeTag; }
+	void SetDamageTypeTag(const FGameplayTag& InDamageTypeTag) { DamageTypeTag = InDamageTypeTag; }
+	float GetDisplayMagnitude() const { return DisplayMagnitude; }
+	void SetDisplayMagnitude(float InDisplayMagnitude) { DisplayMagnitude = InDisplayMagnitude; }
 	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
 	virtual FMAGameplayEffectContext* Duplicate() const override
 	{
@@ -28,9 +39,16 @@ public:
 		return NewContext;
 	}
 	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess) override;
+
 protected:
 	UPROPERTY()
-	bool bIsCriticalHit = false;
+	EMADamageCriticalResult CriticalResult = EMADamageCriticalResult::None;
+
+	UPROPERTY()
+	FGameplayTag DamageTypeTag;
+
+	UPROPERTY()
+	float DisplayMagnitude = 0.f;
 };
 
 template<>
@@ -43,36 +61,150 @@ struct TStructOpsTypeTraits<FMAGameplayEffectContext> : public TStructOpsTypeTra
 	};
 };
 
-UENUM(BlueprintType)
-enum class EMAAbilityInputID : uint8
-{
-	None				UMETA(DisplayName = "None"),
-
-	Attack				UMETA(DisplayName = "Attack"),
-	Skill1				UMETA(DisplayName = "Skill1"),
-	Skill2				UMETA(DisplayName = "Skill2"),
-	Skill3				UMETA(DisplayName = "Skill3"),
-	Skill4				UMETA(DisplayName = "Skill4"),
-	Ultimate			UMETA(DisplayName = "Ultimate"),
-	
-	Movement			UMETA(DisplayName = "Movement"),
-
-	Confirm				UMETA(DisplayName = "Confirm"),
-	Cancel				UMETA(DisplayName = "Cancel"),
-};
-
 USTRUCT(BlueprintType)
 struct FGenericDamageEffectDef
 {
 	GENERATED_BODY()
 
-public:
 	FGenericDamageEffectDef();
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
 	UPROPERTY(EditAnywhere)
 	FVector PushVelocity;
+};
+
+UENUM(BlueprintType)
+enum class EMACoefficientSource : uint8
+{
+	Source,
+	Target,
+	Payload
+};
+
+UENUM(BlueprintType, meta=(Bitflags, UseEnumValuesAsMaskValuesInEditor="true"))
+enum class EMATargetRelation : uint8
+{
+	None     = 0 UMETA(Hidden),
+	Friendly = 1 << 0,
+	Hostile  = 1 << 1,
+	Neutral  = 1 << 2,
+	Self     = 1 << 3
+};
+ENUM_CLASS_FLAGS(EMATargetRelation);
+
+namespace MATargetRelation
+{
+	FORCEINLINE int32 ToMask(const EMATargetRelation Relation)
+	{
+		return static_cast<int32>(Relation);
+	}
+
+	FORCEINLINE int32 ToMask(const ETeamAttitude::Type TeamAttitude)
+	{
+		switch (TeamAttitude)
+		{
+		case ETeamAttitude::Friendly:
+			return ToMask(EMATargetRelation::Friendly);
+		case ETeamAttitude::Hostile:
+			return ToMask(EMATargetRelation::Hostile);
+		case ETeamAttitude::Neutral:
+			return ToMask(EMATargetRelation::Neutral);
+		default:
+			return ToMask(EMATargetRelation::None);
+		}
+	}
+
+	FORCEINLINE int32 GetDefaultMask()
+	{
+		return ToMask(EMATargetRelation::Hostile);
+	}
+
+	FORCEINLINE bool IncludesSelf(const int32 AllowedRelationMask)
+	{
+		return (AllowedRelationMask & ToMask(EMATargetRelation::Self)) != 0;
+	}
+
+	FORCEINLINE bool IsSelfTarget(const AActor* SourceActor, const AActor* TargetActor)
+	{
+		return SourceActor && TargetActor && SourceActor == TargetActor;
+	}
+
+	FORCEINLINE bool MatchesMask(const int32 AllowedRelationMask, const ETeamAttitude::Type TeamAttitude)
+	{
+		return (AllowedRelationMask & ToMask(TeamAttitude)) != 0;
+	}
+
+	FORCEINLINE bool MatchesTarget(const int32 AllowedRelationMask, const AActor* SourceActor, const AActor* TargetActor, const ETeamAttitude::Type TeamAttitude)
+	{
+		if (IsSelfTarget(SourceActor, TargetActor))
+		{
+			return IncludesSelf(AllowedRelationMask);
+		}
+
+		return MatchesMask(AllowedRelationMask, TeamAttitude);
+	}
+}
+
+USTRUCT(BlueprintType)
+struct FMAAttributeCoefficient
+{
+	GENERATED_BODY()
+
+	FMAAttributeCoefficient();
+
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient")
+	EMACoefficientSource Source = EMACoefficientSource::Source;
+
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(DisplayName="Attribute", EditCondition="Source != EMACoefficientSource::Payload", EditConditionHides))
+	FGameplayAttribute GameplayAttribute;
+
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(Categories="Data", EditCondition="Source == EMACoefficientSource::Payload", EditConditionHides))
+	FGameplayTag PayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient")
+	float Coefficient = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FMADamageExecutionConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float BaseDamage = 0.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	FGameplayTag DamageTypeTag = FGameplayTag::RequestGameplayTag(TEXT("DamageType.Damage"));
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	TArray<FMAAttributeCoefficient> AttributeCoefficients;
+
+	void Append(const FMADamageExecutionConfig& Other)
+	{
+		BaseDamage += Other.BaseDamage;
+		if (Other.DamageTypeTag.IsValid())
+		{
+			DamageTypeTag = Other.DamageTypeTag;
+		}
+		AttributeCoefficients.Append(Other.AttributeCoefficients);
+	}
+
+	bool HasValues() const
+	{
+		if (!FMath::IsNearlyZero(BaseDamage)) return true;
+
+		for (const FMAAttributeCoefficient& Coefficient : AttributeCoefficients)
+		{
+			if (!FMath::IsNearlyZero(Coefficient.Coefficient)
+				&& Coefficient.GameplayAttribute.IsValid())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -91,16 +223,16 @@ FPlayerBaseStats();
 	float BaseAttack;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseDamageVariance;
-
-	UPROPERTY(EditAnywhere)
 	float BaseAttackSpeed;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseCriticalChance;
+	float BaseFocus;
 
 	UPROPERTY(EditAnywhere)
 	float BaseCriticalDamage;
+
+	UPROPERTY(EditAnywhere)
+	float BaseReverseCriticalDamage;
 	
 	UPROPERTY(EditAnywhere)
 	float BaseAttackRange;
@@ -115,7 +247,7 @@ FPlayerBaseStats();
 	float BaseArmorPenetration;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseGold;
+	float BaseCoin;
 };
 
 USTRUCT(BlueprintType)
@@ -134,13 +266,13 @@ struct FMonsterBaseStats : public FTableRowBase
 	float BaseAttack;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseDamageVariance;
-
-	UPROPERTY(EditAnywhere)
 	float BaseMoveSpeed;
 
 	UPROPERTY(EditAnywhere)
 	float BaseAttackSpeed;
+
+	UPROPERTY(EditAnywhere)
+	float BaseAttackRange;
 
 	UPROPERTY(EditAnywhere)
 	float BaseArmor;
@@ -148,9 +280,6 @@ struct FMonsterBaseStats : public FTableRowBase
 	UPROPERTY(EditAnywhere)
 	float BaseArmorPenetration;
 
-	UPROPERTY(EditAnywhere)
-	float BaseFuryMax;
-	
 	UPROPERTY(EditAnywhere, meta=(Categories="Stats.Immunity"))
 	FGameplayTagContainer BaseImmunityTags;
 };

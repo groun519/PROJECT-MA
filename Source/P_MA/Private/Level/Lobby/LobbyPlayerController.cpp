@@ -1,9 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "LobbyPlayerController.h"
+
 #include "LobbyGameState.h"
 #include "LobbyAvatarSlot.h"
-#include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
@@ -11,7 +9,6 @@
 #include "Widget/Lobby/LobbyWidgetRoot.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutWidget.h"
-#include "Widget/System/SystemMenuWidget.h"
 #include "Framework/MAGameInstance.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,7 +17,7 @@
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/MAPlayerState.h"
-#include "Level/Lobby/LobbyAvatarSlot.h"
+#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 
 void ALobbyPlayerController::BeginPlay()
 {
@@ -112,8 +109,7 @@ void ALobbyPlayerController::BeginPlay()
 				TargetFov = LobbyCameraComponent->FieldOfView;
 			}
 			ActiveViewSettings = LobbyView;
-			bUseCameraInterp = ActiveViewSettings.bUseInterp;
-
+			ApplyCameraTransition(LobbyView, ActiveViewSettings);
 		}
 	}
 
@@ -131,44 +127,6 @@ void ALobbyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(LobbyUiTimerHandle);
 	GetWorldTimerManager().ClearTimer(WeaponPreviewTimerHandle);
 	Super::EndPlay(EndPlayReason);
-}
-
-void ALobbyPlayerController::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	if (!IsLocalController() || !LobbyCameraActor) return;
-	if (!bUseCameraInterp || bIsCameraFading) return;
-
-	if (ActiveViewSettings.CameraInterpSpeed > 0.0f)
-	{
-		const FVector CurLocation = LobbyCameraActor->GetActorLocation();
-		const FRotator CurRotation = LobbyCameraActor->GetActorRotation();
-		const FVector NewLocation = FMath::VInterpTo(
-			CurLocation,
-			TargetCameraTransform.GetLocation(),
-			DeltaTime,
-			ActiveViewSettings.CameraInterpSpeed
-		);
-		const FRotator NewRotation = FMath::RInterpTo(
-			CurRotation,
-			TargetCameraTransform.Rotator(),
-			DeltaTime,
-			ActiveViewSettings.CameraInterpSpeed
-		);
-		LobbyCameraActor->SetActorLocationAndRotation(NewLocation, NewRotation);
-	}
-
-	if (LobbyCameraComponent && ActiveViewSettings.FovInterpSpeed > 0.0f)
-	{
-		const float NewFov = FMath::FInterpTo(
-			LobbyCameraComponent->FieldOfView,
-			TargetFov,
-			DeltaTime,
-			ActiveViewSettings.FovInterpSpeed
-		);
-		LobbyCameraComponent->SetFieldOfView(NewFov);
-	}
 }
 
 void ALobbyPlayerController::SetReady(bool bNewReady)
@@ -256,20 +214,14 @@ void ALobbyPlayerController::SetPendingMount(FName MountId)
 
 void ALobbyPlayerController::ApplyPendingWeaponPreview()
 {
-	if (PendingLoadout.WeaponId.IsNone())
-	{
-		return;
-	}
+	if (PendingLoadout.WeaponId.IsNone()) return;
 
 	const FName WeaponId = PendingLoadout.WeaponId;
 
 	const UMAGameInstance* GI = GetGameInstance<UMAGameInstance>();
 	const ULoadoutDataSet* LoadoutDataSet = GI ? GI->TryGetLoadoutDataSet() : nullptr;
 	const UDataTable* WeaponDataTable = LoadoutDataSet ? LoadoutDataSet->WeaponDataTable : nullptr;
-	if (!WeaponDataTable)
-	{
-		return;
-	}
+	if (!WeaponDataTable) return;
 
 	const FLoadoutWeaponDataRow* Row = WeaponDataTable->FindRow<FLoadoutWeaponDataRow>(WeaponId, TEXT("ApplyPendingWeaponPreview"));
 	if (!Row)
@@ -296,10 +248,7 @@ void ALobbyPlayerController::ApplyPendingMountPreview()
 
 void ALobbyPlayerController::EnsurePendingLoadoutInitialized()
 {
-	if (bHasPendingLoadout)
-	{
-		return;
-	}
+	if (bHasPendingLoadout) return;
 
 	if (AMAPlayerState* PS = GetPlayerState<AMAPlayerState>())
 	{
@@ -311,10 +260,7 @@ void ALobbyPlayerController::EnsurePendingLoadoutInitialized()
 void ALobbyPlayerController::ApplyPendingWeaponPreviewDelayed(float DelaySeconds)
 {
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
+	if (!World) return;
 
 	World->GetTimerManager().ClearTimer(WeaponPreviewTimerHandle);
 	World->GetTimerManager().SetTimer(
@@ -381,13 +327,9 @@ void ALobbyPlayerController::HandleLoadoutClicked()
 	if (!IsLocalController()) return;
 
 	if (bInLoadoutView)
-	{
 		ExitLoadoutView();
-	}
 	else
-	{
 		EnterLoadoutView();
-	}
 }
 
 void ALobbyPlayerController::UpdateLobbyUI()
@@ -480,7 +422,6 @@ void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)
 	}
 
 	UpdateCameraTarget();
-
 	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
 }
 
@@ -597,110 +538,39 @@ void ALobbyPlayerController::UpdateCameraTarget()
 
 void ALobbyPlayerController::ApplyCameraTransition(const FLoadoutCameraViewSettings& PrevViewSettings, const FLoadoutCameraViewSettings& NextViewSettings)
 {
-	const bool bUseFade = !PrevViewSettings.bUseInterp || !NextViewSettings.bUseInterp;
-	if (bUseFade)
-	{
-		const FLoadoutCameraViewSettings& FadeSettings = NextViewSettings.bUseInterp ? PrevViewSettings : NextViewSettings;
-		ApplyFadeTransition(FadeSettings);
-	}
-	else
-	{
-		ApplyInterpTransition();
-	}
-}
-
-void ALobbyPlayerController::ApplyFadeTransition(const FLoadoutCameraViewSettings& NextViewSettings)
-{
-	bUseCameraInterp = false;
-	TriggerInstantCameraFade(NextViewSettings);
-}
-
-void ALobbyPlayerController::ApplyInterpTransition()
-{
-	bIsCameraFading = false;
-	bUseCameraInterp = true;
-}
-
-void ALobbyPlayerController::ApplyInstantCameraTarget()
-{
 	if (!LobbyCameraActor) return;
 
-	LobbyCameraActor->SetActorLocationAndRotation(
-		TargetCameraTransform.GetLocation(),
-		TargetCameraTransform.Rotator()
-	);
-
-	if (LobbyCameraComponent && TargetFov > 0.0f)
+	if (UMAPlayerCameraDirectorComponent* CameraDirector = GetCameraDirector())
 	{
-		LobbyCameraComponent->SetFieldOfView(TargetFov);
-	}
-}
+		FMACameraViewTarget Target;
+		Target.CameraActor = LobbyCameraActor;
+		Target.CameraComponent = LobbyCameraComponent;
+		Target.Transform = TargetCameraTransform;
+		Target.Fov = TargetFov;
 
-void ALobbyPlayerController::TriggerInstantCameraFade(const FLoadoutCameraViewSettings& ViewSettings)
-{
-	bIsCameraFading = true;
-
-	if (!PlayerCameraManager)
-	{
-		ApplyInstantCameraTarget();
-		bIsCameraFading = false;
-		return;
-	}
-
-	const float FadeOut = FMath::Max(0.0f, ViewSettings.FadeSeconds.CameraFadeOutSeconds);
-	const float FadeIn = FMath::Max(0.0f, ViewSettings.FadeSeconds.CameraFadeInSeconds);
-	if (FadeOut <= 0.0f && FadeIn <= 0.0f)
-	{
-		bIsCameraFading = false;
-		return;
-	}
-
-	GetWorldTimerManager().ClearTimer(CameraFadeTimerHandle);
-	GetWorldTimerManager().ClearTimer(CameraFadeEndTimerHandle);
-
-	if (FadeOut > 0.0f)
-	{
-		PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeOut, FLinearColor::Black, false, true);
-		FTimerDelegate FadeInDelegate;
-		FadeInDelegate.BindLambda([this, FadeIn]()
+		const bool bUseFade = !PrevViewSettings.bUseInterp || !NextViewSettings.bUseInterp;
+		if (bUseFade)
 		{
-			ApplyInstantCameraTarget();
-			if (PlayerCameraManager && FadeIn > 0.0f)
-			{
-				PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeIn, FLinearColor::Black, false, false);
-			}
-		});
-		GetWorldTimerManager().SetTimer(CameraFadeTimerHandle, FadeInDelegate, FadeOut, false);
-		GetWorldTimerManager().SetTimer(
-			CameraFadeEndTimerHandle,
-			[this]()
-			{
-				bIsCameraFading = false;
-			},
-			FadeOut + FMath::Max(0.0f, FadeIn),
-			false
-		);
-		return;
+			const FLoadoutCameraViewSettings& FadeSettings = NextViewSettings.bUseInterp ? PrevViewSettings : NextViewSettings;
+			TWeakObjectPtr<UMAPlayerCameraDirectorComponent> WeakCameraDirector = CameraDirector;
+			const float FadeInSeconds = FadeSettings.FadeSeconds.CameraFadeInSeconds;
+			CameraDirector->FadeOut(
+				FadeSettings.FadeSeconds.CameraFadeOutSeconds,
+				[WeakCameraDirector, Target, FadeInSeconds]()
+				{
+					if (!WeakCameraDirector.IsValid()) return;
+					WeakCameraDirector->TeleportExternalCameraView(Target);
+					WeakCameraDirector->FadeIn(FadeInSeconds);
+				}
+			);
+			return;
+		}
+
+		FMACameraInterpMoveSettings InterpSettings;
+		InterpSettings.CameraInterpSpeed = NextViewSettings.CameraInterpSpeed;
+		InterpSettings.FovInterpSpeed = NextViewSettings.FovInterpSpeed;
+		CameraDirector->InterpExternalCameraView(Target, InterpSettings);
 	}
-
-	ApplyInstantCameraTarget();
-
-	if (FadeIn > 0.0f)
-	{
-		PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeIn, FLinearColor::Black, false, false);
-		GetWorldTimerManager().SetTimer(
-			CameraFadeEndTimerHandle,
-			[this]()
-			{
-				bIsCameraFading = false;
-			},
-			FadeIn,
-			false
-		);
-		return;
-	}
-
-	bIsCameraFading = false;
 }
 
 void ALobbyPlayerController::ApplyPreviewColor(const FMaterialParamDataPair& ColorData)

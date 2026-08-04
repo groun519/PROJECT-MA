@@ -1,10 +1,7 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
-#include "Abilities/GameplayAbility.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "MAPlayerState.generated.h"
 
@@ -18,9 +15,6 @@ public:
 	virtual void OverrideWith(APlayerState* PlayerState) override;
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutChanged, const FLoadoutSelection&);
-
-	void SetDefaultSkill(TSubclassOf<UGameplayAbility> NewSkill);
-	TSubclassOf<UGameplayAbility> GetDefaultSkill() const { return DefaultSkill; }
 
 	const FMaterialParamDataPair& GetLoadoutColor() const { return LoadoutSelection.Color; }
 
@@ -39,18 +33,11 @@ public:
 	void SetLobbySlotIndex(int32 Index);
 	int32 GetLobbySlotIndex() const { return LobbySlotIndex; }
 
-
 	FOnLoadoutChanged OnLoadoutChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_DefaultSkill)
-	TSubclassOf<UGameplayAbility> DefaultSkill;
-
-	UFUNCTION()
-	void OnRep_DefaultSkill();
-
 	UPROPERTY(ReplicatedUsing = OnRep_LoadoutSelection)
 	FLoadoutSelection LoadoutSelection;
 
@@ -68,5 +55,4 @@ private:
 
 	UFUNCTION()
 	void OnRep_LobbySlotIndex();
-
 };

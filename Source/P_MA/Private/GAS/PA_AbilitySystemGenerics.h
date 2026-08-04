@@ -1,9 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "PA_AbilitySystemGenerics.generated.h"
 
@@ -19,18 +16,18 @@ class UPA_AbilitySystemGenerics : public UPrimaryDataAsset
 	GENERATED_BODY()
 public:
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetFullStatEffect() const { return FullStatEffect; }
+	FORCEINLINE TSubclassOf<UGameplayEffect> GetReviveStatEffect() const { return ReviveStatEffect; }
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetDeathEffect() const { return DeathEffect; }
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetDamageEffect() const { return DamageGEClass; }
 	FORCEINLINE TSubclassOf<UGameplayEffect> GetCooldownEffect() const { return CooldownGEClass; }
-	FORCEINLINE const TArray<TSubclassOf<UGameplayEffect>>& GetInitialEffects() const { return InitialEffects; }
-	FORCEINLINE const TArray<TSubclassOf<UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
-	FORCEINLINE const UDataTable* GetPlayerBaseStatDataTable() const { return PlayerBaseStatDataTable; }
-	FORCEINLINE const UDataTable* GetMonsterBaseStatDataTable() const { return MonsterBaseStatDataTable; }
+	FORCEINLINE TSubclassOf<UGameplayAbility> GetDeadAbility() const { return DeadAbility; }
 
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TSubclassOf<UGameplayEffect> FullStatEffect;
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
+	TSubclassOf<UGameplayEffect> ReviveStatEffect;
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
 	TSubclassOf<UGameplayEffect> DeathEffect;
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effects")
@@ -38,13 +35,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effects")
 	TSubclassOf<UGameplayEffect> CooldownGEClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Effects")
-	TArray<TSubclassOf<UGameplayEffect>> InitialEffects;
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
-	TArray<TSubclassOf<UGameplayAbility>> PassiveAbilities;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
-	UDataTable* PlayerBaseStatDataTable;
-	UPROPERTY(EditDefaultsOnly, Category = "Base Stats")
-	UDataTable* MonsterBaseStatDataTable;
+	TSubclassOf<UGameplayAbility> DeadAbility;
 };

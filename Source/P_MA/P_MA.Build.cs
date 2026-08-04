@@ -16,8 +16,9 @@ public class P_MA : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"EnhancedInput", "GameplayAbilities", "GameplayTasks", "GameplayTags", "UMG", "Slate", "SlateCore", "AIModule","Paper2D",
-			"OnlineSubsystem", "OnlineSubsystemUtils", "MoviePlayer", "MediaAssets", "ApplicationCore"
+			"GameplayAbilities", "GameplayTasks", "GameplayTags", "UMG", "Slate", "SlateCore", "AIModule",
+			"OnlineSubsystem", "OnlineSubsystemUtils", "MoviePlayer",
+			"StateTreeModule", "GameplayStateTreeModule"
 		});
 
 		// Uncomment if you are using Slate UI

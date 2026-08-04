@@ -1,9 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Player/Camera/MACameraTypes.h"
 #include "ReadyStateComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -16,6 +15,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoopReadyStateChanged, bool /*bIsReady*/);
 
 	UReadyStateComponent();
+	virtual void BeginPlay() override;
 
 	/** Ready by Montage **/
 	void ReadyAndMoveIn(FVector InDir, float MovingUnit);
@@ -43,6 +43,13 @@ public:
 private:
 	void HandleReadyStateChanged();
 	void HandleLoopReadyStateChanged();
+	void ApplyReadyCameraTransition();
+
+	UPROPERTY(EditAnywhere, Category="Ready|Camera", meta=(DisplayName="Ready Camera Settings"))
+	FMAPlayerCameraRigSettings ReadyCameraSettings;
+
+	UPROPERTY(EditAnywhere, Category="Ready|Camera", meta=(DisplayName="Not Ready Camera Settings"))
+	FMAPlayerCameraRigSettings NotReadyCameraSettings;
 
 	UPROPERTY(ReplicatedUsing=OnRep_IsReady)
 	bool bIsReady = false;

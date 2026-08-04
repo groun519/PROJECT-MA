@@ -1,0 +1,147 @@
+{
+	"ModuleId": 8,
+	"Module":
+	{
+		"ModuleName": "DA_SmallGolem_Attack",
+		"DisplayData":
+		{
+			"DisplayName": "SmallGolem Attack",
+			"Description": "Sm",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_Monster/Golem_MS/Small/GA/Combo/T_GolemPunch.T_GolemPunch'",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "GroundSlam",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
+						"changedAttribute":
+						{
+							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+						},
+						"changeType": "Changed"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Montage.Damage",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
+							"damagePayloadTag": "Damage"
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.44999998807907104
+						}
+					},
+					{
+						"eventTag": "Event.Attribute.AttackSpeed.Changed",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
+							"basePlayRate": 0.44999998807907104
+						}
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Attack.AM_SmallGolem_Attack'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": [
+			{
+				"payloadTag": "Damage",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue":
+				{
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue":
+				{
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value":
+					{
+						"BaseDamage": 10,
+						"DamageTypeTag": "DamageType.Damage",
+						"AttributeCoefficients": [
+							{
+								"source": "Source",
+								"gameplayAttribute":
+								{
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "",
+								"coefficient": 0.5
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime":
+						{
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffectStagger",
+								"magnitude": 500,
+								"duration": 0.20000000298023224,
+								"sourceType": "Instigator"
+							},
+							{
+								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
+								"magnitude": 0.5,
+								"duration": 2,
+								"grantedTags": []
+							}
+						],
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red"
+						]
+					}
+				}
+			}
+		]
+	}
+}

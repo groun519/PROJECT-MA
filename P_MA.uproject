@@ -16,6 +16,11 @@
 				"CoreUObject",
 				"DeveloperSettings"
 			]
+		},
+		{
+			"Name": "P_MAEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -56,6 +61,14 @@
 		},
 		{
 			"Name": "StructUtils",
+			"Enabled": true
+		},
+		{
+			"Name": "StateTree",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
 			"Enabled": true
 		},
 		{

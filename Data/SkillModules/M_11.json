@@ -1,0 +1,34 @@
+{
+	"ModuleId": 11,
+	"Module":
+	{
+		"ModuleName": "DA_AbsoluteZero",
+		"DisplayData":
+		{
+			"DisplayName": "Absolute Zero",
+			"Description": "대상이 빙결 상태에 도달했을 때,  대상의 <ARMOR>방어력을 10초 동안 50+50% 감소</>시킵니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_AbsoluteZero.T_AbsoluteZero'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity5"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [],
+		"Payloads": []
+	}
+}

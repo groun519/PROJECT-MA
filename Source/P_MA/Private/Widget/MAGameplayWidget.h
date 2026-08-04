@@ -2,18 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "GAS/MAGameplayAbilityTypes.h"
-#include "Widget/Loop/LoopPlayerStatusWidget.h"
 #include "MAGameplayWidget.generated.h"
 
-class UMASkillSlotWidget;
-class UMAPassiveSlotWidget;
-class UHorizontalBox;
 class UMAValueGauge;
-class UMAMobilityChargeWidget;
 class ULoopReadyWidget;
-class UShopWidget; 
-class USkillBookWidget; 
+class UButton;
+class UMASkillModuleInventoryWidget;
+class UMASkillPassiveModuleSlotsWidget;
+class UMASkillSlotWidget;
+class UMATemperatureGauge;
 
 UCLASS()
 class UMAGameplayWidget : public UUserWidget
@@ -22,14 +19,11 @@ class UMAGameplayWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	virtual void NativeDestruct() override;
-	void ConfigureAbilities(const TMap<EMAAbilityInputID, TSubclassOf<class UGameplayAbility>>& Abilities);
 
-	// 💡 Getter 함수가 이제 'ActiveSkillBookWidget'을 반환하도록 수정
-	class USkillBookWidget* GetSkillBookWidget() const { return ActiveSkillBookWidget; }
-	
-	void ToggleShop();
-	void ToggleSkillBook();
+	UFUNCTION()
+	void ToggleModuleInventory();
+
+	void ToggleSkillSlotsCollapsed();
 
 	// Loop Ready UI
 	void SetLoopReadyVisible(bool bVisible);
@@ -39,49 +33,23 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UMAValueGauge* HealthBar;
 
-	UPROPERTY(meta=(BindWidget))
-	class UMAAbilityListView* AbilityListView;
-	
-	UPROPERTY(meta = (BindWidget))
-	UMAMobilityChargeWidget* ChargeBar;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Shop UI")
-	TSubclassOf<class UShopWidget> ShopWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Shop UI")
-	TArray<class UDataTable*> ShopDataTables;
-
-	UPROPERTY()
-	class UShopWidget* ActiveShopWidget;
-
-	UPROPERTY(meta=(BindWidget))
-	class UButton *ShopButton;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Skill UI")
-	TSubclassOf<class USkillBookWidget> SkillBookWidgetClass;
-
-	UPROPERTY()
-	class USkillBookWidget* ActiveSkillBookWidget;
-
-	UPROPERTY(meta=(BindWidget))
-	class UInventoryWidget* InventoryWidget;
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UMATemperatureGauge> TemperatureBar;
 
 	UPROPERTY(meta = (BindWidget))
 	ULoopReadyWidget* LoopReadyWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillSlotWidget> SkillSlotWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillModuleInventoryWidget> SkillModuleInventoryWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillPassiveModuleSlotsWidget> PassiveModuleSlotsWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UButton> ModuleInventoryToggleButton;
 	
 	bool bLoopReadyInitialized = false;
-
-	UPROPERTY(meta = (BindWidget))
-	class UChatWidget* ChatWidget;
-private:
-	bool TryBindCoreHealthFromWorld();
-	//void TryBindCoreHealthFromActor(ACore* CoreActor);
-	void HandleActorSpawned(AActor* SpawnedActor);
-
-	FDelegateHandle CoreSpawnedHandle;
-	bool bCoreHealthBound = false;
-
-
-	UFUNCTION()
-	void OnShopButtonClicked();
 };

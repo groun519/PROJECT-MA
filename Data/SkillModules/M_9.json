@@ -1,0 +1,42 @@
+{
+	"ModuleId": 9,
+	"Module":
+	{
+		"ModuleName": "DA_SmallGolem_AttackReady",
+		"DisplayData":
+		{
+			"DisplayName": "",
+			"Description": "",
+			"IconData":
+			{
+				"Icon": "None",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [
+					{
+						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Ready.AM_SmallGolem_Ready'",
+						"sequenceSectionNameBase": "Sequence",
+						"maxSectionCount": 1
+					}
+				],
+				"sequenceModifiers": []
+			}
+		],
+		"Payloads": []
+	}
+}

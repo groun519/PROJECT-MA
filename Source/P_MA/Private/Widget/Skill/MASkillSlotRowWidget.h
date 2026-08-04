@@ -1,0 +1,56 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "GameplayTagContainer.h"
+#include "MASkillSlotRowWidget.generated.h"
+
+class UMASkillIconWidget;
+class UMASkillManagerComponent;
+class UMASkillModuleSocketWidget;
+class AMAPlayerController;
+class UHorizontalBox;
+class UWidgetAnimation;
+
+UCLASS()
+class P_MA_API UMASkillSlotRowWidget : public UUserWidget
+{
+	GENERATED_BODY()
+
+public:
+	void InitializeSlot(UMASkillManagerComponent* InSkillManager, FGameplayTag InSlotTag);
+
+	void Refresh();
+	void SetCollapsed(bool bCollapsed);
+
+protected:
+	virtual void NativeDestruct() override;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UMASkillIconWidget> SkillIconWidget;
+
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UHorizontalBox> ModuleSocketBox;
+
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	TSubclassOf<UMASkillModuleSocketWidget> ModuleSocketWidgetClass;
+
+	UPROPERTY(Transient, meta=(BindWidgetAnim))
+	TObjectPtr<UWidgetAnimation> RowCollapse;
+
+private:
+	void HandleSkillSlotChanged(FGameplayTag ChangedSlotTag);
+	void RefreshHotkeyText();
+
+	void RebuildModuleSockets(int32 ModuleSlotCount);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASkillManagerComponent> SkillManager = nullptr;
+
+	UPROPERTY(Transient)
+	FGameplayTag SlotTag;
+
+	bool bIsCollapsed = false;
+
+	TWeakObjectPtr<AMAPlayerController> InputBindingsOwner;
+};

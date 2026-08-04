@@ -1,33 +1,31 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Character/MACharacter.h"
 
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AIController.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
-#include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/SphereComponent.h"
+#include "Character/MAElementalComponent.h"
+#include "Character/MAImpulseComponent.h"
+#include "Character/MAOverlayComponent.h"
+#include "Character/MAStatusEffectComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "Kismet/GameplayStatics.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "TimerManager.h"
 #include "Widget/MAOverHeadStatsGauge.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "P_MA/P_MA.h"
-#include "Player/Loadout/LoadoutComponent.h"
 
 AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicateUsingRegisteredSubObjectList = true;
 
 	/** Mesh **/
 	GetMesh()->SetupAttachment(GetRootComponent());
@@ -41,9 +39,14 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	
 	MAAbilitySystemComponent = CreateDefaultSubobject<UMAAbilitySystemComponent>("MAAbility System Component");
 	MAAttributeSet = CreateDefaultSubobject<UMAAttributeSet>("MAAttribute Set");
+	MAAbilitySystemComponent->AddAttributeSetSubobject(MAAttributeSet.Get());
+	StatusEffectComponent = CreateDefaultSubobject<UMAStatusEffectComponent>("Reaction Component");
+	ElementalComponent = CreateDefaultSubobject<UMAElementalComponent>("Elemental Component");
+	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");
+	OverlayComponent = CreateDefaultSubobject<UMAOverlayComponent>("Overlay Component");
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
-	OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
-	LoadoutComponent = CreateDefaultSubobject<ULoadoutComponent>("LoadoutComponent");
+	OverHeadWidgetComponent->SetupAttachment(GetMesh());
+	SkillManagerComponent = CreateDefaultSubobject<UMASkillManagerComponent>("SkillManagerComponent");
 
 	BindGASChangeDelegates();
 
@@ -53,9 +56,11 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 void AMACharacter::ServerSideInit()
 {
 	MAAbilitySystemComponent->InitAbilityActorInfo(this, this);
-	//MAAbilitySystemComponent->ApplyInitialEffects();
-	//MAAbilitySystemComponent->GiveInitialAbilities();
 	MAAbilitySystemComponent->ServerSideInit();
+	if (SkillManagerComponent)
+	{
+		SkillManagerComponent->InitializeGrantedAbilities();
+	}
 }
 
 void AMACharacter::ClientSideInit()
@@ -74,24 +79,12 @@ void AMACharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(AMACharacter, TeamID);
 }
 
-const TMap<EMAAbilityInputID, TSubclassOf<UGameplayAbility>>& AMACharacter::GetAbilities() const
-{
-	return MAAbilitySystemComponent->GetAbilities();
-}
-
 void AMACharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	ConfigureOverHeadStatusWidget();
 
-	MeshRelativeTransform = GetMesh()->GetRelativeTransform();
-
 	PerceptionStimuliSourceComponent->RegisterForSense(UAISense_Sight::StaticClass());
-
-	if (LoadoutComponent)
-	{
-		LoadoutComponent->InitializeMaterial(GetMesh());
-	}
 }
 
 void AMACharacter::PossessedBy(AController* NewController)
@@ -101,11 +94,6 @@ void AMACharacter::PossessedBy(AController* NewController)
 	{
 		ServerSideInit();
 	}
-}
-
-void AMACharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);	
 }
 
 void AMACharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
@@ -123,122 +111,93 @@ UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 	return MAAbilitySystemComponent;
 }
 
-void AMACharacter::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
-                                                                 const FGameplayEventData& EventData)
-{
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
-}
-
-bool AMACharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
-	const FGameplayEventData& EventData)
-{
-	return true;
-}
-
 void AMACharacter::BindGASChangeDelegates()
 {
 	if (MAAbilitySystemComponent)
 	{
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		//MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetStunStatTag()).AddUObject(this, &AMACharacter::StunTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetAimingTag()).AddUObject(this, &AMACharacter::AimTagUpdated);
 		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
 		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-		//MAAbilitySystemComponent->AddGameplayEventTagContainerDelegate(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("State.Debuff.Knockdown"))),FGameplayEventTagMulticastDelegate::FDelegate::CreateUObject(this, &AMACharacter::OnKnockdownEvent));
+		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetSlowMultiplierAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 	}
 }
 
-void AMACharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
+void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
 {
-	if (NewCount != 0)
-	{
-		StartDeathSequence();
-	}
-	else
-	{
-		Respawn();
-	}
-}
-
-void AMACharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-	if (NewCount != 0)
-	{
-		OnStun();
-		PlayAnimMontage(StunMontage);
-	}
-	else
-	{
-		OnRecoverFromStun();
-		StopAnimMontage(StunMontage);
-	}
-	
-}
-
-void AMACharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-	if (IsDead()) return;
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (!MoveComp) return;
-	
-	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
-	if (NewCount != 0)
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed*0.2;
-	}
-	else
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed;
-	}
+	if (NewCount != 0) StartDeathSequence();
+	else GetWorldTimerManager().SetTimerForNextTick(this, &AMACharacter::Respawn);
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
 	if (IsDead()) return;
-	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-	if (!MoveComp) return;
-	const float MoveSpeed = MAAttributeSet->GetMoveSpeed();
 	if (NewCount != 0)
 	{
-		MoveComp->MaxWalkSpeed =0.f;
+		if (ImpulseComponent)
+			ImpulseComponent->CancelInterruptibleActionImpulses();
+
+		StopMovementForBlock();
 	}
-	else
-	{
-		MoveComp->MaxWalkSpeed = MoveSpeed;
-	}
+	RefreshMaxWalkSpeed();
 }
 
-void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& Data)
+void AMACharacter::MoveSpeedUpdated(const FOnAttributeChangeData& /*Data*/)
 {
-	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+	RefreshMaxWalkSpeed();
 }
 
 void AMACharacter::SetStatusGaugeEnabled(bool bIsEnabled)
 {
-	GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
-	if (bIsEnabled)
-	{
-		// TODO:
-		// ConfigureOverHeadStatusWidget();
-	}
-	else
-	{
-		OverHeadWidgetComponent->SetHiddenInGame(true);
-	}
-}
+	bStatusGaugeEnabled = bIsEnabled;
 
-void AMACharacter::OnStun()
-{
-}
+	if (!OverHeadWidgetComponent) return;
 
-void AMACharacter::OnRecoverFromStun()
-{
+	OverHeadWidgetComponent->SetHiddenInGame(!bStatusGaugeEnabled);
+	if (bStatusGaugeEnabled)
+	{
+		if (UMAOverHeadStatsGauge* OverheadStatsGuage = EnsureOverHeadStatusWidgetConfigured())
+		{
+			OverheadStatsGuage->RefreshStatusEffectDisplay();
+		}
+	}
 }
 
 bool AMACharacter::IsDead() const
 {
 	return GetAbilitySystemComponent() -> HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag());
+}
+
+bool AMACharacter::IsMovementBlocked() const
+{
+	return MAAbilitySystemComponent && MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag());
+}
+
+void AMACharacter::RefreshMaxWalkSpeed()
+{
+	UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+	if (!MoveComp || !MAAttributeSet || !MAAbilitySystemComponent) return;
+
+	const float MoveSpeed = MAAttributeSet->GetMoveSpeed() * MAAttributeSet->GetSlowMultiplier();
+	const float MovementResponsiveness = 10.f;
+	if (MAAbilitySystemComponent->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetMoveBlockTag()))
+	{
+		MoveComp->MaxWalkSpeed = 0.f;
+		MoveComp->MaxAcceleration = 0.f;
+		MoveComp->BrakingDecelerationWalking = 0.f;
+		return;
+	}
+
+	MoveComp->MaxWalkSpeed = MoveSpeed;
+	MoveComp->MaxAcceleration = MoveSpeed * MovementResponsiveness;
+	MoveComp->BrakingDecelerationWalking = MoveSpeed * MovementResponsiveness;
+}
+
+void AMACharacter::StopMovementForBlock()
+{
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+	}
 }
 
 void AMACharacter::RespawnImmediately()
@@ -249,47 +208,13 @@ void AMACharacter::RespawnImmediately()
 	}
 }
 
-// void AMACharacter::DeathMontageFinished()
-// {
-// 	SetRagdollEnabled(true);
-// }
-
-// void AMACharacter::SetRagdollEnabled(bool bIsEnabled)
-// {
-// 	if (bIsEnabled)
-// 	{
-// 		GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-// 		GetMesh()->SetSimulatePhysics(true);
-// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-// 	}
-// 	else
-// 	{
-// 		GetMesh()->SetSimulatePhysics(false);
-// 		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-// 		GetMesh()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-// 		GetMesh()->SetRelativeTransform(MeshRelativeTransform);
-// 	}
-// }
-
-void AMACharacter::PlayDeathAnimation()
-{
-	if (DeathMontage)
-	{
-		float MontageDuration = PlayAnimMontage(DeathMontage);
-		//GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &AMACharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimeShift);
-	}
-}
-
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->CancelAllAbilities();
-	}
+	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
+	if (MAAbilitySystemComponent) MAAbilitySystemComponent->CancelAllAbilities();
 	
-	PlayDeathAnimation();
+	if (DeathMontage) PlayAnimMontage(DeathMontage);
 	SetStatusGaugeEnabled(false);
 
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
@@ -299,8 +224,9 @@ void AMACharacter::StartDeathSequence()
 
 void AMACharacter::Respawn()
 {
+	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
+
 	SetAIPerceptionStimuliSourceEnabled(true);
-	//SetRagdollEnabled(false);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
@@ -318,9 +244,10 @@ void AMACharacter::Respawn()
 
 	if (MAAbilitySystemComponent)
 	{
-		MAAbilitySystemComponent->ApplyFullStatEffect();
+		MAAbilitySystemComponent->ApplyReviveStatEffect();
 	}
 
+	RefreshMaxWalkSpeed();
 	OnRespawn();
 }
 
@@ -339,7 +266,7 @@ void AMACharacter::OnRep_TeamID()
 
 void AMACharacter::SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled)
 {
-	if (!PerceptionStimuliSourceComponent)		return;
+	if (!PerceptionStimuliSourceComponent) return;
 
 	if (bIsEnabled)
 	{
@@ -360,178 +287,59 @@ void AMACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void AMACharacter::ConfigureOverHeadStatusWidget()
 {
-	if (!OverHeadWidgetComponent)
-	{
-		return; 
-	}
+	if (!OverHeadWidgetComponent) return;
 
-	// if (IsLocallyControlledByPlayer())
-	// {
-	// 	OverHeadWidgetComponent->SetHiddenInGame(true);
-	// }
+	OverHeadWidgetComponent->SetHiddenInGame(!bStatusGaugeEnabled);
+	EnsureOverHeadStatusWidgetConfigured();
+}
+
+UMAOverHeadStatsGauge* AMACharacter::EnsureOverHeadStatusWidgetConfigured()
+{
+	if (!OverHeadWidgetComponent) return nullptr;
 
 	UMAOverHeadStatsGauge* OverheadStatsGuage = Cast<UMAOverHeadStatsGauge>(OverHeadWidgetComponent->GetUserWidgetObject());
-	if (OverheadStatsGuage)
-	{
-		OverheadStatsGuage->ConfigureWithASC(GetAbilitySystemComponent());
-		
-		OverHeadWidgetComponent->SetHiddenInGame(false);
-	
-		GetWorldTimerManager().ClearTimer(HeadStatGaugeVisibilityUpdateTimerHandle);
-		GetWorldTimerManager().SetTimer(HeadStatGaugeVisibilityUpdateTimerHandle, this, &AMACharacter::UpdateHeadGaugeVisibility, HeadStatGaugeVisibilityCheckUpdateGap, true);
-	}
+	if (!OverheadStatsGuage) return nullptr;
+
+	OverheadStatsGuage->InitializeFromCharacter(this);
+	return OverheadStatsGuage;
 }
 
-void AMACharacter::UpdateHeadGaugeVisibility()
+void AMACharacter::Multicast_AttachNiagaraToSelf_Implementation(UNiagaraSystem* NS, FName SocketName, float LifeSpan)
 {
-	APawn* LocalPlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (LocalPlayerPawn)
-	{
-		// 자기 자신이면 항상 숨김
-		// if (LocalPlayerPawn == this)
-		// {
-		// 	OverHeadWidgetComponent->SetHiddenInGame(true);
-		// 	return;
-		// }
+	if (GetNetMode() == NM_DedicatedServer || !NS) return;
 
-		// 상대방일 경우 거리 기반 표시
-		float DistSquared = FVector::DistSquared(GetActorLocation(), LocalPlayerPawn->GetActorLocation());
-		OverHeadWidgetComponent->SetHiddenInGame(DistSquared > HeadStatGaugeVisibilityRangeSquared);
-	}
-}
-
-void AMACharacter::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	if (!bPendingKnockdown)
-		return;
-
-	bPendingKnockdown = false;
-
-	if (!KnockdownMontage)
-		return;
-
-	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-	if (!Anim)
-		return;
-
-	Anim->Montage_Play(KnockdownMontage);
-
-	FOnMontageBlendingOutStarted BlendOutDelegate;
-	BlendOutDelegate.BindUObject(this, &AMACharacter::OnKnockdownMontageBlendingOut);
-
-	Anim->Montage_SetBlendingOutDelegate(BlendOutDelegate, KnockdownMontage);
-}
-
-
-void AMACharacter::OnKnockdownEvent(FGameplayTag EventTag, const FGameplayEventData* Payload)
-{
-	if (IsDead())
-		return;
-
-	bPendingKnockdown = true;
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->AddLooseGameplayTag(UMAAbilitySystemStatics::GetKnockdownTag());
-	}
-}
-
-void AMACharacter::ResetKnockdownState()
-{
-	bPendingKnockdown = false;
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->RemoveLooseGameplayTag(
-			UMAAbilitySystemStatics::GetKnockdownTag());
-	}
-
-	if (UCharacterMovementComponent* Move = GetCharacterMovement())
-	{
-		if (Move->MovementMode == MOVE_None)
-		{
-			Move->SetMovementMode(MOVE_Walking);
-		}
-	}
-}
-
-void AMACharacter::OnKnockdownMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (Montage != KnockdownMontage)
-		return;
-
-	if (IsDead())
-		return;
-
-	ResetKnockdownState();
-}
-
-void AMACharacter::Server_SetMaterialParams_Implementation(const FMaterialParamData& BodyData,
-                                                           const FMaterialParamData& EyeData)
-{
-	if (LoadoutComponent)
-	{
-		LoadoutComponent->SetMaterialParams(BodyData, EyeData);
-	}
-}
-
-
-
-/*************************************************************/
-/*								Skill						 */
-/*************************************************************/
-
-void AMACharacter::Multicast_PlayNiagara_Implementation(UNiagaraSystem* NS, FTransform SpawnTransform, bool bApplyColor, FLinearColor EffectColor)
-{
-	if (GetNetMode() == NM_DedicatedServer)
-            return;
-	
-	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		GetWorld(), NS, SpawnTransform.GetLocation(), SpawnTransform.Rotator(), SpawnTransform.GetScale3D(), true);
-	if (SpawnedVFX && bApplyColor)
-	{
-		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
-	}
-}
-
-void AMACharacter::Multicast_PlayNiagaraAttached_Implementation(UNiagaraSystem* NS, FName SocketName, FVector LocOffset,
-	FRotator RotOffset, FVector Scale, bool bAutoDestroy, bool bApplyColor, FLinearColor EffectColor)
-{
-	if (GetNetMode() == NM_DedicatedServer)
-            return;
-	
-	USkeletalMeshComponent* MeshComp = GetMesh();
-	if (!MeshComp) return;
+	USceneComponent* AttachComponent = GetMesh() ? static_cast<USceneComponent*>(GetMesh()) : GetRootComponent();
+	if (!AttachComponent) return;
 
 	UNiagaraComponent* SpawnedVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			NS,GetMesh(),SocketName,LocOffset,RotOffset,
-			Scale,EAttachLocation::KeepRelativeOffset,bAutoDestroy, 
-			ENCPoolMethod::None,true);
-	if (SpawnedVFX && bApplyColor)
-	{
-		SpawnedVFX->SetVariableLinearColor(FName("EffectColor"),EffectColor);
-	}
-}
+		NS,
+		AttachComponent,
+		SocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		FVector::OneVector,
+		EAttachLocation::SnapToTarget,
+		true,
+		ENCPoolMethod::None,
+		true);
+	if (!SpawnedVFX || LifeSpan <= 0.f) return;
 
-void AMACharacter::Multicast_JumpToSection_Implementation(UAnimMontage* Montage, FName SectionName)
-{
-	if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
-	{
-		if (Montage && AnimInst->Montage_IsPlaying(Montage))
+	FTimerHandle DestroyTimerHandle;
+	TWeakObjectPtr<UNiagaraComponent> WeakVFX = SpawnedVFX;
+	GetWorldTimerManager().SetTimer(
+		DestroyTimerHandle,
+		[WeakVFX]()
 		{
-			AnimInst->Montage_JumpToSection(SectionName, Montage);
-		}
-	}
+			if (UNiagaraComponent* VFX = WeakVFX.Get())
+			{
+				VFX->DestroyComponent();
+			}
+		},
+		LifeSpan,
+		false);
 }
 
-bool AMACharacter::GetReactionAnimConfig(const FGameplayTag& ReactionTag, FReactionAnimConfig& OutConfig) const
+bool AMACharacter::GetStatusEffectAnimConfig(const FGameplayTag& StatusEffectTag, FStatusEffectAnimConfig& OutConfig) const
 {
-	if (const FReactionAnimConfig* FoundConfig = ReactionAnimMap.Find(ReactionTag))
-	{
-		OutConfig = *FoundConfig;
-		return true;
-	}
-	return false;
+	return StatusEffectComponent ? StatusEffectComponent->GetStatusEffectAnimConfig(StatusEffectTag, OutConfig) : false;
 }
