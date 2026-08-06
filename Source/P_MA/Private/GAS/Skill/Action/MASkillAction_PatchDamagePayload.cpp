@@ -23,9 +23,23 @@ void UMASkillAction_PatchDamagePayload::Execute(
 	for (TPair<FGameplayTag, FMASkillDamageConfig>& DamagePayload : DamagePayloads)
 	{
 		FMASkillDamageConfig& DamageConfig = DamagePayload.Value;
+		if (RequiredDamageTypeTag.IsValid()
+			&& DamageConfig.DamageTypeTag != RequiredDamageTypeTag)
+		{
+			continue;
+		}
+
 		if (bOverrideDamageType)
 		{
 			DamageConfig.DamageTypeTag = DamageTypeTag;
+		}
+		if (bOverrideApplicationMode)
+		{
+			DamageConfig.ApplicationMode = ApplicationMode;
+			if (ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime)
+			{
+				DamageConfig.DamageOverTime = DamageOverTime;
+			}
 		}
 
 		TargetRelationModifier.ApplyTo(DamageConfig.TargetRelationMask);

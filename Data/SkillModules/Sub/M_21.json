@@ -1,21 +1,22 @@
 {
-	"ModuleId": 24,
+	"ModuleId": 21,
 	"Module":
 	{
-		"ModuleName": "DA_HeavyStrike",
+		"ModuleType": "Sub",
+		"ModuleName": "DA_Expansion",
 		"DisplayData":
 		{
-			"DisplayName": "Heavy Strike",
-			"Description": "스킬의 <FINAL>최종 피해량이 25% 증가</>합니다.",
+			"DisplayName": "Expansion",
+			"Description": "스킬의 <AREA>피격 범위가 15% 증가</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_HeavyStrike.T_HeavyStrike'",
-				"Priority": 1
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Expaction.T_Expaction'",
+				"Priority": 0
 			},
 			"NameData":
 			{
-				"Keyword": "Heavy",
-				"Priority": 1
+				"Keyword": "Expansion",
+				"Priority": 0
 			}
 		},
 		"ModuleQuality":
@@ -29,7 +30,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 2.5
+				"cooldownSeconds": 1.25
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
@@ -47,10 +48,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
-							"multiplier": 1.25,
-							"multiplierPayloadTag": "",
-							"payloadBaseMultiplier": 0
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAreaScale",
+							"multiplier": 1.15
 						}
 					}
 				]

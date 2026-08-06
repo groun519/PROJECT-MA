@@ -1,26 +1,27 @@
 {
-	"ModuleId": 21,
+	"ModuleId": 15,
 	"Module":
 	{
-		"ModuleName": "DA_Expansion",
+		"ModuleType": "Sub",
+		"ModuleName": "DA_Composure",
 		"DisplayData":
 		{
-			"DisplayName": "Expansion",
-			"Description": "스킬의 <AREA>피격 범위가 25% 증가</>합니다.",
+			"DisplayName": "Composure",
+			"Description": "스킬의 일반 피해에 적용되는 <FINAL>집중력이 25% 증가</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Expaction.T_Expaction'",
-				"Priority": 0
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Composure.T_Composure'",
+				"Priority": 1
 			},
 			"NameData":
 			{
-				"Keyword": "Expansion",
-				"Priority": 0
+				"Keyword": "Composure",
+				"Priority": 1
 			}
 		},
 		"ModuleQuality":
 		{
-			"Rarity": "Rarity2"
+			"Rarity": "Rarity3"
 		},
 		"ModuleTags": [],
 		"ModuleVisualTags": [
@@ -47,8 +48,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAreaScale",
-							"multiplier": 1.25
+							"_ClassName": "/Script/P_MA.MASkillAction_AddFocusOffset",
+							"focusOffset": 0.25
 						}
 					}
 				]

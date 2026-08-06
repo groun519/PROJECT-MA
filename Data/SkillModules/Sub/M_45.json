@@ -7,7 +7,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Charge",
-			"Description": "최대 1.5초 간 차지하고, \r\n종료 시, 차지 시간 만큼, 스킬의 <FINAL>최종 피해량을 0~150% 증가</>시킵니다.",
+			"Description": "최대 1.5초 동안 차지합니다.\r\n차지 비율에 따라 스킬의 <FINAL>최종 피해량이 최대 150% 증가</>합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Charge.T_Charge'",
@@ -40,10 +40,26 @@
 				"sequenceModifiers": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillSequenceModifier_Charge",
-						"timeLimitSeconds": 1,
+						"timeLimitSeconds": 1.5,
 						"bShowProgress": true,
 						"progressLabel": "Charge",
 						"targetSequenceIndex": 0
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.ChargeCompleted",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
+							"multiplier": 1.5,
+							"multiplierPayloadTag": "Data.Skill.Payload.Scalar.ChargeRatio",
+							"payloadBaseMultiplier": 1
+						}
 					}
 				]
 			}

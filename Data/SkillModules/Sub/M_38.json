@@ -2,11 +2,12 @@
 	"ModuleId": 38,
 	"Module":
 	{
+		"ModuleType": "Sub",
 		"ModuleName": "DA_Elemental_Light",
 		"DisplayData":
 		{
 			"DisplayName": "Light Rune",
-			"Description": "시퀀스 스킬의 모든 <HEAL>피해 타입을 치유로 변경합니다.</>\r\n<HEAL>치유 피해 타입</>에는 <FINAL>최종 피해량 증가 수치</>가 연산되지 않습니다.",
+			"Description": "스킬의 일반 피해를 <HEAL>치유</>로 변경합니다.\r\n<HEAL>치유 피해</>에는 <FINAL>최종 피해량 증가 수치</>가 연산되지 않습니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Light.T_Light'",
@@ -51,9 +52,11 @@
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_PatchDamagePayload",
 							"damagePayloadTag": "Damage",
-							"bExactPayloadTagMatch": true,
+							"bExactPayloadTagMatch": false,
+							"requiredDamageTypeTag": "DamageType.Damage",
 							"bOverrideDamageType": true,
 							"damageTypeTag": "DamageType.Heal",
+							"bOverrideApplicationMode": false,
 							"targetRelationModifier":
 							{
 								"operation": "Replace",

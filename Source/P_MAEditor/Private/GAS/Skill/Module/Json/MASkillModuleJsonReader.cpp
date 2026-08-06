@@ -22,6 +22,7 @@ static const FString ModuleIdField = TEXT("ModuleId");
 static const FString ModuleField = TEXT("Module");
 static const FString ModuleNameField = TEXT("ModuleName");
 static const FString ModuleQualityField = TEXT("ModuleQuality");
+static const FString ModuleTypeField = TEXT("ModuleType");
 static const FString PayloadsField = TEXT("Payloads");
 static const FString RarityField = TEXT("Rarity");
 static const FString StructNameField = TEXT("_StructName");
@@ -86,19 +87,15 @@ FText FMASkillModuleReadResult::GetDiagnosticsText() const
 
 bool FMASkillModuleJsonReader::ReadHeader(
 	const FString& Json,
-	int32& OutModuleId,
-	FName& OutModuleName,
-	EMAModuleRarity& OutModuleRarity,
+	FMASkillModuleJsonHeader& OutHeader,
 	FText& OutError)
 {
-	OutModuleId = 0;
-	OutModuleName = NAME_None;
-	OutModuleRarity = FMAModuleQuality().Rarity;
+	OutHeader = FMASkillModuleJsonHeader();
 	OutError = FText::GetEmpty();
 
 	TArray<FMASkillModuleDiagnostic> Diagnostics;
 	TSharedPtr<FJsonObject> ModuleObject;
-	if (!ReadRoot(Json, OutModuleId, ModuleObject, Diagnostics))
+	if (!ReadRoot(Json, OutHeader.ModuleId, ModuleObject, Diagnostics))
 	{
 		OutError = Diagnostics[0].ToText();
 		return false;
@@ -114,7 +111,29 @@ bool FMASkillModuleJsonReader::ReadHeader(
 	FString ModuleName;
 	if (ModuleObject->TryGetStringField(ModuleNameField, ModuleName))
 	{
-		OutModuleName = FName(*ModuleName);
+		OutHeader.ModuleName = FName(*ModuleName);
+	}
+
+	if (ModuleObject->HasField(ModuleTypeField))
+	{
+		FString ModuleTypeName;
+		if (!ModuleObject->TryGetStringField(ModuleTypeField, ModuleTypeName))
+		{
+			Fail(Diagnostics, TEXT("Must be a string."), TEXT("Module.ModuleType"));
+			OutError = Diagnostics[0].ToText();
+			return false;
+		}
+
+		const int64 ModuleTypeValue = StaticEnum<EMASkillModuleType>()->GetValueByNameString(ModuleTypeName);
+		OutHeader.ModuleType = static_cast<EMASkillModuleType>(ModuleTypeValue);
+		if (OutHeader.ModuleType != EMASkillModuleType::Module
+			&& OutHeader.ModuleType != EMASkillModuleType::Item
+			&& OutHeader.ModuleType != EMASkillModuleType::Sub)
+		{
+			Fail(Diagnostics, TEXT("Unknown skill module type."), TEXT("Module.ModuleType"));
+			OutError = Diagnostics[0].ToText();
+			return false;
+		}
 	}
 
 	if (ModuleObject->HasField(ModuleQualityField)
@@ -144,7 +163,7 @@ bool FMASkillModuleJsonReader::ReadHeader(
 			OutError = Diagnostics[0].ToText();
 			return false;
 		}
-		OutModuleRarity = static_cast<EMAModuleRarity>(RarityValue);
+		OutHeader.ModuleRarity = static_cast<EMAModuleRarity>(RarityValue);
 	}
 	return true;
 }

@@ -6,6 +6,7 @@
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/Build/MASkillModuleAssetBuilder.h"
 #include "GAS/Skill/Module/Build/MASkillModuleBuildPipeline.h"
+#include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
@@ -27,23 +28,29 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 		FPaths::ProjectSavedDir(),
 		TEXT("Automation/SkillModulePipeline"),
 		TestId);
+	const FString ModuleSourceDirectory = FPaths::Combine(SourceDirectory, TEXT("Module"));
+	const FString SubSourceDirectory = FPaths::Combine(SourceDirectory, TEXT("Sub"));
+	const FString ItemSourceDirectory = FPaths::Combine(SourceDirectory, TEXT("Item"));
 	const FString JsonFile = FPaths::Combine(
-		SourceDirectory,
+		ModuleSourceDirectory,
 		FString::Printf(TEXT("M_%d.json"), ModuleId));
 	const FString InvalidJsonFile = FPaths::Combine(
-		SourceDirectory,
+		ModuleSourceDirectory,
 		FString::Printf(TEXT("M_%d.json"), ModuleId + 1));
-	const FString InvalidNameJsonFile = FPaths::Combine(SourceDirectory, TEXT("InvalidName.json"));
-	const FString ValidInvalidNameJsonFile = FPaths::Combine(SourceDirectory, TEXT("ValidInvalidName.json"));
-	const FString BuiltInvalidNameJsonFile = FPaths::Combine(SourceDirectory, TEXT("BuiltInvalidName.json"));
+	const FString InvalidNameJsonFile = FPaths::Combine(ModuleSourceDirectory, TEXT("InvalidName.json"));
+	const FString ValidInvalidNameJsonFile = FPaths::Combine(ModuleSourceDirectory, TEXT("ValidInvalidName.json"));
+	const FString BuiltInvalidNameJsonFile = FPaths::Combine(ModuleSourceDirectory, TEXT("BuiltInvalidName.json"));
 	const int32 DuplicateModuleId = ModuleId + 10;
 	const FString DuplicateJsonFile = FPaths::Combine(
-		SourceDirectory,
+		ModuleSourceDirectory,
 		FString::Printf(TEXT("M_%d.json"), DuplicateModuleId));
 	const FString DuplicateJsonFile2 = FPaths::Combine(
-		SourceDirectory,
-		TEXT("Duplicate"),
+		SubSourceDirectory,
 		FString::Printf(TEXT("M_%d.json"), DuplicateModuleId));
+	const int32 WrongFolderModuleId = ModuleId + 50;
+	const FString WrongFolderJsonFile = FPaths::Combine(
+		ItemSourceDirectory,
+		FString::Printf(TEXT("M_%d.json"), WrongFolderModuleId));
 
 	FString GeneratedDirectory;
 	FText Error;
@@ -97,10 +104,23 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 
 	if (!TestTrue(
 		TEXT("Create source directory"),
-		IFileManager::Get().MakeDirectory(*SourceDirectory, true)))
+		IFileManager::Get().MakeDirectory(*ModuleSourceDirectory, true))
+		|| !TestTrue(
+			TEXT("Create submodule source directory"),
+			IFileManager::Get().MakeDirectory(*SubSourceDirectory, true))
+		|| !TestTrue(
+			TEXT("Create item source directory"),
+			IFileManager::Get().MakeDirectory(*ItemSourceDirectory, true)))
 	{
 		return false;
 	}
+	TestEqual(
+		TEXT("Module source path follows its type folder"),
+		FMASkillModuleJsonFile::MakeSourceFilePath(
+			SourceDirectory,
+			ModuleId,
+			EMASkillModuleType::Module),
+		JsonFile);
 
 	const FString Json = FString::Printf(
 		TEXT("{\"ModuleId\":%d,\"Module\":{\"ModuleName\":\"Pipeline\"}}"),
@@ -112,9 +132,9 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 	const FString DuplicateJson = FString::Printf(
 		TEXT("{\"ModuleId\":%d,\"Module\":{}}"),
 		DuplicateModuleId);
-	TestTrue(
-		TEXT("Create duplicate source directory"),
-		IFileManager::Get().MakeDirectory(*FPaths::GetPath(DuplicateJsonFile2), true));
+	const FString DuplicateSubJson = FString::Printf(
+		TEXT("{\"ModuleId\":%d,\"Module\":{\"ModuleType\":\"Sub\"}}"),
+		DuplicateModuleId);
 	TestTrue(
 		TEXT("Write invalid-name source JSON"),
 		FFileHelper::SaveStringToFile(TEXT("{}"), *InvalidNameJsonFile));
@@ -130,9 +150,16 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 		FFileHelper::SaveStringToFile(DuplicateJson, *DuplicateJsonFile));
 	TestTrue(
 		TEXT("Write second duplicate source JSON"),
-		FFileHelper::SaveStringToFile(DuplicateJson, *DuplicateJsonFile2));
+		FFileHelper::SaveStringToFile(DuplicateSubJson, *DuplicateJsonFile2));
+	TestTrue(
+		TEXT("Write source under the wrong type folder"),
+		FFileHelper::SaveStringToFile(
+			FString::Printf(
+				TEXT("{\"ModuleId\":%d,\"Module\":{\"ModuleType\":\"Sub\"}}"),
+				WrongFolderModuleId),
+			*WrongFolderJsonFile));
 	const FString MismatchedIdJsonFile = FPaths::Combine(
-		SourceDirectory,
+		ModuleSourceDirectory,
 		FString::Printf(TEXT("M_%d.json"), ModuleId + 30));
 	TestTrue(
 		TEXT("Write source with mismatched file and content ids"),
@@ -145,7 +172,7 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 		FMASkillModuleBuildPipeline::ResolveNextModuleId(SourceDirectory, NextModuleId, Error));
 	TestTrue(
 		TEXT("Next module id reserves both file and content ids"),
-		NextModuleId > ModuleId + 40);
+		NextModuleId > WrongFolderModuleId);
 	IFileManager::Get().Delete(*MismatchedIdJsonFile);
 	TArray<FMASkillModuleBuildItem> Items;
 	if (!TestTrue(
@@ -161,13 +188,14 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 	});
 	TestNotNull(TEXT("Initial status contains source module"), Item);
 	if (!Item) return false;
+	TestEqual(TEXT("Initial status exposes module type"), Item->ModuleType, EMASkillModuleType::Module);
 	TestEqual(TEXT("Initial source requires build"), Item->Status, EMASkillModuleBuildStatus::NeedsBuild);
 	const int32 InvalidSourceCount = Items.FilterByPredicate([](const FMASkillModuleBuildItem& Candidate)
 	{
 		return !Candidate.SourceFile.IsEmpty()
 			&& Candidate.Status == EMASkillModuleBuildStatus::Error;
 	}).Num();
-	TestEqual(TEXT("Invalid and duplicate source files are reported"), InvalidSourceCount, 4);
+	TestEqual(TEXT("Invalid, misplaced, and duplicate source files are reported"), InvalidSourceCount, 5);
 	const FMASkillModuleBuildItem* InvalidNameItem = Items.FindByPredicate([](const FMASkillModuleBuildItem& Candidate)
 	{
 		return FPaths::GetCleanFilename(Candidate.SourceFile) == TEXT("InvalidName.json");
@@ -208,6 +236,22 @@ bool FMASkillModuleBuildPipelineTest::RunTest(const FString& Parameters)
 			DuplicateItem->Status,
 			EMASkillModuleBuildStatus::Error);
 		TestFalse(TEXT("Duplicate source describes its error"), DuplicateItem->StatusDetail.IsEmpty());
+	}
+	const FMASkillModuleBuildItem* WrongFolderItem = Items.FindByPredicate([WrongFolderModuleId](
+		const FMASkillModuleBuildItem& Candidate)
+	{
+		return Candidate.ModuleId == WrongFolderModuleId;
+	});
+	TestNotNull(TEXT("Wrong-folder source is classified"), WrongFolderItem);
+	if (WrongFolderItem)
+	{
+		TestEqual(
+			TEXT("Wrong-folder source is an error"),
+			WrongFolderItem->Status,
+			EMASkillModuleBuildStatus::Error);
+		TestTrue(
+			TEXT("Wrong-folder source describes its expected type folder"),
+			WrongFolderItem->StatusDetail.ToString().Contains(TEXT("Sub")));
 	}
 	FMASkillModuleBuildSummary DuplicateSummary;
 	TestFalse(

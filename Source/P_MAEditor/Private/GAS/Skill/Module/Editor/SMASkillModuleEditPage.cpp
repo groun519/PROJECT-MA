@@ -12,15 +12,32 @@
 #include "Misc/Paths.h"
 #include "PropertyEditorModule.h"
 #include "Setting/MAGameSettings.h"
+#include "Styling/AppStyle.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Views/SListView.h"
+#include "Widgets/Views/STreeView.h"
 
 #define LOCTEXT_NAMESPACE "MASkillModuleEditPage"
+
+static FText GetModuleTypeLabel(const EMASkillModuleType ModuleType)
+{
+	switch (ModuleType)
+	{
+	case EMASkillModuleType::Module:
+		return LOCTEXT("ModuleGroup", "Module");
+	case EMASkillModuleType::Sub:
+		return LOCTEXT("SubGroup", "Sub");
+	case EMASkillModuleType::Item:
+		return LOCTEXT("ItemGroup", "Item");
+	default:
+		return LOCTEXT("InvalidGroup", "Invalid");
+	}
+}
 
 void SMASkillModuleEditPage::Construct(const FArguments&)
 {
@@ -148,10 +165,24 @@ void SMASkillModuleEditPage::Construct(const FArguments&)
 				SNew(SBorder)
 				.Padding(2.f)
 				[
-					SAssignNew(JsonListView, SListView<FMASkillModuleJsonItem>)
-					.ListItemsSource(&JsonItems)
-					.OnGenerateRow(this, &SMASkillModuleEditPage::GenerateJsonRow)
-					.OnSelectionChanged(this, &SMASkillModuleEditPage::OnJsonSelected)
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(2.f, 2.f, 2.f, 4.f)
+					[
+						SNew(SSearchBox)
+							.HintText(LOCTEXT("SearchModules", "Search name, ID, or file"))
+							.OnTextChanged(this, &SMASkillModuleEditPage::OnSearchTextChanged)
+					]
+					+ SVerticalBox::Slot()
+					.FillHeight(1.f)
+					[
+						SAssignNew(JsonTreeView, STreeView<FMASkillModuleTreeItem>)
+							.TreeItemsSource(&RootItems)
+							.OnGetChildren(this, &SMASkillModuleEditPage::GetJsonChildren)
+							.OnGenerateRow(this, &SMASkillModuleEditPage::GenerateJsonRow)
+							.OnSelectionChanged(this, &SMASkillModuleEditPage::OnJsonSelected)
+					]
 				]
 			]
 			+ SSplitter::Slot()
@@ -208,8 +239,9 @@ FReply SMASkillModuleEditPage::RefreshJsonFiles()
 	}
 
 	if (!CommitSourceDirectory()) return FReply::Handled();
-	JsonItems.Reset();
-	SelectedJsonItem.Reset();
+	ModuleItems.Reset();
+	RootItems.Reset();
+	SelectedModuleItem.Reset();
 	SelectedJsonPath.Reset();
 	bDirty = false;
 	bNewJson = false;
@@ -217,42 +249,44 @@ FReply SMASkillModuleEditPage::RefreshJsonFiles()
 
 	TArray<FString> JsonFiles;
 	IFileManager::Get().FindFilesRecursive(JsonFiles, *SourceDirectory, TEXT("*.json"), true, false);
-	JsonItems.Reserve(JsonFiles.Num());
+	ModuleItems.Reserve(JsonFiles.Num());
 	for (FString& JsonFile : JsonFiles)
 	{
-		FMASkillModuleJsonItem Item = MakeShared<FMASkillModuleJsonListItem>();
+		FMASkillModuleTreeItem Item = MakeShared<FMASkillModuleTreeNode>();
 		Item->FilePath = MoveTemp(JsonFile);
 
-		FText IgnoredError;
-		EMAModuleRarity IgnoredModuleRarity;
-		if (FMASkillModuleJsonFile::ReadHeader(
-			Item->FilePath,
-			Item->ModuleId,
-			Item->ModuleName,
-			IgnoredModuleRarity,
-			IgnoredError))
+		FMASkillModuleJsonHeader Header;
+		if (FMASkillModuleJsonFile::ReadHeader(Item->FilePath, Header, Item->Error))
 		{
 			Item->bHeaderValid = true;
+			Item->ModuleId = Header.ModuleId;
+			Item->ModuleName = Header.ModuleName;
+			Item->ModuleType = Header.ModuleType;
+			Item->bSourcePathValid = FMASkillModuleJsonFile::ValidateSourceFilePath(
+				SourceDirectory,
+				Item->FilePath,
+				Item->ModuleType,
+				Item->Error);
 		}
 		else
 		{
 			FMASkillModuleJsonFile::ResolveModuleId(
 				Item->FilePath,
 				Item->ModuleId,
-				IgnoredError);
+				Item->Error);
 		}
-		JsonItems.Add(MoveTemp(Item));
+		ModuleItems.Add(MoveTemp(Item));
 	}
-	SortJsonItems();
-	JsonListView->RequestListRefresh();
-	StatusText = FText::Format(LOCTEXT("JsonCount", "Found {0} module JSON files."), JsonItems.Num());
+	SortModuleItems();
+	RebuildJsonTree();
+	StatusText = FText::Format(LOCTEXT("JsonCount", "Found {0} module JSON files."), ModuleItems.Num());
 	return FReply::Handled();
 }
 
-void SMASkillModuleEditPage::SortJsonItems()
+void SMASkillModuleEditPage::SortModuleItems()
 {
 	// Keep ModuleId ascending until selectable sort modes are added.
-	JsonItems.Sort([](const FMASkillModuleJsonItem& A, const FMASkillModuleJsonItem& B)
+	ModuleItems.Sort([](const FMASkillModuleTreeItem& A, const FMASkillModuleTreeItem& B)
 	{
 		const bool bAHasModuleId = A->ModuleId > 0;
 		const bool bBHasModuleId = B->ModuleId > 0;
@@ -262,18 +296,78 @@ void SMASkillModuleEditPage::SortJsonItems()
 	});
 }
 
+void SMASkillModuleEditPage::RebuildJsonTree()
+{
+	TSet<EMASkillModuleType> ExpandedGroups;
+	const bool bHadGroups = !RootItems.IsEmpty();
+	if (JsonTreeView)
+	{
+		for (const FMASkillModuleTreeItem& Group : RootItems)
+		{
+			if (JsonTreeView->IsItemExpanded(Group)) ExpandedGroups.Add(Group->ModuleType);
+		}
+	}
+
+	RootItems.Reset();
+	const EMASkillModuleType GroupTypes[] = {
+		EMASkillModuleType::Module,
+		EMASkillModuleType::Sub,
+		EMASkillModuleType::Item,
+		EMASkillModuleType::None
+	};
+	for (const EMASkillModuleType GroupType : GroupTypes)
+	{
+		FMASkillModuleTreeItem Group = MakeShared<FMASkillModuleTreeNode>();
+		Group->bGroup = true;
+		Group->ModuleType = GroupType;
+
+		for (const FMASkillModuleTreeItem& Item : ModuleItems)
+		{
+			const EMASkillModuleType ItemGroup = Item->IsValidSource()
+				? Item->ModuleType
+				: EMASkillModuleType::None;
+			if (ItemGroup != GroupType) continue;
+
+			const FString ModuleId = LexToString(Item->ModuleId);
+			const FString FileName = FPaths::GetCleanFilename(Item->FilePath);
+			if (!SearchText.IsEmpty()
+				&& !Item->ModuleName.ToString().Contains(SearchText, ESearchCase::IgnoreCase)
+				&& !ModuleId.Contains(SearchText, ESearchCase::IgnoreCase)
+				&& !FileName.Contains(SearchText, ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+			Group->Children.Add(Item);
+		}
+
+		if (SearchText.IsEmpty() || !Group->Children.IsEmpty())
+		{
+			RootItems.Add(MoveTemp(Group));
+		}
+	}
+
+	if (!JsonTreeView) return;
+	JsonTreeView->RequestTreeRefresh();
+	for (const FMASkillModuleTreeItem& Group : RootItems)
+	{
+		JsonTreeView->SetItemExpansion(
+			Group,
+			!SearchText.IsEmpty() || !bHadGroups || ExpandedGroups.Contains(Group->ModuleType));
+	}
+}
+
 FReply SMASkillModuleEditPage::NewJson()
 {
 	if (!ResolvePendingChanges()) return FReply::Handled();
 	if (!CommitSourceDirectory()) return FReply::Handled();
 
 	EditorObject->SetModule(0, FMASkillModuleData());
-	SelectedJsonItem.Reset();
+	SelectedModuleItem.Reset();
 	SelectedJsonPath.Reset();
 	bNewJson = true;
 	bDirty = true;
 	bRestoringSelection = true;
-	JsonListView->ClearSelection();
+	JsonTreeView->ClearSelection();
 	bRestoringSelection = false;
 	DetailsView->SetObject(EditorObject.Get(), true);
 	StatusText = LOCTEXT("EditingNewModule", "Editing a new module. ModuleId will be assigned on save.");
@@ -303,9 +397,21 @@ void SMASkillModuleEditPage::OnSourceDirectoryCommitted(const FText&, ETextCommi
 	RefreshJsonFiles();
 }
 
-void SMASkillModuleEditPage::OnJsonSelected(FMASkillModuleJsonItem Item, ESelectInfo::Type)
+void SMASkillModuleEditPage::OnSearchTextChanged(const FText& Text)
 {
-	if (bRestoringSelection || !Item || Item == SelectedJsonItem) return;
+	SearchText = Text.ToString().TrimStartAndEnd();
+	RebuildJsonTree();
+	RestoreSelection();
+}
+
+void SMASkillModuleEditPage::OnJsonSelected(FMASkillModuleTreeItem Item, ESelectInfo::Type)
+{
+	if (bRestoringSelection || !Item || Item == SelectedModuleItem) return;
+	if (Item->bGroup)
+	{
+		RestoreSelection();
+		return;
+	}
 	if (!ResolvePendingChanges())
 	{
 		RestoreSelection();
@@ -313,19 +419,39 @@ void SMASkillModuleEditPage::OnJsonSelected(FMASkillModuleJsonItem Item, ESelect
 	}
 	if (!LoadJson(Item->FilePath))
 	{
-		if (SelectedJsonItem) LoadJson(SelectedJsonItem->FilePath);
+		if (SelectedModuleItem) LoadJson(SelectedModuleItem->FilePath);
 		RestoreSelection();
 		return;
 	}
 
-	SelectedJsonItem = Item;
+	SelectedModuleItem = Item;
 	RestoreSelection();
 }
 
+void SMASkillModuleEditPage::GetJsonChildren(
+	const FMASkillModuleTreeItem Item,
+	TArray<FMASkillModuleTreeItem>& OutChildren) const
+{
+	if (Item) OutChildren.Append(Item->Children);
+}
+
 TSharedRef<ITableRow> SMASkillModuleEditPage::GenerateJsonRow(
-	FMASkillModuleJsonItem Item,
+	FMASkillModuleTreeItem Item,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
+	if (Item && Item->bGroup)
+	{
+		return SNew(STableRow<FMASkillModuleTreeItem>, OwnerTable)
+		[
+			SNew(STextBlock)
+				.Text(FText::Format(
+					LOCTEXT("ModuleGroupLabel", "{0} ({1})"),
+					GetModuleTypeLabel(Item->ModuleType),
+					Item->Children.Num()))
+				.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+		];
+	}
+
 	FText ModuleName;
 	if (Item)
 	{
@@ -344,9 +470,14 @@ TSharedRef<ITableRow> SMASkillModuleEditPage::GenerateJsonRow(
 		? FText::FromString(FString::Printf(TEXT("#%d"), Item->ModuleId))
 		: FText::FromString(TEXT("-"));
 	const FText Tooltip = Item
-		? FText::FromString(Item->FilePath)
+		? (Item->Error.IsEmpty()
+			? FText::FromString(Item->FilePath)
+			: FText::FromString(FString::Printf(
+				TEXT("%s\n%s"),
+				*Item->FilePath,
+				*Item->Error.ToString())))
 		: FText::GetEmpty();
-	return SNew(STableRow<FMASkillModuleJsonItem>, OwnerTable)
+	return SNew(STableRow<FMASkillModuleTreeItem>, OwnerTable)
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -413,20 +544,51 @@ bool SMASkillModuleEditPage::SaveJson()
 		EditorObject->GetModuleId(),
 		EditorObject->GetModuleData(),
 		Json,
-		Error)
-		|| !FMASkillModuleJsonFile::Save(SelectedJsonPath, Json, true, Error))
+		Error))
 	{
 		ShowError(Error);
 		return false;
 	}
 
-	bDirty = false;
-	if (SelectedJsonItem)
+	const FString TargetPath = FMASkillModuleJsonFile::MakeSourceFilePath(
+		SourceDirectory,
+		EditorObject->GetModuleId(),
+		EditorObject->GetModuleData().ModuleType);
+	if (TargetPath.IsEmpty())
 	{
-		SelectedJsonItem->ModuleId = EditorObject->GetModuleId();
-		SelectedJsonItem->ModuleName = EditorObject->GetModuleData().ModuleName;
-		SelectedJsonItem->bHeaderValid = true;
-		JsonListView->RequestListRefresh();
+		ShowError(LOCTEXT("InvalidModuleSourcePath", "The module does not have a valid source path."));
+		return false;
+	}
+
+	const bool bRelocating = !FPaths::IsSamePath(SelectedJsonPath, TargetPath);
+	if (!FMASkillModuleJsonFile::Save(TargetPath, Json, !bRelocating, Error))
+	{
+		ShowError(Error);
+		return false;
+	}
+	if (bRelocating && !IFileManager::Get().Delete(*SelectedJsonPath, true, false, true))
+	{
+		IFileManager::Get().Delete(*TargetPath, false, false, true);
+		ShowError(FText::FromString(FString::Printf(
+			TEXT("Failed to move module JSON because the previous source could not be removed: %s"),
+			*SelectedJsonPath)));
+		return false;
+	}
+
+	SelectedJsonPath = TargetPath;
+	bDirty = false;
+	if (SelectedModuleItem)
+	{
+		SelectedModuleItem->FilePath = TargetPath;
+		SelectedModuleItem->ModuleId = EditorObject->GetModuleId();
+		SelectedModuleItem->ModuleName = EditorObject->GetModuleData().ModuleName;
+		SelectedModuleItem->ModuleType = EditorObject->GetModuleData().ModuleType;
+		SelectedModuleItem->Error = FText::GetEmpty();
+		SelectedModuleItem->bHeaderValid = true;
+		SelectedModuleItem->bSourcePathValid = true;
+		SortModuleItems();
+		RebuildJsonTree();
+		RestoreSelection();
 	}
 	StatusText = FText::FromString(FString::Printf(TEXT("Saved %s"), *SelectedJsonPath));
 	return true;
@@ -442,7 +604,15 @@ bool SMASkillModuleEditPage::SaveNewJson()
 		return false;
 	}
 
-	const FString FilePath = FPaths::Combine(SourceDirectory, FString::Printf(TEXT("M_%d.json"), ModuleId));
+	const FString FilePath = FMASkillModuleJsonFile::MakeSourceFilePath(
+		SourceDirectory,
+		ModuleId,
+		EditorObject->GetModuleData().ModuleType);
+	if (FilePath.IsEmpty())
+	{
+		ShowError(LOCTEXT("InvalidNewModuleSourcePath", "The module does not have a valid source path."));
+		return false;
+	}
 	FString Json;
 	if (!FMASkillModuleJsonWriter::Write(ModuleId, EditorObject->GetModuleData(), Json, Error)
 		|| !FMASkillModuleJsonFile::Save(FilePath, Json, false, Error))
@@ -457,15 +627,17 @@ bool SMASkillModuleEditPage::SaveNewJson()
 	DetailsView->ForceRefresh();
 	bDirty = false;
 
-	const FMASkillModuleJsonItem NewItem = MakeShared<FMASkillModuleJsonListItem>();
+	const FMASkillModuleTreeItem NewItem = MakeShared<FMASkillModuleTreeNode>();
 	NewItem->FilePath = FilePath;
 	NewItem->ModuleId = ModuleId;
 	NewItem->ModuleName = EditorObject->GetModuleData().ModuleName;
+	NewItem->ModuleType = EditorObject->GetModuleData().ModuleType;
 	NewItem->bHeaderValid = true;
-	JsonItems.Add(NewItem);
-	SortJsonItems();
-	JsonListView->RequestListRefresh();
-	SelectedJsonItem = NewItem;
+	NewItem->bSourcePathValid = true;
+	ModuleItems.Add(NewItem);
+	SortModuleItems();
+	RebuildJsonTree();
+	SelectedModuleItem = NewItem;
 	RestoreSelection();
 	StatusText = FText::FromString(FString::Printf(TEXT("Created %s"), *FilePath));
 	return true;
@@ -573,7 +745,7 @@ void SMASkillModuleEditPage::DiscardChanges()
 {
 	if (!bNewJson && !SelectedJsonPath.IsEmpty() && LoadJson(SelectedJsonPath)) return;
 
-	SelectedJsonItem.Reset();
+	SelectedModuleItem.Reset();
 	SelectedJsonPath.Reset();
 	bDirty = false;
 	bNewJson = false;
@@ -585,8 +757,13 @@ void SMASkillModuleEditPage::DiscardChanges()
 void SMASkillModuleEditPage::RestoreSelection()
 {
 	bRestoringSelection = true;
-	if (SelectedJsonItem) JsonListView->SetSelection(SelectedJsonItem, ESelectInfo::Direct);
-	else JsonListView->ClearSelection();
+	const bool bSelectedItemVisible = SelectedModuleItem
+		&& RootItems.ContainsByPredicate([this](const FMASkillModuleTreeItem& Group)
+		{
+			return Group->Children.Contains(SelectedModuleItem);
+		});
+	if (bSelectedItemVisible) JsonTreeView->SetSelection(SelectedModuleItem, ESelectInfo::Direct);
+	else JsonTreeView->ClearSelection();
 	bRestoringSelection = false;
 }
 

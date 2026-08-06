@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Module/MASkillModuleTypes.h"
 
 enum class EMASkillModuleBuildStatus : uint8
 {
@@ -18,6 +19,7 @@ enum class EMASkillModuleBuildMode : uint8
 struct FMASkillModuleBuildItem
 {
 	int32 ModuleId = 0;
+	EMASkillModuleType ModuleType = EMASkillModuleType::None;
 	FString SourceFile;
 	FSoftObjectPath GeneratedAssetPath;
 	EMASkillModuleBuildStatus Status = EMASkillModuleBuildStatus::Error;

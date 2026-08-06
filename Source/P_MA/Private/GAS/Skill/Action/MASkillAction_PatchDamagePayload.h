@@ -43,11 +43,23 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	bool bExactPayloadTagMatch = true;
 
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="DamageType"))
+	FGameplayTag RequiredDamageTypeTag;
+
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	bool bOverrideDamageType = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="DamageType", EditCondition="bOverrideDamageType", EditConditionHides))
 	FGameplayTag DamageTypeTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	bool bOverrideApplicationMode = false;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(EditCondition="bOverrideApplicationMode", EditConditionHides))
+	EMASkillDamageApplicationMode ApplicationMode = EMASkillDamageApplicationMode::Instant;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|DoT", meta=(EditCondition="bOverrideApplicationMode && ApplicationMode == EMASkillDamageApplicationMode::DamageOverTime", EditConditionHides))
+	FMASkillDamageOverTimeConfig DamageOverTime;
 
 	UPROPERTY(EditDefaultsOnly, Category="Targeting")
 	FMASkillTargetRelationModifier TargetRelationModifier;

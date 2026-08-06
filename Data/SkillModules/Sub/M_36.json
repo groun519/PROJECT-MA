@@ -1,0 +1,76 @@
+{
+	"ModuleId": 36,
+	"Module":
+	{
+		"ModuleType": "Sub",
+		"ModuleName": "DA_Elemental_Fire",
+		"DisplayData":
+		{
+			"DisplayName": "Fire Rune",
+			"Description": "스킬의 일반 피해 타입을 <FIRE>화염</>으로 변경합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Fire.T_Fire'",
+				"Priority": 2
+			},
+			"NameData":
+			{
+				"Keyword": "Fire",
+				"Priority": 2
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity4"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Elemental"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Elemental.Fire"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_PatchDamagePayload",
+							"damagePayloadTag": "Damage",
+							"bExactPayloadTagMatch": false,
+							"requiredDamageTypeTag": "DamageType.Damage",
+							"bOverrideDamageType": true,
+							"damageTypeTag": "DamageType.Fire",
+							"bOverrideApplicationMode": false,
+							"targetRelationModifier":
+							{
+								"operation": "None",
+								"relationMask": 0
+							},
+							"gameplayCuePatchOp": "None",
+							"targetGameplayCueTags": [],
+							"statusEffectPatchOp": "None",
+							"statusEffects": []
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

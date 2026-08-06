@@ -3,8 +3,7 @@
 #include "CoreMinimal.h"
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 #include "GAS/Skill/Module/Json/MASkillModuleDataValidator.h"
-
-struct FMASkillModuleJsonSource;
+#include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
 
 struct FMASkillModuleReadResult
 {
@@ -20,9 +19,7 @@ struct FMASkillModuleJsonReader
 {
 	static bool ReadHeader(
 		const FString& Json,
-		int32& OutModuleId,
-		FName& OutModuleName,
-		EMAModuleRarity& OutModuleRarity,
+		FMASkillModuleJsonHeader& OutHeader,
 		FText& OutError);
 
 	static FMASkillModuleReadResult Read(const FString& Json, UObject& AddonOuter);

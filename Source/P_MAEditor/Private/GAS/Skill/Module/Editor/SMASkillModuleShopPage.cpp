@@ -401,25 +401,26 @@ void SMASkillModuleShopPage::RefreshModuleCatalog()
 	IFileManager::Get().FindFilesRecursive(JsonFiles, *SourceDirectory, TEXT("*.json"), true, false);
 	for (const FString& JsonFile : JsonFiles)
 	{
-		int32 ModuleId = 0;
-		FName ModuleName;
-		EMAModuleRarity ModuleRarity;
+		FMASkillModuleJsonHeader Header;
 		FText Error;
-		if (!FMASkillModuleJsonFile::ReadHeader(
-			JsonFile,
-			ModuleId,
-			ModuleName,
-			ModuleRarity,
-			Error)) continue;
+		if (!FMASkillModuleJsonFile::ReadHeader(JsonFile, Header, Error)
+			|| !FMASkillModuleJsonFile::ValidateSourceFilePath(
+				SourceDirectory,
+				JsonFile,
+				Header.ModuleType,
+				Error))
+		{
+			continue;
+		}
 
 		FMASkillModuleShopModuleItem Item = MakeShared<FMASkillModuleShopModuleListItem>();
-		Item->ModuleId = ModuleId;
-		Item->ModuleName = ModuleName;
-		Item->Rarity = ModuleRarity;
-		Item->RarityName = ResolveRarityLabel(static_cast<int32>(ModuleRarity));
+		Item->ModuleId = Header.ModuleId;
+		Item->ModuleName = Header.ModuleName;
+		Item->Rarity = Header.ModuleRarity;
+		Item->RarityName = ResolveRarityLabel(static_cast<int32>(Header.ModuleRarity));
 		if (QualityData)
 		{
-			if (const FMAModuleRarityData* RarityData = QualityData->FindRarityData(ModuleRarity))
+			if (const FMAModuleRarityData* RarityData = QualityData->FindRarityData(Header.ModuleRarity))
 			{
 				Item->RarityColor = RarityData->Color;
 			}

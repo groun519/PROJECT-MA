@@ -1,32 +1,39 @@
 {
-	"ModuleId": 52,
+	"ModuleId": 39,
 	"Module":
 	{
-		"ModuleName": "DA_FireElemental",
+		"ModuleType": "Sub",
+		"ModuleName": "DA_Elemental_Wind",
 		"DisplayData":
 		{
-			"DisplayName": "Fire Elemental",
-			"Description": "모듈의 피해 타입이 불 속성이 됩니다.",
+			"DisplayName": "Wind Rune",
+			"Description": "스킬의 일반 피해를 1초 동안 5회에 걸쳐 나누어 입힙니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Fire.T_Fire'",
-				"Priority": 0
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Wind.T_Wind'",
+				"Priority": 2
 			},
 			"NameData":
 			{
-				"Keyword": "",
-				"Priority": 0
+				"Keyword": "Wind",
+				"Priority": 2
 			}
 		},
 		"ModuleQuality":
 		{
-			"Rarity": "Rarity7"
+			"Rarity": "Rarity4"
 		},
-		"ModuleTags": [],
+		"ModuleTags": [
+			"Module.Exclusive.Elemental"
+		],
 		"ModuleVisualTags": [
-			"Module.Visual.Elemental.Fire"
+			"Module.Visual.Elemental.Wind"
 		],
 		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 3
+			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [
@@ -46,8 +53,15 @@
 							"_ClassName": "/Script/P_MA.MASkillAction_PatchDamagePayload",
 							"damagePayloadTag": "Damage",
 							"bExactPayloadTagMatch": false,
-							"bOverrideDamageType": true,
-							"damageTypeTag": "DamageType.Fire",
+							"requiredDamageTypeTag": "DamageType.Damage",
+							"bOverrideDamageType": false,
+							"bOverrideApplicationMode": true,
+							"applicationMode": "DamageOverTime",
+							"damageOverTime":
+							{
+								"duration": 1,
+								"tickCount": 5
+							},
 							"targetRelationModifier":
 							{
 								"operation": "None",

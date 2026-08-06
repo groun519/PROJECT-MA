@@ -1,8 +1,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 
-enum class EMAModuleRarity : uint8;
+struct FMASkillModuleJsonHeader
+{
+	int32 ModuleId = 0;
+	FName ModuleName = NAME_None;
+	EMAModuleRarity ModuleRarity = EMAModuleRarity::Rarity4;
+	EMASkillModuleType ModuleType = EMASkillModuleType::Module;
+};
 
 struct FMASkillModuleJsonSource
 {
@@ -29,9 +36,17 @@ struct FMASkillModuleJsonFile
 
 	static bool ReadHeader(
 		const FString& FilePath,
-		int32& OutModuleId,
-		FName& OutModuleName,
-		EMAModuleRarity& OutModuleRarity,
+		FMASkillModuleJsonHeader& OutHeader,
+		FText& OutError);
+
+	static FString MakeSourceFilePath(
+		const FString& SourceDirectory,
+		int32 ModuleId,
+		EMASkillModuleType ModuleType);
+	static bool ValidateSourceFilePath(
+		const FString& SourceDirectory,
+		const FString& SourceFile,
+		EMASkillModuleType ModuleType,
 		FText& OutError);
 
 	static bool ResolveModuleId(const FString& SourceFile, int32& OutModuleId, FText& OutError);

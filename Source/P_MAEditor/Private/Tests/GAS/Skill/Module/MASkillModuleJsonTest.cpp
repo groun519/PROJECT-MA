@@ -183,20 +183,17 @@ bool FMASkillModuleJsonRoundTripTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Generated EffectDefinition is excluded"), JsonA.Contains(TEXT("EffectDefinition")));
 	TestTrue(TEXT("Null instanced objects serialize as null"), JsonA.Contains(TEXT("\"action\": null")));
 
-	int32 HeaderModuleId = 0;
-	FName HeaderModuleName;
-	EMAModuleRarity HeaderModuleRarity;
+	FMASkillModuleJsonHeader Header;
 	TestTrue(
 		TEXT("Read module header without importing module data"),
 		FMASkillModuleJsonReader::ReadHeader(
 			JsonA,
-			HeaderModuleId,
-			HeaderModuleName,
-			HeaderModuleRarity,
+			Header,
 			Error));
-	TestEqual(TEXT("Header contains ModuleId"), HeaderModuleId, 1201);
-	TestEqual(TEXT("Header contains ModuleName"), HeaderModuleName, FName(TEXT("JsonRoundTrip")));
-	TestEqual(TEXT("Header contains module rarity"), HeaderModuleRarity, EMAModuleRarity::Rarity4);
+	TestEqual(TEXT("Header contains ModuleId"), Header.ModuleId, 1201);
+	TestEqual(TEXT("Header contains ModuleName"), Header.ModuleName, FName(TEXT("JsonRoundTrip")));
+	TestEqual(TEXT("Header contains module rarity"), Header.ModuleRarity, EMAModuleRarity::Rarity4);
+	TestEqual(TEXT("Header contains module type"), Header.ModuleType, EMASkillModuleType::Module);
 
 	TStrongObjectPtr<UDataTable> LoadedOwner(NewObject<UDataTable>());
 	FMASkillModuleReadResult ReadResult = FMASkillModuleJsonReader::Read(JsonA, *LoadedOwner);

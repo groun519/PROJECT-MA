@@ -1,37 +1,36 @@
 {
-	"ModuleId": 18,
+	"ModuleId": 24,
 	"Module":
 	{
-		"ModuleName": "DA_CrushingStrike",
+		"ModuleType": "Sub",
+		"ModuleName": "DA_HeavyStrike",
 		"DisplayData":
 		{
-			"DisplayName": "Crushing Strike",
-			"Description": "스킬의 <AS>시행 속도가 15% 느려</>지는 대신,\r\n스킬의 <FINAL>최종 피해량이 45% 증가</>합니다.",
+			"DisplayName": "Heavy Strike",
+			"Description": "스킬의 <FINAL>최종 피해량이 25% 증가</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Crushing_Strike.T_Crushing_Strike'",
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_HeavyStrike.T_HeavyStrike'",
 				"Priority": 1
 			},
 			"NameData":
 			{
-				"Keyword": "Crushing",
+				"Keyword": "Heavy",
 				"Priority": 1
 			}
 		},
 		"ModuleQuality":
 		{
-			"Rarity": "Rarity6"
+			"Rarity": "Rarity3"
 		},
-		"ModuleTags": [
-			"Module.Exclusive.Unique"
-		],
+		"ModuleTags": [],
 		"ModuleVisualTags": [
-			"Module.Visual.Type.Modifier"
+			"Module.Visual.Type.BuffModifier"
 		],
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 5
+				"cooldownSeconds": 2.5
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
@@ -50,18 +49,9 @@
 						"action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
-							"multiplier": 1.4500000476837158,
+							"multiplier": 1.25,
 							"multiplierPayloadTag": "",
 							"payloadBaseMultiplier": 0
-						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
-							"multiplier": 0.85000002384185791
 						}
 					}
 				]

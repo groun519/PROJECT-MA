@@ -17,6 +17,7 @@
 static const FName ModuleIdColumn = TEXT("ModuleId");
 static const FName SourceColumn = TEXT("Source");
 static const FName StatusColumn = TEXT("Status");
+static const FName TypeColumn = TEXT("Type");
 static const FName LastBuiltColumn = TEXT("LastBuilt");
 
 static FText GetBuildStatusText(const EMASkillModuleBuildStatus Status)
@@ -43,6 +44,14 @@ static bool SortBuildItems(const FMASkillModuleBuildItem& A, const FMASkillModul
 	}
 	if (A.ModuleId != B.ModuleId) return A.ModuleId < B.ModuleId;
 	return A.SourceFile < B.SourceFile;
+}
+
+static FText GetModuleTypeText(const EMASkillModuleType ModuleType)
+{
+	const UEnum* Enum = StaticEnum<EMASkillModuleType>();
+	return ModuleType != EMASkillModuleType::None && Enum
+		? Enum->GetDisplayNameTextByValue(static_cast<int64>(ModuleType))
+		: FText::FromString(TEXT("-"));
 }
 
 static FSlateColor GetBuildStatusBackgroundColor(const EMASkillModuleBuildStatus Status)
@@ -98,6 +107,10 @@ public:
 		if (ColumnName == ModuleIdColumn)
 		{
 			Text = Item->ModuleId > 0 ? FText::AsNumber(Item->ModuleId) : FText::FromString(TEXT("-"));
+		}
+		else if (ColumnName == TypeColumn)
+		{
+			Text = GetModuleTypeText(Item->ModuleType);
 		}
 		else if (ColumnName == SourceColumn)
 		{
@@ -227,6 +240,9 @@ void SMASkillModuleBuildPage::Construct(const FArguments&)
 					+ SHeaderRow::Column(ModuleIdColumn)
 					.DefaultLabel(LOCTEXT("ModuleIdColumn", "Module ID"))
 					.FixedWidth(90.f)
+					+ SHeaderRow::Column(TypeColumn)
+					.DefaultLabel(LOCTEXT("TypeColumn", "Type"))
+					.FixedWidth(80.f)
 					+ SHeaderRow::Column(SourceColumn)
 					.DefaultLabel(LOCTEXT("SourceColumn", "Source"))
 					.FillWidth(0.2f)

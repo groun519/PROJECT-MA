@@ -57,18 +57,21 @@ static bool CollectSourceItems(
 		FMASkillModuleBuildItem& Item = OutItems.AddDefaulted_GetRef();
 		Item.SourceFile = NormalizeSourceFile(JsonFile);
 
+		FMASkillModuleJsonHeader Header;
+		FText HeaderError;
+		const bool bHeaderValid = FMASkillModuleJsonFile::ReadHeader(
+			JsonFile,
+			Header,
+			HeaderError);
+
 		FText ItemError;
 		if (!FMASkillModuleJsonFile::ResolveModuleId(JsonFile, Item.ModuleId, ItemError))
 		{
-			int32 ContentModuleId = 0;
-			FText ContentError;
-			if (FMASkillModuleJsonFile::ResolveModuleIdFromContent(
-				JsonFile,
-				ContentModuleId,
-				ContentError))
+			if (bHeaderValid)
 			{
-				Item.ModuleId = ContentModuleId;
-				OutSourceIndicesByModuleId.FindOrAdd(ContentModuleId).Add(OutItems.Num() - 1);
+				Item.ModuleId = Header.ModuleId;
+				Item.ModuleType = Header.ModuleType;
+				OutSourceIndicesByModuleId.FindOrAdd(Header.ModuleId).Add(OutItems.Num() - 1);
 				Item.StatusDetail = MoveTemp(ItemError);
 			}
 			else
@@ -76,11 +79,27 @@ static bool CollectSourceItems(
 				Item.StatusDetail = FText::FromString(FString::Printf(
 					TEXT("%s %s"),
 					*ItemError.ToString(),
-					*ContentError.ToString()));
+					*HeaderError.ToString()));
 			}
 			continue;
 		}
 		OutSourceIndicesByModuleId.FindOrAdd(Item.ModuleId).Add(OutItems.Num() - 1);
+		if (!bHeaderValid)
+		{
+			Item.StatusDetail = MoveTemp(HeaderError);
+			continue;
+		}
+
+		Item.ModuleType = Header.ModuleType;
+		if (Header.ModuleId == Item.ModuleId
+			&& !FMASkillModuleJsonFile::ValidateSourceFilePath(
+				FullSourceDirectory,
+				Item.SourceFile,
+				Item.ModuleType,
+				ItemError))
+		{
+			Item.StatusDetail = MoveTemp(ItemError);
+		}
 	}
 
 	for (const TPair<int32, TArray<int32>>& Pair : OutSourceIndicesByModuleId)
@@ -90,18 +109,18 @@ static bool CollectSourceItems(
 		for (const int32 ItemIndex : Pair.Value)
 		{
 			FMASkillModuleBuildItem& Item = OutItems[ItemIndex];
-			int32 ContentModuleId = 0;
+			FMASkillModuleJsonHeader Header;
 			FText ContentError;
-			if (!FMASkillModuleJsonFile::ResolveModuleIdFromContent(
+			if (!FMASkillModuleJsonFile::ReadHeader(
 				Item.SourceFile,
-				ContentModuleId,
+				Header,
 				ContentError)
-				|| ContentModuleId != Pair.Key)
+				|| Header.ModuleId != Pair.Key)
 			{
 				Item.StatusDetail = ContentError.IsEmpty()
 					? FText::FromString(FString::Printf(
 						TEXT("Source ModuleId %d does not match file ModuleId %d."),
-						ContentModuleId,
+						Header.ModuleId,
 						Pair.Key))
 					: MoveTemp(ContentError);
 				continue;
@@ -141,6 +160,7 @@ bool FMASkillModuleBuildPipeline::CollectStatus(
 			GeneratedAssetDirectory,
 			InspectedItem,
 			ItemError);
+		InspectedItem.ModuleType = Item.ModuleType;
 		Item = MoveTemp(InspectedItem);
 		if (!bResolved)
 		{
