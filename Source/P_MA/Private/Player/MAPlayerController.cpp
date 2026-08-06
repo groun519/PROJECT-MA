@@ -178,7 +178,7 @@ void AMAPlayerController::RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId
 
 	if (HasAuthority())
 	{
-		ShopNPC->RequestPurchase(this, StockId);
+		ShopNPC->Purchase(this, StockId);
 		return;
 	}
 
@@ -188,7 +188,7 @@ void AMAPlayerController::RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId
 void AMAPlayerController::ServerRequestShopPurchase_Implementation(AMAShopNPC* ShopNPC, int32 StockId)
 {
 	if (!ShopNPC || StockId == INDEX_NONE) return;
-	ShopNPC->RequestPurchase(this, StockId);
+	ShopNPC->Purchase(this, StockId);
 }
 
 void AMAPlayerController::ToggleSkillSlots()

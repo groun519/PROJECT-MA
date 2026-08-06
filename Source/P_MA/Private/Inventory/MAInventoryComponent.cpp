@@ -26,43 +26,49 @@ void UMAInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME_CONDITION(UMAInventoryComponent, Entries, COND_OwnerOnly);
 }
 
-/** Module **/
-bool UMAInventoryComponent::RequestGrantModule(UMASkillModule* Module)
-{
-	if (!Module) return false;
-
-	const AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return false;
-	if (OwnerActor->HasAuthority()) return AddModule(Module);
-
-	ServerGrantModule(Module);
-	return true;
-}
-
-/** Item **/
-bool UMAInventoryComponent::RequestGrantItem(const int32 ModuleId, const int32 Count)
+/** Module Addition **/
+bool UMAInventoryComponent::RequestAddModule(const int32 ModuleId, const int32 Count)
 {
 	if (ModuleId <= 0 || Count <= 0) return false;
 
 	const AActor* OwnerActor = GetOwner();
 	if (!OwnerActor) return false;
-	if (OwnerActor->HasAuthority()) return AddItem(ModuleId, Count);
+	if (OwnerActor->HasAuthority()) return AddModule(ModuleId, Count);
 
-	ServerGrantItem(ModuleId, Count);
+	ServerAddModule(ModuleId, Count);
 	return true;
 }
 
-void UMAInventoryComponent::UseEntry(const int32 EntryId)
+bool UMAInventoryComponent::AddModule(const int32 ModuleId, const int32 Count)
+{
+	if (!CanMutateInventory() || ModuleId <= 0 || Count <= 0) return false;
+
+	UMASkillModule* Module = UMASkillModule::LoadById(ModuleId);
+	if (!Module) return false;
+
+	switch (Module->GetModuleType())
+	{
+	case EMASkillModuleType::Module:
+		return Count == 1 && AddModuleInstance(Module);
+	case EMASkillModuleType::Item:
+	case EMASkillModuleType::Sub:
+		return AddItemStack(Module, Count);
+	default:
+		return false;
+	}
+}
+
+void UMAInventoryComponent::UseItem(const int32 EntryId)
 {
 	const AActor* OwnerActor = GetOwner();
 	check(OwnerActor);
 	if (OwnerActor->HasAuthority())
 	{
-		ReportEntryUseResult(EntryId, ExecuteUseEntry(EntryId));
+		ReportItemUseResult(EntryId, ExecuteUseItem(EntryId));
 		return;
 	}
 
-	ServerUseEntry(EntryId);
+	ServerUseItem(EntryId);
 }
 
 /** Entry Transfer **/
@@ -118,10 +124,8 @@ UMASkillModuleInstance* UMAInventoryComponent::GetModuleAt(const int32 SlotIndex
 }
 
 /** Module **/
-bool UMAInventoryComponent::AddModule(UMASkillModule* Module)
+bool UMAInventoryComponent::AddModuleInstance(UMASkillModule* Module)
 {
-	if (!CanMutateInventory() || !Module) return false;
-
 	EnsureSlotCount();
 	const int32 EmptySlotIndex = Entries.IndexOfByPredicate([](const FMAInventoryEntry& Entry)
 	{
@@ -141,18 +145,8 @@ bool UMAInventoryComponent::AddModule(UMASkillModule* Module)
 }
 
 /** Item **/
-bool UMAInventoryComponent::AddItem(const int32 ModuleId, const int32 Count)
+bool UMAInventoryComponent::AddItemStack(UMASkillModule* Module, const int32 Count)
 {
-	if (!CanMutateInventory() || ModuleId <= 0 || Count <= 0) return false;
-
-	UMASkillModule* Module = UMASkillModule::LoadById(ModuleId);
-	if (!Module
-		|| (Module->GetModuleType() != EMASkillModuleType::Item
-			&& Module->GetModuleType() != EMASkillModuleType::Sub))
-	{
-		return false;
-	}
-
 	EnsureSlotCount();
 	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([Module](const FMAInventoryEntry& Entry)
 	{
@@ -178,7 +172,7 @@ bool UMAInventoryComponent::AddItem(const int32 ModuleId, const int32 Count)
 	return true;
 }
 
-EMAItemUseResult UMAInventoryComponent::ExecuteUseEntry(const int32 EntryId)
+EMAItemUseResult UMAInventoryComponent::ExecuteUseItem(const int32 EntryId)
 {
 	const int32 SlotIndex = FindEntrySlot(EntryId);
 	if (!Entries.IsValidIndex(SlotIndex)) return EMAItemUseResult::InvalidEntry;
@@ -331,7 +325,7 @@ void UMAInventoryComponent::NotifyInventoryChanged()
 	OnInventoryChanged.Broadcast();
 }
 
-void UMAInventoryComponent::ReportEntryUseResult(
+void UMAInventoryComponent::ReportItemUseResult(
 	const int32 EntryId,
 	const EMAItemUseResult Result) const
 {
@@ -340,27 +334,22 @@ void UMAInventoryComponent::ReportEntryUseResult(
 	UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("UseEntry failed: EntryId=%d Result=%s"),
+		TEXT("UseItem failed: EntryId=%d Result=%s"),
 		EntryId,
 		*StaticEnum<EMAItemUseResult>()->GetNameStringByValue(static_cast<int64>(Result)));
 }
 
 /** Replication **/
-void UMAInventoryComponent::ServerGrantModule_Implementation(UMASkillModule* Module)
-{
-	AddModule(Module);
-}
-
-void UMAInventoryComponent::ServerGrantItem_Implementation(
+void UMAInventoryComponent::ServerAddModule_Implementation(
 	const int32 ModuleId,
 	const int32 Count)
 {
-	AddItem(ModuleId, Count);
+	AddModule(ModuleId, Count);
 }
 
-void UMAInventoryComponent::ServerUseEntry_Implementation(const int32 EntryId)
+void UMAInventoryComponent::ServerUseItem_Implementation(const int32 EntryId)
 {
-	UseEntry(EntryId);
+	UseItem(EntryId);
 }
 
 void UMAInventoryComponent::ServerMoveEntry_Implementation(

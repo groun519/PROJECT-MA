@@ -1,10 +1,12 @@
-﻿#include "Widget/Shop/MAShopDetailWidget.h"
+#include "Widget/Shop/MAShopDetailWidget.h"
 
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/RichTextBlock.h"
 #include "Components/TextBlock.h"
+#include "Display/MADisplayTypes.h"
+#include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "MAMaterialParams.h"
 #include "Setting/MAGameSettings.h"
@@ -18,55 +20,63 @@ void UMAShopDetailWidget::NativeConstruct()
 	BuyButton->OnClicked.AddDynamic(this, &UMAShopDetailWidget::HandleBuyButtonClicked);
 }
 
-void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
+void UMAShopDetailWidget::SetProduct(const FMAShopProduct* Product)
 {
-	const UMASkillModule* SkillModule = InEntry ? InEntry->SkillModule : nullptr;
-	const ESlateVisibility EntryVisibility = InEntry ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
-	const ESlateVisibility BuyVisibility = InEntry ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	const UMASkillModule* Module = Product ? Product->Module : nullptr;
+	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
+	const UMAModuleQualityData* QualityData = GameSettings->GetModuleQualityData();
+	const FMADisplayData DisplayData = Module
+		? Module->ResolveDisplayData(QualityData)
+		: FMADisplayData();
+	const FMAIconData& IconData = DisplayData.IconData;
+	const ESlateVisibility ProductVisibility = Product ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+	const ESlateVisibility BuyVisibility = Product ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
-	UTexture2D* Icon = InEntry ? InEntry->Icon : nullptr;
-	if (UMaterialInstanceDynamic* IconMaterial = ItemIconImage->GetDynamicMaterial())
+	UTexture2D* Icon = IconData.Icon;
+	if (UMaterialInstanceDynamic* IconMaterial = ProductIconImage->GetDynamicMaterial())
 	{
 		IconMaterial->SetTextureParameterValue(PARAM_ModuleIcon_IconTexture, Icon);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, InEntry ? InEntry->IconColor : FLinearColor::White);
-		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, InEntry ? InEntry->InnerColor : FLinearColor(0.15f, 0.15f, 0.15f, 1.f));
-		ItemIconImage->SetVisibility(Icon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_IconColor, IconData.IconColor);
+		IconMaterial->SetVectorParameterValue(PARAM_ModuleIcon_InnerColor, IconData.InnerColor);
+		ProductIconImage->SetVisibility(Icon ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 	}
 	else if (Icon)
 	{
-		ItemIconImage->SetBrushFromTexture(Icon);
-		ItemIconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		ProductIconImage->SetBrushFromTexture(Icon);
+		ProductIconImage->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 	}
 	else
 	{
-		ItemIconImage->SetVisibility(ESlateVisibility::Collapsed);
+		ProductIconImage->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
-	NameText->SetText(SkillModule ? SkillModule->GetDisplayData().DisplayName : FText());
-	NameText->SetVisibility(EntryVisibility);
+	NameText->SetText(DisplayData.DisplayName);
+	NameText->SetVisibility(ProductVisibility);
 
-	QualityText->SetText(InEntry ? InEntry->QualityText : FText());
-	QualityText->SetColorAndOpacity(FSlateColor(InEntry ? InEntry->QualityColor : FLinearColor::White));
-	QualityText->SetVisibility(InEntry && !InEntry->QualityText.IsEmpty() ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	const FMAModuleRarityData* RarityData = Module && QualityData
+		? QualityData->FindRarityData(Module->GetModuleQuality().Rarity)
+		: nullptr;
+	QualityText->SetText(RarityData ? RarityData->DisplayName : FText());
+	QualityText->SetColorAndOpacity(FSlateColor(IconData.FrameColor));
+	QualityText->SetVisibility(RarityData ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
 
-	DescriptionText->SetText(SkillModule ? SkillModule->GetDisplayData().Description : FText());
-	DescriptionText->SetVisibility(EntryVisibility);
+	DescriptionText->SetText(DisplayData.Description);
+	DescriptionText->SetVisibility(ProductVisibility);
 
-	const float CooldownSeconds = SkillModule ? SkillModule->GetCooldownSeconds() : 0.f;
+	const float CooldownSeconds = Module ? Module->GetCooldownSeconds() : 0.f;
 	FNumberFormattingOptions CooldownFormatting;
 	CooldownFormatting.MinimumFractionalDigits = 0;
 	CooldownFormatting.MaximumFractionalDigits = FMath::Abs(CooldownSeconds) >= 1.f ? 1 : 2;
 	CooldownText->SetText(FText::Format(
 		NSLOCTEXT("MAShopDetailWidget", "CooldownSecondsFormat", "{0}s"),
 		FText::AsNumber(CooldownSeconds, &CooldownFormatting)));
-	const UMAGameSettings* GameSettings = UMAGameSettings::Get();
 	CooldownText->SetColorAndOpacity(FSlateColor(CooldownSeconds >= 0.f
 		? GameSettings->PositiveCooldownColor
 		: GameSettings->NegativeCooldownColor));
 	CooldownText->SetVisibility(FMath::IsNearlyZero(CooldownSeconds) ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
 
 	const UDataTable* WarningTextDataTable = GameSettings->GetWarningTextDataTable();
-	const FGameplayTagContainer TooltipTags = SkillModule ? SkillModule->GetTooltipTags() : FGameplayTagContainer();
+	const FGameplayTagContainer TooltipTags = Module ? Module->GetTooltipTags() : FGameplayTagContainer();
 	UMASkillTagBadgeWidget::RefreshTagBadges(
 		this,
 		TagBadgePanel,
@@ -74,8 +84,8 @@ void UMAShopDetailWidget::SetEntry(const FMAShopStockEntry* InEntry)
 		TooltipTags,
 		WarningTextDataTable);
 
-	PriceText->SetText(InEntry ? FText::AsNumber(InEntry->Price) : FText());
-	PriceText->SetVisibility(EntryVisibility);
+	PriceText->SetText(Product ? FText::AsNumber(Product->Price) : FText());
+	PriceText->SetVisibility(ProductVisibility);
 
 	BuyButton->SetVisibility(BuyVisibility);
 }

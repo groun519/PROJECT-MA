@@ -345,7 +345,7 @@ void AMAPlayerCharacter::Server_ShopTest_Implementation()
 
 	for (TActorIterator<AMAShopNPC> It(World); It; ++It)
 	{
-		It->SetModuleStockCountForTest(99);
+		It->SetStockCountsForTest(99);
 		It->RefreshStock();
 	}
 }

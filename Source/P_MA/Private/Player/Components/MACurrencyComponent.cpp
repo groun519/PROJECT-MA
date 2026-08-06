@@ -18,11 +18,6 @@ float UMACurrencyComponent::GetCoin() const
 		: 0.f;
 }
 
-bool UMACurrencyComponent::HasCoin(float Amount) const
-{
-	return Amount <= 0.f || GetCoin() >= Amount;
-}
-
 bool UMACurrencyComponent::TrySpendCoin(float Amount)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return false;

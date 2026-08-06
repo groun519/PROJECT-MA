@@ -13,7 +13,6 @@ public:
 	UMACurrencyComponent();
 
 	float GetCoin() const;
-	bool HasCoin(float Amount) const;
 	bool TrySpendCoin(float Amount);
 	void AddCoin(float Amount);
 };

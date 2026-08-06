@@ -8,7 +8,7 @@
 class AMAShopNPC;
 struct FOnAttributeChangeData;
 class UMAShopDetailWidget;
-class UMAShopItemWidget;
+class UMAShopProductWidget;
 class UAbilitySystemComponent;
 class UButton;
 class UPanelWidget;
@@ -27,6 +27,9 @@ public:
 
 protected:
 	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UPanelWidget> ModuleContainer;
+
+	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> ItemContainer;
 
 	UPROPERTY(meta=(BindWidget))
@@ -39,7 +42,7 @@ protected:
 	TObjectPtr<UTextBlock> CoinText;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop")
-	TSubclassOf<UMAShopItemWidget> ItemWidgetClass;
+	TSubclassOf<UMAShopProductWidget> ProductWidgetClass;
 
 private:
 	UFUNCTION()
@@ -48,8 +51,8 @@ private:
 	void BindCoinAttributeChanged();
 	void UnbindCoinAttributeChanged();
 	void RefreshCoinText();
-	void RebuildItems();
-	void HandleItemSelected(int32 StockId);
+	void RebuildProducts();
+	void HandleProductSelected(int32 StockId);
 	void HandleBuyRequested();
 
 	void HandleCoinAttributeChanged(const FOnAttributeChangeData& ChangeData);

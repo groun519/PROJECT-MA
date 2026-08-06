@@ -21,13 +21,13 @@ class P_MA_API UMAShopDetailWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	void SetEntry(const FMAShopStockEntry* InEntry);
+	void SetProduct(const FMAShopProduct* Product);
 
 	FMAShopBuyRequestedSignature OnBuyRequested;
 
 protected:
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UImage> ItemIconImage;
+	TObjectPtr<UImage> ProductIconImage;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> NameText;

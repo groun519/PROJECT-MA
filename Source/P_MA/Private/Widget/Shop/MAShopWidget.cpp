@@ -6,12 +6,13 @@
 #include "Components/TextBlock.h"
 #include "GameplayEffectTypes.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/Module/MASkillModule.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
 #include "Player/Components/MACurrencyComponent.h"
 #include "Shop/MAShopNPC.h"
 #include "Widget/Shop/MAShopDetailWidget.h"
-#include "Widget/Shop/MAShopItemWidget.h"
+#include "Widget/Shop/MAShopProductWidget.h"
 
 void UMAShopWidget::NativeConstruct()
 {
@@ -22,7 +23,7 @@ void UMAShopWidget::NativeConstruct()
 
 	DetailWidget->OnBuyRequested.RemoveAll(this);
 	DetailWidget->OnBuyRequested.AddUObject(this, &UMAShopWidget::HandleBuyRequested);
-	DetailWidget->SetEntry(nullptr);
+	DetailWidget->SetProduct(nullptr);
 }
 
 void UMAShopWidget::NativeDestruct()
@@ -36,13 +37,13 @@ void UMAShopWidget::InitializeShop(AMAShopNPC* InShopNPC)
 	ShopNPC = InShopNPC;
 	BindCoinAttributeChanged();
 	RefreshCoinText();
-	RebuildItems();
+	RebuildProducts();
 }
 
 void UMAShopWidget::RefreshStock()
 {
 	RefreshCoinText();
-	RebuildItems();
+	RebuildProducts();
 }
 
 void UMAShopWidget::HandleCloseButtonClicked()
@@ -90,66 +91,85 @@ void UMAShopWidget::RefreshCoinText()
 	CoinText->SetText(FText::AsNumber(Coin));
 }
 
-void UMAShopWidget::RebuildItems()
+void UMAShopWidget::RebuildProducts()
 {
+	ModuleContainer->ClearChildren();
 	ItemContainer->ClearChildren();
-	if (!ShopNPC || !ItemWidgetClass)
+	if (!ShopNPC || !ProductWidgetClass)
 	{
 		PendingSelectionIndex = INDEX_NONE;
-		HandleItemSelected(INDEX_NONE);
+		HandleProductSelected(INDEX_NONE);
 		return;
 	}
 
-	const TArray<FMAShopStockEntry>& StockEntries = ShopNPC->GetCurrentStockEntries();
-	for (int32 EntryIndex = 0; EntryIndex < StockEntries.Num(); ++EntryIndex)
+	const TArray<FMAShopProduct>& Products = ShopNPC->GetCurrentProducts();
+	for (const FMAShopProduct& Product : Products)
 	{
-		UMAShopItemWidget* ItemWidget = CreateWidget<UMAShopItemWidget>(this, ItemWidgetClass);
+		UPanelWidget* ProductContainer = nullptr;
+		switch (Product.Module->GetModuleType())
+		{
+		case EMASkillModuleType::Module:
+			ProductContainer = ModuleContainer;
+			break;
+		case EMASkillModuleType::Item:
+			ProductContainer = ItemContainer;
+			break;
+		default:
+			continue;
+		}
 
-		ItemWidget->InitializeItem(StockEntries[EntryIndex]);
-		ItemWidget->OnItemSelected.AddUObject(this, &UMAShopWidget::HandleItemSelected);
-		ItemContainer->AddChild(ItemWidget);
+		UMAShopProductWidget* ProductWidget = CreateWidget<UMAShopProductWidget>(this, ProductWidgetClass);
+		ProductWidget->SetProduct(Product);
+		ProductWidget->OnProductSelected.AddUObject(this, &UMAShopWidget::HandleProductSelected);
+		ProductContainer->AddChild(ProductWidget);
 	}
+	ItemContainer->SetVisibility(ItemContainer->GetChildrenCount() > 0
+		? ESlateVisibility::SelfHitTestInvisible
+		: ESlateVisibility::Collapsed);
 
-	if (StockEntries.IsEmpty())
+	if (Products.IsEmpty())
 	{
 		PendingSelectionIndex = INDEX_NONE;
-		HandleItemSelected(INDEX_NONE);
+		HandleProductSelected(INDEX_NONE);
 		return;
 	}
 
-	const int32 SelectedStockIndex = StockEntries.IndexOfByPredicate([this](const FMAShopStockEntry& Entry)
+	const int32 SelectedStockIndex = Products.IndexOfByPredicate([this](const FMAShopProduct& Product)
 	{
-		return Entry.StockId == SelectedStockId;
+		return Product.StockId == SelectedStockId;
 	});
 
-	int32 StockIdToSelect = SelectedStockIndex != INDEX_NONE ? SelectedStockId : StockEntries[0].StockId;
+	int32 StockIdToSelect = SelectedStockIndex != INDEX_NONE ? SelectedStockId : Products[0].StockId;
 	if (SelectedStockIndex == INDEX_NONE && PendingSelectionIndex != INDEX_NONE)
 	{
-		const int32 SelectionIndex = FMath::Clamp(PendingSelectionIndex, 0, StockEntries.Num() - 1);
-		StockIdToSelect = StockEntries[SelectionIndex].StockId;
+		const int32 SelectionIndex = FMath::Clamp(PendingSelectionIndex, 0, Products.Num() - 1);
+		StockIdToSelect = Products[SelectionIndex].StockId;
 	}
 	PendingSelectionIndex = INDEX_NONE;
 
-	HandleItemSelected(StockIdToSelect);
+	HandleProductSelected(StockIdToSelect);
 }
 
-void UMAShopWidget::HandleItemSelected(int32 StockId)
+void UMAShopWidget::HandleProductSelected(int32 StockId)
 {
 	SelectedStockId = StockId;
-	const TArray<FMAShopStockEntry>* StockEntries = ShopNPC ? &ShopNPC->GetCurrentStockEntries() : nullptr;
-	const FMAShopStockEntry* Entry = StockEntries
-		? StockEntries->FindByPredicate([StockId](const FMAShopStockEntry& Candidate)
+	const TArray<FMAShopProduct>* Products = ShopNPC ? &ShopNPC->GetCurrentProducts() : nullptr;
+	const FMAShopProduct* Product = Products
+		? Products->FindByPredicate([StockId](const FMAShopProduct& Candidate)
 		{
 			return Candidate.StockId == StockId;
 		})
 		: nullptr;
-	DetailWidget->SetEntry(Entry);
+	DetailWidget->SetProduct(Product);
 
-	for (int32 ChildIndex = 0; ChildIndex < ItemContainer->GetChildrenCount(); ++ChildIndex)
+	for (UPanelWidget* Container : {ModuleContainer.Get(), ItemContainer.Get()})
 	{
-		if (UMAShopItemWidget* ItemWidget = Cast<UMAShopItemWidget>(ItemContainer->GetChildAt(ChildIndex)))
+		for (int32 ChildIndex = 0; ChildIndex < Container->GetChildrenCount(); ++ChildIndex)
 		{
-			ItemWidget->SetSelected(ItemWidget->GetStockId() == SelectedStockId);
+			if (UMAShopProductWidget* ProductWidget = Cast<UMAShopProductWidget>(Container->GetChildAt(ChildIndex)))
+			{
+				ProductWidget->SetSelected(ProductWidget->GetStockId() == SelectedStockId);
+			}
 		}
 	}
 }
@@ -158,10 +178,10 @@ void UMAShopWidget::HandleBuyRequested()
 {
 	if (!ShopNPC || SelectedStockId == INDEX_NONE) return;
 
-	const TArray<FMAShopStockEntry>& StockEntries = ShopNPC->GetCurrentStockEntries();
-	PendingSelectionIndex = StockEntries.IndexOfByPredicate([this](const FMAShopStockEntry& Entry)
+	const TArray<FMAShopProduct>& Products = ShopNPC->GetCurrentProducts();
+	PendingSelectionIndex = Products.IndexOfByPredicate([this](const FMAShopProduct& Product)
 	{
-		return Entry.StockId == SelectedStockId;
+		return Product.StockId == SelectedStockId;
 	});
 
 	if (AMAPlayerController* PlayerController = Cast<AMAPlayerController>(GetOwningPlayer()))

@@ -4,10 +4,9 @@
 #include "MAShopTypes.generated.h"
 
 class UMASkillModule;
-class UTexture2D;
 
 USTRUCT(BlueprintType)
-struct FMAShopStockEntry
+struct FMAShopProduct
 {
 	GENERATED_BODY()
 
@@ -18,28 +17,10 @@ struct FMAShopStockEntry
 	int32 VisualSeed = 0;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMASkillModule> SkillModule = nullptr;
+	TObjectPtr<UMASkillModule> Module = nullptr;
 
 	UPROPERTY(Transient)
 	int32 Price = 0;
-
-	UPROPERTY(Transient)
-	FText QualityText;
-
-	UPROPERTY(Transient)
-	FLinearColor QualityColor = FLinearColor::White;
-
-	UPROPERTY(Transient)
-	float GlowAlpha = 0.f;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTexture2D> Icon = nullptr;
-
-	UPROPERTY(Transient)
-	FLinearColor IconColor = FLinearColor::White;
-
-	UPROPERTY(Transient)
-	FLinearColor InnerColor = FLinearColor(0.15f, 0.15f, 0.15f, 1.f);
 };
 
 USTRUCT(BlueprintType)

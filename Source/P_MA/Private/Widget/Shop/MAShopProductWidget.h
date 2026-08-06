@@ -3,33 +3,33 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Shop/MAShopTypes.h"
-#include "MAShopItemWidget.generated.h"
+#include "MAShopProductWidget.generated.h"
 
 class UButton;
 class UImage;
 class UTextBlock;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FMAShopItemSelectedSignature, int32);
+DECLARE_MULTICAST_DELEGATE_OneParam(FMAShopProductSelectedSignature, int32);
 
 UCLASS()
-class P_MA_API UMAShopItemWidget : public UUserWidget
+class P_MA_API UMAShopProductWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
 	virtual void NativeConstruct() override;
-	void InitializeItem(const FMAShopStockEntry& InEntry);
+	void SetProduct(const FMAShopProduct& Product);
 	void SetSelected(bool bSelected);
 	int32 GetStockId() const { return StockId; }
 
-	FMAShopItemSelectedSignature OnItemSelected;
+	FMAShopProductSelectedSignature OnProductSelected;
 
 protected:
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UButton> ItemButton;
+	TObjectPtr<UButton> ProductButton;
 
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UImage> ItemIconImage;
+	TObjectPtr<UImage> ProductIconImage;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> GlowImage;
@@ -39,7 +39,7 @@ protected:
 
 private:
 	UFUNCTION()
-	void HandleItemButtonClicked();
+	void HandleProductButtonClicked();
 
 	int32 StockId = INDEX_NONE;
 	FLinearColor FrameColor = FLinearColor::White;

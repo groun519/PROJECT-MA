@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "Framework/MAGameStateTypes.h"
 #include "GameFramework/Actor.h"
-#include "GAS/Skill/Module/MAModuleQualityData.h"
 #include "Player/Camera/MACameraTypes.h"
 #include "Shop/MAShopTypes.h"
 #include "MAShopNPC.generated.h"
@@ -33,10 +32,10 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void CloseShop(APlayerController* PlayerController);
-	const TArray<FMAShopStockEntry>& GetCurrentStockEntries() const { return CurrentStockEntries; }
-	bool RequestPurchase(APlayerController* PlayerController, int32 StockId);
+	const TArray<FMAShopProduct>& GetCurrentProducts() const { return CurrentProducts; }
+	bool Purchase(APlayerController* PlayerController, int32 StockId);
 	void RefreshStock();
-	void SetModuleStockCountForTest(int32 Count);
+	void SetStockCountsForTest(int32 Count);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category="Component")
@@ -61,7 +60,7 @@ private:
 	FMAShopStockCountRange ModuleStockCountRange;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
-	EMAModuleRarity MaxModuleRarity = EMAModuleRarity::Rarity7;
+	FMAShopStockCountRange ItemStockCountRange;
 
 	// TODO: Test-only stock refresh hook. Consider removing when the map/shop flow is finalized.
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
@@ -81,11 +80,11 @@ private:
 	void OpenShopFor(AMAPlayerCharacter* Interactor);
 	void HandleSectorStateChanged(EMASectorState NewState);
 	void SetTemporaryShopVisible(bool bVisible);
-	TArray<FMAShopStockEntry> GenerateShopStock() const;
-	int32 ResolveModulePrice(const UMASkillModule* SkillModule) const;
+	TArray<FMAShopProduct> GenerateStock() const;
+	int32 ResolvePrice(const UMASkillModule* Module) const;
 
 	UFUNCTION()
-	void OnRep_CurrentStockEntries();
+	void OnRep_CurrentProducts();
 
 	UFUNCTION()
 	void OnRep_TemporaryShopVisible();
@@ -93,8 +92,8 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMAShopWidget> ActiveShopWidget = nullptr;
 
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentStockEntries)
-	TArray<FMAShopStockEntry> CurrentStockEntries;
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentProducts)
+	TArray<FMAShopProduct> CurrentProducts;
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_TemporaryShopVisible)
 	bool bTemporaryShopVisible = false;

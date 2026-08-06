@@ -25,7 +25,7 @@ public:
 	void SetMAState(int32 NewState);
 
 	UFUNCTION(Exec)
-	void AddItem(int32 ModuleId, int32 Count = 1);
+	void AddModule(int32 ModuleId, int32 Count = 1);
 
 	UFUNCTION(Exec)
 	void ListItems();

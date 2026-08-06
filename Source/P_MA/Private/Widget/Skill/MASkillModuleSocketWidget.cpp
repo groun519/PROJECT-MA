@@ -285,7 +285,7 @@ FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGe
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton && Inventory.IsValid())
 	{
-		Inventory->UseEntry(DisplayedEntryId);
+		Inventory->UseItem(DisplayedEntryId);
 		return FReply::Handled();
 	}
 

@@ -42,7 +42,7 @@ void UMACheatManager::SetMAState(const int32 NewState)
 	}
 }
 
-void UMACheatManager::AddItem(
+void UMACheatManager::AddModule(
 	const int32 ModuleId,
 	const int32 Count)
 {
@@ -50,12 +50,12 @@ void UMACheatManager::AddItem(
 	UMAInventoryComponent* Inventory = PlayerCharacter
 		? PlayerCharacter->GetInventoryComponent()
 		: nullptr;
-	if (!Inventory || !Inventory->RequestGrantItem(ModuleId, Count))
+	if (!Inventory || !Inventory->RequestAddModule(ModuleId, Count))
 	{
 		UE_LOG(
 			LogTemp,
 			Warning,
-			TEXT("AddItem failed: ModuleId=%d Count=%d"),
+			TEXT("AddModule failed: ModuleId=%d Count=%d"),
 			ModuleId,
 			Count);
 	}
@@ -106,7 +106,7 @@ void UMACheatManager::UseItem(const int32 EntryId)
 		return;
 	}
 
-	Inventory->UseEntry(EntryId);
+	Inventory->UseItem(EntryId);
 }
 
 void UMACheatManager::AddSkillSubModule(
