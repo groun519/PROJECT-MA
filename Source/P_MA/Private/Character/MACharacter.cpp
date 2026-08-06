@@ -10,6 +10,7 @@
 #include "Character/MAImpulseComponent.h"
 #include "Character/MAOverlayComponent.h"
 #include "Character/MAStatusEffectComponent.h"
+#include "Convenience/MAHighlightComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
@@ -44,6 +45,8 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	ElementalComponent = CreateDefaultSubobject<UMAElementalComponent>("Elemental Component");
 	ImpulseComponent = CreateDefaultSubobject<UMAImpulseComponent>("Impulse Component");
 	OverlayComponent = CreateDefaultSubobject<UMAOverlayComponent>("Overlay Component");
+	HighlightComponent = CreateDefaultSubobject<UMAHighlightComponent>("Highlight Component");
+	HighlightComponent->AddTarget(GetMesh());
 	OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("Over Head Widget Component");
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	SkillManagerComponent = CreateDefaultSubobject<UMASkillManagerComponent>("SkillManagerComponent");

@@ -97,7 +97,7 @@ void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor
 	/** Highlight **/
 	if (UMAHighlightComponent* Highlighter = HighlightComponent.Get())
 	{
-		Highlighter->SetHighlighted(bFocused);
+		Highlighter->SetHighlight(*this, bFocused);
 	}
 }
 

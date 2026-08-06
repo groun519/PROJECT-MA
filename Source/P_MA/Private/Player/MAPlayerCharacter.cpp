@@ -20,12 +20,14 @@
 #include "Player/Components/ReadyCheckWidgetComponent.h"
 #include "Player/Components/MACurrencyComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Convenience/MAHighlightComponent.h"
 #include "Convenience/MAInteractorComponent.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Components/MAPlayerCharacterMovementComponent.h"
+#include "Player/Cursor/MACursorSubsystem.h"
 #include "Player/Loadout/LoadoutComponent.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
@@ -73,6 +75,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	// Create and Attach Weapon
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("Weapon"));
 	WeaponComponent->SetupAttachment(GetMesh(), TEXT("WeaponHandSocket"));
+	GetHighlightComponent()->AddTarget(WeaponComponent);
 
 	/** Mount **/
 	MountMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MountMesh"));
@@ -642,26 +645,9 @@ void AMAPlayerCharacter::HandleLoadoutMountChanged(FName MountId)
 bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (!PC) return false;
-
-	FVector WorldOrigin, WorldDir;
-	if (!PC->DeprojectMousePositionToWorld(WorldOrigin, WorldDir)) return false;
-
-	FHitResult Hit;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-
-	if (!GetWorld()->LineTraceSingleByChannel(Hit, WorldOrigin, WorldOrigin + WorldDir * 10000.f, ECC_Visibility, Params))
-		return false;
-
-	FVector PlayerLoc = GetActorLocation();
-	FVector MouseLoc = FVector(Hit.Location.X, Hit.Location.Y, PlayerLoc.Z);
-	
-	FVector Dir = (MouseLoc - PlayerLoc).GetSafeNormal();
-	if (Dir.IsNearlyZero()) return false;
-
-	OutDirection = Dir;
-	return true;
+	ULocalPlayer* LocalPlayer = PC ? PC->GetLocalPlayer() : nullptr;
+	UMACursorSubsystem* Cursor = LocalPlayer ? LocalPlayer->GetSubsystem<UMACursorSubsystem>() : nullptr;
+	return Cursor && Cursor->GetAimDirection(OutDirection);
 }
 
 void AMAPlayerCharacter::OnDead()

@@ -161,9 +161,9 @@ void AMAShopNPC::SetTemporaryShopVisible(bool bVisible)
 	}
 	if (!bVisible)
 	{
-		if (HighlightComponent)
+		if (HighlightComponent && InteractableComponent)
 		{
-			HighlightComponent->SetHighlighted(false);
+			HighlightComponent->SetHighlight(*InteractableComponent, false);
 		}
 		if (ActiveShopWidget)
 		{

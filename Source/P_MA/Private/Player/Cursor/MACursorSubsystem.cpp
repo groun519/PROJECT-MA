@@ -2,54 +2,16 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Character/MACharacter.h"
-#include "Components/PrimitiveComponent.h"
+#include "Convenience/MAHighlightComponent.h"
+#include "Engine/EngineTypes.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 #include "GenericTeamAgentInterface.h"
-#include "Player/MAPlayerCharacter.h"
+#include "P_MA/P_MA.h"
 #include "TimerManager.h"
-#include "Weapon/WeaponComponent.h"
 #include "Widget/Cursor/MACursorWidget.h"
-
-namespace
-{
-AMACharacter* ResolveHoveredCharacter(const FHitResult& HitResult)
-{
-	TArray<AActor*> CandidateActors;
-	if (AActor* HitActor = HitResult.GetActor())
-	{
-		CandidateActors.Add(HitActor);
-	}
-
-	if (UPrimitiveComponent* HitComponent = HitResult.GetComponent())
-	{
-		if (AActor* ComponentOwner = HitComponent->GetOwner())
-		{
-			CandidateActors.AddUnique(ComponentOwner);
-		}
-
-		if (AActor* AttachmentRootActor = HitComponent->GetAttachmentRootActor())
-		{
-			CandidateActors.AddUnique(AttachmentRootActor);
-		}
-	}
-
-	for (AActor* CandidateActor : CandidateActors)
-	{
-		for (AActor* CurrentActor = CandidateActor; CurrentActor; CurrentActor = CurrentActor->GetAttachParentActor())
-		{
-			if (AMACharacter* HitCharacter = Cast<AMACharacter>(CurrentActor))
-			{
-				return HitCharacter;
-			}
-		}
-	}
-
-	return nullptr;
-}
-}
 
 void UMACursorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -116,11 +78,35 @@ void UMACursorSubsystem::StopCursorTimer()
 	World->GetTimerManager().ClearTimer(CursorRelationTimerHandle);
 }
 
+bool UMACursorSubsystem::GetAimDirection(FVector& OutDirection) const
+{
+	APlayerController* PC = CachedPlayerController.Get();
+	APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	if (!Pawn) return false;
+
+	FVector TargetLocation;
+	if (const AMACharacter* TargetCharacter = HighlightedActor.Get())
+	{
+		TargetLocation = TargetCharacter->GetActorLocation();
+	}
+	else
+	{
+		FHitResult Hit;
+		if (!TraceVisibilityUnderCursor(Hit)) return false;
+		TargetLocation = Hit.Location;
+	}
+
+	const FVector Origin = Pawn->GetActorLocation();
+	TargetLocation.Z = Origin.Z;
+	OutDirection = (TargetLocation - Origin).GetSafeNormal();
+	return !OutDirection.IsNearlyZero();
+}
+
 void UMACursorSubsystem::RefreshCursorTargetRelation()
 {
-	const FHoveredCursorTarget HoveredTarget = ResolveHoveredTarget();
-	const ECursorTargetRelation NewRelation = ResolveCursorTargetRelation(HoveredTarget.Actor.Get());
-	UpdateHoveredActorHighlight(HoveredTarget, NewRelation);
+	AMACharacter* HoveredCharacter = ResolveHoveredCharacter();
+	const ECursorTargetRelation NewRelation = ResolveCursorTargetRelation(HoveredCharacter);
+	UpdateHoveredActorHighlight(HoveredCharacter, NewRelation);
 
 	if (NewRelation == CursorTargetRelation) return;
 
@@ -128,21 +114,60 @@ void UMACursorSubsystem::RefreshCursorTargetRelation()
 	ApplyCursorRelationColor(CursorTargetRelation);
 }
 
-UMACursorSubsystem::FHoveredCursorTarget UMACursorSubsystem::ResolveHoveredTarget() const
+AMACharacter* UMACursorSubsystem::ResolveCharacterFromHit(const FHitResult& HitResult)
+{
+	for (AActor* Actor = HitResult.GetActor(); Actor; Actor = Actor->GetAttachParentActor())
+	{
+		if (AMACharacter* Character = Cast<AMACharacter>(Actor)) return Character;
+	}
+
+	return nullptr;
+}
+
+AMACharacter* UMACursorSubsystem::ResolveHoveredCharacter() const
 {
 	APlayerController* PC = CachedPlayerController.Get();
-	if (!PC || !PC->IsLocalController()) return {};
+	if (!PC || !PC->IsLocalController()) return nullptr;
 
-	FHitResult MouseHitResult;
-	PC->GetHitResultUnderCursor(ECC_Visibility, false, MouseHitResult);
-	if (!MouseHitResult.bBlockingHit) return {};
+	static const TArray<TEnumAsByte<EObjectTypeQuery>> CursorTargetTypes =
+	{
+		UEngineTypes::ConvertToObjectType(ECC_Hitbox)
+	};
 
-	AMACharacter* HitCharacter = ResolveHoveredCharacter(MouseHitResult);
-	if (!HitCharacter) return {};
+	FHitResult TargetHit;
+	if (!PC->GetHitResultUnderCursorForObjects(CursorTargetTypes, false, TargetHit)) return nullptr;
 
-	FHoveredCursorTarget Result;
-	Result.Actor = HitCharacter;
-	return Result;
+	AMACharacter* HitCharacter = ResolveCharacterFromHit(TargetHit);
+	if (!HitCharacter) return nullptr;
+
+	FHitResult VisibilityHit;
+	if (TraceVisibilityUnderCursor(VisibilityHit)
+		&& VisibilityHit.Distance < TargetHit.Distance
+		&& ResolveCharacterFromHit(VisibilityHit) != HitCharacter)
+	{
+		return nullptr;
+	}
+
+	return HitCharacter;
+}
+
+bool UMACursorSubsystem::TraceVisibilityUnderCursor(FHitResult& OutHit) const
+{
+	APlayerController* PC = CachedPlayerController.Get();
+	if (!PC) return false;
+
+	FVector WorldOrigin;
+	FVector WorldDirection;
+	if (!PC->DeprojectMousePositionToWorld(WorldOrigin, WorldDirection)) return false;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(PC->GetPawn());
+	return PC->GetWorld()->LineTraceSingleByChannel(
+		OutHit,
+		WorldOrigin,
+		WorldOrigin + WorldDirection * PC->HitResultTraceDistance,
+		ECC_Visibility,
+		QueryParams);
 }
 
 ECursorTargetRelation UMACursorSubsystem::ResolveCursorTargetRelation(AActor* HitActor) const
@@ -181,76 +206,36 @@ ECursorTargetRelation UMACursorSubsystem::ResolveCursorTargetRelation(AActor* Hi
 	}
 }
 
-void UMACursorSubsystem::UpdateHoveredActorHighlight(const FHoveredCursorTarget& HoveredTarget, ECursorTargetRelation InRelation)
+void UMACursorSubsystem::UpdateHoveredActorHighlight(
+	AMACharacter* HoveredCharacter,
+	ECursorTargetRelation InRelation)
 {
-	if (HighlightedActor.Get() == HoveredTarget.Actor.Get() && HighlightedActorRelation == InRelation)
+	if (HighlightedActor.Get() == HoveredCharacter && HighlightedActorRelation == InRelation)
 		return;
 
 	ClearHoveredActorHighlight();
-	if (!HoveredTarget.Actor.IsValid() || InRelation == ECursorTargetRelation::None)
-		return;
+	if (!HoveredCharacter || InRelation == ECursorTargetRelation::None) return;
 
-	int32 StencilValue;
-	switch (InRelation)
-	{
-	case ECursorTargetRelation::Friendly:
-		StencilValue = FriendlyHighlightStencil;
-		break;
-	case ECursorTargetRelation::Hostile:
-		StencilValue = HostileHighlightStencil;
-		break;
-	case ECursorTargetRelation::Neutral:
-	default:
-		StencilValue = NeutralHighlightStencil;
-		break;
-	}
+	UMAHighlightComponent* Highlighter = HoveredCharacter->GetHighlightComponent();
+	if (!Highlighter) return;
 
-	HighlightedActor = HoveredTarget.Actor;
+	HighlightedActor = HoveredCharacter;
+	HighlightedComponent = Highlighter;
 	HighlightedActorRelation = InRelation;
-
-	AMACharacter* HitCharacter = Cast<AMACharacter>(HoveredTarget.Actor.Get());
-	if (!HitCharacter) return;
-
-	TArray<UPrimitiveComponent*, TInlineAllocator<2>> HighlightComponents;
-	if (UPrimitiveComponent* MeshComponent = HitCharacter->GetMesh())
-	{
-		HighlightComponents.Add(MeshComponent);
-	}
-
-	if (AMAPlayerCharacter* HitPlayerCharacter = Cast<AMAPlayerCharacter>(HitCharacter))
-	{
-		if (UWeaponComponent* WeaponComponent = HitPlayerCharacter->GetWeaponComponent())
-		{
-			HighlightComponents.AddUnique(WeaponComponent);
-		}
-	}
-
-	for (UPrimitiveComponent* PrimitiveComponent : HighlightComponents)
-	{
-		if (!PrimitiveComponent || !PrimitiveComponent->IsRegistered()) continue;
-
-		FHighlightedPrimitiveState& State = HighlightedPrimitiveStates.AddDefaulted_GetRef();
-		State.Component = PrimitiveComponent;
-		State.bPreviousRenderCustomDepth = PrimitiveComponent->bRenderCustomDepth;
-		State.PreviousCustomDepthStencilValue = PrimitiveComponent->CustomDepthStencilValue;
-
-		PrimitiveComponent->SetRenderCustomDepth(true);
-		PrimitiveComponent->SetCustomDepthStencilValue(StencilValue);
-	}
+	Highlighter->SetHighlight(
+		*this,
+		true,
+		ResolveCursorRelationColor(InRelation));
 }
 
 void UMACursorSubsystem::ClearHoveredActorHighlight()
 {
-	for (const FHighlightedPrimitiveState& State : HighlightedPrimitiveStates)
+	if (UMAHighlightComponent* Highlighter = HighlightedComponent.Get())
 	{
-		UPrimitiveComponent* PrimitiveComponent = State.Component.Get();
-		if (!PrimitiveComponent) continue;
-
-		PrimitiveComponent->SetRenderCustomDepth(State.bPreviousRenderCustomDepth);
-		PrimitiveComponent->SetCustomDepthStencilValue(State.PreviousCustomDepthStencilValue);
+		Highlighter->SetHighlight(*this, false);
 	}
 
-	HighlightedPrimitiveStates.Reset();
+	HighlightedComponent.Reset();
 	HighlightedActor.Reset();
 	HighlightedActorRelation = ECursorTargetRelation::None;
 }
@@ -295,6 +280,11 @@ void UMACursorSubsystem::ApplyCursorRelationColor(ECursorTargetRelation InRelati
 {
 	if (!CursorWidgetInstance) return;
 
+	CursorWidgetInstance->SetBaseColor(ResolveCursorRelationColor(InRelation));
+}
+
+FLinearColor UMACursorSubsystem::ResolveCursorRelationColor(ECursorTargetRelation InRelation) const
+{
 	FLinearColor TargetColor = CursorNeutralColor;
 	switch (InRelation)
 	{
@@ -311,5 +301,5 @@ void UMACursorSubsystem::ApplyCursorRelationColor(ECursorTargetRelation InRelati
 		break;
 	}
 
-	CursorWidgetInstance->SetBaseColor(TargetColor);
+	return TargetColor;
 }

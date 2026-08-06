@@ -11,6 +11,7 @@
 
 class UNiagaraSystem;
 class UMAElementalComponent;
+class UMAHighlightComponent;
 class UMAImpulseComponent;
 class UMAOverlayComponent;
 class UMAStatusEffectComponent;
@@ -43,6 +44,7 @@ public:
 	UMAStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 	UMAElementalComponent* GetElementalComponent() const { return ElementalComponent; }
 	UMAOverlayComponent* GetOverlayComponent() const { return OverlayComponent; }
+	UMAHighlightComponent* GetHighlightComponent() const { return HighlightComponent; }
 	UMASkillManagerComponent* GetSkillManagerComponent() const { return SkillManagerComponent; }
 	
 private:
@@ -71,6 +73,9 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Overlay")
 	TObjectPtr<UMAOverlayComponent> OverlayComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Highlight")
+	TObjectPtr<UMAHighlightComponent> HighlightComponent;
 
 	/** UI **/
 private:
