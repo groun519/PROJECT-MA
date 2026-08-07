@@ -26,7 +26,8 @@ UMAAttributeSet::UMAAttributeSet()
 	: SlowMultiplier(1.f)
 	, CriticalDamage(1.5f)
 	, ReverseCriticalDamage(0.5f)
-	, AttackRange(1.f)
+	, MeleeRangeScale(1.f)
+	, RangedRangeScale(1.f)
 {}
 
 void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -47,7 +48,8 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ReverseCriticalDamage, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Temperature, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Coin, COND_None, REPNOTIFY_Always)
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AttackRange, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MeleeRangeScale, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, RangedRangeScale, COND_None, REPNOTIFY_Always)
 }
 
 void UMAAttributeSet::OnAttributeAggregatorCreated(const FGameplayAttribute& Attribute, FAggregator* NewAggregator) const
@@ -69,7 +71,7 @@ void UMAAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, fl
 	else if (Attribute == GetSlowMultiplierAttribute())
 		NewValue = FMath::Clamp(NewValue, 0.f, 1.f);
 	else if (Attribute == GetFocusAttribute())
-		NewValue = FMath::Clamp(NewValue, -1.f, 1.f);
+		NewValue = FMath::Max(NewValue, -1.f);
 	else if (Attribute == GetTemperatureAttribute())
 		NewValue = FMath::Clamp(NewValue, -100.f, 100.f);
 }
@@ -111,4 +113,5 @@ DEFINE_REPNOTIFY(CriticalDamage)
 DEFINE_REPNOTIFY(ReverseCriticalDamage)
 DEFINE_REPNOTIFY(Temperature)
 DEFINE_REPNOTIFY(Coin)
-DEFINE_REPNOTIFY(AttackRange)
+DEFINE_REPNOTIFY(MeleeRangeScale)
+DEFINE_REPNOTIFY(RangedRangeScale)

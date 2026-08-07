@@ -24,6 +24,8 @@ public:
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
 	static FGameplayTag GetFrozenStatTag();
+	static FGameplayTag GetColdTemperatureImmunityTag();
+	static FGameplayTag GetHeatTemperatureImmunityTag();
 	static FGameplayTag GetRootStatTag();
 	static FGameplayTag GetAirborneStatTag();
 	static FGameplayTag GetAirborneRiseTimeTag();
@@ -55,9 +57,11 @@ public:
 	static FGameplayTag GetModuleStackTag();
 	static FGameplayTag GetSkillAttackSpeedMultiplierTag();
 	static FGameplayTag GetSkillFocusOffsetTag();
+	static FGameplayTag GetSkillCriticalDamageOffsetTag();
 	static FGameplayTag GetSkillAreaScaleTag();
 	static FGameplayTag GetSkillChargeRatioTag();
 	static FGameplayTag GetHitEventTag();
+	static FGameplayTag GetKillEventTag();
 	static FGameplayTag GetMovementStartEventTag();
 	static FGameplayTag GetChargeCompletedEventTag();
 	static FGameplayTag GetModuleActivationChangedEventTag();

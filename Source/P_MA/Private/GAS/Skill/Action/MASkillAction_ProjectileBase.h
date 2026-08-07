@@ -7,7 +7,7 @@
 #include "MASkillAction_ProjectileBase.generated.h"
 
 class AMAProjectileBase;
-struct FMASkillPayloadAccessor;
+struct FMASkillPayloadAccess;
 
 UENUM(BlueprintType)
 enum class EMASkillProjectileStartObjectSource : uint8
@@ -97,7 +97,7 @@ public:
 		const FMASkillScopes* Scopes) override;
 
 protected:
-	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads);
+	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccess& Payloads);
 
 	UPROPERTY(EditDefaultsOnly, Category="Action")
 	FMASkillActionConfig_SpawnProjectile Config;

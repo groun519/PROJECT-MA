@@ -30,22 +30,6 @@
 		],
 		"Addons": [
 			{
-				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
-					},
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
-						"changedAttribute":
-						{
-							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
-						},
-						"changeType": "Changed"
-					}
-				]
-			},
-			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
 					{
@@ -80,24 +64,6 @@
 							},
 							"damagePayloadTag": "Damage"
 						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Attribute.AttackSpeed.Changed",
-						"bindingScope": "Global",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
 					}
 				]
 			},
@@ -107,7 +73,8 @@
 					{
 						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Projection.AM_Projection'",
 						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 2
+						"maxSectionCount": 2,
+						"bScaleWithAttackSpeed": true
 					}
 				],
 				"sequenceModifiers": []

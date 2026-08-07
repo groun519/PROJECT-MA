@@ -22,26 +22,34 @@ void UMASkillAction_ModifyModuleStack::Execute(
 	const UMASkillModuleStackAddon* StackAddon = Module->GetStackAddon();
 	if (!StackAddon) return;
 
-	const bool bChanged = ModuleInstance->ModifyAddonRuntimeData<FMASkillModuleStackRuntimeData>(
-		[this, StackAddon](FMASkillModuleStackRuntimeData& StackData)
+	int32 ResolvedValue = Value;
+	if (Operation != EMASkillModuleStackOperation::Clear && ValuePayloadTag.IsValid())
 	{
-		int32 NewStack = StackData.Stack;
+		float PayloadValue = 0.f;
+		if (!Event.GetPayloadAccess(*Scopes).Reader.TryGetScalar(ValuePayloadTag, PayloadValue)) return;
+		ResolvedValue = FMath::RoundToInt(PayloadValue);
+	}
+
+	const bool bChanged = ModuleInstance->ModifyAddonRuntimeData<FMASkillModuleStackRuntimeData>(
+		[this, StackAddon, ResolvedValue](FMASkillModuleStackRuntimeData& StackData)
+	{
+		int64 NewStackValue = StackData.Stack;
 		switch (Operation)
 		{
 		case EMASkillModuleStackOperation::Add:
-			NewStack = StackData.Stack + Value;
+			NewStackValue += ResolvedValue;
 			break;
 
 		case EMASkillModuleStackOperation::Set:
-			NewStack = Value;
+			NewStackValue = ResolvedValue;
 			break;
 
 		case EMASkillModuleStackOperation::Clear:
-			NewStack = 0;
+			NewStackValue = 0;
 			break;
 		}
 
-		NewStack = StackAddon->ClampStack(NewStack);
+		const int32 NewStack = StackAddon->ClampStack(NewStackValue);
 		if (StackData.Stack == NewStack) return false;
 
 		StackData.Stack = NewStack;

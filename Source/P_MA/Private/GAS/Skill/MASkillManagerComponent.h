@@ -49,11 +49,6 @@ public:
 		int32 ModuleIndex,
 		UMASkillModuleInstance* NewModuleInstance,
 		UMASkillModuleInstance*& OutPreviousModuleInstance);
-	bool AddSubModule(
-		FGameplayTag SlotTag,
-		int32 ModuleIndex,
-		UMASkillModule* SubModule);
-
 	bool RequestSwapModuleSlotsBetween(
 		FGameplayTag SlotTagA,
 		int32 IndexA,

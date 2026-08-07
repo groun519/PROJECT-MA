@@ -10,6 +10,13 @@
 class UAbilitySystemComponent;
 struct FMASkillPayloadStore;
 
+UENUM(BlueprintType)
+enum class EMASkillModuleEffectMagnitudeType : uint8
+{
+	Snapshot,
+	AttributeBased
+};
+
 USTRUCT(BlueprintType)
 struct P_MA_API FMASkillModuleGameplayModifier
 {
@@ -34,7 +41,16 @@ struct P_MA_API FMASkillModuleGameplayEffectConfig
 	float BaseMagnitude = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect|Magnitude")
+	EMASkillModuleEffectMagnitudeType MagnitudeType = EMASkillModuleEffectMagnitudeType::Snapshot;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect|Magnitude", meta=(EditCondition="MagnitudeType == EMASkillModuleEffectMagnitudeType::Snapshot", EditConditionHides))
 	TArray<FMAAttributeCoefficient> MagnitudeCoefficients;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect|Magnitude", meta=(EditCondition="MagnitudeType == EMASkillModuleEffectMagnitudeType::AttributeBased", EditConditionHides))
+	FGameplayAttribute MagnitudeAttribute;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect|Magnitude", meta=(EditCondition="MagnitudeType == EMASkillModuleEffectMagnitudeType::AttributeBased", EditConditionHides))
+	float MagnitudeAttributeCoefficient = 0.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect", meta=(Categories="OwnedTagsCategory"))
 	FGameplayTagContainer GrantedTags;

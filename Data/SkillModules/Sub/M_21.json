@@ -7,7 +7,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Expansion",
-			"Description": "스킬의 <AREA>피격 범위가 15% 증가</>합니다.",
+			"Description": "장착한 모듈의 <AREA>피격 범위가 15% 증가</>합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Expaction.T_Expaction'",
@@ -30,7 +30,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 1.25
+				"cooldownOffsetSeconds": 1.25
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",

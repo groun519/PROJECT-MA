@@ -25,6 +25,10 @@ struct P_MA_API FMASkillSequence
 	UPROPERTY(EditDefaultsOnly, Category="Montage", meta=(ClampMin="0"))
 	int32 MaxSectionCount = 0;
 
+	// Normalizes the selected section to one second before applying attack-speed multipliers.
+	UPROPERTY(EditDefaultsOnly, Category="Montage")
+	bool bScaleWithAttackSpeed = false;
+
 	UPROPERTY(Transient)
 	FMASkillScopes TargetScopes;
 

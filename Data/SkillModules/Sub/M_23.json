@@ -1,22 +1,22 @@
 {
-	"ModuleId": 15,
+	"ModuleId": 23,
 	"Module":
 	{
 		"ModuleType": "Sub",
-		"ModuleName": "DA_Composure",
+		"ModuleName": "DA_Gamble",
 		"DisplayData":
 		{
-			"DisplayName": "Composure",
-			"Description": "스킬의 일반 피해에 적용되는 <FINAL>집중력이 25% 증가</>합니다.",
+			"DisplayName": "Gamble",
+			"Description": "장착한 모듈의 각 피해량이 <DV>무작위로 최대 30% 증가하거나 감소</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Composure.T_Composure'",
-				"Priority": 1
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Gamble.T_Gamble'",
+				"Priority": 0
 			},
 			"NameData":
 			{
-				"Keyword": "Composure",
-				"Priority": 1
+				"Keyword": "Gamble",
+				"Priority": 0
 			}
 		},
 		"ModuleQuality":
@@ -25,13 +25,9 @@
 		},
 		"ModuleTags": [],
 		"ModuleVisualTags": [
-			"Module.Visual.Type.BuffModifier"
+			"Module.Visual.Type.Modifier"
 		],
 		"Addons": [
-			{
-				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 1.25
-			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [
@@ -48,8 +44,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_AddFocusOffset",
-							"focusOffset": 0.25
+							"_ClassName": "/Script/P_MA.MASkillAction_AddDamageVariance",
+							"varianceAdditive": 0.3
 						}
 					}
 				]

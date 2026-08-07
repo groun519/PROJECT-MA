@@ -5,8 +5,8 @@
 		"ModuleName": "DA_MiddleGolemDash",
 		"DisplayData":
 		{
-			"DisplayName": "",
-			"Description": "",
+			"DisplayName": "Middle Golem Dash",
+			"Description": "중형 골렘이 전방으로 돌진합니다.",
 			"IconData":
 			{
 				"Icon": "None",

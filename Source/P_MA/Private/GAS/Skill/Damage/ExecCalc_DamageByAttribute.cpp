@@ -239,7 +239,8 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 		1.f);
 	const float CriticalDamage = CaptureAttributeMagnitude(
 		EMACoefficientSource::Source,
-		UMAAttributeSet::GetCriticalDamageAttribute());
+		UMAAttributeSet::GetCriticalDamageAttribute())
+		+ Spec.GetSetByCallerMagnitude(UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(), false, 0.f);
 	const float ReverseCriticalDamage = CaptureAttributeMagnitude(
 		EMACoefficientSource::Source,
 		UMAAttributeSet::GetReverseCriticalDamageAttribute());

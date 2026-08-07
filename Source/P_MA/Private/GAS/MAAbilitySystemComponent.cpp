@@ -212,6 +212,10 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 		if (!HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag()))
 		{
 			AddLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
+			if (ChangeData.OldValue > 0.f && ChangeData.GEModData)
+			{
+				MASkillDamageApplicator::NotifyTargetKilled(*this, ChangeData.GEModData->EffectSpec);
+			}
 
 			// 죽음 효과는 반드시 체력이 0 이하일 때만 적용
 			const UPA_AbilitySystemGenerics* SystemGenerics = UMAGameSettings::Get()->GetAbilitySystemGenerics();
@@ -263,8 +267,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
-			const float BaseAttackRange = BaseStats->BaseAttackRange > 0.f ? BaseStats->BaseAttackRange : 1.f;
-			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseAttackRange);
+			SetNumericAttributeBase(UMAAttributeSet::GetMeleeRangeScaleAttribute(), BaseStats->BaseMeleeRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetRangedRangeScaleAttribute(), BaseStats->BaseRangedRangeScale);
 			SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
 			SetNumericAttributeBase(UMAAttributeSet::GetFocusAttribute(), BaseStats->BaseFocus);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
@@ -294,8 +298,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
-			const float BaseAttackRange = BaseStats->BaseAttackRange > 0.f ? BaseStats->BaseAttackRange : 1.f;
-			SetNumericAttributeBase(UMAAttributeSet::GetAttackRangeAttribute(), BaseAttackRange);
+			SetNumericAttributeBase(UMAAttributeSet::GetMeleeRangeScaleAttribute(), BaseStats->BaseMeleeRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetRangedRangeScaleAttribute(), BaseStats->BaseRangedRangeScale);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			AppliedBaseTags = BaseStats->BaseImmunityTags;

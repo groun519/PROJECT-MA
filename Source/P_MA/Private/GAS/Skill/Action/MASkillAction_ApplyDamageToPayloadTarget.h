@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Action/MASkillAction.h"
 #include "GameplayTagContainer.h"
 #include "MASkillAction_ApplyDamageToPayloadTarget.generated.h"
@@ -25,4 +26,10 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="Damage"))
 	FGameplayTag DamagePayloadTag;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|Multiplier")
+	float BaseDamageMultiplier = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Damage|Multiplier")
+	TArray<FMAAttributeCoefficient> DamageMultiplierCoefficients;
 };

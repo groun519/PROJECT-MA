@@ -2,11 +2,11 @@
 	"ModuleId": 9,
 	"Module":
 	{
-		"ModuleName": "DA_SmallGolem_AttackReady",
+		"ModuleName": "DA_GolemAttackReady",
 		"DisplayData":
 		{
-			"DisplayName": "",
-			"Description": "",
+			"DisplayName": "Golem Attack Ready",
+			"Description": "골렘 공격 전에 준비 동작을 재생합니다.",
 			"IconData":
 			{
 				"Icon": "None",
@@ -14,7 +14,7 @@
 			},
 			"NameData":
 			{
-				"Keyword": "",
+				"Keyword": "Ready",
 				"Priority": 0
 			}
 		},

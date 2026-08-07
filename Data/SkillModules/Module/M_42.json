@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Sword",
-			"Description": "",
+			"Description": "균형 잡힌 능력치를 유지합니다.\r\n<ATK>누적해서 입힌 피해</>에 따라 <ATK>공격력</>이 추가로 증가합니다.\r\n누적 피해 10,000에서 50%, 이후 최대 100%에 수렴합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/PassiveModuleTexture/T_Sword.T_Sword'",
@@ -34,7 +34,7 @@
 				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
 				"initialStack": 0,
 				"minStack": 0,
-				"maxStack": 999,
+				"maxStack": 2147483647,
 				"bShowStackText": true
 			},
 			{
@@ -47,10 +47,10 @@
 								{
 									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"modifierOp": "Additive"
+								"modifierOp": "Multiplicitive"
 							}
 						],
-						"baseMagnitude": 0,
+						"baseMagnitude": 1,
 						"magnitudeCoefficients": [
 							{
 								"source": "Payload",
@@ -59,7 +59,13 @@
 									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
 								"payloadTag": "Data.Module.Stack",
-								"coefficient": 0.10000000149011612
+								"payloadCalculation":
+								{
+									"type": "DiminishingGrowth",
+									"halfValue": 10000,
+									"maxValue": 1
+								},
+								"coefficient": 1
 							}
 						],
 						"grantedTags": [],
@@ -87,7 +93,7 @@
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
 							"operation": "Add",
-							"value": 1
+							"valuePayloadTag": "Data.Damage.Applied"
 						}
 					}
 				]

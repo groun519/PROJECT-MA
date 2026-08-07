@@ -11,10 +11,11 @@ enum class EMASkillStatusEffectSourceType : uint8;
 struct FActiveGameplayEffectHandle;
 struct FGameplayEffectContextHandle;
 struct FGameplayEffectModCallbackData;
+struct FGameplayEffectSpec;
 struct FGameplayEffectSpecHandle;
 struct FHitResult;
 struct FMASkillDamageConfig;
-struct FMASkillPayloadAccessor;
+struct FMASkillPayloadAccess;
 struct FMASkillWorldAreaShape;
 struct FResolvedSkillDamage;
 struct FResolvedStatusEffect;
@@ -36,14 +37,14 @@ public:
 		const FMASkillScopes& EventScopes,
 		const FMASkillWorldAreaShape& Area,
 		const FMASkillDamageConfig& DamageConfig,
-		const FMASkillPayloadAccessor& Payloads);
+		const FMASkillPayloadAccess& Payloads);
 
 	static void ApplyArea(
 		UMASkillAbility& OwnerAbility,
 		const FMASkillScopes& EventScopes,
 		const FMASkillWorldAreaShape& Area,
 		TConstArrayView<FMASkillDamageConfig> DamageConfigs,
-		const FMASkillPayloadAccessor& Payloads);
+		const FMASkillPayloadAccess& Payloads);
 
 	static void ApplyHitResults(
 		UMASkillAbility& OwnerAbility,
@@ -76,6 +77,10 @@ public:
 	static void PostProcessAppliedDamage(
 		UAbilitySystemComponent& TargetASC,
 		const FGameplayEffectModCallbackData& Data);
+
+	static void NotifyTargetKilled(
+		UAbilitySystemComponent& TargetASC,
+		const FGameplayEffectSpec& KillingEffectSpec);
 
 private:
 	MASkillDamageApplicator() = delete;

@@ -2,11 +2,11 @@
 	"ModuleId": 2,
 	"Module":
 	{
-		"ModuleName": "DA_Ready_Red",
+		"ModuleName": "DA_DangerWarning",
 		"DisplayData":
 		{
-			"DisplayName": "Ready",
-			"Description": "",
+			"DisplayName": "Danger Warning",
+			"Description": "위험한 패턴의 시작을 경고합니다.",
 			"IconData":
 			{
 				"Icon": "None",
@@ -14,7 +14,7 @@
 			},
 			"NameData":
 			{
-				"Keyword": "GroundSlam",
+				"Keyword": "Danger",
 				"Priority": 2
 			}
 		},
@@ -59,7 +59,7 @@
 						"action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_AttachNiagaraToSelf",
-							"niagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/ProjectileHitVFX/NS/NS_Hit_Eletric_01.NS_Hit_Eletric_01'",
+							"niagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/ProjectileHitVFX/NS/NS_Hit_Blade.NS_Hit_Blade'",
 							"socketName": "head",
 							"lifeSpan": 1
 						}

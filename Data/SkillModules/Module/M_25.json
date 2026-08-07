@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Hurt",
-			"Description": "<ATK>적중</> 시, 0.9초 동안 <ATK>3번에 걸쳐 50%의 피해</>를 입히고, 3초 동안 <SLOW>50% 슬로우</>를 적용합니다.\r\n이후 1초 간 모듈이 비활성화 됩니다.",
+			"Description": "<ATK>적중</> 시, 0.9초 동안 <ATK>3번에 걸쳐 40%의 피해</>를 입히고, 2초 동안 <SLOW>30% 슬로우</>를 적용합니다.\r\n이후 1초 간 모듈이 비활성화 됩니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Hurt.T_Hurt'",
@@ -33,7 +33,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 3
+				"cooldownSeconds": 3.4
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
@@ -94,7 +94,7 @@
 									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
 								"payloadTag": "",
-								"coefficient": 0.44999998807907104
+									"coefficient": 0.4
 							}
 						],
 						"ApplicationMode": "DamageOverTime",
@@ -107,8 +107,8 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
-								"magnitude": 0.5,
-								"duration": 3,
+								"magnitude": 0.3,
+								"duration": 2,
 								"grantedTags": []
 							}
 						],

@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Inhibited",
-			"Description": "스킬 사용 시, <SLOW>2.5초 간 50%의 둔화</>에 걸립니다.",
+			"Description": "스킬 쿨다운이 <COOLDOWN>4초 감소</>하지만, 스킬 사용 시 <SLOW>2.5초 간 50%의 둔화</>에 걸립니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Inhibited.T_Inhibited'",
@@ -29,6 +29,10 @@
 			"Module.Visual.Type.DebuffModifier"
 		],
 		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownOffsetSeconds": -4
+			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [

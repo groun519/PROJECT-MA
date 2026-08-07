@@ -16,7 +16,10 @@ public:
 		SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub;
 	}
 
-	float GetCooldownSeconds() const { return CooldownSeconds; }
+	float GetCooldownSeconds() const
+	{
+		return CooldownSeconds * CooldownMultiplier + CooldownOffsetSeconds;
+	}
 
 private:
 	virtual UMASkillModuleAddon* AssembleInto(
@@ -24,7 +27,15 @@ private:
 		UMASkillModuleAddon* ResultAddon,
 		EMASkillAddonAssemblyStage Stage,
 		const FMASkillScopes& SourceScopes) const override;
+	virtual bool Finalize(EMASkillAddonAssemblyStage Stage) override;
 
 	UPROPERTY(EditDefaultsOnly, Category="Cooldown", meta=(ClampMin="0.0", UIMin="0.0"))
 	float CooldownSeconds = 0.f;
+
+	/** Module only. Sub modules should use CooldownOffsetSeconds. */
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown", meta=(ClampMin="0.0", UIMin="0.0"))
+	float CooldownMultiplier = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Cooldown")
+	float CooldownOffsetSeconds = 0.f;
 };

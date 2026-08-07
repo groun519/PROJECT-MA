@@ -9,6 +9,7 @@ class UAbilityTask_PlayMontageAndWait;
 class UAnimMontage;
 class UMASkillAbility;
 class UMASkillSequenceTask;
+struct FOnAttributeChangeData;
 struct FMASkillSequenceTaskCompletionEvent;
 
 UCLASS()
@@ -23,13 +24,15 @@ public:
 	void Stop();
 	bool GetProgressInfo(FText& OutLabel, float& OutDuration, float& OutRemainingDuration) const;
 	bool PrepareCurrentMontage(float PreparationTime);
-	void SetDesiredPlayRate(float PlayRate);
-	float GetDesiredPlayRate() const { return DesiredPlayRate; }
 	const FMASkillScopes* GetCurrentTargetScopes() const;
 	void NotifyTaskCompletionEvent(
 		const FMASkillScopes& SourceScopes,
 		const FMASkillSequenceTaskCompletionEvent& CompletionEvent,
 		float ProgressRatio);
+
+	/** Play Rate **/
+	void RefreshPlayRate();
+	float GetCurrentPlayRate() const { return CurrentPlayRate; }
 
 private:
 	UMASkillAbility& GetOwnerAbility() const;
@@ -46,10 +49,16 @@ private:
 	void RegisterAnimationOwner(UAnimMontage& Montage) const;
 	void UnregisterAnimationOwner(UAnimMontage& Montage) const;
 	void BindPreparedMontageDelegates(UAnimMontage& Montage);
-	void ApplyCurrentMontagePlayRate();
 	FName ResolveStartSectionName() const;
 	void AdvanceSectionIndex();
 	void HandleTaskFinished(UMASkillSequenceTask* FinishedTask, bool bAborted);
+
+	/** Play Rate **/
+	void ApplyCurrentMontagePlayRate();
+	float GetCurrentSectionPlayLength() const;
+	void BindAttackSpeedChanged();
+	void UnbindAttackSpeedChanged();
+	void HandleAttackSpeedChanged(const FOnAttributeChangeData& ChangeData);
 
 	UFUNCTION()
 	void HandleMontageCompleted();
@@ -74,8 +83,12 @@ private:
 
 	int32 CurrentSequenceIndex = INDEX_NONE;
 	int32 CurrentTaskIndex = INDEX_NONE;
-	float DesiredPlayRate = 1.f;
+	FName CurrentSectionName = NAME_None;
 	bool bRunning = false;
 	bool bMontagePrepared = false;
 	bool bPreparedMontageActive = false;
+
+	/** Play Rate **/
+	float CurrentPlayRate = 1.f;
+	FDelegateHandle AttackSpeedChangedHandle;
 };

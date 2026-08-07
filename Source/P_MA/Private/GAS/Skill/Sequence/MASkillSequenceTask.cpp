@@ -190,7 +190,7 @@ bool UMASkillSequenceTask::StartMontageBehavior()
 		OwnerAbility,
 		NAME_None,
 		Config.CustomMontage,
-		GetSequenceRuntime() ? GetSequenceRuntime()->GetDesiredPlayRate() : 1.f);
+		GetSequenceRuntime() ? GetSequenceRuntime()->GetCurrentPlayRate() : 1.f);
 	if (!CustomMontageTask) return false;
 
 	CustomMontageTask->OnCancelled.AddDynamic(this, &UMASkillSequenceTask::HandleCustomMontageFailed);

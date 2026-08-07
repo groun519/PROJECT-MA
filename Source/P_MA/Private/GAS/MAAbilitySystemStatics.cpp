@@ -114,6 +114,11 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillFocusOffsetTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.FocusOffset");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag()
+{
+	return FGameplayTag::RequestGameplayTag("Data.Skill.CriticalDamageOffset");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetSkillAreaScaleTag()
 {
 	return FGameplayTag::RequestGameplayTag("Data.Skill.AreaScale");
@@ -127,6 +132,11 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillChargeRatioTag()
 FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.Hit");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetKillEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.Kill");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetMovementStartEventTag()
@@ -260,6 +270,16 @@ FGameplayTag UMAAbilitySystemStatics::GetStunStatTag()
 FGameplayTag UMAAbilitySystemStatics::GetFrozenStatTag()
 {
 	return FGameplayTag::RequestGameplayTag("State.Debuff.Frozen");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Immune.Temperature.Cold");
+}
+
+FGameplayTag UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()
+{
+	return FGameplayTag::RequestGameplayTag("State.Immune.Temperature.Heat");
 }
 
 FGameplayTag UMAAbilitySystemStatics::GetRootStatTag()

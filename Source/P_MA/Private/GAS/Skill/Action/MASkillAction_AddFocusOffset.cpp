@@ -1,7 +1,7 @@
 #include "GAS/Skill/Action/MASkillAction_AddFocusOffset.h"
 
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 
 void UMASkillAction_AddFocusOffset::Execute(
 	AActor& Owner,
@@ -10,11 +10,12 @@ void UMASkillAction_AddFocusOffset::Execute(
 	const FMASkillScopes* Scopes)
 {
 	check(Scopes);
-	FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
-	if (!Payloads.IsValid()) return;
+	FMASkillPayloadAccess Payloads = Event.GetPayloadAccess(*Scopes);
+	if (!Payloads.Writer.IsValid()) return;
 
 	const FGameplayTag FocusOffsetTag = UMAAbilitySystemStatics::GetSkillFocusOffsetTag();
-	float CurrentOffset = 0.f;
-	Payloads.TryGetScalar(FocusOffsetTag, CurrentOffset);
-	Payloads.SetScalar(EMASkillPayloadWriteScope::Skill, FocusOffsetTag, CurrentOffset + FocusOffset);
+	if (!Payloads.Writer.AddScalar(EMASkillPayloadScope::Skill, FocusOffsetTag, FocusOffset))
+	{
+		Payloads.Writer.SetScalar(EMASkillPayloadScope::Skill, FocusOffsetTag, FocusOffset);
+	}
 }

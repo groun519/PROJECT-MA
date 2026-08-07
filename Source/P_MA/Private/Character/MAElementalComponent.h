@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayTagContainer.h"
 #include "MAElementalComponent.generated.h"
 
 class AMACharacter;
@@ -27,6 +28,7 @@ private:
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	void BindToASC();
 	void HandleTemperatureChanged(const FOnAttributeChangeData& Data);
+	void HandleTemperatureImmunityChanged(FGameplayTag ImmunityTag, int32 TagCount);
 	void RefreshTemperatureRecoveryEffect();
 	void DelayTemperatureRecovery();
 	void RefreshTemperatureOverlay();

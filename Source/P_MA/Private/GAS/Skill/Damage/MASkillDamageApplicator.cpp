@@ -38,7 +38,7 @@ void MASkillDamageApplicator::ApplyArea(
 	const FMASkillScopes& EventScopes,
 	const FMASkillWorldAreaShape& Area,
 	const FMASkillDamageConfig& DamageConfig,
-	const FMASkillPayloadAccessor& Payloads)
+	const FMASkillPayloadAccess& Payloads)
 {
 	ApplyArea(OwnerAbility, EventScopes, Area, MakeArrayView(&DamageConfig, 1), Payloads);
 }
@@ -48,7 +48,7 @@ void MASkillDamageApplicator::ApplyArea(
 	const FMASkillScopes& EventScopes,
 	const FMASkillWorldAreaShape& Area,
 	TConstArrayView<FMASkillDamageConfig> DamageConfigs,
-	const FMASkillPayloadAccessor& Payloads)
+	const FMASkillPayloadAccess& Payloads)
 {
 	if (!Area.IsValid() || DamageConfigs.IsEmpty()) return;
 
@@ -57,7 +57,7 @@ void MASkillDamageApplicator::ApplyArea(
 
 	AActor* AvatarActor = OwnerAbility.GetAvatarActorFromActorInfo();
 	UWorld* World = OwnerAbility.GetWorld();
-	if (!AvatarActor || !World || !Payloads.IsValid()) return;
+	if (!AvatarActor || !World || !Payloads.Reader.IsValid()) return;
 
 	if (Area.bDrawDebug) MASkillAreaStatics::DrawWorldPreview(*World, Area);
 
@@ -353,6 +353,31 @@ void MASkillDamageApplicator::PostProcessAppliedDamage(
 	{
 		UMASkillEventRoutingStatics::TryNotifySkillEvent(ExecutorAbility, MoveTemp(HitEvent));
 	}
+}
+
+void MASkillDamageApplicator::NotifyTargetKilled(
+	UAbilitySystemComponent& TargetASC,
+	const FGameplayEffectSpec& KillingEffectSpec)
+{
+	const FGameplayEffectContextHandle ContextHandle = KillingEffectSpec.GetContext();
+	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
+	if (!MAContext || !MAContext->GetDamageTypeTag().IsValid() || MAContext->GetDisplayMagnitude() <= 0.f) return;
+
+	UMASkillAbility* ExecutorAbility = const_cast<UMASkillAbility*>(
+		Cast<UMASkillAbility>(ContextHandle.GetAbilityInstance_NotReplicated()));
+	UMASkillModuleInstance* ModuleScope = Cast<UMASkillModuleInstance>(ContextHandle.GetSourceObject());
+	UMASkillModuleInstance* SkillScope = ExecutorAbility ? ExecutorAbility->GetCurrentSkillModuleInstance() : nullptr;
+	AActor* TargetActor = TargetASC.GetAvatarActor();
+	if (!ExecutorAbility || !ModuleScope || !SkillScope || !TargetActor) return;
+
+	FMASkillEvent KillEvent(
+		UMAAbilitySystemStatics::GetKillEventTag(),
+		FMASkillScopes(ModuleScope, SkillScope));
+	KillEvent.Payloads.SetObject(UMAAbilitySystemStatics::GetDamageTargetTag(), TargetActor);
+	KillEvent.Payloads.SetScalar(
+		UMAAbilitySystemStatics::GetAppliedDamageTag(),
+		MAContext->GetDisplayMagnitude());
+	UMASkillEventRoutingStatics::TryNotifySkillEvent(ExecutorAbility, MoveTemp(KillEvent));
 }
 
 void MASkillDamageApplicator::ApplyHitResults(

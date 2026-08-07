@@ -4,7 +4,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
+#include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 UMASkillAbility* MASkillAnimNotifyStatics::ResolveAnimationOwnerSkillAbility(
 	USkeletalMeshComponent* MeshComp,
@@ -20,8 +21,11 @@ float MASkillAnimNotifyStatics::ResolveSkillAreaScale(UMASkillAbility* SkillAbil
 {
 	if (!SkillAbility) return 1.f;
 
-	const FMASkillPayloadStore* SkillPayloadStore = &SkillAbility->GetAssembledModulePayloadStore();
-	FMASkillPayloadAccessor Payloads(nullptr, SkillPayloadStore, nullptr);
+	const UMASkillSequenceRuntime* SequenceRuntime = SkillAbility->GetSequenceRuntime();
+	const FMASkillScopes* TargetScopes = SequenceRuntime ? SequenceRuntime->GetCurrentTargetScopes() : nullptr;
+	FMASkillPayloadAccess Payloads = TargetScopes
+		? TargetScopes->GetPayloadAccess()
+		: FMASkillPayloadAccess(nullptr, &SkillAbility->GetAssembledModulePayloadStore(), nullptr);
 	return MASkillAreaStatics::ResolveAreaScale(
 		Payloads,
 		SkillAbility->GetAbilitySystemComponentFromActorInfo());

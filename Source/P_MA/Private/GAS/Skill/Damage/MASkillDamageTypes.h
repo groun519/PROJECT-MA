@@ -121,6 +121,15 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 		TargetGameplayCueTags.AppendTags(Other.TargetGameplayCueTags);
 	}
 
+	void Scale(float Scale)
+	{
+		BaseDamage *= Scale;
+		for (FMAAttributeCoefficient& Coefficient : AttributeCoefficients)
+		{
+			Coefficient.Coefficient *= Scale;
+		}
+	}
+
 	bool HasValues() const
 	{
 		if (!FMath::IsNearlyZero(BaseDamage)) return true;

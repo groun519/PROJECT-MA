@@ -10,7 +10,7 @@
 #include "GAS/Skill/Area/Debug/DebugShapeHelper.h"
 #include "GAS/Skill/Area/MASkillAreaTargetData.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GenericTeamAgentInterface.h"
 #include "P_MA/P_MA.h"
 
@@ -205,11 +205,11 @@ void MASkillAreaStatics::DrawWorldPreview(
 }
 
 float MASkillAreaStatics::ResolveAreaScale(
-	const FMASkillPayloadAccessor& Payloads,
+	const FMASkillPayloadAccess& Payloads,
 	const UAbilitySystemComponent* AbilitySystemComponent)
 {
-	float AreaScale = 1.f;
-	Payloads.TryGetScalar(UMAAbilitySystemStatics::GetSkillAreaScaleTag(), AreaScale);
+	const float AreaScale = Payloads.Reader.GetScalarProduct(
+		UMAAbilitySystemStatics::GetSkillAreaScaleTag());
 
 	const float AttackRangeScale = AbilitySystemComponent
 		? AbilitySystemComponent->GetNumericAttribute(UMAAttributeSet::GetAttackRangeAttribute())

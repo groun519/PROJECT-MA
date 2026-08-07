@@ -10,7 +10,7 @@ class P_MA_API UMASkillAction_MultiplySkillAttackSpeed : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	UMASkillAction_MultiplySkillAttackSpeed() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+	UMASkillAction_MultiplySkillAttackSpeed() { SupportedModuleTypes = EMASkillModuleType::Sub; }
 
 	virtual void Execute(
 		AActor& Owner,

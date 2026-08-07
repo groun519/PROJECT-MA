@@ -1,39 +1,65 @@
 {
 	"ModuleId": 14,
-	"Module":
-	{
+	"Module": {
 		"ModuleName": "DA_HotBlood",
-		"DisplayData":
-		{
-			"DisplayName": "Cold Blood",
-			"Description": "자신의 온도가 상승한 비율 만큼, 공격력이 증가합니다.",
-			"IconData":
-			{
+		"DisplayData": {
+			"DisplayName": "Hot Blood",
+			"Description": "<FIRE>화상과 과열에 면역</>이 됩니다.\r\n높아진 온도에 비례해 <ATK>공격력</>이 최대 60% 증가합니다.\r\n<ATK>적중</> 시, 높아진 온도에 비례해 가한 피해의 최대 60%만큼 <FIRE>추가 화염 피해</>를 입힙니다.\r\n온도가 0보다 낮으면 공격력이 감소합니다.",
+			"IconData": {
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_HotBlood.T_HotBlood'",
 				"Priority": 0
 			},
-			"NameData":
-			{
+			"NameData": {
 				"Keyword": "",
 				"Priority": 0
 			}
 		},
-		"ModuleQuality":
-		{
+		"ModuleQuality": {
 			"Rarity": "Rarity4"
 		},
 		"ModuleTags": [
-			"Module.Exclusive.Unique"
+			"Module.Exclusive.Unique",
+			"Module.Exclusive.Blood",
+			"Module.OnHit",
+			"Module.Passive"
 		],
 		"ModuleVisualTags": [
 			"Module.Visual.Type.Passive"
 		],
 		"Addons": [
 			{
+				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
+				"gameplayEffects": [
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 1,
+						"magnitudeType": "AttributeBased",
+						"magnitudeCoefficients": [],
+						"magnitudeAttribute": {
+							"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
+						},
+						"magnitudeAttributeCoefficient": 0.006,
+						"grantedTags": [
+							"State.Immune.Temperature.Heat"
+						],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					}
+				]
+			},
+			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [
 					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
 					}
 				]
 			},
@@ -41,29 +67,21 @@
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
 					{
-						"eventTag": "Event.Skill.Activate",
+						"eventTag": "Event.Skill.Hit",
 						"bindingScope": "Global",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_ApplyAttribute",
-							"target": "Self",
-							"targetPayloadTag": "",
-							"attribute":
-							{
-								"attribute": "/Script/P_MA.MAAttributeSet:Attack"
-							},
-							"operation": "Multiplicitive",
-							"baseValue": 1,
-							"eventMagnitudeCoefficient": 0,
-							"attributeCoefficients": [
+						"action": {
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.HotBlood",
+							"baseDamageMultiplier": 0,
+							"damageMultiplierCoefficients": [
 								{
 									"source": "Source",
-									"gameplayAttribute":
-									{
+									"gameplayAttribute": {
 										"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
 									},
 									"payloadTag": "",
-									"coefficient": 0.0099999997764825821
+									"coefficient": 0.006
 								}
 							]
 						}
@@ -71,6 +89,43 @@
 				]
 			}
 		],
-		"Payloads": []
+		"Payloads": [
+			{
+				"payloadTag": "Damage.HotBlood",
+				"valueType": "Struct",
+				"scalarValue": 0,
+				"vectorValue": {
+					"x": 0,
+					"y": 0,
+					"z": 0
+				},
+				"objectValue": "None",
+				"structValue": {
+					"_StructName": "/Script/P_MA.MASkillDamageConfig",
+					"Value": {
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Fire",
+						"AttributeCoefficients": [
+							{
+								"source": "Payload",
+								"gameplayAttribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "Data.Damage.Applied",
+								"coefficient": 1
+							}
+						],
+						"ApplicationMode": "Instant",
+						"DamageOverTime": {
+							"Duration": 3,
+							"TickCount": 3
+						},
+						"TargetRelationMask": 2,
+						"StatusEffects": [],
+						"TargetGameplayCueTags": []
+					}
+				}
+			}
+		]
 	}
 }

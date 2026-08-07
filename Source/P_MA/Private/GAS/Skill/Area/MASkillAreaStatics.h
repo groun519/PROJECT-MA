@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 
 struct FGameplayAbilityTargetDataHandle;
-struct FMASkillPayloadAccessor;
+struct FMASkillPayloadAccess;
 struct FMASkillWorldAreaShape;
 class UAbilitySystemComponent;
 
@@ -23,7 +23,7 @@ public:
 		const FMASkillWorldAreaShape& Area);
 
 	static float ResolveAreaScale(
-		const FMASkillPayloadAccessor& Payloads,
+		const FMASkillPayloadAccess& Payloads,
 		const UAbilitySystemComponent* AbilitySystemComponent);
 
 private:

@@ -27,11 +27,7 @@ public:
 	virtual void InitializeRuntimeData(FMASkillModuleAddonRuntimeData& RuntimeData) const override;
 	virtual void ApplyPayloadMirror(const FMASkillModuleAddonRuntimeData& RuntimeData, FMASkillPayloadStore& PayloadStore) const override;
 	virtual bool TryResolveSocketText(const FMASkillModuleAddonRuntimeData& RuntimeData, FText& OutText) const override;
-	bool ShouldShowStackText() const { return bShowStackText; }
-	int32 GetInitialStack() const { return InitialStack; }
-	int32 GetMinStack() const { return MinStack; }
-	int32 GetMaxStack() const { return MaxStack; }
-	int32 ClampStack(int32 Value) const;
+	int32 ClampStack(int64 Value) const;
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category="Stack")

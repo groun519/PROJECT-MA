@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Death",
-			"Description": "<FINAL>스킬의 최종 피해를 666% 증가</>시킵니다. 스킬 종료 시, <HP>현재 체력의 100%</>의 <ATK>고정 피해</>를 입습니다.",
+			"Description": "스킬의 <FINAL>최종 피해가 666%</>가 되고, 쿨다운이 제거됩니다. 스킬 종료 시, <HP>현재 체력의 100%</>의 <ATK>고정 피해</>를 입습니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Death.T_Death'",
@@ -29,6 +29,10 @@
 			"Module.Visual.Type.DebuffModifier"
 		],
 		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownOffsetSeconds": -666
+			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [

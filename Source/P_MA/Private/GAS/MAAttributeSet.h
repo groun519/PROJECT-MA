@@ -37,7 +37,8 @@ public:
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, ReverseCriticalDamage)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Temperature)
 	ATTRIBUTE_ACCESSORS(UMAAttributeSet, Coin)
-	ATTRIBUTE_ACCESSORS(UMAAttributeSet, AttackRange)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, MeleeRangeScale)
+	ATTRIBUTE_ACCESSORS(UMAAttributeSet, RangedRangeScale)
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Health)			FGameplayAttributeData Health;
@@ -54,7 +55,8 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_ReverseCriticalDamage) FGameplayAttributeData ReverseCriticalDamage;
 	UPROPERTY(ReplicatedUsing = OnRep_Temperature)		FGameplayAttributeData Temperature;
 	UPROPERTY(ReplicatedUsing = OnRep_Coin)				FGameplayAttributeData Coin;
-	UPROPERTY(ReplicatedUsing = OnRep_AttackRange)		FGameplayAttributeData AttackRange;
+	UPROPERTY(ReplicatedUsing = OnRep_MeleeRangeScale)	FGameplayAttributeData MeleeRangeScale;
+	UPROPERTY(ReplicatedUsing = OnRep_RangedRangeScale)	FGameplayAttributeData RangedRangeScale;
 	
 	UFUNCTION()	void OnRep_Health(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
@@ -70,5 +72,6 @@ private:
 	UFUNCTION() void OnRep_ReverseCriticalDamage(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Temperature(const FGameplayAttributeData& OldValue);
 	UFUNCTION() void OnRep_Coin(const FGameplayAttributeData& OldValue);
-	UFUNCTION() void OnRep_AttackRange(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_MeleeRangeScale(const FGameplayAttributeData& OldValue);
+	UFUNCTION() void OnRep_RangedRangeScale(const FGameplayAttributeData& OldValue);
 };

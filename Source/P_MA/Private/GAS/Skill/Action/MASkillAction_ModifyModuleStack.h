@@ -30,6 +30,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Stack")
 	EMASkillModuleStackOperation Operation = EMASkillModuleStackOperation::Add;
 
-	UPROPERTY(EditDefaultsOnly, Category="Stack")
+	UPROPERTY(EditDefaultsOnly, Category="Stack", meta=(EditCondition="Operation != EMASkillModuleStackOperation::Clear", EditConditionHides))
 	int32 Value = 1;
+
+	/** Replaces Value with the rounded payload value when set. */
+	UPROPERTY(EditDefaultsOnly, Category="Stack", meta=(Categories="Data", EditCondition="Operation != EMASkillModuleStackOperation::Clear", EditConditionHides))
+	FGameplayTag ValuePayloadTag;
 };

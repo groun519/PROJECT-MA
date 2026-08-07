@@ -7,7 +7,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Wind Rune",
-			"Description": "스킬의 일반 피해를 1초 동안 5회에 걸쳐 나누어 입힙니다.",
+			"Description": "스킬의 일반 피해를 1초 동안 5회에 걸쳐 나누어 입힙니다.\r\n<AS>시전 속도가 16% 증가</>하고, 사용 시 1초 동안 <MS>이동 속도가 20% 증가</>합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Wind.T_Wind'",
@@ -32,7 +32,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 3
+				"cooldownOffsetSeconds": 2
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
@@ -45,6 +45,31 @@
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 1.16
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Skill",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyStatusEffectToSelf",
+							"statusEffects": [
+								{
+									"_ClassName": "/Script/P_MA.MASkillStatusEffect_Haste",
+									"magnitude": 1.2,
+									"duration": 1,
+									"grantedTags": []
+								}
+							]
+						}
+					},
 					{
 						"eventTag": "Event.Skill.Activate",
 						"bindingScope": "Skill",

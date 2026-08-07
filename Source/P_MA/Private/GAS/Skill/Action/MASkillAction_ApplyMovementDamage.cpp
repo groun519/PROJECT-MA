@@ -12,7 +12,7 @@
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
 #include "GenericTeamAgentInterface.h"
@@ -217,9 +217,9 @@ void UMASkillAction_ApplyMovementDamage::Execute(
 		return;
 	}
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
+	const FMASkillPayloadAccess Payloads = Event.GetPayloadAccess(*Scopes);
 	FMASkillDamageConfig DamageConfig;
-	if (!Payloads.TryGetStruct(DamagePayloadTag, DamageConfig)) return;
+	if (!Payloads.Reader.TryGetStruct(DamagePayloadTag, DamageConfig)) return;
 
 	UWorld* World = Owner.GetWorld();
 	if (!World) return;

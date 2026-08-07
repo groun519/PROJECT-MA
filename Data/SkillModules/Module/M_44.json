@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Burst",
-			"Description": "<DASH>0.2초 간 5m 돌진합니다.</>\r\n종료 시, 1초 간 모듈이 비활성화 됩니다.",
+			"Description": "<DASH>0.2초 간 5m 돌진합니다.</>\r\n종료 시, 1초 간 모듈이 비활성화 됩니다.\r\n스킬의 쿨다운이 5초 증가합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Burst.T_Burst'",
@@ -31,7 +31,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 2
+				"cooldownSeconds": 5
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
@@ -61,11 +61,6 @@
 							"dashSpeed": 2500,
 							"dashDuration": 0.20000000298023224
 						}
-					},
-					{
-						"eventTag": "Event.Skill.End",
-						"bindingScope": "Skill",
-						"action": null
 					}
 				]
 			},

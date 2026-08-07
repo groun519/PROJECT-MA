@@ -10,5 +10,5 @@ class P_MA_API UMASkillAction_ThrowWeaponProjectile : public UMASkillAction_Proj
 	GENERATED_BODY()
 
 protected:
-	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads) override;
+	virtual bool PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccess& Payloads) override;
 };

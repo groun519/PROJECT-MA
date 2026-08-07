@@ -9,7 +9,7 @@
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/Runtime/MASkillRuntimeRegistry.h"
 #include "GameFramework/Pawn.h"
 
@@ -51,7 +51,7 @@ static bool TryResolveLocationFromObject(UObject* Object, FName SocketName, FVec
 	return false;
 }
 
-static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, FVector& OutLocation)
+static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadAccess& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, FVector& OutLocation)
 {
 	if (Config.StartObjectSource == EMASkillProjectileStartObjectSource::Self)
 	{
@@ -59,7 +59,7 @@ static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadAc
 	}
 
 	UObject* PayloadObject = nullptr;
-	if (!Payloads.TryGetObject(Config.StartObjectPayloadTag, PayloadObject))
+	if (!Payloads.Reader.TryGetObject(Config.StartObjectPayloadTag, PayloadObject))
 	{
 		return false;
 	}
@@ -67,7 +67,7 @@ static bool TryResolveSpawnLocation(AActor& AvatarActor, const FMASkillPayloadAc
 	return TryResolveLocationFromObject(PayloadObject, Config.SpawnSocketName, OutLocation);
 }
 
-static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, const FVector& SpawnLocation, FRotator& OutRotation)
+static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayloadAccess& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, const FVector& SpawnLocation, FRotator& OutRotation)
 {
 	if (Config.DirectionSource == EMASkillProjectileDirectionSource::Forward)
 	{
@@ -77,7 +77,7 @@ static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayl
 
 	UObject* DirectionObject = &AvatarActor;
 	if (Config.DirectionSource == EMASkillProjectileDirectionSource::ObjectPayload
-		&& !Payloads.TryGetObject(Config.DirectionObjectPayloadTag, DirectionObject))
+		&& !Payloads.Reader.TryGetObject(Config.DirectionObjectPayloadTag, DirectionObject))
 	{
 		return false;
 	}
@@ -95,14 +95,14 @@ static bool TryResolveProjectileRotation(AActor& AvatarActor, const FMASkillPayl
 	return true;
 }
 
-static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, AActor*& OutTargetActor)
+static bool TryResolveTargetActor(AActor& AvatarActor, const FMASkillPayloadAccess& Payloads, const FMASkillActionConfig_SpawnProjectile& Config, AActor*& OutTargetActor)
 {
 	OutTargetActor = nullptr;
 	if (!Config.bUseTargetTracking) return true;
 
 	UObject* TargetObject = &AvatarActor;
 	if (Config.TargetTracking.TargetSource == EMASkillProjectileTrackingTargetSource::ObjectPayload
-		&& !Payloads.TryGetObject(Config.TargetTracking.TargetObjectPayloadTag, TargetObject))
+		&& !Payloads.Reader.TryGetObject(Config.TargetTracking.TargetObjectPayloadTag, TargetObject))
 	{
 		return false;
 	}
@@ -123,8 +123,8 @@ void UMASkillAction_ProjectileBase::Execute(
 	UWorld* World = Owner.GetWorld();
 	if (!World) return;
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
-	if (!Payloads.IsValid()) return;
+	const FMASkillPayloadAccess Payloads = Event.GetPayloadAccess(*Scopes);
+	if (!Payloads.Reader.IsValid()) return;
 
 	FVector SpawnLocation = FVector::ZeroVector;
 	if (!TryResolveSpawnLocation(Owner, Payloads, Config, SpawnLocation)) return;
@@ -146,7 +146,7 @@ void UMASkillAction_ProjectileBase::Execute(
 	if (!Projectile) return;
 
 	FMASkillDamageConfig DamageConfig;
-	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
+	Payloads.Reader.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
 	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
@@ -179,7 +179,7 @@ void UMASkillAction_ProjectileBase::Execute(
 	Scopes->GetRuntimeRegistry().Register(Projectile);
 }
 
-bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccessor& Payloads)
+bool UMASkillAction_ProjectileBase::PostSpawnProjectile(AMAProjectileBase& Projectile, AActor& AvatarActor, const FMASkillPayloadAccess& Payloads)
 {
 	return true;
 }

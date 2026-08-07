@@ -7,6 +7,8 @@
 #include "MAGameplayAbilityTypes.generated.h"
 
 struct FMAGameplayEffectContext;
+struct FMASkillPayloadAccess;
+class UAbilitySystemComponent;
 
 UENUM(BlueprintType)
 enum class EMADamageCriticalResult : uint8
@@ -146,6 +148,33 @@ namespace MATargetRelation
 	}
 }
 
+UENUM(BlueprintType)
+enum class EMAPayloadCalculationType : uint8
+{
+	Linear,
+	DiminishingGrowth
+};
+
+USTRUCT(BlueprintType)
+struct FMAPayloadCalculation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category="Calculation")
+	EMAPayloadCalculationType Type = EMAPayloadCalculationType::Linear;
+
+	/** Input value that produces half of MaxValue. */
+	UPROPERTY(EditDefaultsOnly, Category="Calculation",
+		meta=(EditCondition="Type == EMAPayloadCalculationType::DiminishingGrowth", EditConditionHides, ClampMin="0.0001", UIMin="0.0001"))
+	float HalfValue = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Calculation",
+		meta=(EditCondition="Type == EMAPayloadCalculationType::DiminishingGrowth", EditConditionHides))
+	float MaxValue = 1.f;
+
+	float Calculate(float Value) const;
+};
+
 USTRUCT(BlueprintType)
 struct FMAAttributeCoefficient
 {
@@ -162,8 +191,18 @@ struct FMAAttributeCoefficient
 	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(Categories="Data", EditCondition="Source == EMACoefficientSource::Payload", EditConditionHides))
 	FGameplayTag PayloadTag;
 
+	UPROPERTY(EditDefaultsOnly, Category="Coefficient", meta=(EditCondition="Source == EMACoefficientSource::Payload", EditConditionHides))
+	FMAPayloadCalculation PayloadCalculation;
+
 	UPROPERTY(EditDefaultsOnly, Category="Coefficient")
 	float Coefficient = 0.f;
+
+	float ResolvePayloadContribution(const FMASkillPayloadAccess& Payloads) const;
+
+	float ResolveValue(
+		const UAbilitySystemComponent& SourceASC,
+		const UAbilitySystemComponent& TargetASC,
+		const FMASkillPayloadAccess& Payloads) const;
 };
 
 USTRUCT(BlueprintType)
@@ -235,7 +274,10 @@ FPlayerBaseStats();
 	float BaseReverseCriticalDamage;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseAttackRange;
+	float BaseMeleeRangeScale;
+
+	UPROPERTY(EditAnywhere)
+	float BaseRangedRangeScale;
 
 	UPROPERTY(EditAnywhere)
 	float BaseMoveSpeed;
@@ -272,7 +314,10 @@ struct FMonsterBaseStats : public FTableRowBase
 	float BaseAttackSpeed;
 
 	UPROPERTY(EditAnywhere)
-	float BaseAttackRange;
+	float BaseMeleeRangeScale;
+
+	UPROPERTY(EditAnywhere)
+	float BaseRangedRangeScale;
 
 	UPROPERTY(EditAnywhere)
 	float BaseArmor;

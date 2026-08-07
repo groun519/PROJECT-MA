@@ -32,7 +32,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 3
+				"cooldownOffsetSeconds": 2
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",

@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Sweep",
-			"Description": "원형으로 공격하여, \r\n<BD>12</>+<ATK>85%의 피해</>를 입히고, 대상에게 <KNB>0.2초 동안 0.2m의 넉백</>을 부여합니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>",
+			"Description": "원형으로 공격하여, \r\n<BD>8</>+<ATK>50%의 피해</>를 입히고, 대상에게 <KNB>0.2초 동안 0.2m의 넉백</>을 부여합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Sweep.T_Sweep'",
@@ -30,22 +30,10 @@
 		],
 		"Addons": [
 			{
-				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 1
-			},
-			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
-					},
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
-						"changedAttribute":
-						{
-							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
-						},
-						"changeType": "Changed"
 					}
 				]
 			},
@@ -60,33 +48,6 @@
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
 							"damagePayloadTag": "Damage"
 						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Attribute.AttackSpeed.Changed",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
-							"multiplier": 1.1499999761581421
-						}
 					}
 				]
 			},
@@ -96,7 +57,8 @@
 					{
 						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Sweep.AM_Sweep'",
 						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1
+						"maxSectionCount": 1,
+						"bScaleWithAttackSpeed": true
 					}
 				],
 				"sequenceModifiers": []
@@ -119,7 +81,7 @@
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
 					{
-						"BaseDamage": 12,
+						"BaseDamage": 8,
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
@@ -129,7 +91,7 @@
 									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
 								"payloadTag": "",
-								"coefficient": 0.85000002384185791
+								"coefficient": 0.5
 							}
 						],
 						"ApplicationMode": "Instant",

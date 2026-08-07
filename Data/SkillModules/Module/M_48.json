@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Slash",
-			"Description": "부채꼴 범위로 공격하여, \r\n<BD>11</>+<ATK>50%의 피해</>를 입히고, 대상에게 <KNB>0.1초 동안 0.1m의 넉백</>을 부여합니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>",
+			"Description": "부채꼴 범위로 공격하여, \r\n<BD>9</>+<ATK>50%의 피해</>를 입히고, 대상에게 <KNB>0.1초 동안 0.1m의 넉백</>을 부여합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Slash.T_Slash'",
@@ -34,14 +34,6 @@
 				"eventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
-					},
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
-						"changedAttribute":
-						{
-							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
-						},
-						"changeType": "Changed"
 					}
 				]
 			},
@@ -56,33 +48,6 @@
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
 							"damagePayloadTag": "Damage"
 						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Attribute.AttackSpeed.Changed",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
-							"multiplier": 1.1499999761581421
-						}
 					}
 				]
 			},
@@ -92,7 +57,8 @@
 					{
 						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/Overlap/AM_Slash.AM_Slash'",
 						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 2
+						"maxSectionCount": 2,
+						"bScaleWithAttackSpeed": true
 					}
 				],
 				"sequenceModifiers": []
@@ -115,7 +81,7 @@
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
 					{
-						"BaseDamage": 11,
+						"BaseDamage": 9,
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{

@@ -1,63 +1,95 @@
 {
 	"ModuleId": 12,
-	"Module":
-	{
+	"Module": {
 		"ModuleName": "DA_ColdBlood",
-		"DisplayData":
-		{
+		"DisplayData": {
 			"DisplayName": "Cold Blood",
-			"Description": "",
-			"IconData":
-			{
+			"Description": "<ICE>저온 둔화와 빙결에 면역</>이 됩니다.\r\n낮아진 온도에 비례해 <MS>이동 속도</>와 <AS>공격 속도</>가 최대 40% 증가합니다.\r\n<ATK>적중</> 시, 낮아진 온도에 비례해 가한 피해의 최대 40%만큼 <ICE>추가 얼음 피해</>를 입힙니다.\r\n온도가 0보다 높으면 이동 속도와 공격 속도가 감소합니다.",
+			"IconData": {
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_ColdBlood.T_ColdBlood'",
 				"Priority": 0
 			},
-			"NameData":
-			{
+			"NameData": {
 				"Keyword": "",
 				"Priority": 0
 			}
 		},
-		"ModuleQuality":
-		{
+		"ModuleQuality": {
 			"Rarity": "Rarity4"
 		},
 		"ModuleTags": [
-			"Module.Exclusive.Unique"
+			"Module.Exclusive.Unique",
+			"Module.Exclusive.Blood",
+			"Module.OnHit",
+			"Module.Passive"
 		],
 		"ModuleVisualTags": [
 			"Module.Visual.Type.Passive"
 		],
 		"Addons": [
 			{
+				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
+				"gameplayEffects": [
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:MoveSpeed"
+								},
+								"modifierOp": "Multiplicitive"
+							},
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 1,
+						"magnitudeType": "AttributeBased",
+						"magnitudeCoefficients": [],
+						"magnitudeAttribute": {
+							"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
+						},
+						"magnitudeAttributeCoefficient": -0.004,
+						"grantedTags": [
+							"State.Immune.Temperature.Cold"
+						],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
+					}
+				]
+			},
+			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
 					{
-						"eventTag": "",
+						"eventTag": "Event.Skill.Hit",
 						"bindingScope": "Global",
-						"action":
-						{
+						"action": {
 							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
-							"targetPayloadTag": "Data.Event.TargetData",
-							"damagePayloadTag": "Damage.Frostbite"
-						}
-					},
-					{
-						"eventTag": "",
-						"bindingScope": "Global",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_ApplyAttribute",
-							"target": "TargetPayload",
-							"targetPayloadTag": "Data.Event.TargetData",
-							"attribute":
-							{
-								"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
-							},
-							"operation": "Override",
-							"baseValue": 0,
-							"eventMagnitudeCoefficient": 0,
-							"attributeCoefficients": []
+							"targetPayloadTag": "Data.Damage.Target",
+							"damagePayloadTag": "Damage.ColdBlood",
+							"baseDamageMultiplier": 0,
+							"damageMultiplierCoefficients": [
+								{
+									"source": "Source",
+									"gameplayAttribute": {
+										"attribute": "/Script/P_MA.MAAttributeSet:Temperature"
+									},
+									"payloadTag": "",
+									"coefficient": -0.004
+								}
+							]
 						}
 					}
 				]
@@ -65,51 +97,38 @@
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage.Frostbite",
+				"payloadTag": "Damage.ColdBlood",
 				"valueType": "Struct",
 				"scalarValue": 0,
-				"vectorValue":
-				{
+				"vectorValue": {
 					"x": 0,
 					"y": 0,
 					"z": 0
 				},
 				"objectValue": "None",
-				"structValue":
-				{
+				"structValue": {
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
-					"Value":
-					{
-						"BaseDamage": 10,
-						"DamageTypeTag": "DamageType.Fixed",
+					"Value": {
+						"BaseDamage": 0,
+						"DamageTypeTag": "DamageType.Ice",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
-								{
-									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								"source": "Payload",
+								"gameplayAttribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 0.10000000149011612
+								"payloadTag": "Data.Damage.Applied",
+								"coefficient": 1
 							}
 						],
 						"ApplicationMode": "Instant",
-						"DamageOverTime":
-						{
-							"Duration": 2,
-							"TickCount": 6
+						"DamageOverTime": {
+							"Duration": 3,
+							"TickCount": 3
 						},
 						"TargetRelationMask": 2,
-						"StatusEffects": [
-							{
-								"_ClassName": "/Script/P_MA.MASkillStatusEffectStun",
-								"duration": 3
-							}
-						],
-						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Ice",
-							"GameplayCue.Hit.Overlay.Red"
-						]
+						"StatusEffects": [],
+						"TargetGameplayCueTags": []
 					}
 				}
 			}

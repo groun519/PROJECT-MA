@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Crash",
-			"Description": "<DASH>기동</> 시, 대상에게 접촉하면 <BD>5</>+<ATK>200%의 피해</>를 입힙니다.\r\n접촉 범위는 플레이어 크기의 150%로 설정됨니다.",
+			"Description": "스킬의 <DASH>기동</>마다 이동 중 충돌한 각 적에게 최초 1회 <BD>5</>+<ATK>공격력의 200%</>만큼 일반 피해를 입힙니다.\r\n충돌 너비는 플레이어의 150%이며, 스킬의 쿨다운이 7.5초 증가합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Crash.T_Crash'",
@@ -14,7 +14,7 @@
 			},
 			"NameData":
 			{
-				"Keyword": "Expansion",
+				"Keyword": "Crash",
 				"Priority": 0
 			}
 		},
@@ -24,8 +24,7 @@
 		},
 		"ModuleTags": [
 			"Module.Attack",
-			"Module.Exclusive.Unique",
-			"Module.Movement"
+			"Module.Exclusive.Unique"
 		],
 		"ModuleVisualTags": [
 			"Module.Visual.Type.BuffModifier"
@@ -33,7 +32,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 5
+				"cooldownSeconds": 7.5
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
@@ -90,7 +89,7 @@
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
 					{
-						"BaseDamage": 0,
+						"BaseDamage": 5,
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{

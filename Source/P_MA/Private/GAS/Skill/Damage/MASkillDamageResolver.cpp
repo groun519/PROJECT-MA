@@ -5,7 +5,7 @@
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamage.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamageOverTime.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
 void MASkillDamageResolver::ApplyDamageOverTimeConfig(
@@ -26,12 +26,12 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 {
 	return ResolveExecutionConfig(
 		DamageConfig,
-		FMASkillPayloadAccessor(nullptr, &PayloadStore, nullptr));
+		FMASkillPayloadAccess(nullptr, &PayloadStore, nullptr));
 }
 
 FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 	const FMASkillDamageConfig& DamageConfig,
-	const FMASkillPayloadAccessor& Payloads)
+	const FMASkillPayloadAccess& Payloads)
 {
 	FMADamageExecutionConfig Result;
 	Result.BaseDamage = DamageConfig.BaseDamage;
@@ -43,11 +43,7 @@ FMADamageExecutionConfig MASkillDamageResolver::ResolveExecutionConfig(
 
 		if (Coefficient.Source == EMACoefficientSource::Payload)
 		{
-			float PayloadValue = 0.f;
-			if (Payloads.TryGetScalar(Coefficient.PayloadTag, PayloadValue))
-			{
-				Result.BaseDamage += PayloadValue * Coefficient.Coefficient;
-			}
+			Result.BaseDamage += Coefficient.ResolvePayloadContribution(Payloads);
 			continue;
 		}
 		if (!Coefficient.GameplayAttribute.IsValid()) continue;
@@ -96,13 +92,13 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	return Resolve(
 		OwnerAbility,
 		DamageConfig,
-		FMASkillPayloadAccessor(nullptr, &PayloadStore, nullptr));
+		FMASkillPayloadAccess(nullptr, &PayloadStore, nullptr));
 }
 
 FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	UMASkillAbility& OwnerAbility,
 	const FMASkillDamageConfig& DamageConfig,
-	const FMASkillPayloadAccessor& Payloads)
+	const FMASkillPayloadAccess& Payloads)
 {
 	FResolvedSkillDamage ResolvedDamage;
 	ResolvedDamage.ApplicationMode = DamageConfig.ApplicationMode;
@@ -125,11 +121,9 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 			1,
 			&AppliedExecutionConfig);
 
-		float FinalDamageMultiplier = 1.f;
-		if (Payloads.TryGetScalar(
-			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
-			FinalDamageMultiplier)
-			&& !FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
+		const float FinalDamageMultiplier = Payloads.Reader.GetScalarProduct(
+			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag());
+		if (!FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
 			&& ResolvedDamage.DamageSpec.IsValid()
 			&& ResolvedDamage.DamageSpec.Data.IsValid())
 		{
@@ -138,11 +132,9 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 				FinalDamageMultiplier);
 		}
 
-		float DamageVariance = 0.f;
-		if (Payloads.TryGetScalar(
-			UMAAbilitySystemStatics::GetDamageVarianceTag(),
-			DamageVariance)
-			&& !FMath::IsNearlyZero(DamageVariance)
+		const float DamageVariance = Payloads.Reader.GetScalarSum(
+			UMAAbilitySystemStatics::GetDamageVarianceTag());
+		if (!FMath::IsNearlyZero(DamageVariance)
 			&& ResolvedDamage.DamageSpec.IsValid()
 			&& ResolvedDamage.DamageSpec.Data.IsValid())
 		{
@@ -152,7 +144,7 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 		}
 
 		float FocusOffset = 0.f;
-		if (Payloads.TryGetScalar(
+		if (Payloads.Reader.TryGetScalar(
 			UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
 			FocusOffset)
 			&& !FMath::IsNearlyZero(FocusOffset)
@@ -162,6 +154,19 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
 				UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
 				FocusOffset);
+		}
+
+		float CriticalDamageOffset = 0.f;
+		if (Payloads.Reader.TryGetScalar(
+			UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(),
+			CriticalDamageOffset)
+			&& !FMath::IsNearlyZero(CriticalDamageOffset)
+			&& ResolvedDamage.DamageSpec.IsValid()
+			&& ResolvedDamage.DamageSpec.Data.IsValid())
+		{
+			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(),
+				CriticalDamageOffset);
 		}
 
 		if (bApplyDamageOverTime)

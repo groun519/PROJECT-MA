@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Devour",
-			"Description": "부채꼴 범위로 공격하며,\r\n조금 더 큰 범위로 대상에게 <STUN>1초의 기절</>을 적용하고, <KNB>0.25초 동안 1m의 그랩</>을 적용합니다.\r\n이후, <BD>25</>+<ATK>100%</>+<HP>최대 체력의 5%</><ATK>의 피해</>를 입힙니다.\r\n<AS>스킬 시행 속도가 15% 증가합니다.</>\r\n이후 60초 동안 모듈이 비활성화 됩니다.",
+			"Description": "부채꼴 범위로 공격하며,\r\n조금 더 큰 범위로 대상에게 <STUN>1초의 기절</>을 적용하고, <KNB>0.25초 동안 1m의 그랩</>을 적용합니다.\r\n이후, <BD>20</>+<ATK>100%</>+<HP>대상 최대 체력의 3%</><ATK>의 피해</>를 입힙니다.\r\n이 스킬로 적을 처치할 때마다 <HP>최대 체력이 영구적으로 3 증가</>합니다.\r\n이후 3초 동안 모듈이 비활성화 됩니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Devour.T_Devour'",
@@ -31,12 +31,16 @@
 		],
 		"Addons": [
 			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownSeconds": 9
+			},
+			{
 				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
 				"bindingScope": "Skill",
 				"triggerEventTags": [
 					"Event.Skill.End"
 				],
-				"durationSeconds": 60
+				"durationSeconds": 3
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
@@ -46,6 +50,9 @@
 					},
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_End"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Kill"
 					}
 				]
 			},
@@ -71,12 +78,13 @@
 						}
 					},
 					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
+						"eventTag": "Event.Skill.Kill",
+						"bindingScope": "Module",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
-							"multiplier": 1.1499999761581421
+							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
+							"operation": "Add",
+							"value": 3
 						}
 					}
 				]
@@ -91,6 +99,36 @@
 					}
 				],
 				"sequenceModifiers": []
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
+				"gameplayEffects": [
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								},
+								"modifierOp": "Additive"
+							}
+						],
+						"baseMagnitude": 0,
+						"magnitudeCoefficients": [
+							{
+								"source": "Payload",
+								"gameplayAttribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								},
+								"payloadTag": "Data.Module.Stack",
+								"coefficient": 1
+							}
+						],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					}
+				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
@@ -117,7 +155,7 @@
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
 					{
-						"BaseDamage": 25,
+						"BaseDamage": 20,
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
@@ -130,13 +168,13 @@
 								"coefficient": 1
 							},
 							{
-								"source": "Source",
+								"source": "Target",
 								"gameplayAttribute":
 								{
 									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
 								},
 								"payloadTag": "",
-								"coefficient": 0.05000000074505806
+								"coefficient": 0.029999999329447746
 							}
 						],
 						"ApplicationMode": "Instant",

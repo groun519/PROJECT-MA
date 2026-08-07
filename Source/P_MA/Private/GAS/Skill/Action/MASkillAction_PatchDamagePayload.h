@@ -43,6 +43,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Damage")
 	bool bExactPayloadTagMatch = true;
 
+	UPROPERTY(EditDefaultsOnly, Category="Damage")
+	float DamageMultiplier = 1.f;
+
 	UPROPERTY(EditDefaultsOnly, Category="Damage", meta=(Categories="DamageType"))
 	FGameplayTag RequiredDamageTypeTag;
 

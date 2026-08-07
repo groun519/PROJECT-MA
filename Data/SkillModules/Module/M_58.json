@@ -1,30 +1,32 @@
 {
-	"ModuleId": 30,
+	"ModuleId": 58,
 	"Module":
 	{
-		"ModuleName": "DA_DamageDiscount50",
+		"ModuleName": "DA_Overfocus",
 		"DisplayData":
 		{
-			"DisplayName": "Damage Discount 50%",
-			"Description": "스킬의 <FINAL>최종 피해량이 50% 감소</>합니다.",
+			"DisplayName": "Overfocus",
+			"Description": "집중력이 100%를 초과하면, 초과한 집중력의 <FINAL>50%만큼 일반 피해의 치명타 피해가 증가</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_DamageDiscount50.T_DamageDiscount50'",
-				"Priority": 0
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Overfocus.T_Overfocus'",
+				"Priority": 1
 			},
 			"NameData":
 			{
-				"Keyword": "",
-				"Priority": 0
+				"Keyword": "Overfocus",
+				"Priority": 1
 			}
 		},
 		"ModuleQuality":
 		{
 			"Rarity": "Rarity3"
 		},
-		"ModuleTags": [],
+		"ModuleTags": [
+			"Module.Exclusive.Unique"
+		],
 		"ModuleVisualTags": [
-			"Module.Visual.Type.DebuffModifier"
+			"Module.Visual.Type.BuffModifier"
 		],
 		"Addons": [
 			{
@@ -43,10 +45,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
-							"multiplier": 0.5,
-							"multiplierPayloadTag": "",
-							"payloadBaseMultiplier": 0
+							"_ClassName": "/Script/P_MA.MASkillAction_AddFocusOverflowCriticalDamage",
+							"criticalDamageRate": 0.5
 						}
 					}
 				]

@@ -10,7 +10,7 @@ class P_MA_API UMASkillAction_AddDamageVariance : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	UMASkillAction_AddDamageVariance() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+	UMASkillAction_AddDamageVariance() { SupportedModuleTypes = EMASkillModuleType::Sub; }
 
 	virtual void Execute(
 		AActor& Owner,

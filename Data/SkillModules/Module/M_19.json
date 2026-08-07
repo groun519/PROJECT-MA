@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Dash",
-			"Description": "시퀀스 시작 시, <DASH>0.2초 간 2.4m의 대쉬</>를 합니다.",
+			"Description": "각 시퀀스 시작 시, <DASH>0.2초 동안 2.4m 대시</>합니다.\r\n스킬의 쿨다운이 2.4초 증가합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Dash.T_Dash'",
@@ -32,7 +32,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 2.5
+				"cooldownSeconds": 2.4
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",

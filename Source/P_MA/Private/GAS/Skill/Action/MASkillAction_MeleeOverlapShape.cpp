@@ -20,7 +20,7 @@ void UMASkillAction_MeleeOverlapShape::Execute(
 {
 	check(Ability && Scopes);
 
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
+	const FMASkillPayloadAccess Payloads = Event.GetPayloadAccess(*Scopes);
 	const FMASkillWorldAreaShape Area = Config.ResolveWorld(
 		Owner.GetActorTransform(),
 		MASkillAreaStatics::ResolveAreaScale(

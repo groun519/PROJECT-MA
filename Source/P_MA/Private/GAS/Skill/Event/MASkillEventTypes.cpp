@@ -15,9 +15,9 @@ FGameplayTag GetEventTargetDataTag()
 }
 }
 
-FMASkillPayloadAccessor FMASkillScopes::GetPayloadAccess(const FMASkillPayloadStore* EventPayloads) const
+FMASkillPayloadAccess FMASkillScopes::GetPayloadAccess(const FMASkillPayloadStore* EventPayloads) const
 {
-	return FMASkillPayloadAccessor(
+	return FMASkillPayloadAccess(
 		EventPayloads,
 		Skill ? &Skill->GetPayloadStore() : nullptr,
 		Module ? &Module->GetPayloadStore() : nullptr);
@@ -53,7 +53,7 @@ const FGameplayAbilityTargetDataHandle* FMASkillEvent::GetTargetData() const
 	return Payloads.FindStruct<FGameplayAbilityTargetDataHandle>(GetEventTargetDataTag());
 }
 
-FMASkillPayloadAccessor FMASkillEvent::GetPayloadAccess(const FMASkillScopes& BindingScopes) const
+FMASkillPayloadAccess FMASkillEvent::GetPayloadAccess(const FMASkillScopes& BindingScopes) const
 {
 	return BindingScopes.GetPayloadAccess(Payloads);
 }

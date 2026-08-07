@@ -6,7 +6,7 @@
 bool UMASkillAction_ThrowWeaponProjectile::PostSpawnProjectile(
 	AMAProjectileBase& Projectile,
 	AActor& AvatarActor,
-	const FMASkillPayloadAccessor& Payloads)
+	const FMASkillPayloadAccess& Payloads)
 {
 	const UWeaponComponent* SourceWeapon = AvatarActor.FindComponentByClass<UWeaponComponent>();
 	AMASkeletalMeshProjectile* SkeletalMeshProjectile = Cast<AMASkeletalMeshProjectile>(&Projectile);

@@ -1,21 +1,21 @@
 {
-	"ModuleId": 23,
+	"ModuleId": 15,
 	"Module":
 	{
-		"ModuleName": "DA_Gamble",
+		"ModuleName": "DA_Composure",
 		"DisplayData":
 		{
-			"DisplayName": "Gamble",
-			"Description": "<FINAL>최종 피해량이 5% 증가</>하며, <DV>랜덤적으로 최대 20% 더하거나 뺍니다.</>",
+			"DisplayName": "Composure",
+			"Description": "스킬의 <FINAL>최종 피해가 10% 증가</>하고, 일반 피해에 적용되는 <FINAL>집중력이 25% 증가</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Gamble.T_Gamble'",
-				"Priority": 0
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Composure.T_Composure'",
+				"Priority": 1
 			},
 			"NameData":
 			{
-				"Keyword": "Gamble",
-				"Priority": 0
+				"Keyword": "Composure",
+				"Priority": 1
 			}
 		},
 		"ModuleQuality":
@@ -24,7 +24,7 @@
 		},
 		"ModuleTags": [],
 		"ModuleVisualTags": [
-			"Module.Visual.Type.Modifier"
+			"Module.Visual.Type.BuffModifier"
 		],
 		"Addons": [
 			{
@@ -47,8 +47,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_AddDamageVariance",
-							"varianceAdditive": 0.20000000298023224
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
+							"multiplier": 1.1
 						}
 					},
 					{
@@ -56,10 +56,8 @@
 						"bindingScope": "Skill",
 						"action":
 						{
-							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
-							"multiplier": 1.0499999523162842,
-							"multiplierPayloadTag": "",
-							"payloadBaseMultiplier": 0
+							"_ClassName": "/Script/P_MA.MASkillAction_AddFocusOffset",
+							"focusOffset": 0.25
 						}
 					}
 				]

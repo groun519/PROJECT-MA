@@ -5,8 +5,8 @@
 		"ModuleName": "DA_SmallGolemDash",
 		"DisplayData":
 		{
-			"DisplayName": "Golem Dash",
-			"Description": "골렘이 대시함",
+			"DisplayName": "Small Golem Dash",
+			"Description": "소형 골렘이 빠르게 돌진합니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_Monster/Golem_MS/Small/GA/Combo/T_GolemPunch.T_GolemPunch'",
@@ -14,7 +14,7 @@
 			},
 			"NameData":
 			{
-				"Keyword": "GroundSlam",
+				"Keyword": "Dash",
 				"Priority": 2
 			}
 		},

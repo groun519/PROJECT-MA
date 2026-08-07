@@ -30,7 +30,7 @@ bool UMASkillModuleStackAddon::TryResolveSocketText(
 	const FMASkillModuleAddonRuntimeData& RuntimeData,
 	FText& OutText) const
 {
-	if (!ShouldShowStackText()) return false;
+	if (!bShowStackText) return false;
 
 	const FMASkillModuleStackRuntimeData* StackData =
 		RuntimeData.Find<FMASkillModuleStackRuntimeData>();
@@ -40,7 +40,7 @@ bool UMASkillModuleStackAddon::TryResolveSocketText(
 	return true;
 }
 
-int32 UMASkillModuleStackAddon::ClampStack(int32 Value) const
+int32 UMASkillModuleStackAddon::ClampStack(const int64 Value) const
 {
-	return FMath::Clamp(Value, MinStack, MaxStack);
+	return static_cast<int32>(FMath::Clamp<int64>(Value, MinStack, MaxStack));
 }

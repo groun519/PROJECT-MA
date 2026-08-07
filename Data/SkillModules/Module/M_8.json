@@ -2,11 +2,11 @@
 	"ModuleId": 8,
 	"Module":
 	{
-		"ModuleName": "DA_SmallGolem_Attack",
+		"ModuleName": "DA_GolemAttack",
 		"DisplayData":
 		{
-			"DisplayName": "SmallGolem Attack",
-			"Description": "Sm",
+			"DisplayName": "Golem Attack",
+			"Description": "골렘이 공격해 적에게 피해를 주고 짧게 경직시키며 둔화시킵니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_Monster/Golem_MS/Small/GA/Combo/T_GolemPunch.T_GolemPunch'",
@@ -14,7 +14,7 @@
 			},
 			"NameData":
 			{
-				"Keyword": "GroundSlam",
+				"Keyword": "Attack",
 				"Priority": 2
 			}
 		},
@@ -26,22 +26,6 @@
 		"ModuleVisualTags": [],
 		"Addons": [
 			{
-				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
-					},
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
-						"changedAttribute":
-						{
-							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
-						},
-						"changeType": "Changed"
-					}
-				]
-			},
-			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
 					{
@@ -52,24 +36,6 @@
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
 							"damagePayloadTag": "Damage"
 						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Attribute.AttackSpeed.Changed",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
 					}
 				]
 			},
@@ -79,7 +45,8 @@
 					{
 						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Attack.AM_SmallGolem_Attack'",
 						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1
+						"maxSectionCount": 1,
+						"bScaleWithAttackSpeed": true
 					}
 				],
 				"sequenceModifiers": []

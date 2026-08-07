@@ -5,6 +5,12 @@
 #include "InstancedStruct.h"
 #include "MASkillPayloadStore.generated.h"
 
+enum class EMASkillPayloadScope : uint8
+{
+	Module,
+	Skill
+};
+
 USTRUCT(BlueprintType)
 struct P_MA_API FMASkillPayloadStore
 {
@@ -36,6 +42,29 @@ public:
 		}
 
 		return false;
+	}
+
+	bool AddScalar(const FGameplayTag& Key, float Value, TOptional<float> MinimumValue = {})
+	{
+		float* CurrentValue = Key.IsValid() ? Scalars.Find(Key) : nullptr;
+		if (!CurrentValue) return false;
+
+		*CurrentValue += Value;
+		if (MinimumValue.IsSet())
+		{
+			*CurrentValue = FMath::Max(*CurrentValue, MinimumValue.GetValue());
+		}
+
+		return true;
+	}
+
+	bool MultiplyScalar(const FGameplayTag& Key, float Value)
+	{
+		float* CurrentValue = Key.IsValid() ? Scalars.Find(Key) : nullptr;
+		if (!CurrentValue) return false;
+
+		*CurrentValue *= Value;
+		return true;
 	}
 
 	void SetVector(const FGameplayTag& Key, const FVector& Value)

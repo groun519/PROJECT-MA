@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GameFramework/Actor.h"
 
@@ -32,7 +33,22 @@ void FMASkillModuleGameplayEffectConfig::RebuildEffectDefinition(UObject& Outer)
 		FGameplayModifierInfo& ModifierInfo = EffectDefinition->Modifiers.AddDefaulted_GetRef();
 		ModifierInfo.Attribute = Modifier.Attribute;
 		ModifierInfo.ModifierOp = Modifier.ModifierOp;
-		ModifierInfo.ModifierMagnitude = FGameplayEffectModifierMagnitude(SetByCallerMagnitude);
+		if (MagnitudeType == EMASkillModuleEffectMagnitudeType::AttributeBased
+			&& MagnitudeAttribute.IsValid())
+		{
+			FAttributeBasedFloat AttributeMagnitude;
+			AttributeMagnitude.BackingAttribute = FGameplayEffectAttributeCaptureDefinition(
+				MagnitudeAttribute,
+				EGameplayEffectAttributeCaptureSource::Source,
+				false);
+			AttributeMagnitude.Coefficient = FScalableFloat(MagnitudeAttributeCoefficient);
+			AttributeMagnitude.PostMultiplyAdditiveValue = FScalableFloat(BaseMagnitude);
+			ModifierInfo.ModifierMagnitude = FGameplayEffectModifierMagnitude(AttributeMagnitude);
+		}
+		else
+		{
+			ModifierInfo.ModifierMagnitude = FGameplayEffectModifierMagnitude(SetByCallerMagnitude);
+		}
 	}
 	EffectDefinition->Period = FScalableFloat(Period);
 	EffectDefinition->bExecutePeriodicEffectOnApplication = bExecutePeriodicEffectOnApplication;
@@ -82,23 +98,11 @@ float FMASkillModuleGameplayEffectConfig::ResolveMagnitude(
 	const FMASkillPayloadStore& PayloadStore) const
 {
 	float Magnitude = BaseMagnitude;
+	const FMASkillPayloadAccess Payloads(nullptr, nullptr, &PayloadStore);
 	for (const FMAAttributeCoefficient& Coefficient : MagnitudeCoefficients)
 	{
 		if (FMath::IsNearlyZero(Coefficient.Coefficient)) continue;
-
-		float Value = 0.f;
-		if (Coefficient.Source == EMACoefficientSource::Payload)
-		{
-			if (!PayloadStore.TryGetScalar(Coefficient.PayloadTag, Value)) continue;
-		}
-		else
-		{
-			bool bFound = false;
-			Value = AbilitySystemComponent.GetGameplayAttributeValue(Coefficient.GameplayAttribute, bFound);
-			if (!bFound) continue;
-		}
-
-		Magnitude += Value * Coefficient.Coefficient;
+		Magnitude += Coefficient.ResolveValue(AbilitySystemComponent, AbilitySystemComponent, Payloads);
 	}
 	return Magnitude;
 }
@@ -154,9 +158,6 @@ void UMASkillModuleGameplayEffectAddon::SetEffectsActive(
 			continue;
 		}
 
-		const FGameplayTag MagnitudeTag = UMAAbilitySystemStatics::GetModuleEffectMagnitudeTag();
-		const float Magnitude = Config.ResolveMagnitude(*AbilitySystemComponent, PayloadStore);
-
 		const TArray<FActiveGameplayEffectHandle> EffectHandles = AbilitySystemComponent->GetActiveEffects(Query);
 		const FActiveGameplayEffectHandle* ExistingHandle = EffectHandles.FindByPredicate(
 			[&ClaimedEffectHandles](const FActiveGameplayEffectHandle& Handle)
@@ -165,10 +166,13 @@ void UMASkillModuleGameplayEffectAddon::SetEffectsActive(
 			});
 		if (ExistingHandle)
 		{
-			AbilitySystemComponent->UpdateActiveGameplayEffectSetByCallerMagnitude(
-				*ExistingHandle,
-				MagnitudeTag,
-				Magnitude);
+			if (Config.MagnitudeType == EMASkillModuleEffectMagnitudeType::Snapshot)
+			{
+				AbilitySystemComponent->UpdateActiveGameplayEffectSetByCallerMagnitude(
+					*ExistingHandle,
+					UMAAbilitySystemStatics::GetModuleEffectMagnitudeTag(),
+					Config.ResolveMagnitude(*AbilitySystemComponent, PayloadStore));
+			}
 			ClaimedEffectHandles.Add(*ExistingHandle);
 			continue;
 		}
@@ -178,7 +182,12 @@ void UMASkillModuleGameplayEffectAddon::SetEffectsActive(
 
 		FGameplayEffectSpec EffectSpec(GameplayEffect, EffectContext, 1.f);
 		EffectSpec.DynamicGrantedTags.AppendTags(Config.GrantedTags);
-		EffectSpec.SetSetByCallerMagnitude(MagnitudeTag, Magnitude);
+		if (Config.MagnitudeType == EMASkillModuleEffectMagnitudeType::Snapshot)
+		{
+			EffectSpec.SetSetByCallerMagnitude(
+				UMAAbilitySystemStatics::GetModuleEffectMagnitudeTag(),
+				Config.ResolveMagnitude(*AbilitySystemComponent, PayloadStore));
+		}
 		const FActiveGameplayEffectHandle AppliedHandle =
 			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(EffectSpec);
 		if (AppliedHandle.IsValid()) ClaimedEffectHandles.Add(AppliedHandle);

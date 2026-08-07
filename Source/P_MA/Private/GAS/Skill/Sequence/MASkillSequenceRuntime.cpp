@@ -1,12 +1,18 @@
 #include "GAS/Skill/Sequence/MASkillSequenceRuntime.h"
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Animation/MAAnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GAS/MAAbilitySystemComponent.h"
+#include "GAS/MAAbilitySystemStatics.h"
+#include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/Event/Routing/MASkillEventRoutingStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
+#include "GAS/Skill/Payload/MASkillPayloadStore.h"
 #include "GAS/Skill/Sequence/MASkillSequenceTask.h"
 
 UMASkillAbility& UMASkillSequenceRuntime::GetOwnerAbility() const
@@ -42,6 +48,7 @@ void UMASkillSequenceRuntime::Start()
 	CurrentSequenceIndex = 0;
 	CurrentTaskIndex = 0;
 	bRunning = true;
+	BindAttackSpeedChanged();
 	ExecuteCurrentSequence();
 }
 
@@ -57,6 +64,7 @@ void UMASkillSequenceRuntime::Stop()
 {
 	if (!bRunning) return;
 
+	UnbindAttackSpeedChanged();
 	bRunning = false;
 	UMASkillSequenceTask* TaskToAbort = ActiveTask;
 	ActiveTask = nullptr;
@@ -74,6 +82,8 @@ void UMASkillSequenceRuntime::Stop()
 	StopCurrentMontage();
 	CurrentSequenceIndex = INDEX_NONE;
 	CurrentTaskIndex = INDEX_NONE;
+	CurrentSectionName = NAME_None;
+	CurrentPlayRate = 1.f;
 }
 
 bool UMASkillSequenceRuntime::GetProgressInfo(
@@ -102,7 +112,7 @@ bool UMASkillSequenceRuntime::PrepareCurrentMontage(float PreparationTime)
 			OwnerAbility.GetCurrentActivationInfo(),
 			Sequence->Montage,
 			PreviewPlayRate,
-			ResolveStartSectionName(),
+			CurrentSectionName,
 			PreparationTime) <= 0.f)
 	{
 		return false;
@@ -115,12 +125,31 @@ bool UMASkillSequenceRuntime::PrepareCurrentMontage(float PreparationTime)
 	return true;
 }
 
-void UMASkillSequenceRuntime::SetDesiredPlayRate(float PlayRate)
+void UMASkillSequenceRuntime::RefreshPlayRate()
 {
-	DesiredPlayRate = FMath::Max(PlayRate, KINDA_SMALL_NUMBER);
+	if (!bRunning) return;
+
+	const FMASkillSequence* Sequence = GetCurrentSequence();
+	if (!Sequence) return;
+
+	float PlayRate = 1.f;
+	if (Sequence->bScaleWithAttackSpeed)
+	{
+		float AttackSpeed = 1.f;
+		if (const UAbilitySystemComponent* ASC = GetOwnerAbility().GetAbilitySystemComponentFromActorInfo())
+		{
+			AttackSpeed = ASC->GetNumericAttribute(UMAAttributeSet::GetAttackSpeedAttribute());
+		}
+		PlayRate = GetCurrentSectionPlayLength() * (AttackSpeed > 0.f ? AttackSpeed : 1.f);
+	}
+
+	const float SkillMultiplier = Sequence->TargetScopes.GetPayloadAccess().Reader.GetScalarProduct(
+		UMAAbilitySystemStatics::GetSkillAttackSpeedMultiplierTag());
+	CurrentPlayRate = FMath::Max(PlayRate * SkillMultiplier, KINDA_SMALL_NUMBER);
+
 	if (ActiveTask)
 	{
-		ActiveTask->ApplyPlayRate(DesiredPlayRate);
+		ActiveTask->ApplyPlayRate(CurrentPlayRate);
 	}
 	if (!bMontagePrepared || bPreparedMontageActive)
 	{
@@ -162,12 +191,20 @@ void UMASkillSequenceRuntime::ExecuteCurrentSequence()
 		Complete();
 		return;
 	}
+	const UMASkillModuleInstance* ModuleScope = Sequence->TargetScopes.Module.Get();
+	if (ModuleScope && (!ModuleScope->IsActive() || ModuleScope->IsCooldownActive()))
+	{
+		CompleteCurrentSequence();
+		return;
+	}
 	if (!Sequence->Montage)
 	{
 		Abort();
 		return;
 	}
 
+	CurrentSectionName = ResolveStartSectionName();
+	RefreshPlayRate();
 	CurrentTaskIndex = 0;
 	ExecuteCurrentTask();
 }
@@ -228,8 +265,8 @@ void UMASkillSequenceRuntime::PlayCurrentMontage()
 			&OwnerAbility,
 			NAME_None,
 			Sequence->Montage,
-			DesiredPlayRate,
-			ResolveStartSectionName());
+			CurrentPlayRate,
+			CurrentSectionName);
 		if (!MontageTask)
 		{
 			Abort();
@@ -366,8 +403,20 @@ void UMASkillSequenceRuntime::ApplyCurrentMontagePlayRate()
 	UAbilitySystemComponent* ASC = GetOwnerAbility().GetAbilitySystemComponentFromActorInfo();
 	if (Sequence && Sequence->Montage && ASC && ASC->GetCurrentMontage() == Sequence->Montage)
 	{
-		ASC->CurrentMontageSetPlayRate(DesiredPlayRate);
+		ASC->CurrentMontageSetPlayRate(CurrentPlayRate);
 	}
+}
+
+float UMASkillSequenceRuntime::GetCurrentSectionPlayLength() const
+{
+	const FMASkillSequence* Sequence = GetCurrentSequence();
+	if (!Sequence || !Sequence->Montage) return 1.f;
+	if (CurrentSectionName.IsNone()) return Sequence->Montage->GetPlayLength();
+
+	const int32 SectionIndex = Sequence->Montage->GetSectionIndex(CurrentSectionName);
+	return SectionIndex != INDEX_NONE
+		? Sequence->Montage->GetSectionLength(SectionIndex)
+		: 1.f;
 }
 
 FName UMASkillSequenceRuntime::ResolveStartSectionName() const
@@ -412,6 +461,40 @@ void UMASkillSequenceRuntime::AdvanceSectionIndex()
 	{
 		SectionIndex = ((SectionIndex - 1) % Sequence->MaxSectionCount) + 1;
 	}
+}
+
+void UMASkillSequenceRuntime::BindAttackSpeedChanged()
+{
+	for (const FMASkillSequence& Sequence : Sequences)
+	{
+		if (!Sequence.bScaleWithAttackSpeed) continue;
+
+		if (UAbilitySystemComponent* ASC = GetOwnerAbility().GetAbilitySystemComponentFromActorInfo())
+		{
+			AttackSpeedChangedHandle = ASC->GetGameplayAttributeValueChangeDelegate(
+				UMAAttributeSet::GetAttackSpeedAttribute()).AddUObject(
+					this,
+					&UMASkillSequenceRuntime::HandleAttackSpeedChanged);
+		}
+		return;
+	}
+}
+
+void UMASkillSequenceRuntime::UnbindAttackSpeedChanged()
+{
+	if (!AttackSpeedChangedHandle.IsValid()) return;
+
+	if (UAbilitySystemComponent* ASC = GetOwnerAbility().GetAbilitySystemComponentFromActorInfo())
+	{
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UMAAttributeSet::GetAttackSpeedAttribute()).Remove(AttackSpeedChangedHandle);
+	}
+	AttackSpeedChangedHandle.Reset();
+}
+
+void UMASkillSequenceRuntime::HandleAttackSpeedChanged(const FOnAttributeChangeData& /*ChangeData*/)
+{
+	RefreshPlayRate();
 }
 
 void UMASkillSequenceRuntime::HandleMontageCompleted()
@@ -469,11 +552,14 @@ void UMASkillSequenceRuntime::Complete()
 {
 	if (!bRunning) return;
 
+	UnbindAttackSpeedChanged();
 	bRunning = false;
 	ActiveTask = nullptr;
 	ClearMontageTask();
 	ClearPreparedMontage();
 	CurrentSequenceIndex = INDEX_NONE;
 	CurrentTaskIndex = INDEX_NONE;
+	CurrentSectionName = NAME_None;
+	CurrentPlayRate = 1.f;
 	GetOwnerAbility().EndSkill();
 }

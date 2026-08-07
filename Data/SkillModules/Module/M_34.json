@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Pain",
-			"Description": "스킬 사용 시, <HP>현재 체력의 5%</>를 잃습니다.",
+			"Description": "스킬 쿨다운이 <COOLDOWN>4초 감소</>하지만, 스킬 사용 시 <HP>현재 체력의 5%</>를 잃습니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Pain.T_Pain'",
@@ -29,6 +29,10 @@
 			"Module.Visual.Type.DebuffModifier"
 		],
 		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownOffsetSeconds": -4
+			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
 				"eventSources": [

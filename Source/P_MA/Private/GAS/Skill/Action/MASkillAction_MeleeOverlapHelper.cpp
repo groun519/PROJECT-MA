@@ -3,14 +3,14 @@
 #include "Engine/HitResult.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 
-FMASkillDamageConfig MASkillActionMeleeOverlap::ResolveDamageConfig(const FMASkillPayloadAccessor& Payloads, const FGameplayTag& DamagePayloadTag)
+FMASkillDamageConfig MASkillActionMeleeOverlap::ResolveDamageConfig(const FMASkillPayloadAccess& Payloads, const FGameplayTag& DamagePayloadTag)
 {
 	FMASkillDamageConfig DamageConfig;
-	Payloads.TryGetStruct(DamagePayloadTag, DamageConfig);
+	Payloads.Reader.TryGetStruct(DamagePayloadTag, DamageConfig);
 	return DamageConfig;
 }
 

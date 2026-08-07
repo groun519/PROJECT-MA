@@ -6,7 +6,7 @@
 		"DisplayData":
 		{
 			"DisplayName": "Ground Slam",
-			"Description": "지면을 타격함",
+			"Description": "지면을 강타해 적에게 피해를 주고 공중으로 띄웁니다.",
 			"IconData":
 			{
 				"Icon": "/Script/Engine.Texture2D'/Game/_Monster/Golem_MM/Middle/Skills/GroundSlam/T_GroundSlam.T_GroundSlam'",
@@ -26,22 +26,6 @@
 		"ModuleVisualTags": [],
 		"Addons": [
 			{
-				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
-					},
-					{
-						"_ClassName": "/Script/P_MA.MASkillEventSource_AttributeChanged",
-						"changedAttribute":
-						{
-							"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
-						},
-						"changeType": "Changed"
-					}
-				]
-			},
-			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
 				"eventBindings": [
 					{
@@ -52,24 +36,6 @@
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
 							"damagePayloadTag": "Damage"
 						}
-					},
-					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
-					},
-					{
-						"eventTag": "Event.Attribute.AttackSpeed.Changed",
-						"bindingScope": "Skill",
-						"action":
-						{
-							"_ClassName": "/Script/P_MA.MASkillAction_SetMontagePlayRateByAttackSpeed",
-							"basePlayRate": 0.44999998807907104
-						}
 					}
 				]
 			},
@@ -79,7 +45,8 @@
 					{
 						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MM/Middle/Skills/GroundSlam/AM_GroundSlam.AM_GroundSlam'",
 						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1
+						"maxSectionCount": 1,
+						"bScaleWithAttackSpeed": true
 					}
 				],
 				"sequenceModifiers": []

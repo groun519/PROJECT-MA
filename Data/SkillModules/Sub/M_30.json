@@ -1,0 +1,38 @@
+{
+	"ModuleId": 30,
+	"Module":
+	{
+		"ModuleType": "Sub",
+		"ModuleName": "Tempo",
+		"DisplayData":
+		{
+			"DisplayName": "Tempo",
+			"Description": "스킬의 <COOLDOWN>쿨다운이 20% 감소</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_DamageDiscount50.T_DamageDiscount50'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Modifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownMultiplier": 0.80000001192092896
+			}
+		],
+		"Payloads": []
+	}
+}

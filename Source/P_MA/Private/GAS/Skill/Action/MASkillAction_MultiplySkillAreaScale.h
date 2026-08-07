@@ -10,7 +10,7 @@ class P_MA_API UMASkillAction_MultiplySkillAreaScale : public UMASkillAction
 	GENERATED_BODY()
 
 public:
-	UMASkillAction_MultiplySkillAreaScale() { SupportedModuleTypes = EMASkillModuleType::Module | EMASkillModuleType::Sub; }
+	UMASkillAction_MultiplySkillAreaScale() { SupportedModuleTypes = EMASkillModuleType::Sub; }
 
 	virtual void Execute(
 		AActor& Owner,

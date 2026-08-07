@@ -1,0 +1,38 @@
+{
+	"ModuleId": 29,
+	"Module":
+	{
+		"ModuleType": "Sub",
+		"ModuleName": "Rewind",
+		"DisplayData":
+		{
+			"DisplayName": "Rewind",
+			"Description": "스킬의 쿨다운이 <COOLDOWN>2초 감소</>합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_DamageDiscount25.T_DamageDiscount25'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity2"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Modifier"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"cooldownOffsetSeconds": -2
+			}
+		],
+		"Payloads": []
+	}
+}

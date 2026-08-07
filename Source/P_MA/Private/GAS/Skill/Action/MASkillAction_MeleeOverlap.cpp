@@ -16,7 +16,7 @@ void UMASkillAction_MeleeOverlap::Execute(
 	const FMASkillScopes* Scopes)
 {
 	check(Ability && Scopes);
-	const FMASkillPayloadAccessor Payloads = Event.GetPayloadAccess(*Scopes);
+	const FMASkillPayloadAccess Payloads = Event.GetPayloadAccess(*Scopes);
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
 	if (const FGameplayAbilityTargetDataHandle* TargetData = Event.GetTargetData())
 	{
@@ -27,7 +27,7 @@ void UMASkillAction_MeleeOverlap::Execute(
 	}
 
 	if (!Owner.HasAuthority()) return;
-	if (!Payloads.IsValid()) return;
+	if (!Payloads.Reader.IsValid()) return;
 
 	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
 	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEvent(*Ability, Event, ResolvedDamage.TargetRelationMask);

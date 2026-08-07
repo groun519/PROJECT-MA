@@ -109,7 +109,6 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	CurrentSkillModuleInstance->ResetPayloadStore();
 	CurrentSkillModule->ApplyPayloadsTo(CurrentSkillModuleInstance->GetPayloadStore());
 
-	SequenceRuntime->SetDesiredPlayRate(1.f);
 	RegisterCancelTriggers();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);

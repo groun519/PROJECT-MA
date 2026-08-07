@@ -1,6 +1,40 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 
+#include "AbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
+
+float FMAPayloadCalculation::Calculate(const float Value) const
+{
+	if (Type == EMAPayloadCalculationType::Linear) return Value;
+	if (Value <= 0.f || HalfValue <= 0.f) return 0.f;
+	return MaxValue * Value / (HalfValue + Value);
+}
+
+float FMAAttributeCoefficient::ResolvePayloadContribution(const FMASkillPayloadAccess& Payloads) const
+{
+	float Value = 0.f;
+	return Payloads.Reader.TryGetScalar(PayloadTag, Value)
+		? PayloadCalculation.Calculate(Value) * Coefficient
+		: 0.f;
+}
+
+float FMAAttributeCoefficient::ResolveValue(
+	const UAbilitySystemComponent& SourceASC,
+	const UAbilitySystemComponent& TargetASC,
+	const FMASkillPayloadAccess& Payloads) const
+{
+	if (Source == EMACoefficientSource::Payload)
+	{
+		return ResolvePayloadContribution(Payloads);
+	}
+	if (!GameplayAttribute.IsValid()) return 0.f;
+
+	bool bFound = false;
+	const UAbilitySystemComponent& ASC = Source == EMACoefficientSource::Source ? SourceASC : TargetASC;
+	const float AttributeValue = ASC.GetGameplayAttributeValue(GameplayAttribute, bFound);
+	return bFound ? AttributeValue * Coefficient : 0.f;
+}
 
 bool FMAGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
@@ -71,7 +105,8 @@ FPlayerBaseStats::FPlayerBaseStats()
 	BaseFocus{0.f},
 	BaseCriticalDamage{1.5f},
 	BaseReverseCriticalDamage{0.5f},
-	BaseAttackRange{1.f},
+	BaseMeleeRangeScale{1.f},
+	BaseRangedRangeScale{1.f},
 	BaseMoveSpeed{0.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f},
@@ -85,7 +120,8 @@ FMonsterBaseStats::FMonsterBaseStats()
 	BaseAttack{0.f},
 	BaseMoveSpeed{0.f},
 	BaseAttackSpeed{0.f},
-	BaseAttackRange{1.f},
+	BaseMeleeRangeScale{1.f},
+	BaseRangedRangeScale{1.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f}
 {

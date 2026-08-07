@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
-#include "GAS/Skill/Payload/MASkillPayloadAccessor.h"
+#include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "MASkillEventTypes.generated.h"
 
 class UMASkillModuleInstance;
@@ -31,8 +31,8 @@ struct P_MA_API FMASkillScopes
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModuleInstance> Skill = nullptr;
 
-	FMASkillPayloadAccessor GetPayloadAccess(const FMASkillPayloadStore* EventPayloads = nullptr) const;
-	FMASkillPayloadAccessor GetPayloadAccess(const FMASkillPayloadStore& EventPayloads) const { return GetPayloadAccess(&EventPayloads); }
+	FMASkillPayloadAccess GetPayloadAccess(const FMASkillPayloadStore* EventPayloads = nullptr) const;
+	FMASkillPayloadAccess GetPayloadAccess(const FMASkillPayloadStore& EventPayloads) const { return GetPayloadAccess(&EventPayloads); }
 	UMASkillRuntimeRegistry& GetRuntimeRegistry() const;
 };
 
@@ -58,5 +58,5 @@ struct P_MA_API FMASkillEvent
 	float GetMagnitude() const;
 	void SetTargetData(const FGameplayAbilityTargetDataHandle& TargetData);
 	const FGameplayAbilityTargetDataHandle* GetTargetData() const;
-	FMASkillPayloadAccessor GetPayloadAccess(const FMASkillScopes& BindingScopes) const;
+	FMASkillPayloadAccess GetPayloadAccess(const FMASkillScopes& BindingScopes) const;
 };

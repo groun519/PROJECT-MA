@@ -37,6 +37,11 @@ void UMAElementalComponent::BeginPlay()
 
 void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (OwnerASC)
+	{
+		OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()).RemoveAll(this);
+		OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()).RemoveAll(this);
+	}
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TemperatureRecoveryDelayTimerHandle);
@@ -62,11 +67,30 @@ void UMAElementalComponent::BindToASC()
 
 	CurrentTemperature = OwnerASC->GetNumericAttribute(UMAAttributeSet::GetTemperatureAttribute());
 	OwnerASC->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetTemperatureAttribute()).AddUObject(this, &UMAElementalComponent::HandleTemperatureChanged);
+	OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()).AddUObject(
+		this,
+		&UMAElementalComponent::HandleTemperatureImmunityChanged);
+	OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()).AddUObject(
+		this,
+		&UMAElementalComponent::HandleTemperatureImmunityChanged);
 	RefreshTemperatureOverlay();
 	RefreshFrozenStatus();
 	RefreshTemperatureSlow();
 	RefreshBurnDamage();
 	DelayTemperatureRecovery();
+}
+
+void UMAElementalComponent::HandleTemperatureImmunityChanged(FGameplayTag ImmunityTag, int32)
+{
+	if (ImmunityTag == UMAAbilitySystemStatics::GetColdTemperatureImmunityTag())
+	{
+		RefreshFrozenStatus();
+		RefreshTemperatureSlow();
+	}
+	else if (ImmunityTag == UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag())
+	{
+		RefreshBurnDamage();
+	}
 }
 
 void UMAElementalComponent::HandleTemperatureChanged(const FOnAttributeChangeData& Data)
@@ -191,6 +215,11 @@ void UMAElementalComponent::RemoveTemperatureRecovery()
 void UMAElementalComponent::RefreshTemperatureSlow()
 {
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+	if (OwnerASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()))
+	{
+		RemoveTemperatureSlow();
+		return;
+	}
 
 	const float SlowMultiplier = CalculateTemperatureSlowMultiplier();
 	if (FMath::IsNearlyEqual(SlowMultiplier, 1.f))
@@ -251,6 +280,12 @@ void UMAElementalComponent::RemoveTemperatureSlow()
 void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext)
 {
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+	if (OwnerASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()))
+	{
+		bOverheated = false;
+		RemoveBurnDamage();
+		return;
+	}
 
 	if (CurrentTemperature <= 0.f)
 	{
@@ -403,6 +438,11 @@ bool UMAElementalComponent::IsFrozenStatusActive() const
 void UMAElementalComponent::RefreshFrozenStatus()
 {
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+	if (OwnerASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()))
+	{
+		RemoveFrozenStatus();
+		return;
+	}
 
 	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
 	const float FrozenEnterTemperature = ConfigData ? ConfigData->FrozenEnterTemperature : -100.f;
