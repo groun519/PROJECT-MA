@@ -24,7 +24,7 @@ public:
 		UMASkillAbility& InOwnerAbility,
 		const FMASkillScopes& InScopes,
 		const FMAActionImpulseHandle& InMovementHandle,
-		const FResolvedSkillDamage& InResolvedDamage,
+		const FMAResolvedDamage& InResolvedDamage,
 		float InCapsuleRadiusMultiplier,
 		float InCapsuleHalfHeightMultiplier,
 		bool bInDrawTrailDecal,
@@ -37,9 +37,8 @@ private:
 	TWeakObjectPtr<UMASkillAbility> OwnerAbility;
 	TWeakObjectPtr<AMACharacter> OwnerCharacter;
 	TWeakObjectPtr<UMAImpulseComponent> ImpulseComponent;
-	FMASkillScopes Scopes;
 	FMAActionImpulseHandle MovementHandle;
-	FResolvedSkillDamage ResolvedDamage;
+	FMAResolvedDamage ResolvedDamage;
 	FGameplayTag VisualElementTag;
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 	FVector PreviousLocation = FVector::ZeroVector;

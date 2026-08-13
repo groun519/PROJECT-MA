@@ -1,10 +1,13 @@
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 
+#include "AbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/MAElementData.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamage.h"
 #include "GAS/Skill/Damage/MAGameplayEffect_SkillDamageOverTime.h"
 #include "GAS/Skill/MASkillAbility.h"
+#include "GAS/Skill/Event/MASkillEventTypes.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccess.h"
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
 
@@ -79,28 +82,102 @@ void MASkillDamageResolver::AppendElementalHitGameplayCueTag(
 	}
 }
 
-FResolvedSkillDamage MASkillDamageResolver::Resolve(UMASkillAbility& OwnerAbility, const FMASkillDamageConfig& DamageConfig)
-{
-	return Resolve(OwnerAbility, DamageConfig, OwnerAbility.GetAssembledModulePayloadStore());
-}
-
-FResolvedSkillDamage MASkillDamageResolver::Resolve(
+FMAResolvedDamage MASkillDamageResolver::Resolve(
 	UMASkillAbility& OwnerAbility,
+	const FMASkillScopes& Scopes,
 	const FMASkillDamageConfig& DamageConfig,
 	const FMASkillPayloadStore& PayloadStore)
 {
 	return Resolve(
 		OwnerAbility,
+		Scopes,
 		DamageConfig,
 		FMASkillPayloadAccess(nullptr, &PayloadStore, nullptr));
 }
 
-FResolvedSkillDamage MASkillDamageResolver::Resolve(
+FMAResolvedDamage MASkillDamageResolver::Resolve(
 	UMASkillAbility& OwnerAbility,
+	const FMASkillScopes& Scopes,
 	const FMASkillDamageConfig& DamageConfig,
 	const FMASkillPayloadAccess& Payloads)
 {
-	FResolvedSkillDamage ResolvedDamage;
+	UAbilitySystemComponent* SourceASC = OwnerAbility.GetAbilitySystemComponentFromActorInfo();
+	return SourceASC
+		? Resolve(
+			*SourceASC,
+			&OwnerAbility,
+			MakeSkillEffectContext(OwnerAbility, Scopes),
+			DamageConfig,
+			Payloads)
+		: FMAResolvedDamage();
+}
+
+FMAResolvedDamage MASkillDamageResolver::Resolve(
+	UAbilitySystemComponent& SourceASC,
+	const FGameplayEffectContextHandle& SourceContext,
+	const FMASkillDamageConfig& DamageConfig)
+{
+	const FMASkillPayloadStore EmptyPayloads;
+	return Resolve(
+		SourceASC,
+		nullptr,
+		SourceContext.IsValid() ? SourceContext.Duplicate() : SourceASC.MakeEffectContext(),
+		DamageConfig,
+		FMASkillPayloadAccess(nullptr, &EmptyPayloads, nullptr));
+}
+
+FGameplayEffectContextHandle MASkillDamageResolver::MakeSkillEffectContext(
+	UMASkillAbility& OwnerAbility,
+	const FMASkillScopes& Scopes)
+{
+	FGameplayEffectContextHandle Context = OwnerAbility.MakeEffectContext(
+		OwnerAbility.GetCurrentAbilitySpecHandle(),
+		OwnerAbility.GetCurrentActorInfo());
+	Context.AddSourceObject(Scopes.Module.Get());
+	if (FMAGameplayEffectContext* MAContext = static_cast<FMAGameplayEffectContext*>(Context.Get()))
+	{
+		// Keep the original assembled skill instead of reconstructing it after a delayed hit.
+		MAContext->SetSkillScope(Scopes.Skill.Get());
+	}
+	return Context;
+}
+
+void MASkillDamageResolver::SetSpecContext(
+	FGameplayEffectSpecHandle& SpecHandle,
+	const FGameplayEffectContextHandle& SourceContext)
+{
+	if (SpecHandle.IsValid() && SpecHandle.Data.IsValid())
+	{
+		SpecHandle.Data->SetContext(SourceContext.Duplicate());
+	}
+}
+
+FGameplayEffectSpecHandle MASkillDamageResolver::MakeDamageEffectSpec(
+	UAbilitySystemComponent& SourceASC,
+	UMASkillAbility* OwnerAbility,
+	const FGameplayEffectContextHandle& SourceContext,
+	bool bDamageOverTime,
+	const FMADamageExecutionConfig& DamageConfig)
+{
+	const TSubclassOf<UGameplayEffect> EffectClass = bDamageOverTime
+		? UMAGameplayEffect_SkillDamageOverTime::StaticClass()
+		: UMAGameplayEffect_SkillDamage::StaticClass();
+	FGameplayEffectSpecHandle SpecHandle = OwnerAbility
+		? OwnerAbility->MakeOutgoingGameplayEffectSpec(EffectClass, 1.f)
+		: SourceASC.MakeOutgoingSpec(EffectClass, 1.f, SourceContext.Duplicate());
+	if (OwnerAbility) SetSpecContext(SpecHandle, SourceContext);
+	UMAAbilitySystemStatics::ApplyDamageExecutionConfig(SpecHandle, DamageConfig);
+	return SpecHandle;
+}
+
+FMAResolvedDamage MASkillDamageResolver::Resolve(
+	UAbilitySystemComponent& SourceASC,
+	UMASkillAbility* OwnerAbility,
+	const FGameplayEffectContextHandle& SourceContext,
+	const FMASkillDamageConfig& DamageConfig,
+	const FMASkillPayloadAccess& Payloads)
+{
+	FMAResolvedDamage ResolvedDamage;
 	ResolvedDamage.ApplicationMode = DamageConfig.ApplicationMode;
 	ResolvedDamage.TargetRelationMask = DamageConfig.TargetRelationMask;
 	ResolvedDamage.TargetGameplayCueTags = DamageConfig.TargetGameplayCueTags;
@@ -114,59 +191,44 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 		const FMADamageExecutionConfig AppliedExecutionConfig = bApplyDamageOverTime
 			? ScaleDamageConfigForTick(ExecutionConfig, TickCount)
 			: ExecutionConfig;
-		ResolvedDamage.DamageSpec = OwnerAbility.MakeDamageEffectSpec(
-			bApplyDamageOverTime
-				? UMAGameplayEffect_SkillDamageOverTime::StaticClass()
-				: UMAGameplayEffect_SkillDamage::StaticClass(),
-			1,
-			&AppliedExecutionConfig);
+		ResolvedDamage.DamageSpec = MakeDamageEffectSpec(
+			SourceASC,
+			OwnerAbility,
+			SourceContext,
+			bApplyDamageOverTime,
+			AppliedExecutionConfig);
 
-		const float FinalDamageMultiplier = Payloads.Reader.GetScalarProduct(
-			UMAAbilitySystemStatics::GetFinalDamageMultiplierTag());
-		if (!FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f)
-			&& ResolvedDamage.DamageSpec.IsValid()
-			&& ResolvedDamage.DamageSpec.Data.IsValid())
+		if (ResolvedDamage.DamageSpec.IsValid() && ResolvedDamage.DamageSpec.Data.IsValid())
 		{
-			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
-				UMAAbilitySystemStatics::GetFinalDamageMultiplierTag(),
-				FinalDamageMultiplier);
-		}
+			const FGameplayTag FinalDamageMultiplierTag = UMAAbilitySystemStatics::GetFinalDamageMultiplierTag();
+			const float FinalDamageMultiplier = Payloads.Reader.GetScalarProduct(FinalDamageMultiplierTag);
+			if (!FMath::IsNearlyEqual(FinalDamageMultiplier, 1.f))
+			{
+				ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
+					FinalDamageMultiplierTag,
+					FinalDamageMultiplier);
+			}
 
-		const float DamageVariance = Payloads.Reader.GetScalarSum(
-			UMAAbilitySystemStatics::GetDamageVarianceTag());
-		if (!FMath::IsNearlyZero(DamageVariance)
-			&& ResolvedDamage.DamageSpec.IsValid()
-			&& ResolvedDamage.DamageSpec.Data.IsValid())
-		{
-			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
-				UMAAbilitySystemStatics::GetDamageVarianceTag(),
-				DamageVariance);
-		}
+			const FGameplayTag DamageVarianceTag = UMAAbilitySystemStatics::GetDamageVarianceTag();
+			const float DamageVariance = Payloads.Reader.GetScalarSum(DamageVarianceTag);
+			if (!FMath::IsNearlyZero(DamageVariance))
+			{
+				ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
+					DamageVarianceTag,
+					DamageVariance);
+			}
 
-		float FocusOffset = 0.f;
-		if (Payloads.Reader.TryGetScalar(
-			UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
-			FocusOffset)
-			&& !FMath::IsNearlyZero(FocusOffset)
-			&& ResolvedDamage.DamageSpec.IsValid()
-			&& ResolvedDamage.DamageSpec.Data.IsValid())
-		{
-			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
-				UMAAbilitySystemStatics::GetSkillFocusOffsetTag(),
-				FocusOffset);
-		}
+			auto ForwardScalar = [&](const FGameplayTag& Tag, const float DefaultValue)
+			{
+				float Value = DefaultValue;
+				if (Payloads.Reader.TryGetScalar(Tag, Value) && !FMath::IsNearlyEqual(Value, DefaultValue))
+				{
+					ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(Tag, Value);
+				}
+			};
 
-		float CriticalDamageOffset = 0.f;
-		if (Payloads.Reader.TryGetScalar(
-			UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(),
-			CriticalDamageOffset)
-			&& !FMath::IsNearlyZero(CriticalDamageOffset)
-			&& ResolvedDamage.DamageSpec.IsValid()
-			&& ResolvedDamage.DamageSpec.Data.IsValid())
-		{
-			ResolvedDamage.DamageSpec.Data->SetSetByCallerMagnitude(
-				UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(),
-				CriticalDamageOffset);
+			ForwardScalar(UMAAbilitySystemStatics::GetSkillFocusOffsetTag(), 0.f);
+			ForwardScalar(UMAAbilitySystemStatics::GetSkillCriticalDamageOffsetTag(), 0.f);
 		}
 
 		if (bApplyDamageOverTime)
@@ -178,7 +240,12 @@ FResolvedSkillDamage MASkillDamageResolver::Resolve(
 	for (const TObjectPtr<UMASkillStatusEffect>& StatusEffect : DamageConfig.StatusEffects)
 	{
 		if (!StatusEffect) continue;
-		StatusEffect->BuildResolvedEffect(OwnerAbility, ResolvedDamage.StatusEffects);
+		const int32 FirstNewEffectIndex = ResolvedDamage.StatusEffects.Num();
+		StatusEffect->BuildResolvedEffect(SourceASC, OwnerAbility, ResolvedDamage.StatusEffects);
+		for (int32 EffectIndex = FirstNewEffectIndex; EffectIndex < ResolvedDamage.StatusEffects.Num(); ++EffectIndex)
+		{
+			SetSpecContext(ResolvedDamage.StatusEffects[EffectIndex].SpecHandle, SourceContext);
+		}
 	}
 
 	return ResolvedDamage;

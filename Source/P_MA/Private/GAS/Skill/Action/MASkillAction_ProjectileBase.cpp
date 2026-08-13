@@ -3,6 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
+#include "GAS/MAAttributeSet.h"
 #include "GAS/Projectile/MAProjectileBase.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
@@ -149,16 +150,15 @@ void UMASkillAction_ProjectileBase::Execute(
 	Payloads.Reader.TryGetStruct(DamagePayloadTag, DamageConfig);
 
 	FMAProjectileParams ProjectileParams;
-	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
+	ProjectileParams.ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, Payloads);
 	ProjectileParams.ProjectileRadiusMultiplier = MASkillAreaStatics::ResolveAreaScale(
 		Payloads,
-		Ability->GetAbilitySystemComponentFromActorInfo());
+		Ability->GetAbilitySystemComponentFromActorInfo(),
+		UMAAttributeSet::GetProjectileRangeScaleAttribute());
 	ProjectileParams.MaxHitCount = Config.MaxHitCount;
 	ProjectileParams.ContinuousHitSettings = Config.ContinuousHitSettings;
 	ProjectileParams.TargetSettings.TargetActor = TargetActor;
 	ProjectileParams.TargetSettings.bHitOnlyTarget = Config.bUseTargetTracking && Config.TargetTracking.bHitOnlyTarget;
-	ProjectileParams.EventExecutorAbility = Ability;
-	ProjectileParams.EventScopes = *Scopes;
 
 	if (const FMAElementDataRow* ElementRow = FMAElementDataRow::FindByTag(
 		Ability->GetVisualElementTag(),

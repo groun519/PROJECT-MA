@@ -60,6 +60,7 @@ public:
 	static FGameplayTag GetSkillCriticalDamageOffsetTag();
 	static FGameplayTag GetSkillAreaScaleTag();
 	static FGameplayTag GetSkillChargeRatioTag();
+	static FGameplayTag GetDamageAppliedEventTag();
 	static FGameplayTag GetHitEventTag();
 	static FGameplayTag GetKillEventTag();
 	static FGameplayTag GetMovementStartEventTag();

@@ -2,9 +2,9 @@
 
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "AbilitySystemComponent.h"
+#include "AttributeSet.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
-#include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Area/Debug/DebugShapeHelper.h"
@@ -206,13 +206,19 @@ void MASkillAreaStatics::DrawWorldPreview(
 
 float MASkillAreaStatics::ResolveAreaScale(
 	const FMASkillPayloadAccess& Payloads,
-	const UAbilitySystemComponent* AbilitySystemComponent)
+	const UAbilitySystemComponent* AbilitySystemComponent,
+	const FGameplayAttribute& RangeScaleAttribute)
 {
-	const float AreaScale = Payloads.Reader.GetScalarProduct(
-		UMAAbilitySystemStatics::GetSkillAreaScaleTag());
+	const float AreaScale = Payloads.Reader.GetScalarProduct(UMAAbilitySystemStatics::GetSkillAreaScaleTag());
+	return FMath::Max(AreaScale, 0.f) * ResolveAreaScale(AbilitySystemComponent, RangeScaleAttribute);
+}
 
-	const float AttackRangeScale = AbilitySystemComponent
-		? AbilitySystemComponent->GetNumericAttribute(UMAAttributeSet::GetAttackRangeAttribute())
+float MASkillAreaStatics::ResolveAreaScale(
+	const UAbilitySystemComponent* AbilitySystemComponent,
+	const FGameplayAttribute& RangeScaleAttribute)
+{
+	const float AreaScale = AbilitySystemComponent && RangeScaleAttribute.IsValid()
+		? AbilitySystemComponent->GetNumericAttribute(RangeScaleAttribute)
 		: 1.f;
-	return FMath::Max(AreaScale, 0.f) * FMath::Max(AttackRangeScale, 0.f);
+	return FMath::Max(AreaScale, 0.f);
 }

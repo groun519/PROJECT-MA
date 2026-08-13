@@ -1,4 +1,4 @@
-﻿#include "GAS/Projectile/MAProjectileBase.h"
+#include "GAS/Projectile/MAProjectileBase.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -7,7 +7,7 @@
 #include "Engine/DataTable.h"
 #include "GAS/Projectile/MAProjectileMovementComponent.h"
 #include "GAS/Skill/Area/Decal/MAAreaDecalData.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GenericTeamAgentInterface.h"
 #include "MAMaterialParams.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -193,13 +193,7 @@ bool AMAProjectileBase::CanDamageActor(AActor* OtherActor) const
 
 void AMAProjectileBase::ApplyDamageToTarget(UAbilitySystemComponent* TargetASC, const FHitResult& HitResult)
 {
-	MASkillDamageApplicator::FMASkillDamageApplicationContext ApplicationContext;
-	ApplicationContext.InstigatorActor = GetInstigator() ? GetInstigator() : GetOwner();
-	ApplicationContext.EffectCauser = this;
-	ApplicationContext.EventExecutorAbility = ProjectileParams.EventExecutorAbility.Get();
-	ApplicationContext.EventScopes = ProjectileParams.EventScopes;
-	ApplicationContext.StatusEffectSourcePoint = GetActorLocation();
-	MASkillDamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedDamage, ApplicationContext);
+	MADamageApplicator::ApplyToTarget(*TargetASC, HitResult, ProjectileParams.ResolvedDamage, GetActorLocation());
 }
 
 bool AMAProjectileBase::TryApplyHitToActor(AActor* OtherActor, const FHitResult& HitResult)

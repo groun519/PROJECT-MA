@@ -7,39 +7,11 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "EngineUtils.h"
-#include "GameFramework/Controller.h"
-#include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
 #include "NiagaraSystem.h"
 #include "Player/MAPlayerCharacter.h"
 #include "UObject/ConstructorHelpers.h"
-
-static AActor* ResolveRewardPlayerActor(AActor* Actor)
-{
-	if (UMAAbilitySystemStatics::IsPlayer(Actor)) return Actor;
-
-	if (const AController* Controller = Cast<AController>(Actor))
-	{
-		APawn* Pawn = Controller->GetPawn();
-		return UMAAbilitySystemStatics::IsPlayer(Pawn) ? Pawn : nullptr;
-	}
-
-	APawn* InstigatorPawn = Actor ? Actor->GetInstigator() : nullptr;
-	return UMAAbilitySystemStatics::IsPlayer(InstigatorPawn) ? InstigatorPawn : nullptr;
-}
-
-static bool IsValidRewardTarget(AActor* Actor)
-{
-	const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(Actor);
-	return PlayerCharacter && !PlayerCharacter->IsDead();
-}
-
-static int32 ResolveConnectedPlayerCount(const UWorld* World)
-{
-	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
-	return GameState ? FMath::Max(1, GameState->PlayerArray.Num()) : 1;
-}
 
 UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 {
@@ -61,8 +33,6 @@ UMAGameplayAbility_Dead::UMAGameplayAbility_Dead()
 
 void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
-	check(TriggerEventData);
-
 	AActor* DeadActor = GetAvatarActorFromActorInfo();
 	if (!DeadActor || UMAAbilitySystemStatics::IsPlayer(DeadActor))
 	{
@@ -70,70 +40,23 @@ void UMAGameplayAbility_Dead::ActivateAbility(const FGameplayAbilitySpecHandle H
 		return;
 	}
 
-	AActor* OriginalInstigator = TriggerEventData->ContextHandle.GetOriginalInstigator();
-	AActor* EffectCauser = TriggerEventData->ContextHandle.GetEffectCauser();
-	AActor* Killer = ResolveRewardPlayerActor(OriginalInstigator);
-	if (!Killer)
-	{
-		Killer = ResolveRewardPlayerActor(EffectCauser);
-	}
-	if (!IsValidRewardTarget(Killer))
-	{
-		Killer = nullptr;
-	}
-
-	if (Killer && Killer == ResolveRewardPlayerActor(DeadActor))
-	{
-		K2_EndAbility();
-		return;
-	}
-
 	TArray<AActor*> RewardTargets = GetRewardTargets();
-	RewardTargets.Remove(Killer);
-	if (RewardTargets.Num() == 0 && !Killer)
+	if (RewardTargets.Num() == 0)
 	{
 		K2_EndAbility();
 		return;
 	}
 
-	const float BaseCoinReward = GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UMAAttributeSet::GetCoinAttribute());
-	const float PlayerCountScale = CoinReward.bScaleByPlayerCount
-		? static_cast<float>(ResolveConnectedPlayerCount(GetWorld()))
-		: 1.f;
-	const float TotalCoinReward = BaseCoinReward * PlayerCountScale;
-	if (TotalCoinReward <= 0.f)
+	const float CoinAmount = GetAbilitySystemComponentFromActorInfo()->GetNumericAttribute(UMAAttributeSet::GetCoinAttribute());
+	if (CoinAmount <= 0.f)
 	{
 		K2_EndAbility();
 		return;
-	}
-
-	TMap<AActor*, float> CoinRewards;
-	const float KillerRewardPortion = FMath::Clamp(CoinReward.KillerRewardPortion, 0.f, 1.f);
-	if (Killer)
-	{
-		const float KillerReward = RewardTargets.Num() > 0
-			? TotalCoinReward * KillerRewardPortion
-			: TotalCoinReward;
-		CoinRewards.Add(Killer, KillerReward);
-	}
-
-	if (RewardTargets.Num() > 0)
-	{
-		const float SharedRewardPortion = Killer ? 1.f - KillerRewardPortion : 1.f;
-		const float CoinPerTarget = TotalCoinReward * SharedRewardPortion / RewardTargets.Num();
-		for (AActor* RewardTarget : RewardTargets)
-		{
-			CoinRewards.Add(RewardTarget, CoinPerTarget);
-		}
 	}
 
 	const FVector RewardSourceLocation = GetAvatarActorFromActorInfo()->GetActorLocation();
-	for (const TPair<AActor*, float>& RewardEntry : CoinRewards)
+	for (AActor* RewardTarget : RewardTargets)
 	{
-		AActor* RewardTarget = RewardEntry.Key;
-		const float CoinAmount = RewardEntry.Value;
-		if (!RewardTarget || CoinAmount <= 0.f) continue;
-
 		if (UAbilitySystemComponent* RewardASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(RewardTarget))
 		{
 			RewardASC->ApplyModToAttribute(UMAAttributeSet::GetCoinAttribute(), EGameplayModOp::Additive, CoinAmount);

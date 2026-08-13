@@ -1,9 +1,9 @@
-﻿#include "GAS/Skill/Action/MASkillAction_ApplyDamageToPayloadTarget.h"
+#include "GAS/Skill/Action/MASkillAction_ApplyDamageToPayloadTarget.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccess.h"
@@ -41,10 +41,8 @@ void UMASkillAction_ApplyDamageToPayloadTarget::Execute(
 	if (DamageMultiplier <= 0.f) return;
 	DamageConfig.Scale(DamageMultiplier);
 
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
-	MASkillDamageApplicator::ApplyToTargetActor(
-		*Ability,
-		*Scopes,
+	const FMAResolvedDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, Payloads);
+	MADamageApplicator::ApplyToTargetActor(
 		*TargetActor,
 		ResolvedDamage,
 		TargetActor->GetActorLocation());

@@ -114,6 +114,10 @@ void ULoadoutWeaponTabWidget::RefreshProvidedModules(const FLoadoutWeaponDataRow
 	{
 		ProvidedModules.Add(AttackSkillModule);
 	}
+	if (UMASkillModule* PassiveSkillModule = WeaponData->PassiveSkillModule.LoadSynchronous())
+	{
+		ProvidedModules.Add(PassiveSkillModule);
+	}
 
 	ULoadoutWeaponModuleButtonWidget* DefaultModuleButton = nullptr;
 	for (UMASkillModule* Module : ProvidedModules)

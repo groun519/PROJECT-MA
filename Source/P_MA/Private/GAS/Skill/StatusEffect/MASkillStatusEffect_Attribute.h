@@ -13,7 +13,6 @@ class P_MA_API UMASkillStatusEffect_Attribute : public UMASkillStatusEffect
 
 public:
 	UMASkillStatusEffect_Attribute() = default;
-	virtual bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="StatusEffect", meta=(ClampMin="0.0"))
@@ -29,6 +28,10 @@ protected:
 	virtual EMASkillStatusEffectStrengthPolicy GetStrengthPolicy() const { return EMASkillStatusEffectStrengthPolicy::None; }
 	virtual float GetStrengthMagnitude() const { return 0.f; }
 	virtual bool ResolvePolicy(FMASkillStatusEffectPolicy& OutPolicy) const override;
+	virtual bool BuildResolvedEffect(
+		UAbilitySystemComponent& SourceASC,
+		UMASkillAbility* SkillAbility,
+		TArray<FResolvedStatusEffect>& OutEffects) const override;
 };
 
 UCLASS(BlueprintType, DisplayName="SE Slow", HideCategories="Internal")

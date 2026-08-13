@@ -165,6 +165,29 @@ void MASkillAreaDecalStatics::SpawnImpact(
 	SpawnImpactLocal(AvatarActor, DamageTypeTag, Area);
 }
 
+void MASkillAreaDecalStatics::SpawnImpact(
+	AActor& ComponentOwner,
+	const FMASkillWorldAreaShape& Area,
+	FGameplayTag VisualTag)
+{
+	if (ComponentOwner.HasAuthority())
+	{
+		AMACharacter* Character = Cast<AMACharacter>(&ComponentOwner);
+		UMASkillManagerComponent* SkillManager = Character ? Character->GetSkillManagerComponent() : nullptr;
+		if (SkillManager)
+		{
+			SkillManager->Multicast_SpawnSkillAreaImpact(Area, VisualTag);
+		}
+		else
+		{
+			SpawnImpactLocal(&ComponentOwner, VisualTag, Area);
+		}
+		return;
+	}
+
+	SpawnImpactLocal(&ComponentOwner, VisualTag, Area);
+}
+
 void MASkillAreaDecalStatics::SpawnImpactLocal(
 	AActor* ComponentOwner,
 	FGameplayTag VisualTag,

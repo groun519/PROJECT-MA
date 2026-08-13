@@ -42,11 +42,11 @@ private:
 	void ApplyTemperatureSlow(float SlowMultiplier);
 	void RemoveTemperatureSlow();
 	void RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext = FGameplayEffectContextHandle());
-	float GetMaxBurnDamagePerTick() const;
 	bool IsBurnDamageActive() const;
-	void StartBurnDamage(float TickInterval);
-	void ApplyBurnDamageTick();
-	void ExecuteBurnGameplayCues() const;
+	FActiveGameplayEffectHandle ApplyBurnDamageEffect(
+		const FGameplayEffectContextHandle& SourceContext,
+		float MaxDamagePerTick,
+		float TickInterval) const;
 	void RemoveBurnDamage();
 	void TriggerOverheatExplosion(const FGameplayEffectContextHandle& SourceContext);
 	bool IsFrozenStatusActive() const;
@@ -71,9 +71,7 @@ private:
 	FActiveGameplayEffectHandle TemperatureRecoveryEffectHandle;
 	FActiveGameplayEffectHandle TemperatureSlowEffectHandle;
 	float CurrentTemperatureSlowMultiplier = 1.f;
-	FTimerHandle BurnDamageTimerHandle;
-	FGameplayEffectContextHandle BurnDamageContext;
-	float CurrentBurnTickInterval = 0.f;
+	FActiveGameplayEffectHandle BurnDamageEffectHandle;
 	bool bOverheated = false;
 	FActiveGameplayEffectHandle FrozenStatusEffectHandle;
 };

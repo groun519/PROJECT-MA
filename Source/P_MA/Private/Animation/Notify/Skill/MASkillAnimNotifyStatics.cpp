@@ -2,6 +2,7 @@
 
 #include "Animation/MAAnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccess.h"
@@ -28,7 +29,8 @@ float MASkillAnimNotifyStatics::ResolveSkillAreaScale(UMASkillAbility* SkillAbil
 		: FMASkillPayloadAccess(nullptr, &SkillAbility->GetAssembledModulePayloadStore(), nullptr);
 	return MASkillAreaStatics::ResolveAreaScale(
 		Payloads,
-		SkillAbility->GetAbilitySystemComponentFromActorInfo());
+		SkillAbility->GetAbilitySystemComponentFromActorInfo(),
+		UMAAttributeSet::GetAreaRangeScaleAttribute());
 }
 
 float MASkillAnimNotifyStatics::ResolveSkillAreaScale(

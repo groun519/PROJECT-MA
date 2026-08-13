@@ -151,7 +151,7 @@ struct P_MA_API FMASkillDamageConfig : public FMASkillPayloadStructBase
 };
 
 USTRUCT()
-struct P_MA_API FResolvedSkillDamage
+struct P_MA_API FMAResolvedDamage
 {
 	GENERATED_BODY()
 

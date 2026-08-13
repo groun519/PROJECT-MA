@@ -22,7 +22,7 @@ void UMASkillAction_ApplyStatusEffectToSelf::Execute(
 	{
 		if (StatusEffect)
 		{
-			StatusEffect->BuildResolvedEffect(*Ability, ResolvedEffects);
+			StatusEffect->BuildResolvedEffect(*AbilitySystemComponent, Ability, ResolvedEffects);
 		}
 	}
 

@@ -1,4 +1,5 @@
 #include "GAS/Skill/StatusEffect/MASkillStatusEffect.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
@@ -12,33 +13,48 @@ const UGameplayEffect* GetDurationStatusEffectGameplayEffectTemplate()
 }
 }
 
-FGameplayEffectSpecHandle UMASkillStatusEffect::MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level)
+FGameplayEffectSpecHandle UMASkillStatusEffect::MakeGameplayEffectSpec(
+	UAbilitySystemComponent& SourceASC,
+	UMASkillAbility* SkillAbility,
+	const UGameplayEffect* EffectDefinition,
+	float Level)
 {
 	if (!EffectDefinition) return FGameplayEffectSpecHandle();
 
+	const FGameplayEffectContextHandle EffectContext = SkillAbility
+		? SkillAbility->MakeEffectContext(
+			SkillAbility->GetCurrentAbilitySpecHandle(),
+			SkillAbility->GetCurrentActorInfo())
+		: SourceASC.MakeEffectContext();
+
 	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(
 		EffectDefinition,
-		SkillAbility.MakeEffectContext(SkillAbility.GetCurrentAbilitySpecHandle(), SkillAbility.GetCurrentActorInfo()),
+		EffectContext,
 		Level));
-
-	if (SpecHandle.IsValid())
+	if (SkillAbility)
 	{
-		if (FGameplayAbilitySpec* AbilitySpec = SkillAbility.GetCurrentAbilitySpec())
+		if (FGameplayAbilitySpec* AbilitySpec = SkillAbility->GetCurrentAbilitySpec())
 		{
-			SkillAbility.ApplyAbilityTagsToGameplayEffectSpec(*SpecHandle.Data.Get(), AbilitySpec);
+			SkillAbility->ApplyAbilityTagsToGameplayEffectSpec(*SpecHandle.Data.Get(), AbilitySpec);
 			SpecHandle.Data->SetByCallerTagMagnitudes = AbilitySpec->SetByCallerTagMagnitudes;
 		}
 	}
-
 	return SpecHandle;
 }
 
-bool UMASkillStatusEffect::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const
+bool UMASkillStatusEffect::BuildResolvedEffect(
+	UAbilitySystemComponent& SourceASC,
+	UMASkillAbility* SkillAbility,
+	TArray<FResolvedStatusEffect>& OutEffects) const
 {
 	FMASkillStatusEffectPolicy Policy;
 	if (!ResolvePolicy(Policy) || !Policy.IsValid()) return false;
 
-	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(SkillAbility, GetDurationStatusEffectGameplayEffectTemplate(), 1.f);
+	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(
+		SourceASC,
+		SkillAbility,
+		GetDurationStatusEffectGameplayEffectTemplate(),
+		1.f);
 	if (!SpecHandle.IsValid()) return false;
 
 	SpecHandle.Data->DynamicGrantedTags.AppendTags(Policy.GrantedStateTags);

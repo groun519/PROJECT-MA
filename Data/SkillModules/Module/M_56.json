@@ -1,0 +1,151 @@
+{
+	"ModuleId": 56,
+	"Module": {
+		"ModuleName": "PDA_ShortSpear",
+		"DisplayData": {
+			"DisplayName": "Short Spear",
+			"Description": "<ATK>공격력이 15% 감소</>하고 <AS>공격 속도가 18% 증가</>합니다.\r\n<MS>이동 속도가 5% 감소</>하며, 근접 범위와 원거리 범위가 각각 5% 증가합니다.\r\n<ATK>누적해서 입힌 피해</>에 따라 <ATK>공격력</>이 추가로 증가합니다.\r\n누적 피해 10,000에서 50%, 이후 최대 100%에 수렴합니다.",
+			"IconData": {
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/PassiveModuleTexture/T_ShortSpear.T_ShortSpear'",
+				"Priority": 0
+			},
+			"NameData": {
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality": {
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [
+			"Module.Exclusive.Unique",
+			"Module.OnHit",
+			"Module.Passive"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
+				"initialStack": 0,
+				"minStack": 0,
+				"maxStack": 2147483647,
+				"bShowStackText": true
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
+				"gameplayEffects": [
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 0.85,
+						"magnitudeCoefficients": [
+							{
+								"source": "Payload",
+								"gameplayAttribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+								},
+								"payloadTag": "Data.Module.Stack",
+								"payloadCalculation":
+								{
+									"type": "DiminishingGrowth",
+									"halfValue": 10000,
+									"maxValue": 1
+								},
+								"coefficient": 0.85
+							}
+						],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					},
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:AttackSpeed"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 1.18,
+						"magnitudeCoefficients": [],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					},
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:MoveSpeed"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 0.95,
+						"magnitudeCoefficients": [],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					},
+					{
+						"modifiers": [
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:AreaRangeScale"
+								},
+								"modifierOp": "Multiplicitive"
+							},
+							{
+								"attribute": {
+									"attribute": "/Script/P_MA.MAAttributeSet:ProjectileRangeScale"
+								},
+								"modifierOp": "Multiplicitive"
+							}
+						],
+						"baseMagnitude": 1.05,
+						"magnitudeCoefficients": [],
+						"grantedTags": [],
+						"period": 0,
+						"bExecutePeriodicEffectOnApplication": true,
+						"gameplayCueTags": []
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_DamageApplied"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.DamageApplied",
+						"bindingScope": "Global",
+						"action": {
+							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
+							"operation": "Add",
+							"valuePayloadTag": "Data.Damage.Applied"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}

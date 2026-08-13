@@ -2,7 +2,7 @@
 	"ModuleId": 30,
 	"Module":
 	{
-		"ModuleType": "Sub",
+		"ModuleType": "Module",
 		"ModuleName": "Tempo",
 		"DisplayData":
 		{

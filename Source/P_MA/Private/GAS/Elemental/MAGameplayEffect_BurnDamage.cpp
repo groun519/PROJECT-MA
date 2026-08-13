@@ -47,7 +47,11 @@ void UExecCalc_BurnDamage::Execute_Implementation(
 
 UMAGameplayEffect_BurnDamage::UMAGameplayEffect_BurnDamage()
 {
-	DurationPolicy = EGameplayEffectDurationType::Instant;
+	DurationPolicy = EGameplayEffectDurationType::Infinite;
+	bExecutePeriodicEffectOnApplication = false;
+	StackingType = EGameplayEffectStackingType::AggregateByTarget;
+	StackLimitCount = 1;
+	StackPeriodResetPolicy = EGameplayEffectStackingPeriodPolicy::NeverReset;
 
 	FGameplayEffectExecutionDefinition& ExecutionDefinition = Executions.AddDefaulted_GetRef();
 	ExecutionDefinition.CalculationClass = UExecCalc_BurnDamage::StaticClass();

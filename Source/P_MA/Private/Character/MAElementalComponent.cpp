@@ -11,9 +11,8 @@
 #include "GAS/Elemental/MAGameplayEffect_TemperatureRecovery.h"
 #include "GAS/Elemental/MAGameplayEffect_TemperatureSlow.h"
 #include "GAS/MAAttributeSet.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
-#include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
 #include "GAS/Skill/StatusEffect/MAGameplayEffect_StatusEffectDuration.h"
@@ -301,131 +300,108 @@ void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle
 		? CurrentTemperature > OverheatExitTemperature
 		: CurrentTemperature >= OverheatEnterTemperature;
 	const bool bOverheatChanged = bOverheated != bShouldOverheat;
+	const bool bEnteredOverheat = !bOverheated && bShouldOverheat;
 
-	if (SourceContext.IsValid())
+	FGameplayEffectContextHandle BurnSourceContext = SourceContext;
+	if (!BurnSourceContext.IsValid())
 	{
-		BurnDamageContext = SourceContext;
-	}
-
-	if (bOverheatChanged)
-	{
-		bOverheated = bShouldOverheat;
-		if (bOverheated)
+		if (const FActiveGameplayEffect* BurnEffect = OwnerASC->GetActiveGameplayEffect(BurnDamageEffectHandle))
 		{
-			TriggerOverheatExplosion(BurnDamageContext);
+			BurnSourceContext = BurnEffect->Spec.GetContext();
+		}
+		else
+		{
+			BurnSourceContext = OwnerASC->MakeEffectContext();
 		}
 	}
 
+	bOverheated = bShouldOverheat;
+	if (bOverheatChanged && IsBurnDamageActive())
+	{
+		RemoveBurnDamage();
+	}
+
+	const float MaxDamagePerTick = ConfigData
+		? (bOverheated ? ConfigData->OverheatedBurnDamagePerTick : ConfigData->MaxBurnDamagePerTick)
+		: (bOverheated ? 10.f : 5.f);
 	const float TickInterval = ConfigData
 		? (bOverheated ? ConfigData->OverheatedBurnTickInterval : ConfigData->BurnTickInterval)
 		: (bOverheated ? 0.5f : 1.f);
-	if (!IsBurnDamageActive() || !FMath::IsNearlyEqual(CurrentBurnTickInterval, TickInterval))
+	// Reapplying the stack updates its source context without resetting the current burn tick.
+	if (!IsBurnDamageActive() || SourceContext.IsValid())
 	{
-		StartBurnDamage(TickInterval);
+		BurnDamageEffectHandle = ApplyBurnDamageEffect(BurnSourceContext, MaxDamagePerTick, TickInterval);
 	}
-}
 
-float UMAElementalComponent::GetMaxBurnDamagePerTick() const
-{
-	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
-	if (!ConfigData) return bOverheated ? 10.f : 5.f;
-	return bOverheated ? ConfigData->OverheatedBurnDamagePerTick : ConfigData->MaxBurnDamagePerTick;
+	if (bEnteredOverheat)
+	{
+		TriggerOverheatExplosion(BurnSourceContext);
+	}
 }
 
 bool UMAElementalComponent::IsBurnDamageActive() const
 {
-	const UWorld* World = GetWorld();
-	return World && World->GetTimerManager().IsTimerActive(BurnDamageTimerHandle);
+	return OwnerASC && BurnDamageEffectHandle.IsValid() && OwnerASC->GetActiveGameplayEffect(BurnDamageEffectHandle);
 }
 
-void UMAElementalComponent::StartBurnDamage(float TickInterval)
+FActiveGameplayEffectHandle UMAElementalComponent::ApplyBurnDamageEffect(
+	const FGameplayEffectContextHandle& SourceContext,
+	float MaxDamagePerTick,
+	float TickInterval) const
 {
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	CurrentBurnTickInterval = FMath::Max(TickInterval, 0.01f);
-	World->GetTimerManager().SetTimer(
-		BurnDamageTimerHandle,
-		this,
-		&UMAElementalComponent::ApplyBurnDamageTick,
-		CurrentBurnTickInterval,
-		true);
-}
-
-void UMAElementalComponent::ApplyBurnDamageTick()
-{
-	if (!OwnerASC) return;
+	if (!OwnerASC || MaxDamagePerTick <= 0.f) return FActiveGameplayEffectHandle();
 
 	FGameplayEffectSpecHandle SpecHandle(new FGameplayEffectSpec(
 		GetDefault<UMAGameplayEffect_BurnDamage>(),
-		BurnDamageContext.IsValid() ? BurnDamageContext : OwnerASC->MakeEffectContext(),
+		SourceContext.Duplicate(),
 		1.f));
-	if (!SpecHandle.IsValid()) return;
+	if (!SpecHandle.IsValid()) return FActiveGameplayEffectHandle();
 
-	SpecHandle.Data->SetSetByCallerMagnitude(UMAGameplayEffect_BurnDamage::GetMaxBurnDamageDataName(), GetMaxBurnDamagePerTick());
-	OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	ExecuteBurnGameplayCues();
-}
-
-void UMAElementalComponent::ExecuteBurnGameplayCues() const
-{
-	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
-	if (!OwnerASC || !OwnerCharacter || !ConfigData || ConfigData->BurnGameplayCueTags.IsEmpty()) return;
-
-	FGameplayCueParameters CueParams;
-	CueParams.Location = OwnerCharacter->GetActorLocation();
-	CueParams.Instigator = BurnDamageContext.IsValid() ? BurnDamageContext.GetInstigator() : OwnerCharacter;
-	CueParams.EffectCauser = BurnDamageContext.IsValid() && BurnDamageContext.GetEffectCauser()
-		? BurnDamageContext.GetEffectCauser()
-		: CueParams.Instigator;
-
-	for (const FGameplayTag& GameplayCueTag : ConfigData->BurnGameplayCueTags)
+	SpecHandle.Data->Period = FMath::Max(TickInterval, 0.01f);
+	SpecHandle.Data->SetSetByCallerMagnitude(
+		UMAGameplayEffect_BurnDamage::GetMaxBurnDamageDataName(),
+		MaxDamagePerTick);
+	if (const UMAElementalConfigData* ConfigData = GetElementalConfigData())
 	{
-		if (!GameplayCueTag.IsValid()) continue;
-
-		FGameplayCueParameters CueParamsForTag = CueParams;
-		CueParamsForTag.OriginalTag = GameplayCueTag;
-		CueParamsForTag.AggregatedSourceTags.AddTag(GameplayCueTag);
-		CueParamsForTag.AggregatedTargetTags.AddTag(GameplayCueTag);
-		OwnerASC->ExecuteGameplayCue(GameplayCueTag, CueParamsForTag);
+		SpecHandle.Data->AppendDynamicAssetTags(ConfigData->BurnGameplayCueTags);
 	}
+	return OwnerASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }
 
 void UMAElementalComponent::RemoveBurnDamage()
 {
-	if (UWorld* World = GetWorld())
+	if (OwnerASC && BurnDamageEffectHandle.IsValid())
 	{
-		World->GetTimerManager().ClearTimer(BurnDamageTimerHandle);
+		OwnerASC->RemoveActiveGameplayEffect(BurnDamageEffectHandle);
 	}
-	BurnDamageContext = FGameplayEffectContextHandle();
-	CurrentBurnTickInterval = 0.f;
+	BurnDamageEffectHandle.Invalidate();
 }
 
 void UMAElementalComponent::TriggerOverheatExplosion(const FGameplayEffectContextHandle& SourceContext)
 {
 	const UMAElementalConfigData* ConfigData = GetElementalConfigData();
-	if (!ConfigData || ConfigData->OverheatExplosionRadius <= 0.f) return;
-
-	UMASkillAbility* SourceAbility = const_cast<UMASkillAbility*>(
-		Cast<UMASkillAbility>(SourceContext.GetAbilityInstance_NotReplicated()));
-	if (!SourceAbility) return;
+	FGameplayEffectContextHandle ExplosionContext = SourceContext;
+	if (!ExplosionContext.IsValid() && OwnerASC)
+	{
+		ExplosionContext = OwnerASC->MakeEffectContext();
+	}
+	UAbilitySystemComponent* SourceASC = ExplosionContext.GetOriginalInstigatorAbilitySystemComponent();
+	if (!OwnerCharacter || !SourceASC || !ConfigData || ConfigData->OverheatExplosionRadius <= 0.f) return;
 
 	FMASkillAreaShape AreaConfig;
 	AreaConfig.Shape = EMASkillAreaShape::Circle;
 	AreaConfig.Circle.Radius = ConfigData->OverheatExplosionRadius;
 
-	const FMASkillScopes Scopes(nullptr, SourceAbility->GetCurrentSkillModuleInstance());
 	const FMASkillWorldAreaShape Area = AreaConfig.ResolveWorld(
 		OwnerCharacter->GetActorTransform(),
 		MASkillAreaStatics::ResolveAreaScale(
-			Scopes.GetPayloadAccess(),
-			SourceAbility->GetAbilitySystemComponentFromActorInfo()));
-	MASkillDamageApplicator::ApplyArea(
-		*SourceAbility,
-		Scopes,
+			SourceASC,
+			UMAAttributeSet::GetAreaRangeScaleAttribute()));
+	MADamageApplicator::ApplyArea(
+		ExplosionContext,
+		*OwnerCharacter,
 		Area,
-		ConfigData->OverheatExplosionDamages,
-		Scopes.GetPayloadAccess());
+		ConfigData->OverheatExplosionDamages);
 }
 
 bool UMAElementalComponent::IsFrozenStatusActive() const

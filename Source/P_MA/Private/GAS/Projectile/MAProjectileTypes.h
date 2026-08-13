@@ -2,13 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
-#include "GAS/Skill/Event/MASkillEventTypes.h"
 #include "MAProjectileTypes.generated.h"
 
 class AActor;
 class UNiagaraSystem;
-class UMASkillAbility;
-class UMASkillModuleInstance;
 
 USTRUCT()
 struct P_MA_API FMAProjectileTargetSettings
@@ -65,13 +62,11 @@ struct P_MA_API FMAProjectileParams
 {
 	GENERATED_BODY()
 
-	FResolvedSkillDamage ResolvedDamage;
+	FMAResolvedDamage ResolvedDamage;
 	float ProjectileRadiusMultiplier = 1.f;
 	int32 MaxHitCount = 1;
 
 	FMAProjectileTargetSettings TargetSettings;
 	FMAProjectileElementalSettings ElementalSettings;
 	FMAProjectileContinuousHitSettings ContinuousHitSettings;
-	TWeakObjectPtr<UMASkillAbility> EventExecutorAbility;
-	FMASkillScopes EventScopes;
 };

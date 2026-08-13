@@ -26,8 +26,8 @@ UMAAttributeSet::UMAAttributeSet()
 	: SlowMultiplier(1.f)
 	, CriticalDamage(1.5f)
 	, ReverseCriticalDamage(0.5f)
-	, MeleeRangeScale(1.f)
-	, RangedRangeScale(1.f)
+	, AreaRangeScale(1.f)
+	, ProjectileRangeScale(1.f)
 {}
 
 void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -48,8 +48,8 @@ void UMAAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ReverseCriticalDamage, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Temperature, COND_None, REPNOTIFY_Always)
 	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, Coin, COND_None, REPNOTIFY_Always)
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, MeleeRangeScale, COND_None, REPNOTIFY_Always)
-	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, RangedRangeScale, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, AreaRangeScale, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME_CONDITION_NOTIFY(UMAAttributeSet, ProjectileRangeScale, COND_None, REPNOTIFY_Always)
 }
 
 void UMAAttributeSet::OnAttributeAggregatorCreated(const FGameplayAttribute& Attribute, FAggregator* NewAggregator) const
@@ -113,5 +113,5 @@ DEFINE_REPNOTIFY(CriticalDamage)
 DEFINE_REPNOTIFY(ReverseCriticalDamage)
 DEFINE_REPNOTIFY(Temperature)
 DEFINE_REPNOTIFY(Coin)
-DEFINE_REPNOTIFY(MeleeRangeScale)
-DEFINE_REPNOTIFY(RangedRangeScale)
+DEFINE_REPNOTIFY(AreaRangeScale)
+DEFINE_REPNOTIFY(ProjectileRangeScale)

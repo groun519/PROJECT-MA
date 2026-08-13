@@ -2,7 +2,7 @@
 
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
@@ -29,8 +29,8 @@ void UMASkillAction_MeleeOverlap::Execute(
 	if (!Owner.HasAuthority()) return;
 	if (!Payloads.Reader.IsValid()) return;
 
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
+	const FMAResolvedDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, Payloads);
 	const TArray<FHitResult> HitResults = MASkillActionMeleeOverlap::ResolveHitResultsFromEvent(*Ability, Event, ResolvedDamage.TargetRelationMask);
 	const FVector StatusEffectCenterPoint = MASkillActionMeleeOverlap::ResolveStatusEffectCenterPoint(*Ability, Event);
-	MASkillDamageApplicator::ApplyHitResults(*Ability, *Scopes, HitResults, ResolvedDamage, StatusEffectCenterPoint);
+	MADamageApplicator::ApplyHitResults(HitResults, ResolvedDamage, StatusEffectCenterPoint);
 }

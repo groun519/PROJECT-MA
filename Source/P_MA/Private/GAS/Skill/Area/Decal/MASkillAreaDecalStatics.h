@@ -22,6 +22,10 @@ public:
 		UMASkillAbility& SkillAbility,
 		const FMASkillWorldAreaShape& Area,
 		FGameplayTag DamageTypeTag);
+	static void SpawnImpact(
+		AActor& ComponentOwner,
+		const FMASkillWorldAreaShape& Area,
+		FGameplayTag VisualTag);
 
 	static void SpawnImpactLocal(
 		AActor* ComponentOwner,

@@ -10,14 +10,21 @@ FGameplayTag GetStatusEffectStrengthMagnitudeTag()
 }
 }
 
-bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const
+bool UMASkillStatusEffect_Attribute::BuildResolvedEffect(
+	UAbilitySystemComponent& SourceASC,
+	UMASkillAbility* SkillAbility,
+	TArray<FResolvedStatusEffect>& OutEffects) const
 {
 	if (Duration <= 0.f || !EffectTemplate) return false;
 	PrepareEffectTemplate();
 	const EMASkillStatusEffectStrengthPolicy StrengthPolicy = GetStrengthPolicy();
 	const float StrengthMagnitude = GetStrengthMagnitude();
 
-	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(SkillAbility, EffectTemplate, 1.f);
+	FGameplayEffectSpecHandle SpecHandle = MakeGameplayEffectSpec(
+		SourceASC,
+		SkillAbility,
+		EffectTemplate,
+		1.f);
 	if (!SpecHandle.IsValid()) return false;
 
 	SpecHandle.Data->DynamicGrantedTags.AppendTags(GrantedTags);

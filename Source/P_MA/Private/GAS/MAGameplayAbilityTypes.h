@@ -9,6 +9,7 @@
 struct FMAGameplayEffectContext;
 struct FMASkillPayloadAccess;
 class UAbilitySystemComponent;
+class UMASkillModuleInstance;
 
 UENUM(BlueprintType)
 enum class EMADamageCriticalResult : uint8
@@ -29,6 +30,8 @@ struct FMAGameplayEffectContext : public FGameplayEffectContext
 	void SetDamageTypeTag(const FGameplayTag& InDamageTypeTag) { DamageTypeTag = InDamageTypeTag; }
 	float GetDisplayMagnitude() const { return DisplayMagnitude; }
 	void SetDisplayMagnitude(float InDisplayMagnitude) { DisplayMagnitude = InDisplayMagnitude; }
+	UMASkillModuleInstance* GetSkillScope() const;
+	void SetSkillScope(UMASkillModuleInstance* InSkillScope);
 	virtual UScriptStruct* GetScriptStruct() const override {return StaticStruct();}
 	virtual FMAGameplayEffectContext* Duplicate() const override
 	{
@@ -51,6 +54,10 @@ protected:
 
 	UPROPERTY()
 	float DisplayMagnitude = 0.f;
+
+	// The exact assembled skill that produced this effect; server-only routing data.
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UMASkillModuleInstance> SkillScope;
 };
 
 template<>
@@ -274,10 +281,10 @@ FPlayerBaseStats();
 	float BaseReverseCriticalDamage;
 	
 	UPROPERTY(EditAnywhere)
-	float BaseMeleeRangeScale;
+	float BaseAreaRangeScale;
 
 	UPROPERTY(EditAnywhere)
-	float BaseRangedRangeScale;
+	float BaseProjectileRangeScale;
 
 	UPROPERTY(EditAnywhere)
 	float BaseMoveSpeed;
@@ -314,10 +321,10 @@ struct FMonsterBaseStats : public FTableRowBase
 	float BaseAttackSpeed;
 
 	UPROPERTY(EditAnywhere)
-	float BaseMeleeRangeScale;
+	float BaseAreaRangeScale;
 
 	UPROPERTY(EditAnywhere)
-	float BaseRangedRangeScale;
+	float BaseProjectileRangeScale;
 
 	UPROPERTY(EditAnywhere)
 	float BaseArmor;

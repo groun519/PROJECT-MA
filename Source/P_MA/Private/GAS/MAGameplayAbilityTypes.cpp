@@ -2,7 +2,18 @@
 
 #include "AbilitySystemComponent.h"
 #include "GAS/MAAttributeSet.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GAS/Skill/Payload/MASkillPayloadAccess.h"
+
+UMASkillModuleInstance* FMAGameplayEffectContext::GetSkillScope() const
+{
+	return SkillScope.Get();
+}
+
+void FMAGameplayEffectContext::SetSkillScope(UMASkillModuleInstance* InSkillScope)
+{
+	SkillScope = InSkillScope;
+}
 
 float FMAPayloadCalculation::Calculate(const float Value) const
 {
@@ -105,8 +116,8 @@ FPlayerBaseStats::FPlayerBaseStats()
 	BaseFocus{0.f},
 	BaseCriticalDamage{1.5f},
 	BaseReverseCriticalDamage{0.5f},
-	BaseMeleeRangeScale{1.f},
-	BaseRangedRangeScale{1.f},
+	BaseAreaRangeScale{1.f},
+	BaseProjectileRangeScale{1.f},
 	BaseMoveSpeed{0.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f},
@@ -120,8 +131,8 @@ FMonsterBaseStats::FMonsterBaseStats()
 	BaseAttack{0.f},
 	BaseMoveSpeed{0.f},
 	BaseAttackSpeed{0.f},
-	BaseMeleeRangeScale{1.f},
-	BaseRangedRangeScale{1.f},
+	BaseAreaRangeScale{1.f},
+	BaseProjectileRangeScale{1.f},
 	BaseArmor{0.f},
 	BaseArmorPenetration{0.f}
 {

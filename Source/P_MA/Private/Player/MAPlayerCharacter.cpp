@@ -352,6 +352,7 @@ void AMAPlayerCharacter::Server_ShopTest_Implementation()
 		It->RefreshStock();
 	}
 }
+
 //******************************************************************************//
 
 FVector AMAPlayerCharacter::GetMoveForwardDir() const
@@ -598,6 +599,12 @@ void AMAPlayerCharacter::HandleLoadoutWeaponChanged(FName WeaponId)
 				FGameplayTag::RequestGameplayTag(TEXT("Skill.Slot.Active.1")),
 				0,
 				AttackSkillModule);
+
+			UMASkillModule* PassiveSkillModule = WeaponDataRow ? WeaponDataRow->PassiveSkillModule.LoadSynchronous() : nullptr;
+			SkillManager->ReplaceModuleAt(
+				FMASkillSystemStatics::GetPassiveSlotTag(),
+				0,
+				PassiveSkillModule);
 		}
 	}
 

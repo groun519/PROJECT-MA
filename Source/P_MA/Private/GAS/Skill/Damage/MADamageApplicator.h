@@ -5,7 +5,6 @@
 
 class AActor;
 class UMASkillAbility;
-class UMASkillModuleInstance;
 class UAbilitySystemComponent;
 enum class EMASkillStatusEffectSourceType : uint8;
 struct FActiveGameplayEffectHandle;
@@ -17,21 +16,12 @@ struct FHitResult;
 struct FMASkillDamageConfig;
 struct FMASkillPayloadAccess;
 struct FMASkillWorldAreaShape;
-struct FResolvedSkillDamage;
+struct FMAResolvedDamage;
 struct FResolvedStatusEffect;
 
-class P_MA_API MASkillDamageApplicator final
+class P_MA_API MADamageApplicator final
 {
 public:
-	struct FMASkillDamageApplicationContext
-	{
-		AActor* InstigatorActor = nullptr;
-		AActor* EffectCauser = nullptr;
-		UMASkillAbility* EventExecutorAbility = nullptr;
-		FMASkillScopes EventScopes;
-		FVector StatusEffectSourcePoint = FVector::ZeroVector;
-	};
-
 	static void ApplyArea(
 		UMASkillAbility& OwnerAbility,
 		const FMASkillScopes& EventScopes,
@@ -46,32 +36,26 @@ public:
 		TConstArrayView<FMASkillDamageConfig> DamageConfigs,
 		const FMASkillPayloadAccess& Payloads);
 
+	static void ApplyArea(
+		const FGameplayEffectContextHandle& SourceContext,
+		AActor& AreaOwner,
+		const FMASkillWorldAreaShape& Area,
+		TConstArrayView<FMASkillDamageConfig> DamageConfigs);
+
 	static void ApplyHitResults(
-		UMASkillAbility& OwnerAbility,
-		const FMASkillScopes& EventScopes,
 		const TArray<FHitResult>& HitResults,
-		const FResolvedSkillDamage& ResolvedDamage,
+		const FMAResolvedDamage& ResolvedDamage,
 		const FVector& StatusEffectSourcePoint);
 
 	static void ApplyToTargetActor(
-		UMASkillAbility& OwnerAbility,
-		const FMASkillScopes& EventScopes,
 		AActor& TargetActor,
-		const FResolvedSkillDamage& ResolvedDamage,
+		const FMAResolvedDamage& ResolvedDamage,
 		const FVector& StatusEffectSourcePoint);
 
 	static void ApplyToTarget(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
-		const FResolvedSkillDamage& ResolvedDamage,
-		const FMASkillDamageApplicationContext& ApplicationContext);
-
-	static void ApplyToTarget(
-		UAbilitySystemComponent& TargetASC,
-		UMASkillAbility& OwnerAbility,
-		const FMASkillScopes& EventScopes,
-		const FHitResult& HitResult,
-		const FResolvedSkillDamage& ResolvedDamage,
+		const FMAResolvedDamage& ResolvedDamage,
 		const FVector& StatusEffectSourcePoint);
 
 	static void PostProcessAppliedDamage(
@@ -83,16 +67,22 @@ public:
 		const FGameplayEffectSpec& KillingEffectSpec);
 
 private:
-	MASkillDamageApplicator() = delete;
-
-	static FMASkillDamageApplicationContext MakeApplicationContext(
-		UMASkillAbility& OwnerAbility,
-		const FMASkillScopes& EventScopes,
-		const FVector& StatusEffectSourcePoint);
+	MADamageApplicator() = delete;
 
 	static FVector ResolveStatusEffectSourcePoint(
-		const FMASkillDamageApplicationContext& ApplicationContext,
+		const FGameplayEffectContextHandle& ContextHandle,
+		const FVector& StatusEffectSourcePoint,
 		EMASkillStatusEffectSourceType SourceType);
+
+	static bool ResolveSkillEventSource(
+		const FGameplayEffectContextHandle& ContextHandle,
+		UMASkillAbility*& OutAbility,
+		FMASkillScopes& OutScopes);
+
+	static void RegisterWithSkillRuntime(
+		const FGameplayEffectContextHandle& ContextHandle,
+		UAbilitySystemComponent& TargetASC,
+		const FActiveGameplayEffectHandle& EffectHandle);
 
 	static bool ShouldApplyResolvedStatusEffect(
 		UAbilitySystemComponent& TargetASC,
@@ -103,23 +93,17 @@ private:
 		const FHitResult& HitResult,
 		const FGameplayEffectSpecHandle& SpecHandle);
 
-	static FActiveGameplayEffectHandle ApplySpecToTargetASC(
-		UAbilitySystemComponent& TargetASC,
-		const FHitResult& HitResult,
-		const FGameplayEffectSpecHandle& SpecHandle);
-
 	static bool ApplyDamageSpecToTargetASC(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
-		const FResolvedSkillDamage& ResolvedDamage,
-		const FMASkillDamageApplicationContext& ApplicationContext,
+		const FMAResolvedDamage& ResolvedDamage,
 		FGameplayEffectContextHandle& OutContextHandle);
 
 	static void ApplyStatusEffects(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
-		const FResolvedSkillDamage& ResolvedDamage,
-		const FMASkillDamageApplicationContext& ApplicationContext);
+		const FMAResolvedDamage& ResolvedDamage,
+		const FVector& StatusEffectSourcePoint);
 
 	static bool PostProcessDamage(
 		UAbilitySystemComponent& TargetASC,
@@ -127,19 +111,18 @@ private:
 		const FHitResult& HitResult,
 		AActor* TargetActor,
 		const FGameplayTagContainer& TargetGameplayCueTags,
-		const FMASkillDamageApplicationContext& ApplicationContext,
 		FMASkillEvent& OutHitEvent);
 
 	static bool ApplyToTargetInternal(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
-		const FResolvedSkillDamage& ResolvedDamage,
-		const FMASkillDamageApplicationContext& ApplicationContext,
+		const FMAResolvedDamage& ResolvedDamage,
+		const FVector& StatusEffectSourcePoint,
 		FMASkillEvent& OutHitEvent);
 
 	static void ExecuteTargetGameplayCues(
 		UAbilitySystemComponent& TargetASC,
 		const FHitResult& HitResult,
 		const FGameplayTagContainer& GameplayCueTags,
-		const FMASkillDamageApplicationContext& ApplicationContext);
+		const FGameplayEffectContextHandle& ContextHandle);
 };

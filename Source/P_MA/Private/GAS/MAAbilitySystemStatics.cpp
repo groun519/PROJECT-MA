@@ -129,6 +129,11 @@ FGameplayTag UMAAbilitySystemStatics::GetSkillChargeRatioTag()
 	return FGameplayTag::RequestGameplayTag("Data.Skill.Payload.Scalar.ChargeRatio");
 }
 
+FGameplayTag UMAAbilitySystemStatics::GetDamageAppliedEventTag()
+{
+	return FGameplayTag::RequestGameplayTag("Event.Skill.DamageApplied");
+}
+
 FGameplayTag UMAAbilitySystemStatics::GetHitEventTag()
 {
 	return FGameplayTag::RequestGameplayTag("Event.Skill.Hit");

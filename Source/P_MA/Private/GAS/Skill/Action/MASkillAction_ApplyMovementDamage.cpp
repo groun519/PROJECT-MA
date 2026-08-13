@@ -6,7 +6,7 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/Skill/Area/MASkillAreaTypes.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -45,7 +45,7 @@ bool AMASkillMovementDamageRuntime::Initialize(
 	UMASkillAbility& InOwnerAbility,
 	const FMASkillScopes& InScopes,
 	const FMAActionImpulseHandle& InMovementHandle,
-	const FResolvedSkillDamage& InResolvedDamage,
+	const FMAResolvedDamage& InResolvedDamage,
 	float InCapsuleRadiusMultiplier,
 	float InCapsuleHalfHeightMultiplier,
 	bool bInDrawTrailDecal,
@@ -61,7 +61,6 @@ bool AMASkillMovementDamageRuntime::Initialize(
 	OwnerAbility = &InOwnerAbility;
 	OwnerCharacter = Character;
 	ImpulseComponent = CharacterImpulseComponent;
-	Scopes = InScopes;
 	MovementHandle = InMovementHandle;
 	ResolvedDamage = InResolvedDamage;
 	VisualElementTag = ResolveMovementDamageVisualElementTag(InScopes, InOwnerAbility);
@@ -165,9 +164,7 @@ void AMASkillMovementDamageRuntime::SweepMovement(const FVector& Start, const FV
 
 	if (!ValidHits.IsEmpty())
 	{
-		MASkillDamageApplicator::ApplyHitResults(
-			*SkillAbility,
-			Scopes,
+		MADamageApplicator::ApplyHitResults(
 			ValidHits,
 			ResolvedDamage,
 			Character->GetActorLocation());
@@ -239,7 +236,7 @@ void UMASkillAction_ApplyMovementDamage::Execute(
 		*Ability,
 		*Scopes,
 		MovementHandle,
-		MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads),
+		MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, Payloads),
 		CapsuleRadiusScale,
 		CapsuleHalfHeightScale,
 		bDrawTrailDecal,

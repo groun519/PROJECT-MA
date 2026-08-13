@@ -4,7 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/MAAttributeSet.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
@@ -42,16 +42,14 @@ void UMASkillAction_ShatterFrozenTarget::Execute(
 
 	// AppliedDamage already includes the triggering skill's modifiers and armor calculation.
 	const FMASkillPayloadStore EmptyPayloads;
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, EmptyPayloads);
+	const FMAResolvedDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, EmptyPayloads);
 	if (!ResolvedDamage.DamageSpec.IsValid()) return;
 
 	const FGameplayAttribute TemperatureAttribute = UMAAttributeSet::GetTemperatureAttribute();
 	const float Temperature = TargetASC->GetNumericAttribute(TemperatureAttribute);
 	TargetASC->ApplyModToAttribute(TemperatureAttribute, EGameplayModOp::Additive, -Temperature);
 
-	MASkillDamageApplicator::ApplyToTargetActor(
-		*Ability,
-		*Scopes,
+	MADamageApplicator::ApplyToTargetActor(
 		*TargetActor,
 		ResolvedDamage,
 		TargetActor->GetActorLocation());

@@ -8,7 +8,7 @@
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
 #include "GAS/MAAbilitySystemStatics.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/PA_AbilitySystemGenerics.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerCharacter.h"
@@ -131,7 +131,7 @@ void UMAAbilitySystemComponent::NotifyDamageAppliedFromGameplayEffect(const FGam
 	const FMAGameplayEffectContext* MAContext = static_cast<const FMAGameplayEffectContext*>(ContextHandle.Get());
 	if (!MAContext || !MAContext->GetDamageTypeTag().IsValid()) return;
 
-	MASkillDamageApplicator::PostProcessAppliedDamage(*this, Data);
+	MADamageApplicator::PostProcessAppliedDamage(*this, Data);
 	const bool bIsMiss =
 		MAContext->GetDamageTypeTag() == UMAAbilitySystemStatics::GetDefaultDamageTypeTag()
 		&& FMath::IsNearlyZero(MAContext->GetDisplayMagnitude());
@@ -214,7 +214,7 @@ void UMAAbilitySystemComponent::HealthUpdated(const FOnAttributeChangeData& Chan
 			AddLooseGameplayTag(UMAAbilitySystemStatics::GetHealthEmptyStatTag());
 			if (ChangeData.OldValue > 0.f && ChangeData.GEModData)
 			{
-				MASkillDamageApplicator::NotifyTargetKilled(*this, ChangeData.GEModData->EffectSpec);
+				MADamageApplicator::NotifyTargetKilled(*this, ChangeData.GEModData->EffectSpec);
 			}
 
 			// 죽음 효과는 반드시 체력이 0 이하일 때만 적용
@@ -267,8 +267,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
-			SetNumericAttributeBase(UMAAttributeSet::GetMeleeRangeScaleAttribute(), BaseStats->BaseMeleeRangeScale);
-			SetNumericAttributeBase(UMAAttributeSet::GetRangedRangeScaleAttribute(), BaseStats->BaseRangedRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetAreaRangeScaleAttribute(), BaseStats->BaseAreaRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetProjectileRangeScaleAttribute(), BaseStats->BaseProjectileRangeScale);
 			SetNumericAttributeBase(UMAAttributeSet::GetCoinAttribute(), BaseStats->BaseCoin);
 			SetNumericAttributeBase(UMAAttributeSet::GetFocusAttribute(), BaseStats->BaseFocus);
 			SetNumericAttributeBase(UMAAttributeSet::GetCriticalDamageAttribute(), BaseStats->BaseCriticalDamage);
@@ -298,8 +298,8 @@ void UMAAbilitySystemComponent::InitializeBaseAttributes()
 			SetNumericAttributeBase(UMAAttributeSet::GetAttackSpeedAttribute(), BaseStats->BaseAttackSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetMoveSpeedAttribute(), BaseStats->BaseMoveSpeed);
 			SetNumericAttributeBase(UMAAttributeSet::GetSlowMultiplierAttribute(), 1.f);
-			SetNumericAttributeBase(UMAAttributeSet::GetMeleeRangeScaleAttribute(), BaseStats->BaseMeleeRangeScale);
-			SetNumericAttributeBase(UMAAttributeSet::GetRangedRangeScaleAttribute(), BaseStats->BaseRangedRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetAreaRangeScaleAttribute(), BaseStats->BaseAreaRangeScale);
+			SetNumericAttributeBase(UMAAttributeSet::GetProjectileRangeScaleAttribute(), BaseStats->BaseProjectileRangeScale);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorAttribute(), BaseStats->BaseArmor);
 			SetNumericAttributeBase(UMAAttributeSet::GetArmorPenetrationAttribute(), BaseStats->BaseArmorPenetration);
 			AppliedBaseTags = BaseStats->BaseImmunityTags;

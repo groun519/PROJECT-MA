@@ -26,12 +26,6 @@ struct FMACoinRewardSettings
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	float RewardRange = 1000.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Reward", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float KillerRewardPortion = 0.5f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Reward")
-	bool bScaleByPlayerCount = true;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Reward")
 	FMACoinRewardVFXSettings VFX;
 };

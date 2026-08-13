@@ -24,4 +24,7 @@ struct FLoadoutWeaponDataRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
 	TSoftObjectPtr<UMASkillModule> AttackSkillModule;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loadout|Weapon")
+	TSoftObjectPtr<UMASkillModule> PassiveSkillModule;
 };

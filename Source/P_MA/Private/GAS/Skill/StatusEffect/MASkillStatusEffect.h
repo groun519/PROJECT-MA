@@ -5,6 +5,7 @@
 #include "GAS/Skill/StatusEffect/MASkillStatusEffectTypes.h"
 #include "MASkillStatusEffect.generated.h"
 
+class UAbilitySystemComponent;
 class UMASkillAbility;
 class UGameplayEffect;
 
@@ -14,7 +15,10 @@ class P_MA_API UMASkillStatusEffect : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual bool BuildResolvedEffect(UMASkillAbility& SkillAbility, TArray<FResolvedStatusEffect>& OutEffects) const;
+	virtual bool BuildResolvedEffect(
+		UAbilitySystemComponent& SourceASC,
+		UMASkillAbility* SkillAbility,
+		TArray<FResolvedStatusEffect>& OutEffects) const;
 
 protected:
 	virtual bool ResolvePolicy(FMASkillStatusEffectPolicy& OutPolicy) const
@@ -23,6 +27,10 @@ protected:
 	virtual FMASkillStatusEffectGrantedStateRule GetGrantedStateRule() const { return FMASkillStatusEffectGrantedStateRule(); }
 	virtual void ApplyCustomPayload(FGameplayEffectSpecHandle& SpecHandle) const {}
 
-	static FGameplayEffectSpecHandle MakeGameplayEffectSpec(UMASkillAbility& SkillAbility, const UGameplayEffect* EffectDefinition, float Level);
+	static FGameplayEffectSpecHandle MakeGameplayEffectSpec(
+		UAbilitySystemComponent& SourceASC,
+		UMASkillAbility* SkillAbility,
+		const UGameplayEffect* EffectDefinition,
+		float Level);
 	static void AppendGrantedStateTags(const FMASkillStatusEffectGrantedStateRule& Rule, FGameplayTagContainer& GrantedTags);
 };

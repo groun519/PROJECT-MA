@@ -1,8 +1,9 @@
-﻿#include "GAS/Skill/Action/MASkillAction_MeleeOverlapShape.h"
+#include "GAS/Skill/Action/MASkillAction_MeleeOverlapShape.h"
 
+#include "GAS/MAAttributeSet.h"
 #include "GAS/Skill/Action/MASkillAction_MeleeOverlapHelper.h"
 #include "GAS/Skill/Area/MASkillAreaStatics.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/MASkillAbility.h"
 
@@ -25,7 +26,8 @@ void UMASkillAction_MeleeOverlapShape::Execute(
 		Owner.GetActorTransform(),
 		MASkillAreaStatics::ResolveAreaScale(
 			Payloads,
-			Ability->GetAbilitySystemComponentFromActorInfo()));
+			Ability->GetAbilitySystemComponentFromActorInfo(),
+			UMAAttributeSet::GetAreaRangeScaleAttribute()));
 	const FMASkillDamageConfig DamageConfig = MASkillActionMeleeOverlap::ResolveDamageConfig(Payloads, DamagePayloadTag);
-	MASkillDamageApplicator::ApplyArea(*Ability, *Scopes, Area, DamageConfig, Payloads);
+	MADamageApplicator::ApplyArea(*Ability, *Scopes, Area, DamageConfig, Payloads);
 }

@@ -1,7 +1,7 @@
-﻿#include "GAS/Skill/Action/MASkillAction_ApplyDamageToSelf.h"
+#include "GAS/Skill/Action/MASkillAction_ApplyDamageToSelf.h"
 
 #include "GAS/Skill/MASkillAbility.h"
-#include "GAS/Skill/Damage/MASkillDamageApplicator.h"
+#include "GAS/Skill/Damage/MADamageApplicator.h"
 #include "GAS/Skill/Damage/MASkillDamageResolver.h"
 #include "GAS/Skill/Damage/MASkillDamageTypes.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
@@ -22,10 +22,8 @@ void UMASkillAction_ApplyDamageToSelf::Execute(
 	FMASkillDamageConfig DamageConfig;
 	if (!Payloads.Reader.TryGetStruct(DamagePayloadTag, DamageConfig)) return;
 
-	const FResolvedSkillDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, DamageConfig, Payloads);
-	MASkillDamageApplicator::ApplyToTargetActor(
-		*Ability,
-		*Scopes,
+	const FMAResolvedDamage ResolvedDamage = MASkillDamageResolver::Resolve(*Ability, *Scopes, DamageConfig, Payloads);
+	MADamageApplicator::ApplyToTargetActor(
 		Owner,
 		ResolvedDamage,
 		Owner.GetActorLocation());
