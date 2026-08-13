@@ -33,6 +33,9 @@ public:
 	UFUNCTION(Exec)
 	void UseItem(int32 EntryId);
 
+	UFUNCTION(Exec)
+	void AddSkillSubModule(FString SlotTagName, int32 ModuleIndex, int32 SubModuleId);
+
 private:
 	AMAPlayerCharacter* GetMAPlayerCharacter() const;
 };

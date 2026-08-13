@@ -1,7 +1,9 @@
 #include "Debug/MACheatManager.h"
 
 #include "Framework/MAGameMode.h"
+#include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
+#include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "Inventory/MAInventoryComponent.h"
 #include "Player/MAPlayerCharacter.h"
@@ -105,6 +107,48 @@ void UMACheatManager::UseItem(const int32 EntryId)
 	}
 
 	Inventory->UseItem(EntryId);
+}
+
+void UMACheatManager::AddSkillSubModule(
+	const FString SlotTagName,
+	const int32 ModuleIndex,
+	const int32 SubModuleId)
+{
+	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
+	if (!PlayerCharacter) return;
+
+	if (!PlayerCharacter->HasAuthority())
+	{
+		GetPlayerController()->ServerExec(FString::Printf(
+			TEXT("AddSkillSubModule %s %d %d"),
+			*SlotTagName,
+			ModuleIndex,
+			SubModuleId));
+		return;
+	}
+
+	const FGameplayTag SlotTag = FGameplayTag::RequestGameplayTag(FName(SlotTagName), false);
+	UMASkillManagerComponent* SkillManager = PlayerCharacter->GetSkillManagerComponent();
+	UMASkillModuleInstance* ModuleInstance = SkillManager
+		? SkillManager->GetModuleInstanceAt(SlotTag, ModuleIndex)
+		: nullptr;
+	UMASkillModule* SubModule = UMASkillModule::LoadById(SubModuleId);
+	if (ModuleInstance
+		&& SubModule
+		&& ModuleInstance->SetSubModuleAt(
+			ModuleInstance->GetModuleGroup().SubModules.Num(),
+			SubModule))
+	{
+		return;
+	}
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("AddSkillSubModule failed: SlotTag=%s ModuleIndex=%d ModuleId=%d"),
+		*SlotTagName,
+		ModuleIndex,
+		SubModuleId);
 }
 
 AMAPlayerCharacter* UMACheatManager::GetMAPlayerCharacter() const
