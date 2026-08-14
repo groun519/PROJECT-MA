@@ -27,6 +27,7 @@ protected:
 private:
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	void BindToASC();
+	void HandleDeathChanged(FGameplayTag DeadTag, int32 TagCount);
 	void HandleTemperatureChanged(const FOnAttributeChangeData& Data);
 	void HandleTemperatureImmunityChanged(FGameplayTag ImmunityTag, int32 TagCount);
 	void RefreshTemperatureRecoveryEffect();

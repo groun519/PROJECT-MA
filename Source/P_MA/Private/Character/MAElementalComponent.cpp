@@ -38,6 +38,7 @@ void UMAElementalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (OwnerASC)
 	{
+		OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).RemoveAll(this);
 		OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()).RemoveAll(this);
 		OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()).RemoveAll(this);
 	}
@@ -66,6 +67,9 @@ void UMAElementalComponent::BindToASC()
 
 	CurrentTemperature = OwnerASC->GetNumericAttribute(UMAAttributeSet::GetTemperatureAttribute());
 	OwnerASC->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetTemperatureAttribute()).AddUObject(this, &UMAElementalComponent::HandleTemperatureChanged);
+	OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(
+		this,
+		&UMAElementalComponent::HandleDeathChanged);
 	OwnerASC->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetColdTemperatureImmunityTag()).AddUObject(
 		this,
 		&UMAElementalComponent::HandleTemperatureImmunityChanged);
@@ -77,6 +81,22 @@ void UMAElementalComponent::BindToASC()
 	RefreshTemperatureSlow();
 	RefreshBurnDamage();
 	DelayTemperatureRecovery();
+}
+
+void UMAElementalComponent::HandleDeathChanged(FGameplayTag, int32 TagCount)
+{
+	if (TagCount <= 0) return;
+
+	bOverheated = false;
+	RemoveBurnDamage();
+	if (OwnerCharacter && OwnerCharacter->HasAuthority() && OwnerASC)
+	{
+		OwnerASC->SetNumericAttributeBase(UMAAttributeSet::GetTemperatureAttribute(), 0.f);
+		return;
+	}
+
+	CurrentTemperature = 0.f;
+	RefreshTemperatureOverlay();
 }
 
 void UMAElementalComponent::HandleTemperatureImmunityChanged(FGameplayTag ImmunityTag, int32)
@@ -279,6 +299,12 @@ void UMAElementalComponent::RemoveTemperatureSlow()
 void UMAElementalComponent::RefreshBurnDamage(const FGameplayEffectContextHandle& SourceContext)
 {
 	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !OwnerASC) return;
+	if (OwnerASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetDeadStatTag()))
+	{
+		bOverheated = false;
+		RemoveBurnDamage();
+		return;
+	}
 	if (OwnerASC->HasMatchingGameplayTag(UMAAbilitySystemStatics::GetHeatTemperatureImmunityTag()))
 	{
 		bOverheated = false;
