@@ -130,10 +130,17 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	{
 		const float FinalHeal = FMath::RoundToFloat(BaseDamage);
 		if (FinalHeal <= 0.f) return;
+		const float CurrentHealth = FMath::Max(0.f, CaptureAttributeMagnitude(
+			EMACoefficientSource::Target,
+			UMAAttributeSet::GetHealthAttribute()));
+		const float MaxHealth = FMath::Max(0.f, CaptureAttributeMagnitude(
+			EMACoefficientSource::Target,
+			UMAAttributeSet::GetMaxHealthAttribute()));
+		const float AppliedHeal = FMath::Min(FinalHeal, FMath::Max(0.f, MaxHealth - CurrentHealth));
 
 		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 		{
-			MutableMAContext->SetDisplayMagnitude(FinalHeal);
+			MutableMAContext->SetDisplayMagnitude(AppliedHeal);
 		}
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
 			UMAAttributeSet::GetHealthAttribute(),
@@ -146,10 +153,14 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	{
 		const float FinalFireDamage = FMath::RoundToFloat(BaseDamage);
 		if (FinalFireDamage <= 0.f) return;
+		const float CurrentTemperature = FMath::Clamp(CaptureAttributeMagnitude(
+			EMACoefficientSource::Target,
+			UMAAttributeSet::GetTemperatureAttribute()), -100.f, 100.f);
+		const float AppliedFireDamage = FMath::Min(FinalFireDamage, 100.f - CurrentTemperature);
 
 		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 		{
-			MutableMAContext->SetDisplayMagnitude(FinalFireDamage);
+			MutableMAContext->SetDisplayMagnitude(AppliedFireDamage);
 		}
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
 			UMAAttributeSet::GetTemperatureAttribute(),
@@ -162,10 +173,14 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 	{
 		const float FinalIceDamage = FMath::RoundToFloat(BaseDamage);
 		if (FinalIceDamage <= 0.f) return;
+		const float CurrentTemperature = FMath::Clamp(CaptureAttributeMagnitude(
+			EMACoefficientSource::Target,
+			UMAAttributeSet::GetTemperatureAttribute()), -100.f, 100.f);
+		const float AppliedIceDamage = FMath::Min(FinalIceDamage, CurrentTemperature + 100.f);
 
 		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
 		{
-			MutableMAContext->SetDisplayMagnitude(FinalIceDamage);
+			MutableMAContext->SetDisplayMagnitude(AppliedIceDamage);
 		}
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
 			UMAAttributeSet::GetTemperatureAttribute(),
@@ -179,14 +194,17 @@ void UExecCalc_DamageByAttribute::Execute_Implementation(
 
 	auto ApplyHealthDamage = [&](float FinalDamage)
 	{
-		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
-		{
-			MutableMAContext->SetDisplayMagnitude(FinalDamage);
-		}
-
+		const float CurrentHealth = FMath::Max(0.f, CaptureAttributeMagnitude(
+			EMACoefficientSource::Target,
+			UMAAttributeSet::GetHealthAttribute()));
 		const float CurrentShield = FMath::Max(0.f, CaptureAttributeMagnitude(
 			EMACoefficientSource::Target,
 			UMAAttributeSet::GetShieldAttribute()));
+		if (FMAGameplayEffectContext* MutableMAContext = static_cast<FMAGameplayEffectContext*>(Spec.GetContext().Get()))
+		{
+			MutableMAContext->SetDisplayMagnitude(FMath::Min(FinalDamage, CurrentHealth + CurrentShield));
+		}
+
 		const float ShieldDamage = FMath::Min(CurrentShield, FinalDamage);
 		const float HealthDamage = FinalDamage - ShieldDamage;
 		if (ShieldDamage > 0.f)

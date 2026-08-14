@@ -19,16 +19,20 @@ struct P_MA_API FMASkillPayloadStore
 public:
 	void Reset()
 	{
-		Scalars.Reset();
-		Vectors.Reset();
-		Objects.Reset();
-		Structs.Reset();
+		RemoveValuesNotKeptOnReset(Scalars);
+		RemoveValuesNotKeptOnReset(Vectors);
+		RemoveValuesNotKeptOnReset(Objects);
+		RemoveValuesNotKeptOnReset(Structs);
 	}
 
-	void SetScalar(const FGameplayTag& Key, float Value)
+	void SetScalar(
+		const FGameplayTag& Key,
+		float Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
 		if (!Key.IsValid()) return;
 		Scalars.FindOrAdd(Key) = Value;
+		SetKeepValueOnPayloadReset(Key, bKeepValueOnPayloadReset);
 	}
 
 	bool TryGetScalar(const FGameplayTag& Key, float& OutValue) const
@@ -67,10 +71,14 @@ public:
 		return true;
 	}
 
-	void SetVector(const FGameplayTag& Key, const FVector& Value)
+	void SetVector(
+		const FGameplayTag& Key,
+		const FVector& Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
 		if (!Key.IsValid()) return;
 		Vectors.FindOrAdd(Key) = Value;
+		SetKeepValueOnPayloadReset(Key, bKeepValueOnPayloadReset);
 	}
 
 	bool TryGetVector(const FGameplayTag& Key, FVector& OutValue) const
@@ -86,10 +94,14 @@ public:
 		return false;
 	}
 
-	void SetObject(const FGameplayTag& Key, UObject* Value)
+	void SetObject(
+		const FGameplayTag& Key,
+		UObject* Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
 		if (!Key.IsValid()) return;
 		Objects.FindOrAdd(Key) = Value;
+		SetKeepValueOnPayloadReset(Key, bKeepValueOnPayloadReset);
 	}
 
 	bool TryGetObject(const FGameplayTag& Key, UObject*& OutValue) const
@@ -106,19 +118,27 @@ public:
 	}
 
 	template <typename StructType>
-	void SetStruct(const FGameplayTag& Key, const StructType& Value)
+	void SetStruct(
+		const FGameplayTag& Key,
+		const StructType& Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
 		if (!Key.IsValid()) return;
 
 		FInstancedStruct& StructValue = Structs.FindOrAdd(Key);
 		StructValue.InitializeAs<StructType>(Value);
+		SetKeepValueOnPayloadReset(Key, bKeepValueOnPayloadReset);
 	}
 
-	void SetStructValue(const FGameplayTag& Key, const FInstancedStruct& Value)
+	void SetStructValue(
+		const FGameplayTag& Key,
+		const FInstancedStruct& Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
 		if (!Key.IsValid() || !Value.IsValid()) return;
 
 		Structs.FindOrAdd(Key) = Value;
+		SetKeepValueOnPayloadReset(Key, bKeepValueOnPayloadReset);
 	}
 
 	template <typename StructType>
@@ -184,6 +204,27 @@ public:
 	}
 
 private:
+	void SetKeepValueOnPayloadReset(const FGameplayTag& Key, bool bKeepValue)
+	{
+		if (bKeepValue)
+		{
+			KeysKeptOnReset.Add(Key);
+		}
+		else
+		{
+			KeysKeptOnReset.Remove(Key);
+		}
+	}
+
+	template <typename ValueType>
+	void RemoveValuesNotKeptOnReset(TMap<FGameplayTag, ValueType>& Values)
+	{
+		for (auto It = Values.CreateIterator(); It; ++It)
+		{
+			if (!KeysKeptOnReset.Contains(It.Key())) It.RemoveCurrent();
+		}
+	}
+
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, float> Scalars;
 
@@ -195,4 +236,7 @@ private:
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, FInstancedStruct> Structs;
+
+	UPROPERTY(Transient)
+	TSet<FGameplayTag> KeysKeptOnReset;
 };

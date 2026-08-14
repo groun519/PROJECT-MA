@@ -4,7 +4,7 @@
 		"ModuleName": "PDA_Lance",
 		"DisplayData": {
 			"DisplayName": "Lance",
-			"Description": "<ATK>공격력이 10% 증가</>하고 <AS>공격 속도가 9% 감소</>합니다.\r\n<MS>이동 속도가 10% 감소</>하며, 근접 범위가 30% 증가하고 원거리 범위가 10% 감소합니다.\r\n<ATK>누적해서 입힌 피해</>에 따라 <ATK>공격력</>이 추가로 증가합니다.\r\n누적 피해 10,000에서 50%, 이후 최대 100%에 수렴합니다.",
+			"Description": "<ATK>공격력이 10% 증가</>하고 <AS>공격 속도가 9% 감소</>합니다.\r\n<MS>이동 속도가 10% 감소</>하며, 근접 범위가 30% 증가하고 원거리 범위가 10% 감소합니다.\r\n<ATK>실제로 적용된 모든 피해량과 회복량</>을 누적해 <ATK>공격력 성장률</>로 전환합니다.\r\n누적 수치 10,000에서 성장률 50%, 이후 최대 100%에 수렴합니다.",
 			"IconData": {
 				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/PassiveModuleTexture/T_Lance.T_Lance'",
 				"Priority": 0
@@ -30,7 +30,7 @@
 				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
 				"initialStack": 0,
 				"minStack": 0,
-				"maxStack": 2147483647,
+				"maxStack": 100,
 				"bShowStackText": true
 			},
 			{
@@ -53,13 +53,7 @@
 									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
 								"payloadTag": "Data.Module.Stack",
-								"payloadCalculation":
-								{
-									"type": "DiminishingGrowth",
-									"halfValue": 10000,
-									"maxValue": 1
-								},
-								"coefficient": 1.1
+								"coefficient": 0.011
 							}
 						],
 						"grantedTags": [],
@@ -138,9 +132,14 @@
 						"eventTag": "Event.Skill.DamageApplied",
 						"bindingScope": "Global",
 						"action": {
-							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
-							"operation": "Add",
-							"valuePayloadTag": "Data.Damage.Applied"
+							"_ClassName": "/Script/P_MA.MASkillAction_AccumulateModuleStackFromPayload",
+							"valuePayloadTag": "Data.Damage.Applied",
+							"accumulatedPayloadTag": "Data.Module.AccumulatedDamage",
+							"stackCalculation": {
+								"type": "DiminishingGrowth",
+								"halfValue": 10000,
+								"maxValue": 100
+							}
 						}
 					}
 				]

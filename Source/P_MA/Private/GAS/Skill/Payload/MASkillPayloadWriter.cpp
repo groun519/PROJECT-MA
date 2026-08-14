@@ -11,9 +11,13 @@ FMASkillPayloadWriter::FMASkillPayloadWriter(
 void FMASkillPayloadWriter::SetScalar(
 	EMASkillPayloadScope Scope,
 	const FGameplayTag& Key,
-	float Value)
+	float Value,
+	bool bKeepValueOnPayloadReset)
 {
-	if (FMASkillPayloadStore* Store = GetStore(Scope)) Store->SetScalar(Key, Value);
+	if (FMASkillPayloadStore* Store = GetStore(Scope))
+	{
+		Store->SetScalar(Key, Value, bKeepValueOnPayloadReset);
+	}
 }
 
 bool FMASkillPayloadWriter::AddScalar(
@@ -38,17 +42,25 @@ bool FMASkillPayloadWriter::MultiplyScalar(
 void FMASkillPayloadWriter::SetVector(
 	EMASkillPayloadScope Scope,
 	const FGameplayTag& Key,
-	const FVector& Value)
+	const FVector& Value,
+	bool bKeepValueOnPayloadReset)
 {
-	if (FMASkillPayloadStore* Store = GetStore(Scope)) Store->SetVector(Key, Value);
+	if (FMASkillPayloadStore* Store = GetStore(Scope))
+	{
+		Store->SetVector(Key, Value, bKeepValueOnPayloadReset);
+	}
 }
 
 void FMASkillPayloadWriter::SetObject(
 	EMASkillPayloadScope Scope,
 	const FGameplayTag& Key,
-	UObject* Value)
+	UObject* Value,
+	bool bKeepValueOnPayloadReset)
 {
-	if (FMASkillPayloadStore* Store = GetStore(Scope)) Store->SetObject(Key, Value);
+	if (FMASkillPayloadStore* Store = GetStore(Scope))
+	{
+		Store->SetObject(Key, Value, bKeepValueOnPayloadReset);
+	}
 }
 
 FMASkillPayloadStore* FMASkillPayloadWriter::GetStore(EMASkillPayloadScope Scope) const

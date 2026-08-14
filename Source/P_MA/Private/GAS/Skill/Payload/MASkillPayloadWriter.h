@@ -10,20 +10,39 @@ struct P_MA_API FMASkillPayloadWriter
 
 	bool IsValid() const { return SkillPayloads || ModulePayloads; }
 
-	void SetScalar(EMASkillPayloadScope Scope, const FGameplayTag& Key, float Value);
+	void SetScalar(
+		EMASkillPayloadScope Scope,
+		const FGameplayTag& Key,
+		float Value,
+		bool bKeepValueOnPayloadReset = false);
 	bool AddScalar(
 		EMASkillPayloadScope Scope,
 		const FGameplayTag& Key,
 		float Value,
 		TOptional<float> MinimumValue = {});
 	bool MultiplyScalar(EMASkillPayloadScope Scope, const FGameplayTag& Key, float Value);
-	void SetVector(EMASkillPayloadScope Scope, const FGameplayTag& Key, const FVector& Value);
-	void SetObject(EMASkillPayloadScope Scope, const FGameplayTag& Key, UObject* Value);
+	void SetVector(
+		EMASkillPayloadScope Scope,
+		const FGameplayTag& Key,
+		const FVector& Value,
+		bool bKeepValueOnPayloadReset = false);
+	void SetObject(
+		EMASkillPayloadScope Scope,
+		const FGameplayTag& Key,
+		UObject* Value,
+		bool bKeepValueOnPayloadReset = false);
 
 	template <typename StructType>
-	void SetStruct(EMASkillPayloadScope Scope, const FGameplayTag& Key, const StructType& Value)
+	void SetStruct(
+		EMASkillPayloadScope Scope,
+		const FGameplayTag& Key,
+		const StructType& Value,
+		bool bKeepValueOnPayloadReset = false)
 	{
-		if (FMASkillPayloadStore* Store = GetStore(Scope)) Store->SetStruct(Key, Value);
+		if (FMASkillPayloadStore* Store = GetStore(Scope))
+		{
+			Store->SetStruct(Key, Value, bKeepValueOnPayloadReset);
+		}
 	}
 
 private:
