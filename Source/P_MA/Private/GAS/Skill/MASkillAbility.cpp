@@ -23,7 +23,9 @@ UMASkillAbility::UMASkillAbility()
 	SequenceRuntime = CreateDefaultSubobject<UMASkillSequenceRuntime>(TEXT("SequenceRuntime"));
 
 	const FGameplayTag SkillTag = FGameplayTag::RequestGameplayTag(TEXT("Skill"));
-	AbilityTags.AddTag(SkillTag);
+	FGameplayTagContainer SkillAssetTags = GetAssetTags();
+	SkillAssetTags.AddTag(SkillTag);
+	SetAssetTags(SkillAssetTags);
 	BlockAbilitiesWithTag.AddTag(SkillTag);
 
 	CancelTriggerTags.AddTag(UMAAbilitySystemStatics::GetStunStatTag());

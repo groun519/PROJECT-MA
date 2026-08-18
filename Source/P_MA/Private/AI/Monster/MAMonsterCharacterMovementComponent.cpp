@@ -2,6 +2,6 @@
 
 UMAMonsterCharacterMovementComponent::UMAMonsterCharacterMovementComponent()
 {
-	// bUseAccelerationForPaths is protected, so monster-only path acceleration is set through this subclass.
-	bUseAccelerationForPaths = true;
+	// bUseAccelerationForPaths moved into NavMovementProperties in UE 5.8.
+	NavMovementProperties.bUseAccelerationForPaths = true;
 }

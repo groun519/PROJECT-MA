@@ -4,7 +4,7 @@
 #include "Animation/Notify/AnimNotifyState_RotateToTarget.h"
 #include "Kismet/GameplayStatics.h"
 
-void UAnimNotifyState_RotateToTarget::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime)
+void UAnimNotifyState_RotateToTarget::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
 	if (!MeshComp) return;
 

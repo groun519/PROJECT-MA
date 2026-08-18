@@ -4,7 +4,7 @@
 #include "GAS/Skill/Module/MASkillModuleDataTypes.h"
 #include "GAS/Skill/Module/Json/MASkillModuleDataValidator.h"
 #include "GameplayTagContainer.h"
-#include "InstancedStruct.h"
+#include "StructUtils/InstancedStruct.h"
 #include "Internationalization/Text.h"
 #include "JsonObjectConverter.h"
 #include "Policies/PrettyJsonPrintPolicy.h"

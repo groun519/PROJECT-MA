@@ -11,7 +11,7 @@ public class P_MA : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core", "CoreUObject", "Engine", "InputCore", 
-			"EnhancedInput","Paper2D","Niagara", "PCG" , "StructUtils"
+			"EnhancedInput","Paper2D","Niagara", "PCG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

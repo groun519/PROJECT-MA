@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "MASkillAreaTypes.generated.h"
 
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="MASkillAreaShapeType"))
 enum class EMASkillAreaShape : uint8
 {
 	None,

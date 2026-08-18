@@ -13,5 +13,5 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Lobby")
 	bool bOnlyOwnerSee = true;
 
-	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 };

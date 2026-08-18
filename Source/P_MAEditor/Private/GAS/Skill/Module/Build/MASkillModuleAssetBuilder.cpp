@@ -285,7 +285,7 @@ bool FMASkillModuleAssetBuilder::Build(
 	TStrongObjectPtr<UMASkillModule> PreviousObjectOwner(NewObject<UMASkillModule>());
 	TArray<FMASkillModuleObjectMove> ObjectMoves;
 	TArray<UObject*> PreviousObjects;
-	GetObjectsWithOuter(TargetAsset, PreviousObjects, false);
+	GetObjectsWithOuter(TargetAsset, PreviousObjects, EGetObjectsFlags::None);
 	for (UObject* Object : PreviousObjects)
 	{
 		const FName StagingName = MakeUniqueObjectName(
@@ -300,7 +300,7 @@ bool FMASkillModuleAssetBuilder::Build(
 	}
 
 	TArray<UObject*> NewObjects;
-	GetObjectsWithOuter(BuildCandidate.Get(), NewObjects, false);
+	GetObjectsWithOuter(BuildCandidate.Get(), NewObjects, EGetObjectsFlags::None);
 	for (UObject* Object : NewObjects)
 	{
 		const FName ObjectName = Object->IsA<UMASkillModuleAddon>()

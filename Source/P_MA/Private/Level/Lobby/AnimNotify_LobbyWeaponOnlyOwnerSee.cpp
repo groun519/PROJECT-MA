@@ -1,9 +1,9 @@
 #include "AnimNotify_LobbyWeaponOnlyOwnerSee.h"
 #include "LobbyAvatarSlot.h"
 
-void UAnimNotify_LobbyWeaponOnlyOwnerSee::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+void UAnimNotify_LobbyWeaponOnlyOwnerSee::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
-	Super::Notify(MeshComp, Animation);
+	Super::Notify(MeshComp, Animation, EventReference);
 
 	if (!MeshComp)
 	{

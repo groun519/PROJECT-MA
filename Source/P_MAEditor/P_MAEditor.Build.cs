@@ -25,7 +25,6 @@ public class P_MAEditor : ModuleRules
 			"PropertyEditor",
 			"Slate",
 			"SlateCore",
-			"StructUtils",
 			"UnrealEd",
 			"WorkspaceMenuStructure"
 		});

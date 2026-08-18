@@ -7,7 +7,7 @@
 #include "GAS/Skill/Module/Json/MASkillModuleJsonFile.h"
 #include "GAS/Skill/Payload/MASkillPayloadStructBase.h"
 #include "GameplayTagContainer.h"
-#include "InstancedStruct.h"
+#include "StructUtils/InstancedStruct.h"
 #include "InstancedReferenceSubobjectHelper.h"
 #include "Internationalization/Text.h"
 #include "JsonObjectConverter.h"
@@ -506,16 +506,17 @@ static bool PrepareJsonObject(
 	const bool bAllowClassField,
 	TArray<FMASkillModuleDiagnostic>& OutDiagnostics)
 {
-	for (TPair<FString, TSharedPtr<FJsonValue>>& Field : JsonObject->Values)
+	for (auto& Field : JsonObject->Values)
 	{
-		if (Field.Key == ClassNameField)
+		const FString FieldName(Field.Key.ToView());
+		if (FieldName == ClassNameField)
 		{
 			if (bAllowClassField) continue;
 			return Fail(OutDiagnostics, TEXT("Contains an unexpected _ClassName."), Path);
 		}
 
-		FProperty* Property = FindAuthoredProperty(Struct, Field.Key);
-		const FString FieldPath = AppendPropertyPath(Path, Field.Key);
+		FProperty* Property = FindAuthoredProperty(Struct, FieldName);
+		const FString FieldPath = AppendPropertyPath(Path, FieldName);
 		if (!Property)
 		{
 			return Fail(OutDiagnostics, TEXT("Is not a supported field."), FieldPath);
@@ -605,14 +606,14 @@ static bool ImportPayloadStructs(
 	for (int32 Index = 0; Index < PayloadValues->Num(); ++Index)
 	{
 		const TSharedPtr<FJsonObject> PayloadObject = (*PayloadValues)[Index]->AsObject();
-		const TSharedPtr<FJsonValue>* StructJsonValue =
-			PayloadObject->Values.Find(AuthoredStructValueField);
-		if (!StructJsonValue || (*StructJsonValue)->IsNull()) continue;
+		const TSharedPtr<FJsonValue> StructJsonValue =
+			PayloadObject->TryGetField(AuthoredStructValueField);
+		if (!StructJsonValue.IsValid() || StructJsonValue->IsNull()) continue;
 
 		const FString Path = AppendPropertyPath(
 			AppendArrayPath(TEXT("Module.Payloads"), Index),
 			AuthoredStructValueField);
-		const TSharedRef<FJsonObject> StructObject = (*StructJsonValue)->AsObject().ToSharedRef();
+		const TSharedRef<FJsonObject> StructObject = StructJsonValue->AsObject().ToSharedRef();
 		UScriptStruct* ScriptStruct = ResolvePayloadStruct(StructObject, Path, OutDiagnostics);
 		if (!ScriptStruct) return false;
 

@@ -56,7 +56,7 @@ FGameplayTag FMASkillSystemStatics::ResolveCooldownTagFromSlotTag(const FGamepla
 FGameplayTag FMASkillSystemStatics::ResolveSlotTagFromAbilitySpec(const FGameplayAbilitySpec& Spec)
 {
 	TArray<FGameplayTag> SlotTags;
-	Spec.DynamicAbilityTags.GetGameplayTagArray(SlotTags);
+	Spec.GetDynamicSpecSourceTags().GetGameplayTagArray(SlotTags);
 	for (const FGameplayTag& SlotTag : SlotTags)
 	{
 		if (IsSkillSlotTag(SlotTag)) return SlotTag;

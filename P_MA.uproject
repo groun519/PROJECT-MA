@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.4",
+	"EngineAssociation": "{3DD5890C-4A4D-CCBB-DD31-6FADB685C021}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -57,10 +57,6 @@
 		},
 		{
 			"Name": "PCGExternalDataInterop",
-			"Enabled": true
-		},
-		{
-			"Name": "StructUtils",
 			"Enabled": true
 		},
 		{

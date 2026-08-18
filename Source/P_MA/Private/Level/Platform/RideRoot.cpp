@@ -8,6 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "P_MA/P_MA.h"
 #include "EngineUtils.h"
+#include "Interfaces/MovementBaseInterface.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/Components/ReadyStateComponent.h"
 #include "Player/Components/ReadyRideComponent.h"
@@ -112,9 +113,9 @@ void ARideRoot::ReleaseAttachedPlayers()
 		UReadyRideComponent* ReadyRideComp = PlayerCharacter->GetReadyRideComponent();
 		if (!ReadyRideComp || ReadyRideComp->GetRidingRoot() != this) continue;
 
-		if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
+		if (PlayerCharacter->GetMovementBaseObject() == GetRideBaseComponent())
 		{
-			PlayerCharacter->SetBase(nullptr);
+			PlayerCharacter->SetBase(static_cast<FMovementBaseInterfaceData*>(nullptr));
 		}
 
 		ReadyRideComp->SetRidingRoot(nullptr);
@@ -318,14 +319,15 @@ void ARideRoot::SyncReadyByMoveInTrigger(bool bReady)
 
 		if (bReady)
 		{
-			PlayerCharacter->SetBase(GetRideBaseComponent());
+			FMovementBaseInterfaceData MovementBaseData(GetRideBaseComponent());
+			PlayerCharacter->SetBase(&MovementBaseData);
 			PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(this);
 		}
 		else
 		{
-			if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
+			if (PlayerCharacter->GetMovementBaseObject() == GetRideBaseComponent())
 			{
-				PlayerCharacter->SetBase(nullptr);
+				PlayerCharacter->SetBase(static_cast<FMovementBaseInterfaceData*>(nullptr));
 			}
 			PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(nullptr);
 		}
@@ -350,7 +352,8 @@ void ARideRoot::HandleMoveInTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 
 	ReadyComp->SetReady(true);
 
-	PlayerCharacter->SetBase(GetRideBaseComponent());
+	FMovementBaseInterfaceData MovementBaseData(GetRideBaseComponent());
+	PlayerCharacter->SetBase(&MovementBaseData);
 	PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(this);
 }
 
@@ -368,9 +371,9 @@ void ARideRoot::HandleMoveInTriggerEndOverlap(UPrimitiveComponent* OverlappedCom
 
 	ReadyComp->SetReady(false);
 
-	if (PlayerCharacter->GetMovementBase() == GetRideBaseComponent())
+	if (PlayerCharacter->GetMovementBaseObject() == GetRideBaseComponent())
 	{
-		PlayerCharacter->SetBase(nullptr);
+		PlayerCharacter->SetBase(static_cast<FMovementBaseInterfaceData*>(nullptr));
 	}
 	PlayerCharacter->GetReadyRideComponent()->SetRidingRoot(nullptr);
 }

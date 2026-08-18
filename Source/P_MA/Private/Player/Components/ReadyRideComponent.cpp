@@ -6,6 +6,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Interfaces/MovementBaseInterface.h"
 #include "Level/Platform/RideRoot.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/MAPlayerCharacter.h"
@@ -137,19 +138,20 @@ void UReadyRideComponent::SyncRideMovementBase() const
 	AMAPlayerCharacter* OwnerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!OwnerCharacter) return;
 
-	UPrimitiveComponent* CurrentBase = OwnerCharacter->GetMovementBase();
+	UPrimitiveComponent* CurrentBase = Cast<UPrimitiveComponent>(OwnerCharacter->GetMovementBaseObject());
 	UPrimitiveComponent* NewBase = RidingRoot ? RidingRoot->GetRideBaseComponent() : nullptr;
 	if (CurrentBase == NewBase) return;
 
 	if (NewBase)
 	{
-		OwnerCharacter->SetBase(NewBase);
+		FMovementBaseInterfaceData MovementBaseData(NewBase);
+		OwnerCharacter->SetBase(&MovementBaseData);
 		return;
 	}
 
 	if (CurrentBase && CurrentBase->GetOwner() && CurrentBase->GetOwner()->IsA<ARideRoot>())
 	{
-		OwnerCharacter->SetBase(nullptr);
+		OwnerCharacter->SetBase(static_cast<FMovementBaseInterfaceData*>(nullptr));
 	}
 }
 

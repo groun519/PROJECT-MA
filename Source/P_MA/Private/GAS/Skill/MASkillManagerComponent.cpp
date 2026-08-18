@@ -653,7 +653,7 @@ bool UMASkillManagerComponent::EnsureAbilityForSlot(FMASkillSlotRuntimeState& Sl
 	for (const FGameplayAbilitySpec& AbilitySpec : AbilitySystemComponent->GetActivatableAbilities())
 	{
 		if (!AbilitySpec.Ability || AbilitySpec.Ability->GetClass() != UMASkillAbility::StaticClass()) continue;
-		if (!AbilitySpec.DynamicAbilityTags.HasTagExact(SlotState.SlotTag)) continue;
+		if (!AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(SlotState.SlotTag)) continue;
 
 		SlotState.AbilityHandle = AbilitySpec.Handle;
 		return true;
@@ -661,7 +661,7 @@ bool UMASkillManagerComponent::EnsureAbilityForSlot(FMASkillSlotRuntimeState& Sl
 
 	const int32 SlotInputID = FMASkillSystemStatics::ResolveSlotInputID(SlotState.SlotTag);
 	FGameplayAbilitySpec AbilitySpec(UMASkillAbility::StaticClass(), 1, SlotInputID, nullptr);
-	AbilitySpec.DynamicAbilityTags.AddTag(SlotState.SlotTag);
+	AbilitySpec.GetDynamicSpecSourceTags().AddTag(SlotState.SlotTag);
 	SlotState.AbilityHandle = AbilitySystemComponent->GiveAbility(AbilitySpec);
 	return SlotState.AbilityHandle.IsValid();
 }

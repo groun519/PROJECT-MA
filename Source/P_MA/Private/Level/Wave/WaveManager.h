@@ -39,7 +39,7 @@ struct FWaveSetting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
 	float MonsterStatCoefficient = 1.0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
-	float AddingMonsterStatCoefficientPerWave = 0.01;
+	float AddingMonsterStatCoefficientPerWave = 0.01f;
 };
 
 UCLASS()
