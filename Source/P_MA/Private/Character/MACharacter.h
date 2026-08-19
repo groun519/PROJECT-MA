@@ -32,6 +32,7 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	
 protected:
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
 public:	

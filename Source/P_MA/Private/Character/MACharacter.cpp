@@ -51,9 +51,13 @@ AMACharacter::AMACharacter(const FObjectInitializer& ObjectInitializer)
 	OverHeadWidgetComponent->SetupAttachment(GetMesh());
 	SkillManagerComponent = CreateDefaultSubobject<UMASkillManagerComponent>("SkillManagerComponent");
 
-	BindGASChangeDelegates();
-
 	PerceptionStimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>("Perception Stimuli Source Component");
+}
+
+void AMACharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	BindGASChangeDelegates();
 }
 
 void AMACharacter::ServerSideInit()
@@ -116,13 +120,12 @@ UAbilitySystemComponent* AMACharacter::GetAbilitySystemComponent() const
 
 void AMACharacter::BindGASChangeDelegates()
 {
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
-		MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
-		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-		MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetSlowMultiplierAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
-	}
+	if (!MAAbilitySystemComponent || HasAnyFlags(RF_ClassDefaultObject)) return;
+
+	MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetDeadStatTag()).AddUObject(this, &AMACharacter::DeathTagUpdated);
+	MAAbilitySystemComponent->RegisterGameplayTagEvent(UMAAbilitySystemStatics::GetMoveBlockTag()).AddUObject(this, &AMACharacter::MoveBlockTagUpdated);
+	MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
+	MAAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetSlowMultiplierAttribute()).AddUObject(this, &AMACharacter::MoveSpeedUpdated);
 }
 
 void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
