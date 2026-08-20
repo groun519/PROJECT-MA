@@ -106,10 +106,15 @@ void UMASkillAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 {
 	const UMASkillModule* CurrentSkillModule = GetCurrentSkillModule();
 	if (!CurrentSkillModuleInstance || !CurrentSkillModule) { K2_EndAbility(); return; }
-	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
 
-	CurrentSkillModuleInstance->ResetPayloadStore();
-	CurrentSkillModule->ApplyPayloadsTo(CurrentSkillModuleInstance->GetPayloadStore());
+	UMASkillManagerComponent* SkillManager = GetSkillManagerComponent();
+	if (!ensureMsgf(SkillManager, TEXT("Skill ability requires a skill manager component.")))
+	{
+		K2_EndAbility();
+		return;
+	}
+	if (!K2_CommitAbility()) { K2_EndAbility(); return; }
+	if (!SkillManager->ResetPayloadsForActivation(Handle)) { K2_EndAbility(); return; }
 
 	RegisterCancelTriggers();
 

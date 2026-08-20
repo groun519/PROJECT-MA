@@ -71,6 +71,7 @@ public:
 	void UnregisterAbilityHandle(FGameplayTag SlotTag, FGameplayAbilitySpecHandle AbilityHandle);
 	void ClearActivePreviewVisualElementTag();
 	bool TryActivateSkill(FGameplayTag SlotTag);
+	bool ResetPayloadsForActivation(FGameplayAbilitySpecHandle AbilityHandle);
 	UMASkillAbility* GetSkillAbility(FGameplayTag SlotTag) const;
 	UMASkillEventRouter* GetEventRouter() const { return Router; }
 	UMASkillEventDispatcher* GetEventDispatcher() const { return Dispatcher; }

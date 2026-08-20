@@ -30,7 +30,7 @@ bool UMASkillModuleInstance::SetRootModule(UMASkillModule* InRootModule)
 	{
 		ModuleGroup.RootModule->InitializeAddonRuntimeData(AddonRuntimeData);
 	}
-	InitializePayloadStore();
+	ResetPayloads();
 	return true;
 }
 
@@ -42,7 +42,7 @@ void UMASkillModuleInstance::OnRep_ModuleGroup(FMASkillModuleGroup& PreviousModu
 	{
 		ModuleGroup.RootModule->InitializeAddonRuntimeData(AddonRuntimeData);
 	}
-	InitializePayloadStore();
+	ResetPayloads();
 	if (ModuleGroup.SubModules != PreviousModuleGroup.SubModules)
 	{
 		OnSubModulesChanged.Broadcast(this);
@@ -75,7 +75,7 @@ bool UMASkillModuleInstance::SetSubModuleAt(
 	ModuleGroup.SubModules.SetNum(NewNum);
 
 	ComposedModule.Reset(*this);
-	InitializePayloadStore();
+	ResetPayloads();
 	OnSubModulesChanged.Broadcast(this);
 	OnStateChanged.Broadcast();
 	if (AActor* MutableOwnerActor = GetTypedOuter<AActor>())
@@ -122,7 +122,7 @@ void UMASkillModuleInstance::NotifyAddonRuntimeDataChanged()
 	}
 }
 
-void UMASkillModuleInstance::InitializePayloadStore()
+void UMASkillModuleInstance::ResetPayloads()
 {
 	PayloadStore.Reset();
 	if (ModuleGroup.RootModule)

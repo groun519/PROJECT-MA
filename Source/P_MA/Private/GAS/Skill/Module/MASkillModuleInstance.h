@@ -66,7 +66,6 @@ public:
 
 	// Add a const getter when a const module instance needs read-only payload access.
 	FMASkillPayloadStore& GetPayloadStore() { return PayloadStore; }
-	void ResetPayloadStore() { PayloadStore.Reset(); }
 	UMASkillRuntimeRegistry* GetRuntimeRegistry() const { return RuntimeRegistry; }
 
 	FMASkillModuleStateChangedSignature OnStateChanged;
@@ -81,7 +80,7 @@ private:
 	void OnRep_AddonRuntimeData();
 	bool CanModifyAddonRuntimeData() const;
 	void NotifyAddonRuntimeDataChanged();
-	void InitializePayloadStore();
+	void ResetPayloads();
 	void RefreshAddonPayloadMirrors();
 
 	UPROPERTY(ReplicatedUsing=OnRep_ModuleGroup)

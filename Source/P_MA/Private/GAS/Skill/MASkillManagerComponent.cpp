@@ -482,6 +482,35 @@ bool UMASkillManagerComponent::TryActivateSkill(FGameplayTag SlotTag)
 	return false;
 }
 
+bool UMASkillManagerComponent::ResetPayloadsForActivation(
+	const FGameplayAbilitySpecHandle AbilityHandle)
+{
+	FMASkillSlotRuntimeState* SlotState = SkillSlotRuntimeStates.FindByPredicate(
+		[AbilityHandle](const FMASkillSlotRuntimeState& Candidate)
+		{
+			return Candidate.AbilityHandle == AbilityHandle;
+		});
+	if (!ensureMsgf(
+		SlotState,
+		TEXT("Cannot reset activation payloads for an unregistered skill ability.")))
+	{
+		return false;
+	}
+	if (!ensureMsgf(
+		SlotState->AssembledModuleInstance,
+		TEXT("Cannot reset activation payloads without an assembled skill module.")))
+	{
+		return false;
+	}
+
+	for (UMASkillModuleInstance* SourceModuleInstance : SlotState->SourceModuleInstances)
+	{
+		if (SourceModuleInstance) SourceModuleInstance->ResetPayloads();
+	}
+	SlotState->AssembledModuleInstance->ResetPayloads();
+	return true;
+}
+
 UMASkillAbility* UMASkillManagerComponent::GetSkillAbility(FGameplayTag SlotTag) const
 {
 	const FMASkillSlotRuntimeState* SlotState = FindSlotRuntimeState(SlotTag);

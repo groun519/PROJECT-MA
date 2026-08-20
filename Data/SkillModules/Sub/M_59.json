@@ -1,0 +1,79 @@
+{
+	"ModuleId": 59,
+
+	"Module":
+	{
+		"ModuleType": "Sub",
+		"ModuleName": "DA_TripleStrike",
+		"DisplayData":
+		{
+			"DisplayName": "Triple Strike",
+			"Description": "장착한 모듈의 공격을 <AS>3배의 시전 속도</>로 3회 연속 실행합니다.\r\n각 공격의 <FINAL>최종 피해량은 40%</>가 됩니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_TripleStrike.T_TripleStrike'",
+				"Priority": 1
+			},
+			"NameData":
+			{
+				"Keyword": "Triple",
+				"Priority": 1
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Sequence"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
+				"sequences": [],
+				"sequenceModifiers": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillSequenceModifier_Repeat",
+						"targetSequenceIndex": 0,
+						"additionalCopies": 2
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"eventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"eventBindings": [
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyModuleFinalDamage",
+							"multiplier": 0.4,
+							"multiplierPayloadTag": "",
+							"payloadBaseMultiplier": 0
+						}
+					},
+					{
+						"eventTag": "Event.Skill.Activate",
+						"bindingScope": "Module",
+						"action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_MultiplySkillAttackSpeed",
+							"multiplier": 3.0
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}
