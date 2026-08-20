@@ -1,0 +1,113 @@
+{
+	"ModuleId": 60,
+	"Module":
+	{
+		"ModuleName": "PDA_Overdrive",
+		"DisplayData":
+		{
+			"DisplayName": "Overdrive",
+			"Description": "<AS>피해 적용 30회</>마다 <AS>3초간 오버드라이브</>에 진입합니다.\\r\\n오버드라이브 중 <AS>시전 속도가 300%로 고정</>됩니다.\\r\\n지속 피해 틱을 포함한 모든 DamageApplied를 1회로 계산합니다.",
+			"IconData":
+			{
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_Overdrive.T_Overdrive'",
+				"Priority": 0
+			},
+			"NameData":
+			{
+				"Keyword": "",
+				"Priority": 0
+			}
+		},
+		"ModuleQuality":
+		{
+			"Rarity": "Rarity3"
+		},
+		"ModuleTags": [
+			"Module.OnHit",
+			"Module.Passive"
+		],
+		"ModuleVisualTags": [
+			"Module.Visual.Type.Passive"
+		],
+		"Addons": [
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
+				"MaxStack": 30,
+				"bShowStackText": true
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
+				"EventSources": [
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_DamageApplied"
+					},
+					{
+						"_ClassName": "/Script/P_MA.MASkillEventSource_ModuleStackChanged"
+					}
+				]
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
+				"EventBindings": [
+					{
+						"EventTag": "Event.Skill.DamageApplied",
+						"BindingScope": "Global",
+						"Action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
+							"Operation": "Add",
+							"Value": 1
+						}
+					},
+					{
+						"EventTag": "Event.Module.StackChanged",
+						"BindingScope": "Module",
+						"Action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_EmitEventAtModuleStack",
+							"RequiredStack": 30,
+							"EventTag": "Event.Module.StackThresholdReached"
+						}
+					},
+					{
+						"EventTag": "Event.Module.StackThresholdReached",
+						"BindingScope": "Module",
+						"Action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyGameplayEffectToSelf",
+							"GameplayEffectClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/GE_Overdrive.GE_Overdrive_C'",
+							"EffectLevel": 1
+						}
+					},
+					{
+						"EventTag": "Event.Module.StackThresholdReached",
+						"BindingScope": "Module",
+						"Action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ApplyOverlayToSelf",
+							"BaseColor":
+							{
+								"r": 0.2,
+								"g": 0.75,
+								"b": 1,
+								"a": 1
+							},
+							"Alpha": 0.4,
+							"Duration": 3
+						}
+					},
+					{
+						"EventTag": "Event.Module.StackThresholdReached",
+						"BindingScope": "Module",
+						"Action":
+						{
+							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
+							"Operation": "Clear"
+						}
+					}
+				]
+			}
+		],
+		"Payloads": []
+	}
+}
