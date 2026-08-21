@@ -8,6 +8,7 @@
 
 class USoundClass;
 class USoundMix;
+class UMAGameplaySoundLibrary;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Audio Setting"))
 class P_MA_API UMAAudioSetting : public UDeveloperSettings
@@ -32,6 +33,9 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Assets")
 	TSoftObjectPtr<USoundClass> UiSoundClass;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Assets")
+	TSoftObjectPtr<UMAGameplaySoundLibrary> GameplaySoundLibrary;
 
 	/** Defaults **/
 	UPROPERTY(Config, EditAnywhere, Category = "Defaults")
