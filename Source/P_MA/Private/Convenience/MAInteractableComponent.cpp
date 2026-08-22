@@ -1,5 +1,6 @@
 ﻿#include "MAInteractableComponent.h"
 
+#include "Components/PrimitiveComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Convenience/MAInteractorComponent.h"
 #include "Convenience/MAHighlightComponent.h"
@@ -63,6 +64,24 @@ void UMAInteractableComponent::AttachKeyWidgetToInteractable()
 	InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
 }
 
+void UMAInteractableComponent::AddCursorHoverTarget(UPrimitiveComponent* Target)
+{
+	if (!Target || Target->GetOwner() != GetOwner()) return;
+
+	CursorHoverTargets.AddUnique(Target);
+	if (Target->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+	{
+		Target->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		Target->SetCollisionResponseToAllChannels(ECR_Ignore);
+	}
+	Target->SetCollisionResponseToChannel(ECC_Target, ECR_Block);
+}
+
+bool UMAInteractableComponent::IsCursorHoverTarget(const UPrimitiveComponent* Target) const
+{
+	return Target && CursorHoverTargets.Contains(Target);
+}
+
 void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 {
 	if (InteractionHandler) InteractionHandler(Interactor);
@@ -104,6 +123,17 @@ void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor
 	if (FocusHandler)
 	{
 		FocusHandler(Interactor, bFocused);
+	}
+}
+
+void UMAInteractableComponent::SetCursorHovered(const bool bNewHovered)
+{
+	if (bCursorHovered == bNewHovered) return;
+	bCursorHovered = bNewHovered;
+
+	if (CursorHoverHandler)
+	{
+		CursorHoverHandler(bCursorHovered);
 	}
 }
 

@@ -342,21 +342,7 @@ void AMonster::TrySpawnModuleDrops()
 	if (!DropActorClass) return;
 	UWorld* World = GetWorld();
 	if (!World) return;
-
-	static constexpr float GroundTraceUp = 200.f;
-	static constexpr float GroundTraceDown = 1000.f;
-	FVector SpawnLocation = GetActorLocation();
-	FHitResult GroundHit;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpawnModuleDrop), false, this);
-	if (World->LineTraceSingleByChannel(
-		GroundHit,
-		SpawnLocation + FVector::UpVector * GroundTraceUp,
-		SpawnLocation - FVector::UpVector * GroundTraceDown,
-		ECC_Visibility,
-		QueryParams))
-	{
-		SpawnLocation = GroundHit.ImpactPoint;
-	}
+	const FVector DropOrigin = GetActorLocation();
 
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -364,9 +350,14 @@ void AMonster::TrySpawnModuleDrops()
 	{
 		AMAModuleDrop* Drop = World->SpawnActor<AMAModuleDrop>(
 			DropActorClass,
-			SpawnLocation,
+			DropOrigin,
 			FRotator::ZeroRotator,
 			SpawnParameters);
-		if (Drop && !Drop->InitializeDrop(ModuleId)) Drop->Destroy();
+		if (!Drop) continue;
+		Drop->DropNear(DropOrigin, SelectedModuleIds.Num());
+		if (!Drop->InitializeDrop(ModuleId))
+		{
+			Drop->Destroy();
+		}
 	}
 }

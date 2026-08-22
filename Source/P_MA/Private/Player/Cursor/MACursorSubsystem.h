@@ -16,6 +16,7 @@ enum class ECursorTargetRelation : uint8
 class AMACharacter;
 class UMACursorWidget;
 class UMAHighlightComponent;
+class UMAInteractableComponent;
 
 UCLASS()
 class P_MA_API UMACursorSubsystem : public ULocalPlayerSubsystem
@@ -33,22 +34,30 @@ public:
 	bool GetAimDirection(FVector& OutDirection) const;
 
 private:
+	/** Lifecycle **/
 	void RestartCursorTimer();
 	void StopCursorTimer();
 
+	/** Target Detection **/
 	void RefreshCursorTargetRelation();
 	static AMACharacter* ResolveCharacterFromHit(const FHitResult& HitResult);
-	bool TraceVisibilityUnderCursor(FHitResult& OutHit) const;
 	AMACharacter* ResolveHoveredCharacter() const;
+	bool TraceVisibilityUnderCursor(FHitResult& OutHit) const;
 	ECursorTargetRelation ResolveCursorTargetRelation(AActor* HitActor) const;
-	void UpdateHoveredActorHighlight(AMACharacter* HoveredCharacter, ECursorTargetRelation InRelation);
-	void ClearHoveredActorHighlight();
 
+	/** Highlight & Hover **/
+	void UpdateCursorHighlight(AActor* HoveredActor, UMAHighlightComponent* Highlighter,
+		ECursorTargetRelation InRelation);
+	void ClearCursorHighlight();
+	void UpdateHoveredInteractable(UMAInteractableComponent* NewHoveredInteractable);
+
+	/** Cursor Widget **/
 	void InitializeRuntimeCursorWidget();
 	TSubclassOf<UMACursorWidget> ResolveCursorWidgetClass();
-	FLinearColor ResolveCursorRelationColor(ECursorTargetRelation InRelation) const;
 	void ApplyCursorRelationColor(ECursorTargetRelation InRelation);
+	FLinearColor ResolveCursorRelationColor(ECursorTargetRelation InRelation) const;
 
+	/** Settings **/
 	UPROPERTY(EditDefaultsOnly, Category = "Cursor", meta = (ClampMin = "0.01"))
 	float CursorRelationCheckInterval = 0.1f;
 
@@ -61,6 +70,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Cursor")
 	FLinearColor CursorNeutralColor = FLinearColor::White;
 
+	/** Runtime **/
 	ECursorTargetRelation CursorTargetRelation = ECursorTargetRelation::None;
 
 	UPROPERTY(Transient)
@@ -69,9 +79,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMACursorWidget> CursorWidgetInstance;
 
-	TWeakObjectPtr<AMACharacter> HighlightedActor;
+	TWeakObjectPtr<AActor> HighlightedActor;
 	TWeakObjectPtr<UMAHighlightComponent> HighlightedComponent;
-	ECursorTargetRelation HighlightedActorRelation = ECursorTargetRelation::None;
+	ECursorTargetRelation HighlightedRelation = ECursorTargetRelation::None;
+	TWeakObjectPtr<UMAInteractableComponent> HoveredInteractable;
 
 	FTimerHandle CursorRelationTimerHandle;
 };

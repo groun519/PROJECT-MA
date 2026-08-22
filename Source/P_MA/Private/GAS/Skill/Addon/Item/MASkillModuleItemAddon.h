@@ -6,7 +6,6 @@
 
 class AActor;
 class UMASkillModule;
-class UStaticMesh;
 struct FGameplayTag;
 
 /** Owns the direct-use behavior of an Item module. */
@@ -20,10 +19,10 @@ public:
 
 	static const FGameplayTag& GetUseEventTag();
 	void Use(AActor& Owner, const UMASkillModule& Module) const;
-	UStaticMesh* GetWorldMesh() const { return WorldMesh; }
+	const FMAStaticMeshVisualData& GetWorldMesh() const { return WorldMesh; }
 
 private:
 	/** Optional unique mesh used when this item is represented in the world. */
 	UPROPERTY(EditDefaultsOnly, Category="World")
-	TObjectPtr<UStaticMesh> WorldMesh;
+	FMAStaticMeshVisualData WorldMesh;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Skill/Module/MASkillModuleTypes.h"
 #include "GameFramework/Actor.h"
 #include "MAModuleDrop.generated.h"
 
@@ -9,9 +10,11 @@ class UMAHighlightComponent;
 class UMAInteractableComponent;
 class UMASkillModule;
 class UMASkillTooltipWidget;
+class USceneComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
 class UWidgetComponent;
+struct FMAModuleRarityData;
 
 USTRUCT(BlueprintType)
 struct FMAModuleDropData
@@ -23,6 +26,12 @@ struct FMAModuleDropData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Drop", meta=(ClampMin="1"))
 	int32 Count = 1;
+
+	UPROPERTY()
+	FVector_NetQuantize VisualOrigin;
+
+	UPROPERTY()
+	bool bInFlight = false;
 
 	bool IsValid() const { return ModuleId > 0 && Count > 0; }
 };
@@ -36,13 +45,18 @@ class P_MA_API AMAModuleDrop : public AActor
 public:
 	AMAModuleDrop();
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	bool InitializeDrop(int32 ModuleId, int32 Count = 1);
+	void DropNear(const FVector& Origin, int32 DropCount);
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Component")
 	TObjectPtr<UMAInteractableComponent> InteractableComponent;
+
+	UPROPERTY(VisibleAnywhere, Category="Component")
+	TObjectPtr<USceneComponent> DropVisualRoot;
 
 	UPROPERTY(VisibleAnywhere, Category="Component")
 	TObjectPtr<UStaticMeshComponent> DropMeshComponent;
@@ -57,26 +71,46 @@ protected:
 	TObjectPtr<UWidgetComponent> TooltipWidgetComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual")
-	TObjectPtr<UStaticMesh> ModuleMesh;
+	FMAStaticMeshVisualData ModuleMesh;
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual")
-	TObjectPtr<UStaticMesh> SubModuleMesh;
+	FMAStaticMeshVisualData SubModuleMesh;
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual")
-	TObjectPtr<UStaticMesh> DefaultItemMesh;
+	FMAStaticMeshVisualData DefaultItemMesh;
+
+	UPROPERTY(EditDefaultsOnly, Category="Visual")
+	FMAStaticMeshVisualData FlightMesh;
 
 	UPROPERTY(EditDefaultsOnly, Category="Visual")
 	TSubclassOf<UMASkillTooltipWidget> TooltipWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Drop|Placement", meta=(ClampMin="0.0"))
+	float BaseDropDistance = 90.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Drop|Placement", meta=(ClampMin="0.0"))
+	float DropDistancePerItem = 35.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Drop|Animation", meta=(ClampMin="0.0"))
+	float DropAnimationDuration = 0.45f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Drop|Animation", meta=(ClampMin="0.0"))
+	float DropArcHeight = 120.f;
 
 	UPROPERTY(EditInstanceOnly, ReplicatedUsing=OnRep_DropData, Category="Drop")
 	FMAModuleDropData DropData;
 
 private:
 	void HandleInteract(AMAPlayerCharacter* Interactor);
-	void HandleFocus(AMAPlayerCharacter* Interactor, bool bFocused);
+	void HandleCursorHover(bool bHovered);
+	FVector FindDropLocationNear(const FVector& Origin, int32 DropCount) const;
+	void StartDropAnimation();
+	void FinishDropAnimation();
+	void ApplyMeshVisual(const FMAStaticMeshVisualData* VisualData);
 	void RefreshPresentation();
 	void RefreshTooltip();
-	UStaticMesh* ResolveDropMesh() const;
+	const FMAStaticMeshVisualData* ResolveDropMesh() const;
+	const FMAModuleRarityData* ResolveRarityData() const;
 
 	UFUNCTION()
 	void OnRep_DropData();
@@ -84,5 +118,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMASkillModule> CachedModule;
 
+	float DropAnimationElapsed = 0.f;
+	bool bDropAnimationActive = false;
 	bool bPickupInProgress = false;
 };

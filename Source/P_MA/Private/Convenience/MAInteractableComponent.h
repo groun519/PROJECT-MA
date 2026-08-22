@@ -12,10 +12,12 @@ class UWidgetComponent;
 // Usage from an owning actor constructor:
 // InteractableComponent->CALL_SETUP_INTERACT(HandleInteract);
 // InteractableComponent->CALL_SETUP_FOCUS(HandleFocus);
+// InteractableComponent->CALL_SETUP_CURSOR_HOVER(HandleCursorHover);
 // InteractableComponent->CALL_SETUP_HIGHLIGHTER(HighlightComponent);
 // Set DefaultInteractKeyWidgetClass in MA Game Settings.
 #define CALL_SETUP_INTERACT(MethodName) SetupInteraction(this, &std::remove_pointer_t<decltype(this)>::MethodName)
 #define CALL_SETUP_FOCUS(MethodName) SetupFocus(this, &std::remove_pointer_t<decltype(this)>::MethodName)
+#define CALL_SETUP_CURSOR_HOVER(MethodName) SetupCursorHover(this, &std::remove_pointer_t<decltype(this)>::MethodName)
 #define CALL_SETUP_HIGHLIGHTER(Highlighter) HighlightComponent = Highlighter
 #define CALL_SETUP_INTERACTION_MODE(ModeName) ExecutionMode = EMAInteractionExecutionMode::ModeName
 
@@ -62,8 +64,23 @@ public:
 		};
 	}
 
+	template<typename T>
+	void SetupCursorHover(T* InObj, void (T::*InMethod)(bool))
+	{
+		CursorHoverHandler = [InObj, InMethod](const bool bHovered)
+		{
+			if (InObj && InMethod)
+			{
+				(InObj->*InMethod)(bHovered);
+			}
+		};
+	}
+
+	void AddCursorHoverTarget(UPrimitiveComponent* Target);
+	bool IsCursorHoverTarget(const UPrimitiveComponent* Target) const;
 	void RequestInteract(AMAPlayerCharacter* Interactor);
 	void SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused);
+	void SetCursorHovered(bool bNewHovered);
 	bool CanServerInteract(const AMAPlayerCharacter* Interactor) const;
 
 	TWeakObjectPtr<UMAHighlightComponent> HighlightComponent;
@@ -85,7 +102,10 @@ private:
 
 	TFunction<void(AMAPlayerCharacter*)> InteractionHandler;
 	TFunction<void(AMAPlayerCharacter*, bool)> FocusHandler;
+	TFunction<void(bool)> CursorHoverHandler;
+	TArray<TWeakObjectPtr<UPrimitiveComponent>> CursorHoverTargets;
 	bool bFocused = false;
+	bool bCursorHovered = false;
 
 };
 

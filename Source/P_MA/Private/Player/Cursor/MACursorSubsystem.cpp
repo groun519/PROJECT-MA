@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Character/MACharacter.h"
 #include "Convenience/MAHighlightComponent.h"
+#include "Convenience/MAInteractableComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/UserInterfaceSettings.h"
@@ -12,6 +13,8 @@
 #include "P_MA/P_MA.h"
 #include "TimerManager.h"
 #include "Widget/Cursor/MACursorWidget.h"
+
+/** Lifecycle **/
 
 void UMACursorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -28,7 +31,8 @@ void UMACursorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UMACursorSubsystem::Deinitialize()
 {
 	StopCursorTimer();
-	ClearHoveredActorHighlight();
+	ClearCursorHighlight();
+	UpdateHoveredInteractable(nullptr);
 	CursorWidgetInstance = nullptr;
 	CachedPlayerController = nullptr;
 
@@ -40,7 +44,8 @@ void UMACursorSubsystem::PlayerControllerChanged(APlayerController* NewPlayerCon
 	Super::PlayerControllerChanged(NewPlayerController);
 
 	StopCursorTimer();
-	ClearHoveredActorHighlight();
+	ClearCursorHighlight();
+	UpdateHoveredInteractable(nullptr);
 	CachedPlayerController = NewPlayerController;
 	CursorWidgetInstance = nullptr;
 	CursorTargetRelation = ECursorTargetRelation::None;
@@ -78,6 +83,8 @@ void UMACursorSubsystem::StopCursorTimer()
 	World->GetTimerManager().ClearTimer(CursorRelationTimerHandle);
 }
 
+/** Target Detection **/
+
 bool UMACursorSubsystem::GetAimDirection(FVector& OutDirection) const
 {
 	APlayerController* PC = CachedPlayerController.Get();
@@ -85,7 +92,7 @@ bool UMACursorSubsystem::GetAimDirection(FVector& OutDirection) const
 	if (!Pawn) return false;
 
 	FVector TargetLocation;
-	if (const AMACharacter* TargetCharacter = HighlightedActor.Get())
+	if (const AMACharacter* TargetCharacter = Cast<AMACharacter>(HighlightedActor.Get()))
 	{
 		TargetLocation = TargetCharacter->GetActorLocation();
 	}
@@ -101,12 +108,39 @@ bool UMACursorSubsystem::GetAimDirection(FVector& OutDirection) const
 	OutDirection = (TargetLocation - Origin).GetSafeNormal();
 	return !OutDirection.IsNearlyZero();
 }
-
 void UMACursorSubsystem::RefreshCursorTargetRelation()
 {
-	AMACharacter* HoveredCharacter = ResolveHoveredCharacter();
+	FHitResult CursorHoverHit;
+	AActor* HoveredActor = nullptr;
+	UMAHighlightComponent* HoveredHighlighter = nullptr;
+	UMAInteractableComponent* NewHoveredInteractable = nullptr;
+	if (APlayerController* PC = CachedPlayerController.Get();
+		PC && PC->GetHitResultUnderCursorByChannel(
+			UEngineTypes::ConvertToTraceType(ECC_Target), false, CursorHoverHit))
+	{
+		if (AActor* HitActor = CursorHoverHit.GetActor())
+		{
+			UMAInteractableComponent* Interactable =
+				HitActor->FindComponentByClass<UMAInteractableComponent>();
+			if (!Interactable || Interactable->IsCursorHoverTarget(CursorHoverHit.GetComponent()))
+			{
+				HoveredActor = HitActor;
+				HoveredHighlighter = HitActor->FindComponentByClass<UMAHighlightComponent>();
+				NewHoveredInteractable = Interactable;
+			}
+		}
+	}
+	UpdateHoveredInteractable(NewHoveredInteractable);
+
+	AMACharacter* HoveredCharacter = Cast<AMACharacter>(HoveredActor);
+	if (!HoveredActor)
+	{
+		HoveredCharacter = ResolveHoveredCharacter();
+		HoveredActor = HoveredCharacter;
+		HoveredHighlighter = HoveredCharacter ? HoveredCharacter->GetHighlightComponent() : nullptr;
+	}
 	const ECursorTargetRelation NewRelation = ResolveCursorTargetRelation(HoveredCharacter);
-	UpdateHoveredActorHighlight(HoveredCharacter, NewRelation);
+	UpdateCursorHighlight(HoveredActor, HoveredHighlighter, NewRelation);
 
 	if (NewRelation == CursorTargetRelation) return;
 
@@ -206,29 +240,33 @@ ECursorTargetRelation UMACursorSubsystem::ResolveCursorTargetRelation(AActor* Hi
 	}
 }
 
-void UMACursorSubsystem::UpdateHoveredActorHighlight(
-	AMACharacter* HoveredCharacter,
-	ECursorTargetRelation InRelation)
+/** Highlight & Hover **/
+
+void UMACursorSubsystem::UpdateCursorHighlight(
+	AActor* HoveredActor,
+	UMAHighlightComponent* Highlighter,
+	const ECursorTargetRelation InRelation)
 {
-	if (HighlightedActor.Get() == HoveredCharacter && HighlightedActorRelation == InRelation)
+	if (HighlightedActor.Get() == HoveredActor
+		&& HighlightedComponent.Get() == Highlighter
+		&& HighlightedRelation == InRelation)
 		return;
 
-	ClearHoveredActorHighlight();
-	if (!HoveredCharacter || InRelation == ECursorTargetRelation::None) return;
+	ClearCursorHighlight();
+	if (!HoveredActor || !Highlighter) return;
 
-	UMAHighlightComponent* Highlighter = HoveredCharacter->GetHighlightComponent();
-	if (!Highlighter) return;
-
-	HighlightedActor = HoveredCharacter;
+	HighlightedActor = HoveredActor;
 	HighlightedComponent = Highlighter;
-	HighlightedActorRelation = InRelation;
+	HighlightedRelation = InRelation;
 	Highlighter->SetHighlight(
 		*this,
 		true,
-		ResolveCursorRelationColor(InRelation));
+		Cast<AMACharacter>(HoveredActor)
+			? ResolveCursorRelationColor(InRelation)
+			: FLinearColor::White);
 }
 
-void UMACursorSubsystem::ClearHoveredActorHighlight()
+void UMACursorSubsystem::ClearCursorHighlight()
 {
 	if (UMAHighlightComponent* Highlighter = HighlightedComponent.Get())
 	{
@@ -237,8 +275,26 @@ void UMACursorSubsystem::ClearHoveredActorHighlight()
 
 	HighlightedComponent.Reset();
 	HighlightedActor.Reset();
-	HighlightedActorRelation = ECursorTargetRelation::None;
+	HighlightedRelation = ECursorTargetRelation::None;
 }
+
+void UMACursorSubsystem::UpdateHoveredInteractable(UMAInteractableComponent* NewHoveredInteractable)
+{
+	if (HoveredInteractable.Get() == NewHoveredInteractable) return;
+
+	if (UMAInteractableComponent* PreviousInteractable = HoveredInteractable.Get())
+	{
+		PreviousInteractable->SetCursorHovered(false);
+	}
+
+	HoveredInteractable = NewHoveredInteractable;
+	if (NewHoveredInteractable)
+	{
+		NewHoveredInteractable->SetCursorHovered(true);
+	}
+}
+
+/** Cursor Widget **/
 
 void UMACursorSubsystem::InitializeRuntimeCursorWidget()
 {
