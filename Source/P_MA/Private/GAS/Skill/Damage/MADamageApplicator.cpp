@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "GAS/Skill/Area/Decal/MASkillAreaDecalStatics.h"
@@ -271,16 +272,11 @@ void MADamageApplicator::ExecuteTargetGameplayCues(
 	CueParams.Instigator = ContextHandle.GetOriginalInstigator();
 	CueParams.EffectCauser = ContextHandle.GetEffectCauser();
 
-	for (const FGameplayTag& GameplayCueTag : GameplayCueTags)
-	{
-		if (!GameplayCueTag.IsValid()) continue;
+	UMAAbilitySystemComponent* MATargetASC = Cast<UMAAbilitySystemComponent>(&TargetASC);
+	checkf(MATargetASC, TEXT("MA damage targets must use UMAAbilitySystemComponent."));
+	if (!MATargetASC) return;
 
-		FGameplayCueParameters CueParamsForTag = CueParams;
-		CueParamsForTag.OriginalTag = GameplayCueTag;
-		CueParamsForTag.AggregatedSourceTags.AddTag(GameplayCueTag);
-		CueParamsForTag.AggregatedTargetTags.AddTag(GameplayCueTag);
-		TargetASC.ExecuteGameplayCue(GameplayCueTag, CueParamsForTag);
-	}
+	MATargetASC->ExecuteGameplayCues(GameplayCueTags, CueParams);
 }
 
 bool MADamageApplicator::PostProcessDamage(

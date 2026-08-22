@@ -4,6 +4,7 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/World.h"
 #include "GameplayEffectExtension.h"
 #include "GAS/MAGameplayAbilityTypes.h"
 #include "GAS/MAAttributeSet.h"
@@ -20,6 +21,71 @@ UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 	SetIsReplicatedByDefault(true);
 	SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
+}
+
+void UMAAbilitySystemComponent::ExecuteGameplayCues(
+	const FGameplayTagContainer& GameplayCueTags,
+	const FGameplayCueParameters& Parameters)
+{
+	const bool bHasAuthority = IsOwnerActorAuthoritative();
+	checkf(bHasAuthority, TEXT("Gameplay Cue batches must be created by the authority."));
+	if (!bHasAuthority || GameplayCueTags.IsEmpty()) return;
+
+	UWorld* World = GetWorld();
+	checkf(World, TEXT("A world is required to schedule a Gameplay Cue batch."));
+	if (!World) return;
+
+	PendingGameplayCueEntries.Emplace(GameplayCueTags, Parameters);
+	if (!GameplayCueFlushHandle.IsValid())
+	{
+		GameplayCueFlushHandle = World->OnPreTickFlush().AddUObject(
+			this,
+			&UMAAbilitySystemComponent::FlushPendingGameplayCues);
+	}
+}
+
+void UMAAbilitySystemComponent::FlushPendingGameplayCues(float)
+{
+	if (UWorld* World = GetWorld(); World && GameplayCueFlushHandle.IsValid())
+	{
+		World->OnPreTickFlush().Remove(GameplayCueFlushHandle);
+	}
+	GameplayCueFlushHandle.Reset();
+
+	if (PendingGameplayCueEntries.IsEmpty()) return;
+
+	TArray<FMAGameplayCueBatchEntry> Entries = MoveTemp(PendingGameplayCueEntries);
+	ForceReplication();
+	NetMulticast_ExecuteGameplayCueBatch(Entries);
+}
+
+void UMAAbilitySystemComponent::NetMulticast_ExecuteGameplayCueBatch_Implementation(
+	const TArray<FMAGameplayCueBatchEntry>& Entries)
+{
+	for (const FMAGameplayCueBatchEntry& Entry : Entries)
+	{
+		for (const FGameplayTag& GameplayCueTag : Entry.GameplayCueTags)
+		{
+			if (!GameplayCueTag.IsValid()) continue;
+
+			FGameplayCueParameters Parameters = Entry.Parameters;
+			Parameters.OriginalTag = GameplayCueTag;
+			Parameters.AggregatedSourceTags.AddTag(GameplayCueTag);
+			Parameters.AggregatedTargetTags.AddTag(GameplayCueTag);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, Parameters);
+		}
+	}
+}
+
+void UMAAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld(); World && GameplayCueFlushHandle.IsValid())
+	{
+		World->OnPreTickFlush().Remove(GameplayCueFlushHandle);
+	}
+	GameplayCueFlushHandle.Reset();
+	PendingGameplayCueEntries.Reset();
+	Super::EndPlay(EndPlayReason);
 }
 
 float UMAAbilitySystemComponent::PlayMontageWithBlendIn(
