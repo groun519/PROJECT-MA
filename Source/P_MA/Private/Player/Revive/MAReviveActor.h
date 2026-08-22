@@ -41,6 +41,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="Revive", meta=(ClampMin="0.0", UIMin="0.0"))
 	float ReviveRadius = 200.f;
 
+	UPROPERTY(EditDefaultsOnly, Category="Revive", meta=(ClampMin="0.0", UIMin="0.0"))
+	float ReviveProgressPerSecondPerPlayer = 0.1f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Revive|Automatic", meta=(ClampMin="0.0", ClampMax="0.99", UIMin="0.0", UIMax="0.99"))
+	float AutomaticReviveProgressLimit = 0.9f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Revive|Automatic", meta=(ClampMin="0.01", UIMin="0.01"))
+	float AutomaticReviveDuration = 30.f;
+
 	UPROPERTY(EditDefaultsOnly, Category="Revive|Visual", meta=(ClampMin="1.0", UIMin="1.0"))
 	float DecalProjectionDepth = 100.f;
 

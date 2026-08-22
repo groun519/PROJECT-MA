@@ -90,14 +90,27 @@ void AMAReviveActor::Tick(float DeltaSeconds)
 	}
 
 	const int32 ReviverCount = CountRevivers();
-	if (ReviverCount <= 0) return;
-
-	CurrentReviveProgress += 0.1f * ReviverCount * DeltaSeconds;
-	RefreshReviveDecalProgress();
-	if (CurrentReviveProgress >= 1.0f)
+	if (ReviverCount > 0)
 	{
-		CompleteRevive();
+		CurrentReviveProgress = FMath::Min(
+			CurrentReviveProgress + ReviveProgressPerSecondPerPlayer * ReviverCount * DeltaSeconds,
+			1.f);
+		RefreshReviveDecalProgress();
+
+		if (CurrentReviveProgress >= 1.f)
+		{
+			CompleteRevive();
+		}
+		return;
 	}
+
+	const float AutomaticProgressLimit = FMath::Clamp(AutomaticReviveProgressLimit, 0.f, 0.99f);
+	if (AutomaticReviveDuration <= 0.f || CurrentReviveProgress >= AutomaticProgressLimit) return;
+
+	CurrentReviveProgress = FMath::Min(
+		CurrentReviveProgress + AutomaticProgressLimit / AutomaticReviveDuration * DeltaSeconds,
+		AutomaticProgressLimit);
+	RefreshReviveDecalProgress();
 }
 
 void AMAReviveActor::OnRep_ReviveProgress()
@@ -126,6 +139,8 @@ int32 AMAReviveActor::CountRevivers() const
 
 void AMAReviveActor::CompleteRevive()
 {
+	if (CountRevivers() <= 0) return;
+
 	AMAPlayerCharacter* Target = TargetPlayer.Get();
 	if (Target && Target->IsDead())
 	{
