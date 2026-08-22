@@ -1,4 +1,4 @@
-﻿#include "GAS/Skill/Module/Editor/SMASkillModuleShopPage.h"
+#include "GAS/Skill/Module/Editor/SMASkillModulePoolPage.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
@@ -10,7 +10,7 @@
 #include "Modules/ModuleManager.h"
 #include "ObjectTools.h"
 #include "Setting/MAGameSettings.h"
-#include "Shop/MAShopModulePool.h"
+#include "GAS/Skill/Module/MASkillModulePool.h"
 #include "Styling/AppStyle.h"
 #include "Subsystems/EditorAssetSubsystem.h"
 #include "Widgets/Colors/SColorBlock.h"
@@ -27,9 +27,9 @@
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
-#define LOCTEXT_NAMESPACE "MASkillModuleShopPage"
+#define LOCTEXT_NAMESPACE "MASkillModulePoolPage"
 
-static FText ResolveModuleLabel(const FMASkillModuleShopModuleListItem& Item)
+static FText ResolveModuleLabel(const FMASkillModulePoolModuleListItem& Item)
 {
 	const FString ModuleName = Item.ModuleName.IsNone()
 		? (Item.bMissing ? TEXT("Missing Module") : TEXT("Unnamed Module"))
@@ -56,7 +56,7 @@ static FText ResolveRarityLabel(const int32 RarityIndex)
 		FText::AsNumber(RarityIndex + 1));
 }
 
-void SMASkillModuleShopPage::Construct(const FArguments&)
+void SMASkillModulePoolPage::Construct(const FArguments&)
 {
 	RarityFilterOptions.Add(MakeShared<int32>(INDEX_NONE));
 	for (int32 Index = 0; Index <= static_cast<int32>(EMAModuleRarity::Rarity7); ++Index)
@@ -85,7 +85,7 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 					.Padding(0.f, 0.f, 0.f, 6.f)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("Shops", "Shops"))
+						.Text(LOCTEXT("Pools", "Pools"))
 						.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
 					]
 					+ SVerticalBox::Slot()
@@ -97,17 +97,17 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 						.AutoWidth()
 						[
 							SNew(SButton)
-							.Text(LOCTEXT("NewShop", "New"))
-							.OnClicked(this, &SMASkillModuleShopPage::CreateShop)
+							.Text(LOCTEXT("NewPool", "New"))
+							.OnClicked(this, &SMASkillModulePoolPage::CreatePool)
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						.Padding(4.f, 0.f, 0.f, 0.f)
 						[
 							SNew(SButton)
-							.Text(LOCTEXT("DeleteShop", "Delete"))
-							.IsEnabled_Lambda([this] { return SelectedShop.IsValid(); })
-							.OnClicked(this, &SMASkillModuleShopPage::DeleteShop)
+							.Text(LOCTEXT("DeletePool", "Delete"))
+							.IsEnabled_Lambda([this] { return SelectedPool.IsValid(); })
+							.OnClicked(this, &SMASkillModulePoolPage::DeletePool)
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -115,17 +115,17 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 						[
 							SNew(SButton)
 							.Text(LOCTEXT("Refresh", "Refresh"))
-							.OnClicked(this, &SMASkillModuleShopPage::RefreshPage)
+							.OnClicked(this, &SMASkillModulePoolPage::RefreshPage)
 						]
 					]
 					+ SVerticalBox::Slot()
 					.FillHeight(1.f)
 					[
-						SAssignNew(ShopListView, SListView<FMASkillModuleShopAssetItem>)
-						.ListItemsSource(&ShopItems)
+						SAssignNew(PoolListView, SListView<FMASkillModulePoolAssetItem>)
+						.ListItemsSource(&PoolItems)
 						.SelectionMode(ESelectionMode::Single)
-						.OnGenerateRow(this, &SMASkillModuleShopPage::GenerateShopRow)
-						.OnSelectionChanged(this, &SMASkillModuleShopPage::OnShopSelected)
+						.OnGenerateRow(this, &SMASkillModulePoolPage::GeneratePoolRow)
+						.OnSelectionChanged(this, &SMASkillModulePoolPage::OnPoolSelected)
 					]
 				]
 			]
@@ -148,9 +148,9 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 							SNew(STextBlock)
 							.Text_Lambda([this]
 							{
-								return SelectedShop.IsValid()
-									? FText::FromString(SelectedShop->GetName())
-									: LOCTEXT("NoShopSelected", "Shop Modules");
+								return SelectedPool.IsValid()
+									? FText::FromString(SelectedPool->GetName())
+									: LOCTEXT("NoPoolSelected", "Pool Modules");
 							})
 							.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
 						]
@@ -158,18 +158,18 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 						.AutoWidth()
 						[
 							SNew(SButton)
-							.Text(LOCTEXT("SaveShop", "Save"))
-							.IsEnabled_Lambda([this] { return SelectedShop.IsValid(); })
-							.OnClicked(this, &SMASkillModuleShopPage::SaveShop)
+							.Text(LOCTEXT("SavePool", "Save"))
+							.IsEnabled_Lambda([this] { return SelectedPool.IsValid(); })
+							.OnClicked(this, &SMASkillModulePoolPage::SavePool)
 						]
 					]
 					+ SVerticalBox::Slot()
 					.FillHeight(1.f)
 					[
-						SAssignNew(SelectedModuleListView, SListView<FMASkillModuleShopModuleItem>)
+						SAssignNew(SelectedModuleListView, SListView<FMASkillModulePoolModuleItem>)
 						.ListItemsSource(&SelectedModuleItems)
 						.SelectionMode(ESelectionMode::None)
-						.OnGenerateRow(this, &SMASkillModuleShopPage::GenerateSelectedModuleRow)
+						.OnGenerateRow(this, &SMASkillModulePoolPage::GenerateSelectedModuleRow)
 					]
 				]
 			]
@@ -235,10 +235,10 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 					+ SVerticalBox::Slot()
 					.FillHeight(1.f)
 					[
-						SAssignNew(AvailableModuleListView, SListView<FMASkillModuleShopModuleItem>)
+						SAssignNew(AvailableModuleListView, SListView<FMASkillModulePoolModuleItem>)
 						.ListItemsSource(&AvailableModuleItems)
 						.SelectionMode(ESelectionMode::None)
-						.OnGenerateRow(this, &SMASkillModuleShopPage::GenerateAvailableModuleRow)
+						.OnGenerateRow(this, &SMASkillModulePoolPage::GenerateAvailableModuleRow)
 					]
 				]
 			]
@@ -252,112 +252,112 @@ void SMASkillModuleShopPage::Construct(const FArguments&)
 	];
 }
 
-void SMASkillModuleShopPage::Refresh(const FString& InSourceDirectory)
+void SMASkillModulePoolPage::Refresh(const FString& InSourceDirectory)
 {
 	SourceDirectory = InSourceDirectory;
 	RefreshModuleCatalog();
-	RefreshShops();
+	RefreshPools();
 }
 
-FReply SMASkillModuleShopPage::CreateShop()
+FReply SMASkillModulePoolPage::CreatePool()
 {
 	UDataAssetFactory* Factory = NewObject<UDataAssetFactory>();
-	Factory->DataAssetClass = UMAShopModulePool::StaticClass();
-	UMAShopModulePool* NewShop = Cast<UMAShopModulePool>(
+	Factory->DataAssetClass = UMASkillModulePool::StaticClass();
+	UMASkillModulePool* NewPool = Cast<UMASkillModulePool>(
 		FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"))
 		.Get()
 		.CreateAssetWithDialog(
-			TEXT("NewShop"),
+			TEXT("NewPool"),
 			TEXT("/Game"),
-			UMAShopModulePool::StaticClass(),
+			UMASkillModulePool::StaticClass(),
 			Factory,
 			NAME_None,
 			false));
-	if (!NewShop) return FReply::Handled();
+	if (!NewPool) return FReply::Handled();
 
-	StatusText = LOCTEXT("ShopCreated", "Created a shop module pool.");
-	RefreshShops(FSoftObjectPath(NewShop));
+	StatusText = LOCTEXT("PoolCreated", "Created a skill module pool.");
+	RefreshPools(FSoftObjectPath(NewPool));
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleShopPage::DeleteShop()
+FReply SMASkillModulePoolPage::DeletePool()
 {
-	UMAShopModulePool* Shop = SelectedShop.Get();
-	if (!Shop) return FReply::Handled();
+	UMASkillModulePool* Pool = SelectedPool.Get();
+	if (!Pool) return FReply::Handled();
 
 	FAssetRegistryModule& AssetRegistry =
 		FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	const FAssetData AssetData = AssetRegistry.Get().GetAssetByObjectPath(FSoftObjectPath(Shop));
+	const FAssetData AssetData = AssetRegistry.Get().GetAssetByObjectPath(FSoftObjectPath(Pool));
 	if (AssetData.IsValid() && ObjectTools::DeleteAssets({AssetData}, true) == 1)
 	{
-		SelectedShop.Reset();
-		StatusText = LOCTEXT("ShopDeleted", "Deleted the shop module pool.");
-		RefreshShops();
+		SelectedPool.Reset();
+		StatusText = LOCTEXT("PoolDeleted", "Deleted the skill module pool.");
+		RefreshPools();
 	}
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleShopPage::SaveShop()
+FReply SMASkillModulePoolPage::SavePool()
 {
-	UMAShopModulePool* Shop = SelectedShop.Get();
+	UMASkillModulePool* Pool = SelectedPool.Get();
 	UEditorAssetSubsystem* AssetSubsystem = GEditor
 		? GEditor->GetEditorSubsystem<UEditorAssetSubsystem>()
 		: nullptr;
-	if (!Shop || !AssetSubsystem || !AssetSubsystem->SaveLoadedAsset(Shop))
+	if (!Pool || !AssetSubsystem || !AssetSubsystem->SaveLoadedAsset(Pool))
 	{
-		StatusText = LOCTEXT("SaveShopFailed", "Failed to save the selected shop module pool.");
-		FMessageDialog::Open(EAppMsgType::Ok, StatusText, LOCTEXT("ErrorTitle", "Skill Module Shop Error"));
+		StatusText = LOCTEXT("SavePoolFailed", "Failed to save the selected skill module pool.");
+		FMessageDialog::Open(EAppMsgType::Ok, StatusText, LOCTEXT("ErrorTitle", "Skill Module Pool Error"));
 		return FReply::Handled();
 	}
 
-	StatusText = LOCTEXT("ShopSaved", "Saved the shop module pool.");
+	StatusText = LOCTEXT("PoolSaved", "Saved the skill module pool.");
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleShopPage::RefreshPage()
+FReply SMASkillModulePoolPage::RefreshPage()
 {
 	RefreshModuleCatalog();
-	RefreshShops(SelectedShop.IsValid() ? FSoftObjectPath(SelectedShop.Get()) : FSoftObjectPath());
+	RefreshPools(SelectedPool.IsValid() ? FSoftObjectPath(SelectedPool.Get()) : FSoftObjectPath());
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleShopPage::AddModule(const FMASkillModuleShopModuleItem Item)
+FReply SMASkillModulePoolPage::AddModule(const FMASkillModulePoolModuleItem Item)
 {
-	UMAShopModulePool* Shop = SelectedShop.Get();
-	if (!Shop || !Item) return FReply::Handled();
+	UMASkillModulePool* Pool = SelectedPool.Get();
+	if (!Pool || !Item) return FReply::Handled();
 
-	Shop->Modify();
-	if (Shop->AddModuleId(Item->ModuleId))
+	Pool->Modify();
+	if (Pool->AddModuleId(Item->ModuleId))
 	{
-		Shop->MarkPackageDirty();
+		Pool->MarkPackageDirty();
 		RefreshModuleLists();
 	}
 	return FReply::Handled();
 }
 
-FReply SMASkillModuleShopPage::RemoveModule(const FMASkillModuleShopModuleItem Item)
+FReply SMASkillModulePoolPage::RemoveModule(const FMASkillModulePoolModuleItem Item)
 {
-	UMAShopModulePool* Shop = SelectedShop.Get();
-	if (!Shop || !Item) return FReply::Handled();
+	UMASkillModulePool* Pool = SelectedPool.Get();
+	if (!Pool || !Item) return FReply::Handled();
 
-	Shop->Modify();
-	if (Shop->RemoveModuleId(Item->ModuleId))
+	Pool->Modify();
+	if (Pool->RemoveModuleId(Item->ModuleId))
 	{
-		Shop->MarkPackageDirty();
+		Pool->MarkPackageDirty();
 		RefreshModuleLists();
 	}
 	return FReply::Handled();
 }
 
-void SMASkillModuleShopPage::RefreshShops(const FSoftObjectPath& SelectPath)
+void SMASkillModulePoolPage::RefreshPools(const FSoftObjectPath& SelectPath)
 {
 	const FSoftObjectPath PreviousPath = SelectPath.IsValid()
 		? SelectPath
-		: (SelectedShop.IsValid() ? FSoftObjectPath(SelectedShop.Get()) : FSoftObjectPath());
-	ShopItems.Reset();
+		: (SelectedPool.IsValid() ? FSoftObjectPath(SelectedPool.Get()) : FSoftObjectPath());
+	PoolItems.Reset();
 
 	FARFilter Filter;
-	Filter.ClassPaths.Add(UMAShopModulePool::StaticClass()->GetClassPathName());
+	Filter.ClassPaths.Add(UMASkillModulePool::StaticClass()->GetClassPathName());
 	Filter.bRecursiveClasses = true;
 	TArray<FAssetData> Assets;
 	FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"))
@@ -368,30 +368,30 @@ void SMASkillModuleShopPage::RefreshShops(const FSoftObjectPath& SelectPath)
 		return A.AssetName.LexicalLess(B.AssetName);
 	});
 
-	FMASkillModuleShopAssetItem ItemToSelect;
+	FMASkillModulePoolAssetItem ItemToSelect;
 	for (const FAssetData& Asset : Assets)
 	{
-		FMASkillModuleShopAssetItem Item = MakeShared<FMASkillModuleShopAssetListItem>();
+		FMASkillModulePoolAssetItem Item = MakeShared<FMASkillModulePoolAssetListItem>();
 		Item->AssetPath = Asset.GetSoftObjectPath();
 		Item->AssetName = Asset.AssetName;
 		if (Item->AssetPath == PreviousPath) ItemToSelect = Item;
-		ShopItems.Add(MoveTemp(Item));
+		PoolItems.Add(MoveTemp(Item));
 	}
 
-	ShopListView->RequestListRefresh();
+	PoolListView->RequestListRefresh();
 	if (ItemToSelect)
 	{
-		ShopListView->SetSelection(ItemToSelect);
+		PoolListView->SetSelection(ItemToSelect);
 	}
 	else
 	{
-		ShopListView->ClearSelection();
-		SelectedShop.Reset();
+		PoolListView->ClearSelection();
+		SelectedPool.Reset();
 		RefreshModuleLists();
 	}
 }
 
-void SMASkillModuleShopPage::RefreshModuleCatalog()
+void SMASkillModulePoolPage::RefreshModuleCatalog()
 {
 	ModuleCatalog.Reset();
 	if (SourceDirectory.IsEmpty()) return;
@@ -413,7 +413,7 @@ void SMASkillModuleShopPage::RefreshModuleCatalog()
 			continue;
 		}
 
-		FMASkillModuleShopModuleItem Item = MakeShared<FMASkillModuleShopModuleListItem>();
+		FMASkillModulePoolModuleItem Item = MakeShared<FMASkillModulePoolModuleListItem>();
 		Item->ModuleId = Header.ModuleId;
 		Item->ModuleName = Header.ModuleName;
 		Item->Rarity = Header.ModuleRarity;
@@ -428,58 +428,58 @@ void SMASkillModuleShopPage::RefreshModuleCatalog()
 		ModuleCatalog.Add(MoveTemp(Item));
 	}
 	ModuleCatalog.Sort([](
-		const FMASkillModuleShopModuleItem& A,
-		const FMASkillModuleShopModuleItem& B)
+		const FMASkillModulePoolModuleItem& A,
+		const FMASkillModulePoolModuleItem& B)
 	{
 		return A->ModuleId < B->ModuleId;
 	});
 }
 
-void SMASkillModuleShopPage::RefreshModuleLists()
+void SMASkillModulePoolPage::RefreshModuleLists()
 {
 	SelectedModuleItems.Reset();
 	AvailableModuleItems.Reset();
 
-	UMAShopModulePool* Shop = SelectedShop.Get();
+	UMASkillModulePool* Pool = SelectedPool.Get();
 	TSet<int32> SelectedModuleIds;
-	if (Shop)
+	if (Pool)
 	{
-		TMap<int32, FMASkillModuleShopModuleItem> ModulesById;
-		for (const FMASkillModuleShopModuleItem& Item : ModuleCatalog)
+		TMap<int32, FMASkillModulePoolModuleItem> ModulesById;
+		for (const FMASkillModulePoolModuleItem& Item : ModuleCatalog)
 		{
 			ModulesById.FindOrAdd(Item->ModuleId, Item);
 		}
 
-		for (const int32 ModuleId : Shop->GetModuleIds())
+		for (const int32 ModuleId : Pool->GetModuleIds())
 		{
 			SelectedModuleIds.Add(ModuleId);
-			if (const FMASkillModuleShopModuleItem* Item = ModulesById.Find(ModuleId))
+			if (const FMASkillModulePoolModuleItem* Item = ModulesById.Find(ModuleId))
 			{
 				SelectedModuleItems.Add(*Item);
 				continue;
 			}
 
-			FMASkillModuleShopModuleItem MissingItem = MakeShared<FMASkillModuleShopModuleListItem>();
+			FMASkillModulePoolModuleItem MissingItem = MakeShared<FMASkillModulePoolModuleListItem>();
 			MissingItem->ModuleId = ModuleId;
 			MissingItem->bMissing = true;
 			SelectedModuleItems.Add(MoveTemp(MissingItem));
 		}
 	}
 	int32 ResolvedModuleCount = 0;
-	for (const FMASkillModuleShopModuleItem& Item : SelectedModuleItems)
+	for (const FMASkillModulePoolModuleItem& Item : SelectedModuleItems)
 	{
 		if (Item && !Item->bMissing) ++ResolvedModuleCount;
 	}
 	if (ResolvedModuleCount > 0)
 	{
 		const float SelectionShare = 1.f / ResolvedModuleCount;
-		for (const FMASkillModuleShopModuleItem& Item : SelectedModuleItems)
+		for (const FMASkillModulePoolModuleItem& Item : SelectedModuleItems)
 		{
 			if (Item && !Item->bMissing) Item->SelectionShare = SelectionShare;
 		}
 	}
 
-	for (const FMASkillModuleShopModuleItem& Item : ModuleCatalog)
+	for (const FMASkillModulePoolModuleItem& Item : ModuleCatalog)
 	{
 		if (SelectedModuleIds.Contains(Item->ModuleId)) continue;
 		if (RarityFilter != INDEX_NONE && static_cast<int32>(Item->Rarity) != RarityFilter) continue;
@@ -494,19 +494,19 @@ void SMASkillModuleShopPage::RefreshModuleLists()
 	AvailableModuleListView->RequestListRefresh();
 }
 
-void SMASkillModuleShopPage::OnShopSelected(
-	const FMASkillModuleShopAssetItem Item,
+void SMASkillModulePoolPage::OnPoolSelected(
+	const FMASkillModulePoolAssetItem Item,
 	ESelectInfo::Type)
 {
-	SelectedShop = Item ? Cast<UMAShopModulePool>(Item->AssetPath.TryLoad()) : nullptr;
+	SelectedPool = Item ? Cast<UMASkillModulePool>(Item->AssetPath.TryLoad()) : nullptr;
 	RefreshModuleLists();
 }
 
-TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateShopRow(
-	const FMASkillModuleShopAssetItem Item,
+TSharedRef<ITableRow> SMASkillModulePoolPage::GeneratePoolRow(
+	const FMASkillModulePoolAssetItem Item,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<FMASkillModuleShopAssetItem>, OwnerTable)
+	return SNew(STableRow<FMASkillModulePoolAssetItem>, OwnerTable)
 		.Padding(FMargin(4.f, 2.f))
 		.ToolTipText(Item ? FText::FromString(Item->AssetPath.ToString()) : FText::GetEmpty())
 		[
@@ -514,11 +514,11 @@ TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateShopRow(
 		];
 }
 
-TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateSelectedModuleRow(
-	const FMASkillModuleShopModuleItem Item,
+TSharedRef<ITableRow> SMASkillModulePoolPage::GenerateSelectedModuleRow(
+	const FMASkillModulePoolModuleItem Item,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<FMASkillModuleShopModuleItem>, OwnerTable)
+	return SNew(STableRow<FMASkillModulePoolModuleItem>, OwnerTable)
 		.Padding(FMargin(4.f, 2.f))
 		[
 			SNew(SHorizontalBox)
@@ -563,16 +563,16 @@ TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateSelectedModuleRow(
 			[
 				SNew(SButton)
 				.Text(LOCTEXT("RemoveModule", "Remove"))
-				.OnClicked(this, &SMASkillModuleShopPage::RemoveModule, Item)
+				.OnClicked(this, &SMASkillModulePoolPage::RemoveModule, Item)
 			]
 		];
 }
 
-TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateAvailableModuleRow(
-	const FMASkillModuleShopModuleItem Item,
+TSharedRef<ITableRow> SMASkillModulePoolPage::GenerateAvailableModuleRow(
+	const FMASkillModulePoolModuleItem Item,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<FMASkillModuleShopModuleItem>, OwnerTable)
+	return SNew(STableRow<FMASkillModulePoolModuleItem>, OwnerTable)
 		.Padding(FMargin(4.f, 2.f))
 		[
 			SNew(SHorizontalBox)
@@ -606,8 +606,8 @@ TSharedRef<ITableRow> SMASkillModuleShopPage::GenerateAvailableModuleRow(
 			[
 				SNew(SButton)
 				.Text(LOCTEXT("AddModule", "Add"))
-				.IsEnabled_Lambda([this] { return SelectedShop.IsValid(); })
-				.OnClicked(this, &SMASkillModuleShopPage::AddModule, Item)
+				.IsEnabled_Lambda([this] { return SelectedPool.IsValid(); })
+				.OnClicked(this, &SMASkillModulePoolPage::AddModule, Item)
 			]
 		];
 }

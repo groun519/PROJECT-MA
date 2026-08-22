@@ -18,7 +18,7 @@
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "Player/Components/MACurrencyComponent.h"
-#include "Shop/MAShopModulePool.h"
+#include "GAS/Skill/Module/MASkillModulePool.h"
 #include "Widget/Shop/MAShopWidget.h"
 #include "Net/UnrealNetwork.h"
 

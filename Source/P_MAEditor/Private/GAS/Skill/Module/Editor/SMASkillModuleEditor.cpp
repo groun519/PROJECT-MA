@@ -1,8 +1,8 @@
-﻿#include "GAS/Skill/Module/Editor/SMASkillModuleEditor.h"
+#include "GAS/Skill/Module/Editor/SMASkillModuleEditor.h"
 
 #include "GAS/Skill/Module/Editor/SMASkillModuleBuildPage.h"
 #include "GAS/Skill/Module/Editor/SMASkillModuleEditPage.h"
-#include "GAS/Skill/Module/Editor/SMASkillModuleShopPage.h"
+#include "GAS/Skill/Module/Editor/SMASkillModulePoolPage.h"
 #include "Widgets/Input/SSegmentedControl.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/SBoxPanel.h"
@@ -25,8 +25,8 @@ void SMASkillModuleEditor::Construct(const FArguments&)
 			.Text(LOCTEXT("EditPage", "Edit"))
 			+ SSegmentedControl<EPage>::Slot(EPage::Build)
 			.Text(LOCTEXT("BuildPage", "Build"))
-			+ SSegmentedControl<EPage>::Slot(EPage::Shop)
-			.Text(LOCTEXT("ShopPage", "Shop"))
+			+ SSegmentedControl<EPage>::Slot(EPage::Pool)
+			.Text(LOCTEXT("PoolPage", "Pool"))
 		]
 		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
@@ -43,7 +43,7 @@ void SMASkillModuleEditor::Construct(const FArguments&)
 			]
 			+ SWidgetSwitcher::Slot()
 			[
-				SAssignNew(ShopPage, SMASkillModuleShopPage)
+				SAssignNew(PoolPage, SMASkillModulePoolPage)
 			]
 		]
 	];
@@ -64,7 +64,7 @@ void SMASkillModuleEditor::OnPageSelected(const EPage Page)
 	}
 
 	if (Page == EPage::Build) BuildPage->Refresh(EditPage->GetSourceDirectory());
-	if (Page == EPage::Shop) ShopPage->Refresh(EditPage->GetSourceDirectory());
+	if (Page == EPage::Pool) PoolPage->Refresh(EditPage->GetSourceDirectory());
 
 	ActivePage = Page;
 	PageSwitcher->SetActiveWidgetIndex(static_cast<int32>(Page));

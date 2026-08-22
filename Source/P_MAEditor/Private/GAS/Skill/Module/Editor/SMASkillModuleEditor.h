@@ -1,11 +1,11 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
 class SMASkillModuleBuildPage;
 class SMASkillModuleEditPage;
-class SMASkillModuleShopPage;
+class SMASkillModulePoolPage;
 class SWidgetSwitcher;
 
 class SMASkillModuleEditor : public SCompoundWidget
@@ -22,14 +22,14 @@ private:
 	{
 		Edit,
 		Build,
-		Shop
+		Pool
 	};
 
 	void OnPageSelected(EPage Page);
 
 	TSharedPtr<SMASkillModuleEditPage> EditPage;
 	TSharedPtr<SMASkillModuleBuildPage> BuildPage;
-	TSharedPtr<SMASkillModuleShopPage> ShopPage;
+	TSharedPtr<SMASkillModulePoolPage> PoolPage;
 	TSharedPtr<SWidgetSwitcher> PageSwitcher;
 	EPage ActivePage = EPage::Edit;
 };

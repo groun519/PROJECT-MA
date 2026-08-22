@@ -2,15 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "MAShopModulePool.generated.h"
+#include "MASkillModulePool.generated.h"
 
 UCLASS(BlueprintType)
-class P_MA_API UMAShopModulePool : public UDataAsset
+class P_MA_API UMASkillModulePool : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
 	const TArray<int32>& GetModuleIds() const { return ModuleIds; }
+	int32 SelectRandomModuleId() const
+	{
+		return ModuleIds.IsEmpty() ? 0 : ModuleIds[FMath::RandHelper(ModuleIds.Num())];
+	}
 
 #if WITH_EDITOR
 	bool AddModuleId(const int32 ModuleId)
@@ -27,7 +31,6 @@ public:
 #endif
 
 private:
-	// Per-module appearance weights can extend these entries when shop probability tuning is added.
-	UPROPERTY(EditDefaultsOnly, Category="Shop|Modules", meta=(ClampMin="1"))
+	UPROPERTY(EditDefaultsOnly, Category="Pool", meta=(ClampMin="1"))
 	TArray<int32> ModuleIds;
 };

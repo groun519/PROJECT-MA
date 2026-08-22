@@ -10,7 +10,7 @@
 class AMAPlayerCharacter;
 class UMAHighlightComponent;
 class UMAModuleQualityData;
-class UMAShopModulePool;
+class UMASkillModulePool;
 class UMASkillModule;
 class UMAShopWidget;
 class UCameraComponent;
@@ -54,7 +54,7 @@ private:
 	TSubclassOf<UMAShopWidget> ShopWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Product")
-	TObjectPtr<UMAShopModulePool> ModulePool;
+	TObjectPtr<UMASkillModulePool> ModulePool;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Stock")
 	FMAShopStockCountRange ModuleStockCountRange;
