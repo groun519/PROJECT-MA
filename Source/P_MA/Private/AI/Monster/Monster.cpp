@@ -12,6 +12,9 @@
 #include "GAS/MAGameplayEffect_MonsterWaveStatScale.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
+#include "GAS/Skill/Module/MASkillModulePool.h"
+#include "Inventory/MAModuleDrop.h"
+#include "Setting/MAGameSettings.h"
 
 AMonster::AMonster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAMonsterCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -308,11 +311,62 @@ void AMonster::OnDead()
 	
 	if (HasAuthority())
 	{
+		TrySpawnModuleDrops();
 		GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
 		GetWorldTimerManager().SetTimer(
 			DisappearTimerHandle,
 			this, &AMonster::Deactivate,DisappearDelay,
 			false
 		);
+	}
+}
+
+void AMonster::TrySpawnModuleDrops()
+{
+	TArray<int32> SelectedModuleIds;
+	for (const TPair<TObjectPtr<UMASkillModulePool>, FMAModuleDropRoll>& DropPool : ModuleDropPools)
+	{
+		if (!DropPool.Key) continue;
+
+		for (int32 RollIndex = 0; RollIndex < DropPool.Value.RollCount; ++RollIndex)
+		{
+			if (FMath::FRand() >= DropPool.Value.ChancePerRoll) continue;
+
+			const int32 ModuleId = DropPool.Key->SelectRandomModuleId();
+			if (ModuleId > 0) SelectedModuleIds.Add(ModuleId);
+		}
+	}
+	if (SelectedModuleIds.IsEmpty()) return;
+
+	UClass* DropActorClass = UMAGameSettings::Get()->ModuleDropActorClass.LoadSynchronous();
+	if (!DropActorClass) return;
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	static constexpr float GroundTraceUp = 200.f;
+	static constexpr float GroundTraceDown = 1000.f;
+	FVector SpawnLocation = GetActorLocation();
+	FHitResult GroundHit;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpawnModuleDrop), false, this);
+	if (World->LineTraceSingleByChannel(
+		GroundHit,
+		SpawnLocation + FVector::UpVector * GroundTraceUp,
+		SpawnLocation - FVector::UpVector * GroundTraceDown,
+		ECC_Visibility,
+		QueryParams))
+	{
+		SpawnLocation = GroundHit.ImpactPoint;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	for (const int32 ModuleId : SelectedModuleIds)
+	{
+		AMAModuleDrop* Drop = World->SpawnActor<AMAModuleDrop>(
+			DropActorClass,
+			SpawnLocation,
+			FRotator::ZeroRotator,
+			SpawnParameters);
+		if (Drop && !Drop->InitializeDrop(ModuleId)) Drop->Destroy();
 	}
 }

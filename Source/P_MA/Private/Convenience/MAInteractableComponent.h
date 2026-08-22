@@ -11,9 +11,11 @@ class UWidgetComponent;
 
 // Usage from an owning actor constructor:
 // InteractableComponent->CALL_SETUP_INTERACT(HandleInteract);
+// InteractableComponent->CALL_SETUP_FOCUS(HandleFocus);
 // InteractableComponent->CALL_SETUP_HIGHLIGHTER(HighlightComponent);
 // Set DefaultInteractKeyWidgetClass in MA Game Settings.
 #define CALL_SETUP_INTERACT(MethodName) SetupInteraction(this, &std::remove_pointer_t<decltype(this)>::MethodName)
+#define CALL_SETUP_FOCUS(MethodName) SetupFocus(this, &std::remove_pointer_t<decltype(this)>::MethodName)
 #define CALL_SETUP_HIGHLIGHTER(Highlighter) HighlightComponent = Highlighter
 #define CALL_SETUP_INTERACTION_MODE(ModeName) ExecutionMode = EMAInteractionExecutionMode::ModeName
 
@@ -48,6 +50,18 @@ public:
 		};
 	}
 
+	template<typename T>
+	void SetupFocus(T* InObj, void (T::*InMethod)(AMAPlayerCharacter*, bool))
+	{
+		FocusHandler = [InObj, InMethod](AMAPlayerCharacter* Interactor, const bool bFocused)
+		{
+			if (InObj && InMethod)
+			{
+				(InObj->*InMethod)(Interactor, bFocused);
+			}
+		};
+	}
+
 	void RequestInteract(AMAPlayerCharacter* Interactor);
 	void SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused);
 	bool CanServerInteract(const AMAPlayerCharacter* Interactor) const;
@@ -70,6 +84,7 @@ private:
 	void HandleEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	TFunction<void(AMAPlayerCharacter*)> InteractionHandler;
+	TFunction<void(AMAPlayerCharacter*, bool)> FocusHandler;
 	bool bFocused = false;
 
 };

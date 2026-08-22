@@ -70,8 +70,7 @@ void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 
 bool UMAInteractableComponent::CanServerInteract(const AMAPlayerCharacter* Interactor) const
 {
-	if (!Interactor) return false;
-	return FVector::DistSquared(Interactor->GetActorLocation(), GetComponentLocation()) <= FMath::Square(GetScaledSphereRadius());
+	return Interactor && IsOverlappingActor(Interactor);
 }
 
 void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused)
@@ -80,24 +79,31 @@ void UMAInteractableComponent::SetInteractFocused(AMAPlayerCharacter* Interactor
 	bFocused = bNewFocused;
 
 	/** Key Widget **/
-	UMAInputKeyPromptWidget* KeyPromptWidget =
-		CastChecked<UMAInputKeyPromptWidget>(InteractKeyWidgetComp->GetUserWidgetObject());
-	if (bFocused)
+	if (UMAInputKeyPromptWidget* KeyPromptWidget =
+		Cast<UMAInputKeyPromptWidget>(InteractKeyWidgetComp->GetUserWidgetObject()))
 	{
-		KeyPromptWidget->SetInputContext(
-			Cast<APlayerController>(Interactor->GetController()),
-			Interactor->GetGameplayInputMappingContext());
+		if (bFocused)
+		{
+			KeyPromptWidget->SetInputContext(
+				Cast<APlayerController>(Interactor->GetController()),
+				Interactor->GetGameplayInputMappingContext());
+		}
+		else
+		{
+			KeyPromptWidget->ClearInputContext();
+		}
+		InteractKeyWidgetComp->SetVisibility(bFocused);
 	}
-	else
-	{
-		KeyPromptWidget->ClearInputContext();
-	}
-	InteractKeyWidgetComp->SetVisibility(bFocused);
 
 	/** Highlight **/
 	if (UMAHighlightComponent* Highlighter = HighlightComponent.Get())
 	{
 		Highlighter->SetHighlight(*this, bFocused);
+	}
+
+	if (FocusHandler)
+	{
+		FocusHandler(Interactor, bFocused);
 	}
 }
 

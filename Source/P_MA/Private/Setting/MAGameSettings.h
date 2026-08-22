@@ -7,6 +7,7 @@
 
 class UUserWidget;
 class UDataTable;
+class AMAModuleDrop;
 class UPA_AbilitySystemGenerics;
 class UMAModuleQualityData;
 class UMAElementalConfigData;
@@ -48,6 +49,9 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Interact")
 	TSoftClassPtr<UUserWidget> DefaultInteractKeyWidgetClass;
+
+	UPROPERTY(Config, EditAnywhere, Category="Inventory|Drop")
+	TSoftClassPtr<AMAModuleDrop> ModuleDropActorClass;
 
 	UPROPERTY(Config, EditAnywhere, Category="Gameplay Ability")
 	TSoftObjectPtr<UPA_AbilitySystemGenerics> AbilitySystemGenerics;

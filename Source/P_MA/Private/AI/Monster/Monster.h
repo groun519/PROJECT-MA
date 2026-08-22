@@ -7,6 +7,7 @@
 
 class UStateTree;
 class UMASkillModule;
+class UMASkillModulePool;
 
 USTRUCT(BlueprintType)
 struct FMonsterEnvData
@@ -18,6 +19,18 @@ struct FMonsterEnvData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Env")
 	TArray<UMaterialInterface*> MIList;
+};
+
+USTRUCT(BlueprintType)
+struct FMAModuleDropRoll
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Drop", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ChancePerRoll = 1.f;
+
+	UPROPERTY(EditAnywhere, Category="Drop", meta=(ClampMin="1"))
+	int32 RollCount = 1;
 };
 
 UCLASS()
@@ -59,6 +72,7 @@ private:
 	void ApplyStatCoefficientEffect();
 	void ApplyEnvMaterials();
 	void InitializeSkills();
+	void TrySpawnModuleDrops();
 	static bool LoadSkillModules(
 		const TArray<TSoftObjectPtr<UMASkillModule>>& ModuleAssets,
 		TArray<TObjectPtr<UMASkillModule>>& OutModules);
@@ -108,4 +122,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Death")
 	float DisappearDelay = 3.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Drop")
+	TMap<TObjectPtr<UMASkillModulePool>, FMAModuleDropRoll> ModuleDropPools;
 };
