@@ -8,7 +8,7 @@ bool UMASkillModuleDragDropOperation::SetSource(
 	UMAInventoryComponent* InInventory,
 	const FMAInventoryEntry& InEntry)
 {
-	if (!InInventory || (!InEntry.IsModule() && !InEntry.IsItem())) return false;
+	if (!InInventory || (!InEntry.IsModuleInstance() && !InEntry.IsStack())) return false;
 
 	SourceInventory = InInventory;
 	SourceInventoryEntryId = InEntry.EntryId;
@@ -57,7 +57,7 @@ bool UMASkillModuleDragDropOperation::CanDropOn(
 	}
 
 	const FMAInventoryEntry* TargetEntry = TargetInventory->GetEntryAt(TargetSlotIndex);
-	return TargetEntry && (TargetEntry->IsEmpty() || TargetEntry->IsModule());
+	return TargetEntry && (TargetEntry->IsEmpty() || TargetEntry->IsModuleInstance());
 }
 
 bool UMASkillModuleDragDropOperation::CanDropOn(
@@ -69,7 +69,7 @@ bool UMASkillModuleDragDropOperation::CanDropOn(
 
 	if (IsFromInventory())
 	{
-		return SourceInventoryEntryKind == EMAInventoryEntryKind::Module
+		return SourceInventoryEntryKind == EMAInventoryEntryKind::ModuleInstance
 			&& SourceInventory->GetOwner() == TargetSkillManager->GetOwner();
 	}
 

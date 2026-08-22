@@ -24,24 +24,11 @@
 
 AMAShopNPC::AMAShopNPC()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = true;
-
-	InteractableComponent = CreateDefaultSubobject<UMAInteractableComponent>(TEXT("InteractableComponent"));
-	RootComponent = InteractableComponent;
-
-	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
-	MeshComponent->SetupAttachment(RootComponent);
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	ShopCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ShopCameraComponent"));
 	ShopCameraComponent->SetupAttachment(RootComponent);
 	ShopCameraComponent->SetRelativeLocation(FVector(-250.f, 0.f, 150.f));
 	ShopCameraComponent->SetRelativeRotation(FRotator(-10.f, 0.f, 0.f));
 
-	HighlightComponent = CreateDefaultSubobject<UMAHighlightComponent>(TEXT("HighlightComponent"));
-	HighlightComponent->AddTarget(MeshComponent);
-	InteractableComponent->CALL_SETUP_HIGHLIGHTER(HighlightComponent);
 	InteractableComponent->CALL_SETUP_INTERACT(HandleInteract);
 
 	ModuleStockCountRange.Min = 3;

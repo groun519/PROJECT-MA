@@ -17,6 +17,7 @@
 #include "Player/GameOver/MAPlayerGameOverComponent.h"
 #include "Player/Spectate/MAPlayerSpectateComponent.h"
 #include "Shop/MAShopNPC.h"
+#include "NPC/MAEnchanterNPC.h"
 #include "TimerManager.h"
 
 AMAPlayerController::AMAPlayerController()
@@ -172,6 +173,7 @@ void AMAPlayerController::SetGameplayWidgetVisible(bool bVisible)
 	}
 }
 
+/** Shop **/
 void AMAPlayerController::RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId)
 {
 	if (!ShopNPC || StockId == INDEX_NONE) return;
@@ -189,6 +191,32 @@ void AMAPlayerController::ServerRequestShopPurchase_Implementation(AMAShopNPC* S
 {
 	if (!ShopNPC || StockId == INDEX_NONE) return;
 	ShopNPC->Purchase(this, StockId);
+}
+
+/** Enchantment **/
+void AMAPlayerController::RequestEnchantModule(
+	AMAEnchanterNPC* EnchanterNPC,
+	UMASkillModuleInstance* TargetModule,
+	const int32 RuneEntryId)
+{
+	if (!EnchanterNPC || !TargetModule || RuneEntryId == INDEX_NONE) return;
+
+	if (HasAuthority())
+	{
+		EnchanterNPC->EnchantModule(this, TargetModule, RuneEntryId);
+		return;
+	}
+
+	ServerRequestEnchantModule(EnchanterNPC, TargetModule, RuneEntryId);
+}
+
+void AMAPlayerController::ServerRequestEnchantModule_Implementation(
+	AMAEnchanterNPC* EnchanterNPC,
+	UMASkillModuleInstance* TargetModule,
+	const int32 RuneEntryId)
+{
+	if (!EnchanterNPC || !TargetModule || RuneEntryId == INDEX_NONE) return;
+	EnchanterNPC->EnchantModule(this, TargetModule, RuneEntryId);
 }
 
 void AMAPlayerController::ToggleSkillSlots()

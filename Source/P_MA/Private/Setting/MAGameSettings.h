@@ -65,6 +65,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category="Skill")
 	TSoftObjectPtr<UMAModuleQualityData> ModuleQualityData;
 
+	UPROPERTY(Config, EditAnywhere, Category="Skill|Module", meta=(ClampMin="0"))
+	int32 MaxEnchantmentsPerModule = 3;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Config, EditAnywhere, Category="Skill|Module")
 	FDirectoryPath SkillModuleJsonDirectory;

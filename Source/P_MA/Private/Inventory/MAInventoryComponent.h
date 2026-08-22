@@ -29,6 +29,9 @@ public:
 	/** Item **/
 	void UseItem(int32 EntryId);
 
+	/** Stack **/
+	bool SetStackCount(int32 EntryId, int32 NewCount);
+
 	/** Entry Transfer **/
 	bool RequestMoveEntry(int32 EntryId, int32 TargetSlotIndex);
 	bool RequestEquipModule(
@@ -41,15 +44,18 @@ public:
 		int32 TargetSlotIndex);
 
 	/** Query **/
-	int32 GetSlotCount() const { return FMath::Max(0, MaxSlotCount); }
-	const FMAInventoryEntry* GetEntryAt(int32 SlotIndex) const;
-	UMASkillModuleInstance* GetModuleAt(int32 SlotIndex) const;
+	const TArray<FMAInventoryEntry>& GetEntries() const { return Entries; }
+	const FMAInventoryEntry* GetEntryAt(int32 SlotIndex) const
+	{
+		return Entries.IsValidIndex(SlotIndex) ? &Entries[SlotIndex] : nullptr;
+	}
+	const FMAInventoryEntry* FindEntry(int32 EntryId) const;
 
 private:
 	/** Module Addition **/
 	bool AddModule(int32 ModuleId, int32 Count);
 	bool AddModuleInstance(UMASkillModule* Module);
-	bool AddItemStack(UMASkillModule* Module, int32 Count);
+	bool AddStack(UMASkillModule* Module, int32 Count);
 
 	/** Item **/
 	EMAItemUseResult ExecuteUseItem(int32 EntryId);

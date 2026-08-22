@@ -28,7 +28,7 @@ void UMASkillModuleInventoryWidget::RefreshSlots()
 	if (!SlotContainer) return;
 	if (!Inventory) return;
 
-	const int32 SlotCount = Inventory->GetSlotCount();
+	const int32 SlotCount = Inventory->GetEntries().Num();
 	EnsureSlotWidgets(SlotCount);
 	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 	{

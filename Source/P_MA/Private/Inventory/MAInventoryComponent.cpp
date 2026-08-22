@@ -52,7 +52,7 @@ bool UMAInventoryComponent::AddModule(const int32 ModuleId, const int32 Count)
 		return Count == 1 && AddModuleInstance(Module);
 	case EMASkillModuleType::Item:
 	case EMASkillModuleType::Sub:
-		return AddItemStack(Module, Count);
+		return AddStack(Module, Count);
 	default:
 		return false;
 	}
@@ -69,6 +69,23 @@ void UMAInventoryComponent::UseItem(const int32 EntryId)
 	}
 
 	ServerUseItem(EntryId);
+}
+
+bool UMAInventoryComponent::SetStackCount(const int32 EntryId, const int32 NewCount)
+{
+	if (!CanMutateInventory() || NewCount < 0) return false;
+
+	const int32 SlotIndex = FindEntrySlot(EntryId);
+	if (!Entries.IsValidIndex(SlotIndex)) return false;
+
+	FMAInventoryEntry& Entry = Entries[SlotIndex];
+	if (!Entry.IsStack()) return false;
+	if (Entry.Stack.Count == NewCount) return true;
+
+	if (NewCount == 0) Entry.Reset();
+	else Entry.Stack.Count = NewCount;
+	NotifyInventoryChanged();
+	return true;
 }
 
 /** Entry Transfer **/
@@ -112,15 +129,10 @@ bool UMAInventoryComponent::RequestMoveSkillModuleToInventory(
 }
 
 /** Query **/
-const FMAInventoryEntry* UMAInventoryComponent::GetEntryAt(const int32 SlotIndex) const
+const FMAInventoryEntry* UMAInventoryComponent::FindEntry(const int32 EntryId) const
 {
+	const int32 SlotIndex = FindEntrySlot(EntryId);
 	return Entries.IsValidIndex(SlotIndex) ? &Entries[SlotIndex] : nullptr;
-}
-
-UMASkillModuleInstance* UMAInventoryComponent::GetModuleAt(const int32 SlotIndex) const
-{
-	const FMAInventoryEntry* Entry = GetEntryAt(SlotIndex);
-	return Entry && Entry->IsModule() ? Entry->ModuleInstance : nullptr;
 }
 
 /** Module **/
@@ -139,34 +151,35 @@ bool UMAInventoryComponent::AddModuleInstance(UMASkillModule* Module)
 	UMASkillModuleInstance* ModuleInstance = SkillManager->CreateModuleInstance(Module);
 	if (!ModuleInstance) return false;
 
-	Entries[EmptySlotIndex].SetModule(AllocateEntryId(), ModuleInstance);
+	Entries[EmptySlotIndex].SetModuleInstance(AllocateEntryId(), ModuleInstance);
 	NotifyInventoryChanged();
 	return true;
 }
 
-/** Item **/
-bool UMAInventoryComponent::AddItemStack(UMASkillModule* Module, const int32 Count)
+/** Stack **/
+bool UMAInventoryComponent::AddStack(UMASkillModule* Module, const int32 Count)
 {
 	EnsureSlotCount();
 	FMAInventoryEntry* TargetEntry = Entries.FindByPredicate([Module](const FMAInventoryEntry& Entry)
 	{
-		return Entry.IsItem() && Entry.ItemStack.Module == Module;
+		const FMAInventoryStack* Stack = Entry.GetStack();
+		return Stack && Stack->Module == Module;
 	});
 	if (TargetEntry)
 	{
-		if (TargetEntry->ItemStack.Count > MAX_int32 - Count) return false;
-		TargetEntry->ItemStack.Count += Count;
+		const FMAInventoryStack* Stack = TargetEntry->GetStack();
+		check(Stack);
+		if (Stack->Count > MAX_int32 - Count) return false;
+		return SetStackCount(TargetEntry->EntryId, Stack->Count + Count);
 	}
-	else
-	{
-		TargetEntry = Entries.FindByPredicate([](const FMAInventoryEntry& Entry)
-		{
-			return Entry.IsEmpty();
-		});
-		if (!TargetEntry) return false;
 
-		TargetEntry->SetItem(AllocateEntryId(), Module, Count);
-	}
+	TargetEntry = Entries.FindByPredicate([](const FMAInventoryEntry& Entry)
+	{
+		return Entry.IsEmpty();
+	});
+	if (!TargetEntry) return false;
+
+	TargetEntry->SetStack(AllocateEntryId(), Module, Count);
 
 	NotifyInventoryChanged();
 	return true;
@@ -178,19 +191,17 @@ EMAItemUseResult UMAInventoryComponent::ExecuteUseItem(const int32 EntryId)
 	if (!Entries.IsValidIndex(SlotIndex)) return EMAItemUseResult::InvalidEntry;
 
 	FMAInventoryEntry& Entry = Entries[SlotIndex];
-	if (!Entry.IsItem()) return EMAItemUseResult::NotUsable;
+	const FMAInventoryStack* Stack = Entry.GetStack();
+	if (!Stack) return EMAItemUseResult::NotUsable;
 
+	UMASkillModule* Module = Stack->Module.Get();
+	const int32 RemainingCount = Stack->Count - 1;
 	const UMASkillModuleItemAddon* ItemAddon =
-		Entry.ItemStack.Module->FindAddon<UMASkillModuleItemAddon>();
+		Module->FindAddon<UMASkillModuleItemAddon>();
 	if (!ItemAddon) return EMAItemUseResult::NotUsable;
 
-	ItemAddon->Use(*GetOwner(), *Entry.ItemStack.Module);
-
-	if (--Entry.ItemStack.Count == 0)
-	{
-		Entry.Reset();
-	}
-	NotifyInventoryChanged();
+	ItemAddon->Use(*GetOwner(), *Module);
+	verify(SetStackCount(EntryId, RemainingCount));
 	return EMAItemUseResult::Success;
 }
 
@@ -221,7 +232,7 @@ bool UMAInventoryComponent::EquipModule(
 	if (!Entries.IsValidIndex(SourceSlotIndex)) return false;
 
 	FMAInventoryEntry& SourceEntry = Entries[SourceSlotIndex];
-	if (!SourceEntry.IsModule()) return false;
+	if (!SourceEntry.IsModuleInstance()) return false;
 
 	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
 	if (!SkillManager) return false;
@@ -230,7 +241,7 @@ bool UMAInventoryComponent::EquipModule(
 	if (!SkillManager->ReplaceModuleInstanceAt(
 		SkillSlotTag,
 		ModuleIndex,
-		SourceEntry.ModuleInstance,
+		SourceEntry.GetModuleInstance(),
 		PreviousModuleInstance))
 	{
 		return false;
@@ -240,7 +251,7 @@ bool UMAInventoryComponent::EquipModule(
 	if (PreviousModuleInstance)
 	{
 		PreviousModuleInstance->SetActive(true);
-		SourceEntry.SetModule(AllocateEntryId(), PreviousModuleInstance);
+		SourceEntry.SetModuleInstance(AllocateEntryId(), PreviousModuleInstance);
 	}
 	NotifyInventoryChanged();
 	return true;
@@ -257,7 +268,7 @@ bool UMAInventoryComponent::MoveSkillModuleToInventory(
 	if (!Entries.IsValidIndex(TargetSlotIndex)) return false;
 
 	FMAInventoryEntry& TargetEntry = Entries[TargetSlotIndex];
-	if (!TargetEntry.IsEmpty() && !TargetEntry.IsModule()) return false;
+	if (!TargetEntry.IsEmpty() && !TargetEntry.IsModuleInstance()) return false;
 
 	UMASkillManagerComponent* SkillManager = GetOwner()->FindComponentByClass<UMASkillManagerComponent>();
 	if (!SkillManager || !SkillManager->GetModuleInstanceAt(SkillSlotTag, ModuleIndex)) return false;
@@ -266,7 +277,7 @@ bool UMAInventoryComponent::MoveSkillModuleToInventory(
 	if (!SkillManager->ReplaceModuleInstanceAt(
 		SkillSlotTag,
 		ModuleIndex,
-		TargetEntry.IsModule() ? TargetEntry.ModuleInstance.Get() : nullptr,
+		TargetEntry.GetModuleInstance(),
 		PreviousSkillModuleInstance))
 	{
 		return false;
@@ -274,7 +285,7 @@ bool UMAInventoryComponent::MoveSkillModuleToInventory(
 	check(PreviousSkillModuleInstance);
 
 	PreviousSkillModuleInstance->SetActive(true);
-	TargetEntry.SetModule(AllocateEntryId(), PreviousSkillModuleInstance);
+	TargetEntry.SetModuleInstance(AllocateEntryId(), PreviousSkillModuleInstance);
 	NotifyInventoryChanged();
 	return true;
 }
@@ -313,10 +324,11 @@ void UMAInventoryComponent::RefreshEntryModuleStates()
 {
 	for (const FMAInventoryEntry& Entry : Entries)
 	{
-		if (!Entry.IsModule()) continue;
+		UMASkillModuleInstance* ModuleInstance = Entry.GetModuleInstance();
+		if (!ModuleInstance) continue;
 
-		Entry.ModuleInstance->SetInSkillSlot(false);
-		Entry.ModuleInstance->SetActive(true);
+		ModuleInstance->SetInSkillSlot(false);
+		ModuleInstance->SetActive(true);
 	}
 }
 

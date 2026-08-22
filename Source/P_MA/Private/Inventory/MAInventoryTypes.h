@@ -18,19 +18,19 @@ UENUM()
 enum class EMAInventoryEntryKind : uint8
 {
 	Empty,
-	Module,
-	Item
+	ModuleInstance,
+	Stack
 };
 
 USTRUCT(BlueprintType)
-struct P_MA_API FMAItemStack
+struct P_MA_API FMAInventoryStack
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	TObjectPtr<UMASkillModule> Module;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
 	int32 Count = 0;
 };
 
@@ -40,32 +40,41 @@ struct P_MA_API FMAInventoryEntry
 	GENERATED_BODY()
 
 	bool IsEmpty() const { return Kind == EMAInventoryEntryKind::Empty; }
-	bool IsModule() const { return Kind == EMAInventoryEntryKind::Module && ModuleInstance != nullptr; }
-	bool IsItem() const { return Kind == EMAInventoryEntryKind::Item && ItemStack.Module && ItemStack.Count > 0; }
+	bool IsModuleInstance() const
+	{
+		return Kind == EMAInventoryEntryKind::ModuleInstance && ModuleInstance != nullptr;
+	}
+	bool IsStack() const { return Kind == EMAInventoryEntryKind::Stack && Stack.Module && Stack.Count > 0; }
+
+	UMASkillModuleInstance* GetModuleInstance() const
+	{
+		return IsModuleInstance() ? ModuleInstance.Get() : nullptr;
+	}
+	const FMAInventoryStack* GetStack() const { return IsStack() ? &Stack : nullptr; }
 
 	void Reset()
 	{
 		EntryId = INDEX_NONE;
 		Kind = EMAInventoryEntryKind::Empty;
 		ModuleInstance = nullptr;
-		ItemStack = FMAItemStack();
+		Stack = FMAInventoryStack();
 	}
 
-	void SetModule(int32 InEntryId, UMASkillModuleInstance* InModuleInstance)
+	void SetModuleInstance(int32 InEntryId, UMASkillModuleInstance* InModuleInstance)
 	{
 		Reset();
 		EntryId = InEntryId;
-		Kind = EMAInventoryEntryKind::Module;
+		Kind = EMAInventoryEntryKind::ModuleInstance;
 		ModuleInstance = InModuleInstance;
 	}
 
-	void SetItem(int32 InEntryId, UMASkillModule* InModule, int32 InCount)
+	void SetStack(int32 InEntryId, UMASkillModule* InModule, int32 InCount)
 	{
 		Reset();
 		EntryId = InEntryId;
-		Kind = EMAInventoryEntryKind::Item;
-		ItemStack.Module = InModule;
-		ItemStack.Count = InCount;
+		Kind = EMAInventoryEntryKind::Stack;
+		Stack.Module = InModule;
+		Stack.Count = InCount;
 	}
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
@@ -78,5 +87,5 @@ struct P_MA_API FMAInventoryEntry
 	TObjectPtr<UMASkillModuleInstance> ModuleInstance;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
-	FMAItemStack ItemStack;
+	FMAInventoryStack Stack;
 };

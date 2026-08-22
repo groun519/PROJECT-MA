@@ -11,9 +11,11 @@
 #include "MAPlayerController.generated.h"
 
 class AMAShopNPC;
+class AMAEnchanterNPC;
 class UMAFloatingTextComponent;
 class UMAPlayerGameOverComponent;
 class UMAPlayerSpectateComponent;
+class UMASkillModuleInstance;
 
 UENUM(BlueprintType)
 enum class EChatType : uint8
@@ -53,8 +55,25 @@ public:
 	FMAInputBindingsChangedSignature OnInputBindingsChanged;
 	void NotifyInputBindingsChanged();
 	void SetGameplayWidgetVisible(bool bVisible);
-	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 	UMAFloatingTextComponent* GetFloatingTextComponent() const { return FloatingTextComponent; }
+
+	/** Shop **/
+	void RequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
+
+	/** Enchantment **/
+	void RequestEnchantModule(
+		AMAEnchanterNPC* EnchanterNPC,
+		UMASkillModuleInstance* TargetModule,
+		int32 RuneEntryId);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestEnchantModule(
+		AMAEnchanterNPC* EnchanterNPC,
+		UMASkillModuleInstance* TargetModule,
+		int32 RuneEntryId);
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)
@@ -63,9 +82,6 @@ public:
 	/** LoopReady **/
 	UFUNCTION(Server, Reliable)
 	void ServerSetLoopReady(bool bReady);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 
 	/** ChatMessage **/
 	UPROPERTY(BlueprintAssignable, Category = "Chat")

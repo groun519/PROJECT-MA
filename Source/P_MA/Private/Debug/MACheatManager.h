@@ -34,7 +34,7 @@ public:
 	void UseItem(int32 EntryId);
 
 	UFUNCTION(Exec)
-	void AddSkillSubModule(FString SlotTagName, int32 ModuleIndex, int32 SubModuleId);
+	void EnchantModule(FString SlotTagName, int32 ModuleIndex, int32 RuneEntryId);
 
 private:
 	AMAPlayerCharacter* GetMAPlayerCharacter() const;

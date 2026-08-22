@@ -58,17 +58,18 @@ void UMASkillModuleSocketWidget::Refresh()
 
 	UMASkillModuleInstance* ModuleInstance = ResolveModuleInstance();
 	BindModuleState(ModuleInstance);
+	const FMAInventoryStack* Stack = InventoryEntry ? InventoryEntry->GetStack() : nullptr;
 	CachedModule = ModuleInstance
 		? ModuleInstance->GetRootModule()
-		: InventoryEntry && InventoryEntry->IsItem()
-			? InventoryEntry->ItemStack.Module.Get()
+		: Stack
+			? Stack->Module.Get()
 			: nullptr;
 	ApplyModuleVisual(CachedModule);
 
-	if (InventoryEntry && InventoryEntry->IsItem())
+	if (Stack)
 	{
-		SetStackText(InventoryEntry->ItemStack.Count > 1
-			? FText::AsNumber(InventoryEntry->ItemStack.Count)
+		SetStackText(Stack->Count > 1
+			? FText::AsNumber(Stack->Count)
 			: FText());
 	}
 	else
@@ -88,7 +89,11 @@ const FMAInventoryEntry* UMASkillModuleSocketWidget::ResolveInventoryEntry() con
 
 UMASkillModuleInstance* UMASkillModuleSocketWidget::ResolveModuleInstance() const
 {
-	if (Inventory.IsValid()) return Inventory->GetModuleAt(SlotIndex);
+	if (Inventory.IsValid())
+	{
+		const FMAInventoryEntry* Entry = ResolveInventoryEntry();
+		return Entry ? Entry->GetModuleInstance() : nullptr;
+	}
 	if (SkillManager.IsValid()) return SkillManager->GetModuleInstanceAt(SkillSlotTag, SlotIndex);
 	return nullptr;
 }
@@ -289,7 +294,6 @@ FReply UMASkillModuleSocketWidget::NativeOnMouseButtonDown(const FGeometry& InGe
 		return FReply::Handled();
 	}
 
-	const FMAInventoryEntry* InventoryEntry = ResolveInventoryEntry();
 	if (CachedModule && InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
@@ -313,9 +317,13 @@ void UMASkillModuleSocketWidget::NativeOnDragDetected(
 		const FMAInventoryEntry* Entry = ResolveInventoryEntry();
 		if (!Entry || !DragOperation->SetSource(Inventory.Get(), *Entry)) return;
 
-		CachedModule = Entry->IsModule()
-			? Entry->ModuleInstance->GetRootModule()
-			: Entry->ItemStack.Module.Get();
+		const FMAInventoryStack* Stack = Entry->GetStack();
+		CachedModule = Entry->IsModuleInstance()
+			? Entry->GetModuleInstance()->GetRootModule()
+			: Stack
+				? Stack->Module.Get()
+				: nullptr;
+		if (!CachedModule) return;
 		const FMAIconData IconData = CachedModule
 			? CachedModule->ResolveDisplayData(
 				UMAGameSettings::Get()->GetModuleQualityData()).IconData
@@ -454,8 +462,8 @@ void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* Invento
 	SetToolTip(nullptr);
 	SetToolTipText(FText());
 
-	const bool bHasItem = InventoryEntry && InventoryEntry->IsItem();
-	if ((!bHasItem && !CachedModule) || !TooltipWidgetClass)
+	const FMAInventoryStack* Stack = InventoryEntry ? InventoryEntry->GetStack() : nullptr;
+	if ((!Stack && !CachedModule) || !TooltipWidgetClass)
 	{
 		return;
 	}
@@ -467,17 +475,16 @@ void UMASkillModuleSocketWidget::RefreshTooltip(const FMAInventoryEntry* Invento
 		return;
 	}
 
-	if (bHasItem)
+	if (Stack)
 	{
-		const FMAItemStack& ItemStack = InventoryEntry->ItemStack;
 		FMADisplayData DisplayData = CachedModule->ResolveDisplayData(
 			UMAGameSettings::Get()->GetModuleQualityData());
-		if (ItemStack.Count > 1 && !DisplayData.DisplayName.IsEmpty())
+		if (Stack->Count > 1 && !DisplayData.DisplayName.IsEmpty())
 		{
 			DisplayData.DisplayName = FText::Format(
 				NSLOCTEXT("MASkillTooltipWidget", "ItemCountFormat", "{0} x{1}"),
 				DisplayData.DisplayName,
-				FText::AsNumber(ItemStack.Count));
+				FText::AsNumber(Stack->Count));
 		}
 		TooltipWidget->SetDisplayData(DisplayData);
 	}

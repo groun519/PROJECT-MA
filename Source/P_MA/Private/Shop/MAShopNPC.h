@@ -2,23 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "Framework/MAGameStateTypes.h"
-#include "GameFramework/Actor.h"
+#include "NPC/MANPC.h"
 #include "Player/Camera/MACameraTypes.h"
 #include "Shop/MAShopTypes.h"
 #include "MAShopNPC.generated.h"
 
 class AMAPlayerCharacter;
-class UMAHighlightComponent;
 class UMAModuleQualityData;
 class UMASkillModulePool;
 class UMASkillModule;
 class UMAShopWidget;
 class UCameraComponent;
-class UMAInteractableComponent;
-class USkeletalMeshComponent;
 
 UCLASS()
-class P_MA_API AMAShopNPC : public AActor
+class P_MA_API AMAShopNPC : public AMANPC
 {
 	GENERATED_BODY()
 
@@ -39,16 +36,7 @@ public:
 
 private:
 	UPROPERTY(VisibleAnywhere, Category="Component")
-	TObjectPtr<USkeletalMeshComponent> MeshComponent;
-
-	UPROPERTY(VisibleAnywhere, Category="Component")
 	TObjectPtr<UCameraComponent> ShopCameraComponent;
-
-	UPROPERTY(VisibleAnywhere, Category="Component")
-	TObjectPtr<UMAInteractableComponent> InteractableComponent;
-
-	UPROPERTY(VisibleAnywhere, Category="Component")
-	TObjectPtr<UMAHighlightComponent> HighlightComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop")
 	TSubclassOf<UMAShopWidget> ShopWidgetClass;

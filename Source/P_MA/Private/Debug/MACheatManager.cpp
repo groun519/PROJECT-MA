@@ -1,12 +1,15 @@
 #include "Debug/MACheatManager.h"
 
+#include "EngineUtils.h"
 #include "Framework/MAGameMode.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
 #include "GAS/Skill/Module/MASkillModule.h"
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "Inventory/MAInventoryComponent.h"
+#include "NPC/MAEnchanterNPC.h"
 #include "Player/MAPlayerCharacter.h"
+#include "Player/MAPlayerController.h"
 
 void UMACheatManager::AddCoin(const float Amount)
 {
@@ -70,10 +73,12 @@ void UMACheatManager::ListItems()
 	if (!Inventory) return;
 
 	bool bFoundItem = false;
-	for (int32 SlotIndex = 0; SlotIndex < Inventory->GetSlotCount(); ++SlotIndex)
+	const TArray<FMAInventoryEntry>& Entries = Inventory->GetEntries();
+	for (int32 SlotIndex = 0; SlotIndex < Entries.Num(); ++SlotIndex)
 	{
-		const FMAInventoryEntry* Entry = Inventory->GetEntryAt(SlotIndex);
-		if (!Entry || !Entry->IsItem()) continue;
+		const FMAInventoryEntry& Entry = Entries[SlotIndex];
+		const FMAInventoryStack* Stack = Entry.GetStack();
+		if (!Stack) continue;
 
 		bFoundItem = true;
 		UE_LOG(
@@ -81,11 +86,11 @@ void UMACheatManager::ListItems()
 			Display,
 			TEXT("Slot=%d EntryId=%d ModuleId=%d Type=%s Count=%d"),
 			SlotIndex,
-			Entry->EntryId,
-			Entry->ItemStack.Module->GetModuleId(),
+			Entry.EntryId,
+			Stack->Module->GetModuleId(),
 			*StaticEnum<EMASkillModuleType>()->GetNameStringByValue(
-				static_cast<int64>(Entry->ItemStack.Module->GetModuleType())),
-			Entry->ItemStack.Count);
+				static_cast<int64>(Stack->Module->GetModuleType())),
+			Stack->Count);
 	}
 
 	if (!bFoundItem)
@@ -109,46 +114,40 @@ void UMACheatManager::UseItem(const int32 EntryId)
 	Inventory->UseItem(EntryId);
 }
 
-void UMACheatManager::AddSkillSubModule(
+void UMACheatManager::EnchantModule(
 	const FString SlotTagName,
 	const int32 ModuleIndex,
-	const int32 SubModuleId)
+	const int32 RuneEntryId)
 {
 	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
 	if (!PlayerCharacter) return;
-
-	if (!PlayerCharacter->HasAuthority())
-	{
-		GetPlayerController()->ServerExec(FString::Printf(
-			TEXT("AddSkillSubModule %s %d %d"),
-			*SlotTagName,
-			ModuleIndex,
-			SubModuleId));
-		return;
-	}
 
 	const FGameplayTag SlotTag = FGameplayTag::RequestGameplayTag(FName(SlotTagName), false);
 	UMASkillManagerComponent* SkillManager = PlayerCharacter->GetSkillManagerComponent();
 	UMASkillModuleInstance* ModuleInstance = SkillManager
 		? SkillManager->GetModuleInstanceAt(SlotTag, ModuleIndex)
 		: nullptr;
-	UMASkillModule* SubModule = UMASkillModule::LoadById(SubModuleId);
-	if (ModuleInstance
-		&& SubModule
-		&& ModuleInstance->SetSubModuleAt(
-			ModuleInstance->GetModuleGroup().SubModules.Num(),
-			SubModule))
+	AMAEnchanterNPC* EnchanterNPC = nullptr;
+	for (TActorIterator<AMAEnchanterNPC> It(GetWorld()); It; ++It)
 	{
+		EnchanterNPC = *It;
+		break;
+	}
+
+	AMAPlayerController* PlayerController = Cast<AMAPlayerController>(GetPlayerController());
+	if (ModuleInstance && EnchanterNPC && PlayerController)
+	{
+		PlayerController->RequestEnchantModule(EnchanterNPC, ModuleInstance, RuneEntryId);
 		return;
 	}
 
 	UE_LOG(
 		LogTemp,
 		Warning,
-		TEXT("AddSkillSubModule failed: SlotTag=%s ModuleIndex=%d ModuleId=%d"),
+		TEXT("EnchantModule failed: SlotTag=%s ModuleIndex=%d RuneEntryId=%d"),
 		*SlotTagName,
 		ModuleIndex,
-		SubModuleId);
+		RuneEntryId);
 }
 
 AMAPlayerCharacter* UMACheatManager::GetMAPlayerCharacter() const
