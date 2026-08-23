@@ -42,6 +42,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
+	GetAbilitySystemComponent()->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	/** Camera Set **/
 	// 1) CameraBoom

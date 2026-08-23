@@ -45,7 +45,6 @@ void UMAInteractableComponent::BeginPlay()
 
 	InteractKeyWidgetComp->SetWidgetClass(InteractKeyWidgetClass);
 	InteractKeyWidgetComp->InitWidget();
-	CastChecked<UMAInputKeyPromptWidget>(InteractKeyWidgetComp->GetUserWidgetObject());
 
 	InteractKeyWidgetComp->SetRelativeLocation(FVector::ZeroVector);
 	InteractKeyWidgetComp->SetVisibility(false);

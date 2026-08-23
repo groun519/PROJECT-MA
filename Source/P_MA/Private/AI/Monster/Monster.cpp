@@ -3,7 +3,6 @@
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "BrainComponent.h"
 #include "AI/Monster/MAMonsterCharacterMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
@@ -54,74 +53,6 @@ void AMonster::SetEnvTag(const FGameplayTag& InEnvTag)
 	ApplyEnvMaterials();
 
 	if (HasAuthority()) ForceNetUpdate();
-}
-
-bool AMonster::IsActive() const
-{
-	return bActiveInPool && !IsDead();
-}
-
-void AMonster::Activate()
-{
-	GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
-
-	bActiveInPool = true;
-
-	SetActorHiddenInGame(false);
-	SetActorEnableCollision(true);
-
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-	{
-		MoveComp->SetMovementMode(MOVE_Walking);
-	}
-
-	RespawnImmediately();
-
-	if (AController* BaseCon = GetController())
-	{
-		if (AAIController* AICon = Cast<AAIController>(BaseCon))
-		{
-			if (UBrainComponent* Brain = AICon->GetBrainComponent())
-			{
-				Brain->StartLogic();
-			}
-		}
-	}
-}
-
-void AMonster::Deactivate()
-{
-	ResetSkillSelection();
-
-	if (HasAuthority())
-	{
-		if (UMAAbilitySystemComponent* ASC = Cast<UMAAbilitySystemComponent>(GetAbilitySystemComponent()))
-		{
-			ASC->RemoveLooseGameplayTags(ASC->AppliedBaseTags);
-			ASC->AppliedBaseTags.Reset();
-		}
-	}
-	bActiveInPool = false;
-
-	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
-
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-	{
-		MoveComp->StopMovementImmediately();
-		MoveComp->DisableMovement();
-	}
-
-	if (AController* BaseCon = GetController())
-	{
-		if (AAIController* AICon = Cast<AAIController>(BaseCon))
-		{
-			if (UBrainComponent* Brain = AICon->GetBrainComponent())
-			{
-				Brain->StopLogic(TEXT("Monster Deactivated"));
-			}
-		}
-	}
 }
 
 void AMonster::ApplyStatCoefficientEffect()
@@ -312,12 +243,7 @@ void AMonster::OnDead()
 	if (HasAuthority())
 	{
 		TrySpawnModuleDrops();
-		GetWorldTimerManager().ClearTimer(DisappearTimerHandle);
-		GetWorldTimerManager().SetTimer(
-			DisappearTimerHandle,
-			this, &AMonster::Deactivate,DisappearDelay,
-			false
-		);
+		SetLifeSpan(DisappearDelay);
 	}
 }
 

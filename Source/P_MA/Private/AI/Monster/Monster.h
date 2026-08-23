@@ -51,10 +51,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FOnMonsterDead);
 	FOnMonsterDead OnMonsterDead;
 
-	bool IsActive() const;
-	void Activate();
 	void SetGoal(AActor* Goal);
-	void Deactivate();
 	
 	void SetEnvTag(const FGameplayTag& InEnvTag);
 	void SetStatCoefficient(float InCoefficient) { StatCoefficient = InCoefficient; }
@@ -112,13 +109,8 @@ private:
 	UPROPERTY(Transient)
 	TArray<FName> PatternPlan;
 	
-	UPROPERTY()
-	bool bActiveInPool = true;
-	
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	FName GoalBlackboardKeyName = "Goal";
-
-	FTimerHandle DisappearTimerHandle;
 
 	UPROPERTY(EditDefaultsOnly, Category="Death")
 	float DisappearDelay = 3.f;

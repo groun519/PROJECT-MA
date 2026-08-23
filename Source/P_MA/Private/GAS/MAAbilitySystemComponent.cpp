@@ -17,6 +17,8 @@
 
 UMAAbilitySystemComponent::UMAAbilitySystemComponent()
 {
+	SetIsReplicatedByDefault(true);
+	SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	GetGameplayAttributeValueChangeDelegate(UMAAttributeSet::GetHealthAttribute()).AddUObject(this, &UMAAbilitySystemComponent::HealthUpdated);
 }
 
