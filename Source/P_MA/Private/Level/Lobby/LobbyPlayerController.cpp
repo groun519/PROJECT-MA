@@ -1,5 +1,6 @@
 #include "LobbyPlayerController.h"
 
+#include "Audio/Music/MAMusicSubsystem.h"
 #include "LobbyGameState.h"
 #include "LobbyAvatarSlot.h"
 #include "Camera/CameraComponent.h"
@@ -25,6 +26,11 @@ void ALobbyPlayerController::BeginPlay()
 	
 	if (IsLocalController())
 	{
+		if (UMAMusicSubsystem* MusicSubsystem = GetGameInstance()->GetSubsystem<UMAMusicSubsystem>())
+		{
+			MusicSubsystem->PlayMusic(FGameplayTag::RequestGameplayTag(TEXT("Music.Lobby")));
+		}
+
 		ShowLobbyUI();
 
 		bShowMouseCursor = true;
