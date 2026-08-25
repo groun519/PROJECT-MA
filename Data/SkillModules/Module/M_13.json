@@ -2,6 +2,7 @@
 	"ModuleId": 13,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Devour",
 		"DisplayData":
 		{
@@ -32,19 +33,21 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 9
+				"CooldownSeconds": 9,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": 0
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
-				"bindingScope": "Skill",
-				"triggerEventTags": [
+				"BindingScope": "Skill",
+				"TriggerEventTags": [
 					"Event.Skill.End"
 				],
-				"durationSeconds": 3
+				"DurationSeconds": 3
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
 					},
@@ -58,99 +61,115 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Montage.Devour",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Montage.Devour",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
-							"damagePayloadTag": "Damage"
+							"DamagePayloadTag": "Damage"
 						}
 					},
 					{
-						"eventTag": "Event.Montage.Devour.Grab",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Montage.Devour.Grab",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
-							"damagePayloadTag": "Damage.Devour.Grab"
+							"DamagePayloadTag": "Damage.Devour.Grab"
 						}
 					},
 					{
-						"eventTag": "Event.Skill.Kill",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Skill.Kill",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ModifyModuleStack",
-							"operation": "Add",
-							"value": 3
+							"Operation": "Add",
+							"Value": 3,
+							"ValuePayloadTag": ""
 						}
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
-				"sequences": [
+				"Sequences": [
 					{
-						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Devour.AM_Devour'",
-						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1
+						"Montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Devour.AM_Devour'",
+						"SequenceSectionNameBase": "Sequence",
+						"MaxSectionCount": 1,
+						"bScaleWithAttackSpeed": false
 					}
 				],
-				"sequenceModifiers": []
+				"SequenceModifiers": []
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleGameplayEffectAddon",
-				"gameplayEffects": [
+				"GameplayEffects": [
 					{
-						"modifiers": [
+						"Modifiers": [
 							{
-								"attribute": {
-									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								"Attribute":
+								{
+									"Attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
 								},
-								"modifierOp": "Additive"
+								"ModifierOp": "AddBase"
 							}
 						],
-						"baseMagnitude": 0,
-						"magnitudeCoefficients": [
+						"BaseMagnitude": 0,
+						"MagnitudeType": "Snapshot",
+						"MagnitudeCoefficients": [
 							{
-								"source": "Payload",
-								"gameplayAttribute": {
-									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+								"Source": "Payload",
+								"GameplayAttribute":
+								{
+									"Attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
 								},
-								"payloadTag": "Data.Module.Stack",
-								"coefficient": 1
+								"PayloadTag": "Data.Module.Stack",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 1
 							}
 						],
-						"grantedTags": [],
-						"period": 0,
+						"MagnitudeAttribute":
+						{
+							"Attribute": ""
+						},
+						"MagnitudeAttributeCoefficient": 0,
+						"GrantedTags": [],
+						"Period": 0,
 						"bExecutePeriodicEffectOnApplication": true,
-						"gameplayCueTags": []
+						"GameplayCueTags": []
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleStackAddon",
-				"initialStack": 0,
-				"minStack": 0,
-				"maxStack": 999,
+				"InitialStack": 0,
+				"MinStack": 0,
+				"MaxStack": 999,
 				"bShowStackText": true
 			}
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -159,22 +178,34 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 1
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 1
 							},
 							{
-								"source": "Target",
-								"gameplayAttribute":
+								"Source": "Target",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
+									"Attribute": "/Script/P_MA.MAAttributeSet:MaxHealth"
 								},
-								"payloadTag": "",
-								"coefficient": 0.029999999329447746
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.029999999329447746
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -186,24 +217,24 @@
 						"TargetRelationMask": 2,
 						"StatusEffects": [],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Golem",
+							"GameplayCue.Hit.Bludgeoning",
 							"GameplayCue.Hit.Overlay.Red"
 						]
 					}
 				}
 			},
 			{
-				"payloadTag": "Damage.Devour.Grab",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage.Devour.Grab",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -221,16 +252,19 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectStun",
-								"duration": 1
+								"Duration": 1
 							},
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectGrab",
-								"magnitude": 400,
-								"duration": 0.25,
-								"sourceType": "Instigator"
+								"Magnitude": 400,
+								"Duration": 0.25,
+								"SourceType": "Instigator"
 							}
 						],
-						"TargetGameplayCueTags": []
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Bludgeoning",
+							"GameplayCue.Hit.Overlay.Red"
+						]
 					}
 				}
 			}

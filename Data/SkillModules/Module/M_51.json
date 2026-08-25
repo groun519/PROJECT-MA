@@ -2,6 +2,7 @@
 	"ModuleId": 51,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Throw",
 		"DisplayData":
 		{
@@ -31,7 +32,7 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
 					}
@@ -39,68 +40,74 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Montage.Damage",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Montage.Damage",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ThrowWeaponProjectile",
-							"config":
+							"Config":
 							{
-								"projectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_WeaponProjectile.BP_WeaponProjectile_C'",
-								"startObjectSource": "Self",
-								"startObjectPayloadTag": "",
-								"directionSource": "Forward",
-								"directionObjectPayloadTag": "",
+								"ProjectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_WeaponProjectile.BP_WeaponProjectile_C'",
+								"StartObjectSource": "Self",
+								"StartObjectPayloadTag": "",
+								"DirectionSource": "Forward",
+								"DirectionObjectPayloadTag": "",
 								"bUseTargetTracking": false,
-								"targetTracking":
+								"TargetTracking":
 								{
-									"targetSource": "Self",
-									"targetObjectPayloadTag": "",
+									"TargetSource": "Self",
+									"TargetObjectPayloadTag": "",
 									"bHitOnlyTarget": false
 								},
-								"spawnSocketName": "WeaponHandSocket",
-								"maxHitCount": 1,
-								"continuousHitSettings":
+								"SpawnSocketName": "WeaponHandSocket",
+								"MaxHitCount": 1,
+								"ContinuousHitSettings":
 								{
-									"tickInterval": 0.079999998211860657,
-									"minSweepDistance": 10,
-									"maxSweepSegmentLength": 150,
-									"maxSweepSubsteps": 8
+									"TickInterval": 0.079999998211860657,
+									"MinSweepDistance": 10,
+									"MaxSweepSegmentLength": 150,
+									"MaxSweepSubsteps": 8
 								}
 							},
-							"damagePayloadTag": "Damage"
+							"DamagePayloadTag": "Damage"
 						}
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
-				"sequences": [
+				"Sequences": [
 					{
-						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Throw.AM_Throw'",
-						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1,
+						"Montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Throw.AM_Throw'",
+						"SequenceSectionNameBase": "Sequence",
+						"MaxSectionCount": 1,
 						"bScaleWithAttackSpeed": true
 					}
 				],
-				"sequenceModifiers": []
+				"SequenceModifiers": []
+			},
+			{
+				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
+				"CooldownSeconds": 0,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": -1000
 			}
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -109,13 +116,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 0.4
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.40000000596046448
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -128,20 +141,20 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectKnockback",
-								"magnitude": 100,
-								"duration": 0.34999999403953552,
-								"sourceType": "Instigator"
+								"Magnitude": 100,
+								"Duration": 0.34999999403953552,
+								"SourceType": "Instigator"
 							},
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
-								"magnitude": 0.25,
-								"duration": 0.75,
-								"grantedTags": []
+								"Magnitude": 0.25,
+								"Duration": 0.75,
+								"GrantedTags": []
 							}
 						],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Golem",
-							"GameplayCue.Hit.Overlay.Red"
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Piercing"
 						]
 					}
 				}

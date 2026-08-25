@@ -2,6 +2,7 @@
 	"ModuleId": 17,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Crash",
 		"DisplayData":
 		{
@@ -32,11 +33,13 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 7.5
+				"CooldownSeconds": 7.5,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": 0
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_MovementStart"
 					}
@@ -44,29 +47,29 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Skill.MovementStart",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Skill.MovementStart",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ApplyMovementDamage",
-							"damagePayloadTag": "Damage.Crash",
-							"capsuleRadiusScale": 1.5,
-							"capsuleHalfHeightScale": 1.1000000238418579,
+							"DamagePayloadTag": "Damage.Crash",
+							"CapsuleRadiusScale": 1.5,
+							"CapsuleHalfHeightScale": 1.1000000238418579,
 							"bDrawTrailDecal": true,
-							"minTrailDecalDistance": 10
+							"MinTrailDecalDistance": 10
 						}
 					},
 					{
-						"eventTag": "Event.Skill.MovementStart",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Skill.MovementStart",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_AttachNiagaraToSelf",
-							"niagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/_WorkSpace/GAS/Elemental/Effect/NS_Trail_Default.NS_Trail_Default'",
-							"socketName": "spine_05",
-							"lifeSpan": 2.5
+							"NiagaraSystem": "/Script/Niagara.NiagaraSystem'/Game/_WorkSpace/GAS/Elemental/Effect/NS_Trail_Default.NS_Trail_Default'",
+							"SocketName": "spine_05",
+							"LifeSpan": 2.5
 						}
 					}
 				]
@@ -74,17 +77,17 @@
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage.Crash",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage.Crash",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -93,13 +96,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 2
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 2
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -111,8 +120,8 @@
 						"TargetRelationMask": 2,
 						"StatusEffects": [],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Overlay.Red",
-							"GameplayCue.Hit.Sword"
+							"GameplayCue.Hit.Bludgeoning",
+							"GameplayCue.Hit.Overlay.Red"
 						]
 					}
 				}

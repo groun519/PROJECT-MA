@@ -10,7 +10,7 @@
 			"Description": "스킬의 <COOLDOWN>쿨다운이 20% 감소</>합니다.",
 			"IconData":
 			{
-				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_DamageDiscount50.T_DamageDiscount50'",
+				"Icon": "/Script/Engine.Texture2D'/Game/_WorkSpace/GAS/IconTexture/T_TimeCompression.T_TimeCompression'",
 				"Priority": 0
 			},
 			"NameData":
@@ -30,7 +30,9 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownMultiplier": 0.80000001192092896
+				"CooldownSeconds": 0,
+				"CooldownMultiplier": 0.80000001192092896,
+				"CooldownOffsetSeconds": 0
 			}
 		],
 		"Payloads": []

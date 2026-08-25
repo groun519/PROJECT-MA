@@ -2,6 +2,7 @@
 	"ModuleId": 25,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Hurt",
 		"DisplayData":
 		{
@@ -33,19 +34,21 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 3.4
+				"CooldownSeconds": 3.4000000953674316,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": 0
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleCooldownAddon",
-				"bindingScope": "Skill",
-				"triggerEventTags": [
+				"BindingScope": "Skill",
+				"TriggerEventTags": [
 					"Event.Skill.Hit"
 				],
-				"durationSeconds": 1
+				"DurationSeconds": 1
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Hit"
 					}
@@ -53,15 +56,17 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Skill.Hit",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Skill.Hit",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToPayloadTarget",
-							"targetPayloadTag": "Data.Damage.Target",
-							"damagePayloadTag": "Damage.Hurt"
+							"TargetPayloadTag": "Data.Damage.Target",
+							"DamagePayloadTag": "Damage.Hurt",
+							"BaseDamageMultiplier": 1,
+							"DamageMultiplierCoefficients": []
 						}
 					}
 				]
@@ -69,17 +74,17 @@
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage.Hurt",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage.Hurt",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -88,13 +93,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-									"coefficient": 0.4
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.40000000596046448
 							}
 						],
 						"ApplicationMode": "DamageOverTime",
@@ -107,13 +118,13 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
-								"magnitude": 0.3,
-								"duration": 2,
-								"grantedTags": []
+								"Magnitude": 0.30000001192092896,
+								"Duration": 2,
+								"GrantedTags": []
 							}
 						],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Sword"
+							"GameplayCue.Hit.Overlay.Red"
 						]
 					}
 				}

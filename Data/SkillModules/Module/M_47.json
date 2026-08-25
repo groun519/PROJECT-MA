@@ -2,6 +2,7 @@
 	"ModuleId": 47,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Slam",
 		"DisplayData":
 		{
@@ -31,11 +32,13 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownSeconds": 0.3
+				"CooldownSeconds": 0.30000001192092896,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": 0
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
 					}
@@ -43,44 +46,44 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Montage.Damage",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Montage.Damage",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
-							"damagePayloadTag": "Damage"
+							"DamagePayloadTag": "Damage"
 						}
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
-				"sequences": [
+				"Sequences": [
 					{
-						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Slam.AM_Slam'",
-						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 2,
+						"Montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Slam.AM_Slam'",
+						"SequenceSectionNameBase": "Sequence",
+						"MaxSectionCount": 2,
 						"bScaleWithAttackSpeed": true
 					}
 				],
-				"sequenceModifiers": []
+				"SequenceModifiers": []
 			}
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -89,13 +92,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 0.6
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.60000002384185791
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -108,14 +117,14 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectStagger",
-								"magnitude": 200,
-								"duration": 0.15000000596046448,
-								"sourceType": "Instigator"
+								"Magnitude": 200,
+								"Duration": 0.15000000596046448,
+								"SourceType": "Instigator"
 							}
 						],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Overlay.Red",
-							"GameplayCue.Hit.Sword"
+							"GameplayCue.Hit.Bludgeoning",
+							"GameplayCue.Hit.Overlay.Red"
 						]
 					}
 				}

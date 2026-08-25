@@ -2,6 +2,7 @@
 	"ModuleId": 20,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Death",
 		"DisplayData":
 		{
@@ -31,11 +32,13 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillCooldownAddon",
-				"cooldownOffsetSeconds": -666
+				"CooldownSeconds": 0,
+				"CooldownMultiplier": 1,
+				"CooldownOffsetSeconds": -666
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventSourceAddon",
-				"eventSources": [
+				"EventSources": [
 					{
 						"_ClassName": "/Script/P_MA.MASkillEventSource_Activate"
 					},
@@ -46,25 +49,25 @@
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Skill.Activate",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Skill.Activate",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MultiplyFinalDamage",
-							"multiplier": 6.6599998474121094,
-							"multiplierPayloadTag": "",
-							"payloadBaseMultiplier": 0
+							"Multiplier": 6.6599998474121094,
+							"MultiplierPayloadTag": "",
+							"PayloadBaseMultiplier": 0
 						}
 					},
 					{
-						"eventTag": "Event.Skill.End",
-						"bindingScope": "Skill",
-						"action":
+						"EventTag": "Event.Skill.End",
+						"BindingScope": "Skill",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_ApplyDamageToSelf",
-							"damagePayloadTag": "Damage.Death"
+							"DamagePayloadTag": "Damage.Death"
 						}
 					}
 				]
@@ -72,17 +75,17 @@
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage.Death",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage.Death",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -91,13 +94,19 @@
 						"DamageTypeTag": "DamageType.Fixed",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Health"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Health"
 								},
-								"payloadTag": "",
-								"coefficient": 1
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 1
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -108,7 +117,10 @@
 						},
 						"TargetRelationMask": 8,
 						"StatusEffects": [],
-						"TargetGameplayCueTags": []
+						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Slashing"
+						]
 					}
 				}
 			}

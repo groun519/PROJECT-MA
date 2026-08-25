@@ -2,6 +2,7 @@
 	"ModuleId": 46,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_Projection",
 		"DisplayData":
 		{
@@ -31,68 +32,68 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Montage.Damage",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Montage.Damage",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_SpawnProjectile",
-							"config":
+							"Config":
 							{
-								"projectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_ProjectileBase.BP_ProjectileBase_C'",
-								"startObjectSource": "Self",
-								"startObjectPayloadTag": "",
-								"directionSource": "Forward",
-								"directionObjectPayloadTag": "",
+								"ProjectileClass": "/Script/Engine.BlueprintGeneratedClass'/Game/_WorkSpace/GAS/BP_ProjectileBase.BP_ProjectileBase_C'",
+								"StartObjectSource": "Self",
+								"StartObjectPayloadTag": "",
+								"DirectionSource": "Forward",
+								"DirectionObjectPayloadTag": "",
 								"bUseTargetTracking": false,
-								"targetTracking":
+								"TargetTracking":
 								{
-									"targetSource": "Self",
-									"targetObjectPayloadTag": "",
+									"TargetSource": "Self",
+									"TargetObjectPayloadTag": "",
 									"bHitOnlyTarget": false
 								},
-								"spawnSocketName": "None",
-								"maxHitCount": 1,
-								"continuousHitSettings":
+								"SpawnSocketName": "None",
+								"MaxHitCount": 1,
+								"ContinuousHitSettings":
 								{
-									"tickInterval": 0.079999998211860657,
-									"minSweepDistance": 10,
-									"maxSweepSegmentLength": 150,
-									"maxSweepSubsteps": 8
+									"TickInterval": 0.079999998211860657,
+									"MinSweepDistance": 10,
+									"MaxSweepSegmentLength": 150,
+									"MaxSweepSubsteps": 8
 								}
 							},
-							"damagePayloadTag": "Damage"
+							"DamagePayloadTag": "Damage"
 						}
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
-				"sequences": [
+				"Sequences": [
 					{
-						"montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Projection.AM_Projection'",
-						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 2,
+						"Montage": "/Script/Engine.AnimMontage'/Game/_WorkSpace/GAS/AM_Projection.AM_Projection'",
+						"SequenceSectionNameBase": "Sequence",
+						"MaxSectionCount": 2,
 						"bScaleWithAttackSpeed": true
 					}
 				],
-				"sequenceModifiers": []
+				"SequenceModifiers": []
 			}
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -101,13 +102,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 0.44999998807907104
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.44999998807907104
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -120,13 +127,14 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectKnockback",
-								"magnitude": 100,
-								"duration": 0.10000000149011612,
-								"sourceType": "Instigator"
+								"Magnitude": 100,
+								"Duration": 0.10000000149011612,
+								"SourceType": "Instigator"
 							}
 						],
 						"TargetGameplayCueTags": [
-							"GameplayCue.Hit.Overlay.Red"
+							"GameplayCue.Hit.Overlay.Red",
+							"GameplayCue.Hit.Piercing"
 						]
 					}
 				}

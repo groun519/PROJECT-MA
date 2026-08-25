@@ -81,6 +81,18 @@ void AMAPlayerController::OnPossess(APawn* NewPawn)
 void AMAPlayerController::AcknowledgePossession(APawn* NewPawn)
 {
 	Super::AcknowledgePossession(NewPawn);
+	if (IsLocalController())
+	{
+		if (USceneComponent* PawnRoot = NewPawn ? NewPawn->GetRootComponent() : nullptr)
+		{
+			SetAudioListenerAttenuationOverride(PawnRoot, FVector::ZeroVector);
+		}
+		else
+		{
+			ClearAudioListenerAttenuationOverride();
+		}
+	}
+
 	MAPlayerCharacter = Cast<AMAPlayerCharacter>(NewPawn);
 	if (MAPlayerCharacter)
 	{

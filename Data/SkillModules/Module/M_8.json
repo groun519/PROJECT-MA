@@ -2,6 +2,7 @@
 	"ModuleId": 8,
 	"Module":
 	{
+		"ModuleType": "Module",
 		"ModuleName": "DA_GolemAttack",
 		"DisplayData":
 		{
@@ -27,44 +28,44 @@
 		"Addons": [
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleEventBindingAddon",
-				"eventBindings": [
+				"EventBindings": [
 					{
-						"eventTag": "Event.Montage.Damage",
-						"bindingScope": "Module",
-						"action":
+						"EventTag": "Event.Montage.Damage",
+						"BindingScope": "Module",
+						"Action":
 						{
 							"_ClassName": "/Script/P_MA.MASkillAction_MeleeOverlap",
-							"damagePayloadTag": "Damage"
+							"DamagePayloadTag": "Damage"
 						}
 					}
 				]
 			},
 			{
 				"_ClassName": "/Script/P_MA.MASkillModuleSequenceAddon",
-				"sequences": [
+				"Sequences": [
 					{
-						"montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Attack.AM_SmallGolem_Attack'",
-						"sequenceSectionNameBase": "Sequence",
-						"maxSectionCount": 1,
+						"Montage": "/Script/Engine.AnimMontage'/Game/_Monster/Golem_MS/Small/GA/Combo/AM_SmallGolem_Attack.AM_SmallGolem_Attack'",
+						"SequenceSectionNameBase": "Sequence",
+						"MaxSectionCount": 1,
 						"bScaleWithAttackSpeed": true
 					}
 				],
-				"sequenceModifiers": []
+				"SequenceModifiers": []
 			}
 		],
 		"Payloads": [
 			{
-				"payloadTag": "Damage",
-				"valueType": "Struct",
-				"scalarValue": 0,
-				"vectorValue":
+				"PayloadTag": "Damage",
+				"ValueType": "Struct",
+				"ScalarValue": 0,
+				"VectorValue":
 				{
-					"x": 0,
-					"y": 0,
-					"z": 0
+					"X": 0,
+					"Y": 0,
+					"Z": 0
 				},
-				"objectValue": "None",
-				"structValue":
+				"ObjectValue": "None",
+				"StructValue":
 				{
 					"_StructName": "/Script/P_MA.MASkillDamageConfig",
 					"Value":
@@ -73,13 +74,19 @@
 						"DamageTypeTag": "DamageType.Damage",
 						"AttributeCoefficients": [
 							{
-								"source": "Source",
-								"gameplayAttribute":
+								"Source": "Source",
+								"GameplayAttribute":
 								{
-									"attribute": "/Script/P_MA.MAAttributeSet:Attack"
+									"Attribute": "/Script/P_MA.MAAttributeSet:Attack"
 								},
-								"payloadTag": "",
-								"coefficient": 0.5
+								"PayloadTag": "",
+								"PayloadCalculation":
+								{
+									"Type": "Linear",
+									"HalfValue": 1,
+									"MaxValue": 1
+								},
+								"Coefficient": 0.5
 							}
 						],
 						"ApplicationMode": "Instant",
@@ -92,18 +99,19 @@
 						"StatusEffects": [
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffectStagger",
-								"magnitude": 500,
-								"duration": 0.20000000298023224,
-								"sourceType": "Instigator"
+								"Magnitude": 500,
+								"Duration": 0.20000000298023224,
+								"SourceType": "Instigator"
 							},
 							{
 								"_ClassName": "/Script/P_MA.MASkillStatusEffect_Slow",
-								"magnitude": 0.5,
-								"duration": 2,
-								"grantedTags": []
+								"Magnitude": 0.5,
+								"Duration": 2,
+								"GrantedTags": []
 							}
 						],
 						"TargetGameplayCueTags": [
+							"GameplayCue.Hit.Bludgeoning",
 							"GameplayCue.Hit.Overlay.Red"
 						]
 					}
