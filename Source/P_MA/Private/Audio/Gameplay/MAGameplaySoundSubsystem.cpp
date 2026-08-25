@@ -60,44 +60,24 @@ void UMAGameplaySoundSubsystem::PlayAtLocation(
 		return;
 	}
 
-	const FMASoundLayers* Layers = GameplaySoundLibrary->FindLayers(SoundTag);
-	if (!Layers)
+	USoundBase* Sound = GameplaySoundLibrary->FindSound(SoundTag);
+	if (!Sound)
 	{
+		ReportInvalidMappingOnce(SoundTag, TEXT("has no sound"));
 		return;
 	}
 
-	if (Layers->Sounds.IsEmpty())
-	{
-		ReportInvalidMappingOnce(SoundTag, TEXT("has no sound layers"));
-		return;
-	}
-
-	bool bContainsNullSound = false;
-	for (USoundBase* Sound : Layers->Sounds)
-	{
-		if (!Sound)
-		{
-			bContainsNullSound = true;
-			continue;
-		}
-
-		UGameplayStatics::PlaySoundAtLocation(
-			this,
-			Sound,
-			Location,
-			FRotator::ZeroRotator,
-			1.0f,
-			1.0f,
-			0.0f,
-			nullptr,
-			nullptr,
-			OwningActor);
-	}
-
-	if (bContainsNullSound)
-	{
-		ReportInvalidMappingOnce(SoundTag, TEXT("contains a null sound layer"));
-	}
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		Sound,
+		Location,
+		FRotator::ZeroRotator,
+		1.0f,
+		1.0f,
+		0.0f,
+		nullptr,
+		nullptr,
+		OwningActor);
 }
 
 void UMAGameplaySoundSubsystem::ReportInvalidMappingOnce(

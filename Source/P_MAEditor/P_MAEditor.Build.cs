@@ -10,6 +10,7 @@ public class P_MAEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new[]
 		{
 			"AIModule",
+			"AudioEditor",
 			"AssetRegistry",
 			"AssetTools",
 			"Core",
@@ -18,6 +19,8 @@ public class P_MAEditor : ModuleRules
 			"Engine",
 			"GameplayAbilities",
 			"GameplayTags",
+			"GameplayTagsEditor",
+			"GraphEditor",
 			"InputCore",
 			"Json",
 			"JsonUtilities",

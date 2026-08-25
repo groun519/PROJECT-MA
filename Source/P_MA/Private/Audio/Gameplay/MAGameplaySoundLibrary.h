@@ -7,15 +7,6 @@
 
 class USoundBase;
 
-USTRUCT()
-struct FMASoundLayers
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category = "Sound")
-	TArray<TObjectPtr<USoundBase>> Sounds;
-};
-
 UCLASS(NotBlueprintable)
 class P_MA_API UMAGameplaySoundLibrary : public UPrimaryDataAsset
 {
@@ -26,9 +17,17 @@ public:
 
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 
-	const FMASoundLayers* FindLayers(const FGameplayTag SoundTag) const;
+	USoundBase* FindSound(FGameplayTag SoundTag) const;
+
+#if WITH_EDITOR
+	void GetSoundTagsForEditor(TArray<FGameplayTag>& OutTags) const { Sounds.GetKeys(OutTags); }
+	bool AddSoundEntryForEditor(FGameplayTag SoundTag);
+	bool RenameSoundEntryForEditor(FGameplayTag SoundTag, FGameplayTag NewSoundTag);
+	bool RemoveSoundEntryForEditor(FGameplayTag SoundTag);
+	bool SetSoundForEditor(FGameplayTag SoundTag, USoundBase* Sound);
+#endif
 
 private:
 	UPROPERTY(EditAnywhere, Category = "Sound")
-	TMap<FGameplayTag, FMASoundLayers> SoundLayers;
+	TMap<FGameplayTag, TObjectPtr<USoundBase>> Sounds;
 };

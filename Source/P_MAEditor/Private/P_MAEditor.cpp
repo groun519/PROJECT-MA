@@ -1,3 +1,4 @@
+#include "Audio/Editor/SMASoundManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "GAS/Skill/Module/Editor/SMASkillModuleEditor.h"
 #include "Modules/ModuleManager.h"
@@ -9,6 +10,7 @@
 #define LOCTEXT_NAMESPACE "P_MAEditor"
 
 static const FName SkillModuleEditorTabName(TEXT("SkillModuleEditor"));
+static const FName SoundManagerTabName(TEXT("SoundManager"));
 
 static TSharedRef<SDockTab> SpawnSkillModuleEditor(const FSpawnTabArgs&)
 {
@@ -18,6 +20,15 @@ static TSharedRef<SDockTab> SpawnSkillModuleEditor(const FSpawnTabArgs&)
 		.OnCanCloseTab(SDockTab::FCanCloseTab::CreateSP(ModuleEditor, &SMASkillModuleEditor::CanClose))
 		[
 			ModuleEditor
+		];
+}
+
+static TSharedRef<SDockTab> SpawnSoundManager(const FSpawnTabArgs&)
+{
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		[
+			SNew(SMASoundManager)
 		];
 }
 
@@ -39,10 +50,19 @@ public:
 			.SetTooltipText(LOCTEXT("SkillModuleEditorTooltip", "Open the JSON-backed skill module editor."))
 			.SetGroup(ProjectMAWorkspaceGroup.ToSharedRef())
 			.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("ClassIcon.DataTable")));
+
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+			SoundManagerTabName,
+			FOnSpawnTab::CreateStatic(&SpawnSoundManager))
+			.SetDisplayName(LOCTEXT("SoundManager", "Sound Manager"))
+			.SetTooltipText(LOCTEXT("SoundManagerTooltip", "Edit the configured gameplay sound and music libraries."))
+			.SetGroup(ProjectMAWorkspaceGroup.ToSharedRef())
+			.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), TEXT("ClassIcon.SoundCue")));
 	}
 
 	virtual void ShutdownModule() override
 	{
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(SoundManagerTabName);
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(SkillModuleEditorTabName);
 		if (ProjectMAWorkspaceGroup.IsValid())
 		{
