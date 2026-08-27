@@ -120,6 +120,12 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	UInputMappingContext* GameplayInputMappingContext;
 
+protected:
+	/** Optional minimap work that non-combat player variants can disable. */
+	bool bEnableMinimapCapture = true;
+
+private:
+
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	float RotationInterpSpeed = 15.f;
 

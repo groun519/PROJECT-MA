@@ -479,7 +479,7 @@ void AMAPlayerCharacter::InitializeMinimapCapture()
 {
 	if (!MinimapCapture) return;
 
-	const bool bEnableCapture = IsLocallyControlled();
+	const bool bEnableCapture = bEnableMinimapCapture && IsLocallyControlled();
 	MinimapCapture->SetComponentTickEnabled(false);
 	MinimapCapture->bCaptureEveryFrame = false;
 	MinimapCapture->bCaptureOnMovement = false;
@@ -490,7 +490,7 @@ void AMAPlayerCharacter::InitializeMinimapCapture()
 
 void AMAPlayerCharacter::TickMinimapCapture(float DeltaTime)
 {
-	if (!MinimapCapture || !IsLocallyControlled()) return;
+	if (!bEnableMinimapCapture || !MinimapCapture || !IsLocallyControlled()) return;
 
 	MinimapCaptureAccumulatedTime += DeltaTime;
 	if (MinimapCaptureAccumulatedTime < MinimapCaptureInterval) return;
