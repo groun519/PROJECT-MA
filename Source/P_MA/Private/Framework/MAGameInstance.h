@@ -44,6 +44,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Online")
 	void DestroySession();
 
+	/** Opens the platform invite flow for the local player. */
+	UFUNCTION(BlueprintCallable, Category = "Online")
+	void ShowInviteUI();
+
 	/** Loading **/
 	UFUNCTION(BlueprintCallable, Category = "Loading")
 	void StartLoadingScreen();

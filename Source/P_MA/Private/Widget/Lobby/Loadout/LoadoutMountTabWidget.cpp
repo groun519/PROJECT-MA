@@ -5,7 +5,6 @@
 #include "Components/ScrollBox.h"
 #include "Engine/DataTable.h"
 #include "Framework/MAGameInstance.h"
-#include "Level/Lobby/LobbyPlayerController.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Widget/Lobby/Loadout/LoadoutMountIconButtonWidget.h"
@@ -74,10 +73,6 @@ void ULoadoutMountTabWidget::UpdateSelectedMount(FName MountId)
 
 void ULoadoutMountTabWidget::HandleMountSelected(FName MountId)
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetPendingMount(MountId);
-	}
-
 	UpdateSelectedMount(MountId);
+	OnMountSelected.Broadcast(MountId);
 }

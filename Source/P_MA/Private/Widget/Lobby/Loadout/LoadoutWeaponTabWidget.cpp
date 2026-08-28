@@ -6,7 +6,6 @@
 #include "Engine/DataTable.h"
 #include "Framework/MAGameInstance.h"
 #include "GAS/Skill/Module/MASkillModule.h"
-#include "Level/Lobby/LobbyPlayerController.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Widget/Lobby/Loadout/LoadoutWeaponIconButtonWidget.h"
@@ -61,19 +60,16 @@ void ULoadoutWeaponTabWidget::BuildWeaponButtons()
 
 void ULoadoutWeaponTabWidget::HandleWeaponSelected(FName WeaponId)
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
+	const FLoadoutWeaponDataRow* Row = FindWeaponData(WeaponId);
+	if (!Row)
 	{
-		const FLoadoutWeaponDataRow* Row = FindWeaponData(WeaponId);
-		if (!Row)
-		{
-			return;
-		}
-
-		USkeletalMesh* Mesh = Row->WeaponMesh.LoadSynchronous();
-		PC->PreviewWeapon(WeaponId, Mesh, Row->WeaponOffset);
-		UpdateSelectedWeapon(WeaponId);
-		RefreshProvidedModules(Row);
+		return;
 	}
+
+	USkeletalMesh* Mesh = Row->WeaponMesh.LoadSynchronous();
+	UpdateSelectedWeapon(WeaponId);
+	RefreshProvidedModules(Row);
+	OnWeaponSelected.Broadcast(WeaponId, Mesh, Row->WeaponOffset);
 }
 
 void ULoadoutWeaponTabWidget::SyncFromPendingWeapon(FName WeaponId)

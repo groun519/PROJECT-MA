@@ -9,12 +9,16 @@
 class UScrollBox;
 class ULoadoutMountIconButtonWidget;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutMountSelected, FName);
+
 UCLASS()
 class P_MA_API ULoadoutMountTabWidget : public ULoadoutTabWidgetBase
 {
 	GENERATED_BODY()
 
 public:
+	FOnLoadoutMountSelected OnMountSelected;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> MountScrollBox;
 

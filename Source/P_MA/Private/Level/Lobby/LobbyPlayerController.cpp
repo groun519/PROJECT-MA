@@ -13,8 +13,6 @@
 #include "Framework/MAGameInstance.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
-#include "OnlineSubsystem.h"
-#include "Interfaces/OnlineExternalUIInterface.h"
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/MAPlayerState.h"
@@ -69,6 +67,7 @@ void ALobbyPlayerController::BeginPlay()
 
 				if (LobbyRootWidgetInstance->LoadoutWidget)
 				{
+					BindLoadoutWidget(*LobbyRootWidgetInstance->LoadoutWidget);
 					LobbyRootWidgetInstance->LoadoutWidget->SetVisibility(ESlateVisibility::Collapsed);
 				}
 			}
@@ -145,18 +144,6 @@ void ALobbyPlayerController::ServerSetReady_Implementation(bool bNewReady)
 	if (ALobbyGameState* LGS = GetWorld()->GetGameState<ALobbyGameState>())
 	{
 		LGS->SetPlayerReady(GetPlayerState<APlayerState>(), bNewReady);
-	}
-}
-
-void ALobbyPlayerController::ShowInviteUI()
-{
-	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
-	{
-		IOnlineExternalUIPtr ExternalUI = Subsystem->GetExternalUIInterface();
-		if (ExternalUI.IsValid())
-		{
-			ExternalUI->ShowInviteUI(0);
-		}
 	}
 }
 
@@ -403,6 +390,43 @@ void ALobbyPlayerController::EnterLoadoutView()
 	}
 
 	ApplyCameraTransition(PrevViewSettings, ActiveViewSettings);
+}
+
+void ALobbyPlayerController::BindLoadoutWidget(ULoadoutWidget& LoadoutWidget)
+{
+	LoadoutWidget.OnTabSelected().RemoveAll(this);
+	LoadoutWidget.OnTabSelected().AddUObject(this, &ALobbyPlayerController::HandleLoadoutTabSelected);
+	LoadoutWidget.OnBodyColorSelected().RemoveAll(this);
+	LoadoutWidget.OnBodyColorSelected().AddUObject(this, &ALobbyPlayerController::PreviewBodyColor);
+	LoadoutWidget.OnEyeColorSelected().RemoveAll(this);
+	LoadoutWidget.OnEyeColorSelected().AddUObject(this, &ALobbyPlayerController::PreviewEyeColor);
+	LoadoutWidget.OnEyeShapeSelected().RemoveAll(this);
+	LoadoutWidget.OnEyeShapeSelected().AddUObject(this, &ALobbyPlayerController::PreviewEyeShape);
+	LoadoutWidget.OnWeaponSelected().RemoveAll(this);
+	LoadoutWidget.OnWeaponSelected().AddUObject(this, &ALobbyPlayerController::PreviewWeapon);
+	LoadoutWidget.OnMountSelected().RemoveAll(this);
+	LoadoutWidget.OnMountSelected().AddUObject(this, &ALobbyPlayerController::SetPendingMount);
+}
+
+void ALobbyPlayerController::HandleLoadoutTabSelected(const ELoadoutTab Tab)
+{
+	switch (Tab)
+	{
+	case ELoadoutTab::Head:
+		SetLoadoutView(ELoadoutView::Head);
+		break;
+	case ELoadoutTab::Body:
+		SetLoadoutView(ELoadoutView::Body);
+		break;
+	case ELoadoutTab::Weapon:
+		SetLoadoutView(ELoadoutView::Weapon);
+		// The legacy display slot needs its weapon mesh restored after the camera transition.
+		ApplyPendingWeaponPreviewDelayed(0.3f);
+		break;
+	case ELoadoutTab::Mount:
+		SetLoadoutView(ELoadoutView::Mount);
+		break;
+	}
 }
 
 void ALobbyPlayerController::SetLoadoutView(ELoadoutView NewView)

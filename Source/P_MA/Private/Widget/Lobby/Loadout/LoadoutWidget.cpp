@@ -3,7 +3,6 @@
 #include "Widget/Lobby/Loadout/LoadoutWidget.h"
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
-#include "Level/Lobby/LobbyPlayerController.h"
 #include "Widget/Lobby/Loadout/LoadoutBodyTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutHeadTabWidget.h"
 #include "Widget/Lobby/Loadout/LoadoutMountTabWidget.h"
@@ -36,40 +35,25 @@ void ULoadoutWidget::NativeConstruct()
 void ULoadoutWidget::HandleHeadTabClicked()
 {
 	SetActiveTab(0);
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Head);
-	}
+	TabSelectedDelegate.Broadcast(ELoadoutTab::Head);
 }
 
 void ULoadoutWidget::HandleBodyTabClicked()
 {
 	SetActiveTab(1);
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Body);
-	}
+	TabSelectedDelegate.Broadcast(ELoadoutTab::Body);
 }
 
 void ULoadoutWidget::HandleWeaponTabClicked()
 {
 	SetActiveTab(2);
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Weapon);
-		// Weapon tab only preview timing; kept as a fixed value by design.
-		PC->ApplyPendingWeaponPreviewDelayed(0.3f);
-	}
+	TabSelectedDelegate.Broadcast(ELoadoutTab::Weapon);
 }
 
 void ULoadoutWidget::HandleMountTabClicked()
 {
 	SetActiveTab(3);
-
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->SetLoadoutView(ALobbyPlayerController::ELoadoutView::Mount);
-	}
+	TabSelectedDelegate.Broadcast(ELoadoutTab::Mount);
 }
 
 void ULoadoutWidget::SetActiveTab(int32 TabIndex)

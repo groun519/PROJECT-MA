@@ -15,9 +15,12 @@ public:
 	virtual void OnPossess(APawn* NewPawn) override;
 	virtual void AcknowledgePossession(APawn* NewPawn) override;
 
+	/** Routes the owning client's loadout selection to its authoritative PlayerState. */
+	void SetLoadoutSelection(const FLoadoutSelection& Loadout);
+
 private:
-	void ApplySavedLoadout(const FLoadoutSelection& Loadout);
+	void ApplyLoadoutSelection(const FLoadoutSelection& Loadout);
 
 	UFUNCTION(Server, Reliable)
-	void ServerApplySavedLoadout(const FLoadoutSelection& Loadout);
+	void ServerApplyLoadoutSelection(const FLoadoutSelection& Loadout);
 };

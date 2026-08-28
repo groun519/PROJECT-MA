@@ -6,7 +6,6 @@
 #include "Player/Loadout/Data/LoadoutDataSet.h"
 #include "Widget/Lobby/Loadout/LoadoutColorButtonWidget.h"
 #include "Player/Loadout/Data/LoadoutBodyColorPresetData.h"
-#include "Level/Lobby/LobbyPlayerController.h"
 
 void ULoadoutBodyTabWidget::NativeConstruct()
 {
@@ -65,10 +64,6 @@ void ULoadoutBodyTabWidget::UpdateSelectedBodyColor(const FMaterialParamData& Se
 
 void ULoadoutBodyTabWidget::HandleBodyColorSelected(FMaterialParamData SelectedData)
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->PreviewBodyColor(SelectedData);
-	}
-
 	UpdateSelectedBodyColor(SelectedData);
+	OnBodyColorSelected.Broadcast(SelectedData);
 }

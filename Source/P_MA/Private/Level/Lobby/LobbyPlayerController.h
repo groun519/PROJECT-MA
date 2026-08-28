@@ -7,6 +7,8 @@
 #include "LobbyPlayerController.generated.h"
 
 class UCameraComponent;
+class ULoadoutWidget;
+enum class ELoadoutTab : uint8;
 
 USTRUCT(BlueprintType)
 struct FCameraFadeSeconds
@@ -71,9 +73,6 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerSetReady(bool bNewReady);
 
-	UFUNCTION(BlueprintCallable, Category = "Lobby")
-	void ShowInviteUI();
-
 	void PreviewEyeColor(const FMaterialParamData& EyeData);
 	UFUNCTION(BlueprintCallable, Category = "Lobby|Loadout")
 	void PreviewEyeShape(FName EyeShapeId);
@@ -105,6 +104,8 @@ private:
 	void HandleLoadoutClicked();
 
 	void UpdateLobbyUI();
+	void BindLoadoutWidget(ULoadoutWidget& LoadoutWidget);
+	void HandleLoadoutTabSelected(ELoadoutTab Tab);
 	void EnterLoadoutView();
 	void ExitLoadoutView();
 	void UpdateCameraTarget();

@@ -23,15 +23,7 @@ void ALobbyHubPlayerController::BeginPlay()
 
 	FLoadoutSelection SavedLoadout;
 	if (!GameInstance->LoadLoadout(SavedLoadout)) return;
-
-	if (HasAuthority())
-	{
-		ApplySavedLoadout(SavedLoadout);
-	}
-	else
-	{
-		ServerApplySavedLoadout(SavedLoadout);
-	}
+	SetLoadoutSelection(SavedLoadout);
 }
 
 void ALobbyHubPlayerController::OnPossess(APawn* NewPawn)
@@ -54,7 +46,19 @@ void ALobbyHubPlayerController::AcknowledgePossession(APawn* NewPawn)
 	}
 }
 
-void ALobbyHubPlayerController::ApplySavedLoadout(const FLoadoutSelection& Loadout)
+void ALobbyHubPlayerController::SetLoadoutSelection(const FLoadoutSelection& Loadout)
+{
+	if (HasAuthority())
+	{
+		ApplyLoadoutSelection(Loadout);
+	}
+	else
+	{
+		ServerApplyLoadoutSelection(Loadout);
+	}
+}
+
+void ALobbyHubPlayerController::ApplyLoadoutSelection(const FLoadoutSelection& Loadout)
 {
 	if (AMAPlayerState* MAPlayerState = GetPlayerState<AMAPlayerState>())
 	{
@@ -62,7 +66,7 @@ void ALobbyHubPlayerController::ApplySavedLoadout(const FLoadoutSelection& Loado
 	}
 }
 
-void ALobbyHubPlayerController::ServerApplySavedLoadout_Implementation(const FLoadoutSelection& Loadout)
+void ALobbyHubPlayerController::ServerApplyLoadoutSelection_Implementation(const FLoadoutSelection& Loadout)
 {
-	ApplySavedLoadout(Loadout);
+	ApplyLoadoutSelection(Loadout);
 }

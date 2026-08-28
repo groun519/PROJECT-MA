@@ -11,6 +11,9 @@ class UScrollBox;
 class ULoadoutColorButtonWidget;
 class ULoadoutEyeShapeIconButtonWidget;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutEyeColorSelected, const FMaterialParamData&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutEyeShapeSelected, FName);
+
 UCLASS()
 class P_MA_API ULoadoutHeadTabWidget : public ULoadoutTabWidgetBase
 {
@@ -20,6 +23,9 @@ protected:
 	virtual void NativeConstruct() override;
 	
 public:
+	FOnLoadoutEyeColorSelected OnEyeColorSelected;
+	FOnLoadoutEyeShapeSelected OnEyeShapeSelected;
+
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UScrollBox> EyeColorScrollBox;
 

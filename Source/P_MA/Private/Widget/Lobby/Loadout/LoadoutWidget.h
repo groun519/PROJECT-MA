@@ -5,14 +5,24 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Player/Loadout/LoadoutTypes.h"
+#include "Widget/Lobby/Loadout/LoadoutBodyTabWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutHeadTabWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutMountTabWidget.h"
+#include "Widget/Lobby/Loadout/LoadoutWeaponTabWidget.h"
 #include "LoadoutWidget.generated.h"
 
 class UButton;
 class UWidgetSwitcher;
-class ULoadoutHeadTabWidget;
-class ULoadoutBodyTabWidget;
-class ULoadoutWeaponTabWidget;
-class ULoadoutMountTabWidget;
+
+enum class ELoadoutTab : uint8
+{
+	Head,
+	Body,
+	Weapon,
+	Mount,
+};
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutTabSelected, ELoadoutTab);
 
 UCLASS()
 class P_MA_API ULoadoutWidget : public UUserWidget
@@ -23,6 +33,13 @@ public:
 	virtual void NativeConstruct() override;
 	void SyncSelectionFromPending(const FLoadoutSelection& PendingLoadout);
 	void ActivateBodyTabUI();
+
+	FOnLoadoutTabSelected& OnTabSelected() { return TabSelectedDelegate; }
+	FOnLoadoutBodyColorSelected& OnBodyColorSelected() { return BodyTabWidget->OnBodyColorSelected; }
+	FOnLoadoutEyeColorSelected& OnEyeColorSelected() { return HeadTabWidget->OnEyeColorSelected; }
+	FOnLoadoutEyeShapeSelected& OnEyeShapeSelected() { return HeadTabWidget->OnEyeShapeSelected; }
+	FOnLoadoutWeaponSelected& OnWeaponSelected() { return WeaponTabWidget->OnWeaponSelected; }
+	FOnLoadoutMountSelected& OnMountSelected() { return MountTabWidget->OnMountSelected; }
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UButton> HeadTabButton;
@@ -65,4 +82,6 @@ private:
 	void HandleMountTabClicked();
 
 	void SetActiveTab(int32 TabIndex);
+
+	FOnLoadoutTabSelected TabSelectedDelegate;
 };

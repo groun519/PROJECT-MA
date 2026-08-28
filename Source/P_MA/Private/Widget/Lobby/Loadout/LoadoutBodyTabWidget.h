@@ -10,12 +10,16 @@
 class UScrollBox;
 class ULoadoutColorButtonWidget;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoadoutBodyColorSelected, const FMaterialParamData&);
+
 UCLASS()
 class P_MA_API ULoadoutBodyTabWidget : public ULoadoutTabWidgetBase
 {
 	GENERATED_BODY()
 
 public:
+	FOnLoadoutBodyColorSelected OnBodyColorSelected;
+
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UScrollBox> BodyColorScrollBox;
 

@@ -31,7 +31,9 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 - Hub PlayerStart에서 실제 Pawn이 생성되고 이동, 회전, 카메라와 시스템 메뉴가 동작한다.
 - 전투 어빌리티, 미니맵 캡처, 상태 게이지와 AI Sight 자극원 등록은 Hub에서 비활성화된다.
 - 기존 로비 아바타 슬롯, 고정 카메라와 선택 화면용 배치는 `LobbyHubMap`에서 제거했다.
-- Loadout, Party/Invite, Magic Circle과 Spawn/Arrival 기능 오브젝트는 아직 배치하거나 연결하지 않았다.
+- Loadout과 Party/Invite 기능 오브젝트를 배치하고 기존 Loadout UI 및 Steam Invite 흐름에 연결했다.
+- Magic Circle은 점유 공간을 검증할 원기둥 Placeholder만 배치했다. Ready와 전환 기능은 아직 연결하지 않았다.
+- Spawn/Arrival 기능은 아직 배치하거나 연결하지 않았다.
 
 ## 책임
 
@@ -44,8 +46,30 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 ### `ALobbyHubPlayerController`
 
 - 서버 `OnPossess`와 소유 클라이언트 `AcknowledgePossession` 시 Hub Character의 의미 있는 초기화 진입점을 호출한다.
-- 로컬 저장 로드아웃을 서버의 `AMAPlayerState`로 전달한다.
+- 로컬 저장 로드아웃과 Loadout Station의 선택 요청을 서버의 `AMAPlayerState`로 전달한다.
+- Loadout UI, 프리뷰 카메라, 입력 잠금과 저장 수명을 소유하지 않는다.
 - 현재 단계에서는 로컬 Hub 진입 시 `Music.Lobby`를 요청하는 단계 경계가 하나 존재한다.
+
+### `ALobbyHubInteractableActor`
+
+- Hub 기능 오브젝트가 공유하는 상호작용 범위, 표시 Mesh와 Highlight 연결만 소유한다.
+- 기능 종류를 표현하는 열거형, 중앙 분기 또는 기능별 실행 정책을 소유하지 않는다.
+
+### `ALobbyHubLoadoutStation`
+
+- Loadout 상호작용부터 기존 UI의 생성·연결·종료, Pending 선택, 저장과 프리뷰 입력 잠금까지 닫는다.
+- Loadout용 `UCameraComponent`는 프리뷰 기준점만 소유하고, 실제 전환과 Pawn 카메라 복귀는 기존 `UMAPlayerCameraDirectorComponent`에 요청한다.
+- 선택의 서버 전달은 owning Client RPC가 가능한 `ALobbyHubPlayerController::SetLoadoutSelection()` 진입점을 사용한다.
+
+### `ALobbyHubInviteStation`
+
+- Invite 상호작용을 받아 `UMAGameInstance`의 플랫폼 Invite UI 진입점을 호출한다.
+- 공통 부모는 어느 기능이 실행되는지 알지 못한다.
+
+### `UMAGameInstance`
+
+- 플랫폼 Invite UI를 여는 프로젝트 공용 진입점을 소유한다.
+- 기존 Lobby와 새 Hub는 동일한 진입점을 사용한다.
 
 ### `ALobbyHubCharacter`
 
@@ -94,14 +118,13 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 
 ## 다음 순서
 
-1. Loadout과 Party/Invite 기능 오브젝트를 배치하고 기존 UI 및 Steam Invite 흐름에 연결한다.
-2. 원기둥 Placeholder로 Magic Circle의 위치와 점유 공간을 확정한다.
-3. Magic Circle 진입과 이탈을 서버 권한 Ready 상태로 연결한다.
-4. Spawn Volume 기반 Ragdoll Arrival과 Get Up을 구현한다.
-5. 검증된 Hub를 기본 Lobby 경로로 전환하고 기존 `LobbyMap`은 레거시 자산으로 보존한다.
-6. Magic Circle 중심 Sphere Mask와 별도 Battle World 간 Seamless Travel을 구현한다.
-7. 기존 Battle 섹터와 WaveManager로 FieldReady 이전 전투 연결을 검증한다.
-8. 청크, PCG와 Runtime Field 생성은 Seamless Transition 검증 이후 별도 범위에서 연결한다.
+1. Loadout 프리뷰에서 카메라와 대상 사이의 방해물만 잘라 보이는 공용 Camera Occlusion Cutout을 별도 범위로 구현한다.
+2. Magic Circle 진입과 이탈을 서버 권한 Ready 상태로 연결한다.
+3. Spawn Volume 기반 Ragdoll Arrival과 Get Up을 구현한다.
+4. 검증된 Hub를 기본 Lobby 경로로 전환하고 기존 `LobbyMap`은 레거시 자산으로 보존한다.
+5. Magic Circle 중심 Sphere Mask와 별도 Battle World 간 Seamless Travel을 구현한다.
+6. 기존 Battle 섹터와 WaveManager로 FieldReady 이전 전투 연결을 검증한다.
+7. 청크, PCG와 Runtime Field 생성은 Seamless Transition 검증 이후 별도 범위에서 연결한다.
 
 ## 현재 검증 항목
 
@@ -112,4 +135,7 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 - 어빌리티 차단
 - 미니맵, 상태 게이지와 AI Sight 등록 비활성화
 - 저장 로드아웃 외형 반영
+- Loadout 기능 오브젝트 상호작용, 프리뷰 진입과 저장 종료
+- Party/Invite 기능 오브젝트에서 플랫폼 Invite UI 호출
+- Magic Circle Placeholder의 위치와 점유 공간
 - 기존 LobbyMap 회귀 확인

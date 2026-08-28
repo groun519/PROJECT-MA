@@ -2,7 +2,7 @@
 
 #include "LobbyInviteWidget.h"
 #include "Components/Button.h"
-#include "Level/Lobby/LobbyPlayerController.h"
+#include "Framework/MAGameInstance.h"
 
 void ULobbyInviteWidget::NativeOnInitialized()
 {
@@ -16,8 +16,8 @@ void ULobbyInviteWidget::NativeOnInitialized()
 
 void ULobbyInviteWidget::HandleInviteClicked()
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
+	if (UMAGameInstance* GameInstance = GetGameInstance<UMAGameInstance>())
 	{
-		PC->ShowInviteUI();
+		GameInstance->ShowInviteUI();
 	}
 }

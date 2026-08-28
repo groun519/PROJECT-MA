@@ -12,6 +12,7 @@
 #include "MoviePlayer.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 #include "Widget/Lobby/Loading/LoadingScreenWidget.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Player/MAPlayerState.h"
@@ -171,6 +172,18 @@ void UMAGameInstance::DestroySession()
 		FOnDestroySessionCompleteDelegate::CreateUObject(this, &UMAGameInstance::HandleDestroySessionComplete)
 	);
 	SessionInterface->DestroySession(NAME_GameSession);
+}
+
+void UMAGameInstance::ShowInviteUI()
+{
+	IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
+	if (!Subsystem) return;
+
+	const IOnlineExternalUIPtr ExternalUI = Subsystem->GetExternalUIInterface();
+	if (ExternalUI.IsValid())
+	{
+		ExternalUI->ShowInviteUI(0);
+	}
 }
 
 /** Loading **/

@@ -9,7 +9,6 @@
 #include "Player/Loadout/Data/LoadoutEyeColorPresetData.h"
 #include "Player/Loadout/Data/LoadoutEyeShapePresetData.h"
 #include "Widget/Lobby/Loadout/LoadoutEyeShapeIconButtonWidget.h"
-#include "Level/Lobby/LobbyPlayerController.h"
 
 void ULoadoutHeadTabWidget::NativeConstruct()
 {
@@ -125,19 +124,12 @@ void ULoadoutHeadTabWidget::UpdateSelectedEyeShape(FName EyeShapeId)
 
 void ULoadoutHeadTabWidget::HandleEyeColorSelected(FMaterialParamData SelectedData)
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->PreviewEyeColor(SelectedData);
-	}
-
 	UpdateSelectedEyeColor(SelectedData);
+	OnEyeColorSelected.Broadcast(SelectedData);
 }
 
 void ULoadoutHeadTabWidget::HandleEyeShapeSelected(FName EyeShapeId)
 {
-	if (ALobbyPlayerController* PC = GetOwningPlayer<ALobbyPlayerController>())
-	{
-		PC->PreviewEyeShape(EyeShapeId);
-	}
 	UpdateSelectedEyeShape(EyeShapeId);
+	OnEyeShapeSelected.Broadcast(EyeShapeId);
 }

@@ -14,12 +14,20 @@ class UMASkillTooltipWidget;
 class UPanelWidget;
 struct FLoadoutWeaponDataRow;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(
+	FOnLoadoutWeaponSelected,
+	FName,
+	USkeletalMesh*,
+	const FTransform&);
+
 UCLASS()
 class P_MA_API ULoadoutWeaponTabWidget : public ULoadoutTabWidgetBase
 {
 	GENERATED_BODY()
 
 public:
+	FOnLoadoutWeaponSelected OnWeaponSelected;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> WeaponScrollBox;
 
