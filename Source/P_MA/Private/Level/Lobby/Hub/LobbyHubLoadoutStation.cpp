@@ -1,5 +1,6 @@
 #include "Level/Lobby/Hub/LobbyHubLoadoutStation.h"
 
+#include "../P_MA.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/Button.h"
@@ -18,6 +19,9 @@
 ALobbyHubLoadoutStation::ALobbyHubLoadoutStation()
 {
 	InteractableComponent->CALL_SETUP_INTERACT(HandleInteract);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Hitbox, ECR_Block);
 
 	LoadoutCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("LoadoutCameraComponent"));
 	LoadoutCameraComponent->SetupAttachment(RootComponent);
@@ -123,13 +127,15 @@ void ALobbyHubLoadoutStation::UpdateLoadoutCamera(const AMAPlayerCharacter& Inte
 	const FVector FacingDirection = Interactor.GetActorForwardVector().GetSafeNormal2D();
 	const FVector TargetLocation = Interactor.GetActorLocation()
 		+ FVector::UpVector * CameraTargetHeight;
+	const FVector CompositionTarget = TargetLocation
+		- Interactor.GetActorRightVector().GetSafeNormal2D() * CameraCompositionOffset;
 	const FVector CameraLocation = Interactor.GetActorLocation()
 		+ FacingDirection * CameraDistance
 		+ FVector::UpVector * CameraHeight;
 
 	LoadoutCameraComponent->SetWorldLocationAndRotation(
 		CameraLocation,
-		(TargetLocation - CameraLocation).Rotation());
+		(CompositionTarget - CameraLocation).Rotation());
 	LoadoutCameraComponent->SetFieldOfView(CameraFov);
 }
 
@@ -141,7 +147,7 @@ void ALobbyHubLoadoutStation::EnterLoadoutPresentation(ALobbyHubPlayerController
 
 	if (UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController.GetCameraDirector())
 	{
-		CameraDirector->SwitchToViewTarget(this, CameraBlendTime);
+		CameraDirector->EnterPresentationView(this, ActiveInteractor.Get(), CameraBlendTime);
 	}
 }
 
@@ -149,7 +155,7 @@ void ALobbyHubLoadoutStation::ExitLoadoutPresentation(ALobbyHubPlayerController&
 {
 	if (UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController.GetCameraDirector())
 	{
-		CameraDirector->SwitchToPawnCamera(CameraBlendTime);
+		CameraDirector->ExitPresentationView(CameraBlendTime);
 	}
 
 	SetInteractorRotationLocked(false);

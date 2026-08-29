@@ -200,7 +200,7 @@ void AMAShopNPC::CloseShop(APlayerController* PlayerController)
 				[WeakCameraDirector, FadeInSeconds]()
 				{
 					if (!WeakCameraDirector.IsValid()) return;
-					WeakCameraDirector->SwitchToPawnCamera();
+					WeakCameraDirector->ExitPresentationView();
 					WeakCameraDirector->FadeIn(FadeInSeconds);
 				}
 			);
@@ -264,7 +264,7 @@ void AMAShopNPC::OpenShopFor(AMAPlayerCharacter* Interactor)
 				[WeakThis, WeakCameraDirector, FadeInSeconds]()
 				{
 					if (!WeakThis.IsValid() || !WeakCameraDirector.IsValid()) return;
-					WeakCameraDirector->SwitchToViewTarget(WeakThis.Get());
+					WeakCameraDirector->EnterPresentationView(WeakThis.Get(), WeakThis.Get());
 					WeakCameraDirector->FadeIn(FadeInSeconds);
 				}
 			);

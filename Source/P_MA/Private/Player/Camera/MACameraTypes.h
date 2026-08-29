@@ -73,3 +73,27 @@ struct FMAPlayerCameraRigSettings
 	UPROPERTY(EditAnywhere, Category="Camera")
 	float PulseFOVDelta = 0.f;
 };
+
+USTRUCT(BlueprintType)
+struct FMACameraPresentationSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="0.0"))
+	float FillLightIntensity = 2500.f;
+
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="1.0"))
+	float FillLightRadius = 1200.f;
+
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="0.0", ClampMax="89.0"))
+	float FillLightInnerCone = 25.f;
+
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="1.0", ClampMax="89.0"))
+	float FillLightOuterCone = 40.f;
+
+	UPROPERTY(EditAnywhere, Category="Presentation")
+	FLinearColor FillLightColor = FLinearColor(1.f, 0.95f, 0.85f);
+
+	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="1.0"))
+	float CutoutRadius = 95.f;
+};

@@ -1,12 +1,15 @@
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/SpotLightComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "TimerManager.h"
 
+/** Lifecycle **/
 UMAPlayerCameraDirectorComponent::UMAPlayerCameraDirectorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -16,6 +19,7 @@ UMAPlayerCameraDirectorComponent::UMAPlayerCameraDirectorComponent()
 
 void UMAPlayerCameraDirectorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	DeactivatePresentationEffects();
 	CancelCameraTransition();
 	Super::EndPlay(EndPlayReason);
 }
@@ -35,6 +39,7 @@ void UMAPlayerCameraDirectorComponent::TickComponent(float DeltaTime, ELevelTick
 	}
 }
 
+/** View Target **/
 void UMAPlayerCameraDirectorComponent::RefreshPawnCamera()
 {
 	CameraBoom = nullptr;
@@ -55,6 +60,7 @@ void UMAPlayerCameraDirectorComponent::SwitchToViewTarget(AActor* ViewTarget, fl
 	APlayerController* PlayerController = GetOwnerPlayerController();
 	if (!PlayerController || !PlayerController->IsLocalController() || !ViewTarget) return;
 
+	DeactivatePresentationEffects();
 	CancelCameraMovement();
 	PlayerController->SetViewTargetWithBlend(ViewTarget, BlendTime);
 }
@@ -67,11 +73,102 @@ void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera(float BlendTime)
 	APawn* Pawn = PlayerController->GetPawn();
 	if (!Pawn) return;
 
+	DeactivatePresentationEffects();
 	CancelCameraMovement();
 	RefreshPawnCamera();
 	PlayerController->SetViewTargetWithBlend(Pawn, BlendTime);
 }
 
+/** Presentation **/
+void UMAPlayerCameraDirectorComponent::EnterPresentationView(
+	AActor* ViewTarget,
+	AActor* Subject,
+	const float BlendTime)
+{
+	APlayerController* PlayerController = GetOwnerPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController() || !ViewTarget || !Subject) return;
+
+	SwitchToViewTarget(ViewTarget, BlendTime);
+	ActivatePresentationEffects(*ViewTarget, *Subject);
+}
+
+void UMAPlayerCameraDirectorComponent::ExitPresentationView(const float BlendTime)
+{
+	SwitchToPawnCamera(BlendTime);
+}
+
+void UMAPlayerCameraDirectorComponent::ActivatePresentationEffects(AActor& ViewTarget, AActor& Subject)
+{
+	APlayerController* PlayerController = GetOwnerPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController()) return;
+
+	EnsurePresentationCutoutComponent();
+
+	if (PresentationCutoutComponent)
+	{
+		PresentationCutoutComponent->SetCutoutRadius(PresentationSettings.CutoutRadius);
+		PresentationCutoutComponent->RevealTarget(*PlayerController, Subject);
+	}
+
+	UCameraComponent* ViewCamera = ViewTarget.FindComponentByClass<UCameraComponent>();
+	if (!ViewCamera) return;
+
+	PresentationFillLight = NewObject<USpotLightComponent>(
+		&Subject,
+		NAME_None,
+		RF_Transient);
+	if (!PresentationFillLight) return;
+
+	Subject.AddInstanceComponent(PresentationFillLight);
+	PresentationFillLight->SetMobility(EComponentMobility::Movable);
+	PresentationFillLight->SetCastShadows(false);
+	PresentationFillLight->SetIndirectLightingIntensity(0.f);
+	PresentationFillLight->SetVolumetricScatteringIntensity(0.f);
+	PresentationFillLight->SetIntensity(PresentationSettings.FillLightIntensity);
+	PresentationFillLight->SetAttenuationRadius(PresentationSettings.FillLightRadius);
+	PresentationFillLight->SetInnerConeAngle(PresentationSettings.FillLightInnerCone);
+	PresentationFillLight->SetOuterConeAngle(
+		FMath::Max(PresentationSettings.FillLightOuterCone, PresentationSettings.FillLightInnerCone));
+	PresentationFillLight->SetLightColor(PresentationSettings.FillLightColor);
+	PresentationFillLight->AttachToComponent(
+		ViewCamera,
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	PresentationFillLight->SetRelativeLocationAndRotation(
+		FVector::ZeroVector,
+		FRotator::ZeroRotator);
+	PresentationFillLight->RegisterComponent();
+}
+
+void UMAPlayerCameraDirectorComponent::DeactivatePresentationEffects()
+{
+	if (PresentationCutoutComponent)
+	{
+		PresentationCutoutComponent->ClearTarget();
+	}
+	if (IsValid(PresentationFillLight))
+	{
+		PresentationFillLight->DestroyComponent();
+	}
+	PresentationFillLight = nullptr;
+}
+
+void UMAPlayerCameraDirectorComponent::EnsurePresentationCutoutComponent()
+{
+	APlayerController* PlayerController = GetOwnerPlayerController();
+	if (!PlayerController || !PlayerController->IsLocalController()) return;
+
+	if (!PresentationCutoutComponent)
+	{
+		PresentationCutoutComponent = NewObject<UMACameraOcclusionCutoutComponent>(
+			PlayerController,
+			TEXT("PresentationCutoutComponent"),
+			RF_Transient);
+		PlayerController->AddInstanceComponent(PresentationCutoutComponent);
+		PresentationCutoutComponent->RegisterComponent();
+	}
+}
+
+/** Fade **/
 void UMAPlayerCameraDirectorComponent::RequestFade(const FMACameraFadeSettings& Settings)
 {
 	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwnerPlayerController());
@@ -113,45 +210,6 @@ void UMAPlayerCameraDirectorComponent::FadeOut(float Duration, TFunction<void()>
 void UMAPlayerCameraDirectorComponent::FadeIn(float Duration, TFunction<void()> OnFinished)
 {
 	StartCameraFade(1.f, 0.f, Duration, false, true, MoveTemp(OnFinished));
-}
-
-void UMAPlayerCameraDirectorComponent::InterpExternalCameraView(const FMACameraViewTarget& Target, const FMACameraInterpMoveSettings& Settings)
-{
-	if (!SetExternalCameraTarget(Target)) return;
-
-	CancelCameraMovement();
-
-	ExternalCameraInterpSettings = Settings;
-
-	if (Settings.CameraInterpSpeed <= 0.f && Settings.FovInterpSpeed <= 0.f)
-	{
-		SnapExternalCameraToTarget();
-		return;
-	}
-
-	bExternalCameraTransitionActive = true;
-	UpdateComponentTickEnabled();
-}
-
-void UMAPlayerCameraDirectorComponent::TeleportExternalCameraView(const FMACameraViewTarget& Target)
-{
-	if (!SetExternalCameraTarget(Target)) return;
-
-	CancelCameraMovement();
-	SnapExternalCameraToTarget();
-}
-
-void UMAPlayerCameraDirectorComponent::CancelCameraTransition()
-{
-	CancelCameraMovement();
-	CancelFadeTransition();
-}
-
-void UMAPlayerCameraDirectorComponent::CancelCameraMovement()
-{
-	bRigTransitionActive = false;
-	bExternalCameraTransitionActive = false;
-	UpdateComponentTickEnabled();
 }
 
 void UMAPlayerCameraDirectorComponent::StartCameraFade(float FromAlpha, float ToAlpha, float Duration, bool bHoldWhenFinished, bool bStopWhenFinished, TFunction<void()> OnFinished)
@@ -197,6 +255,29 @@ void UMAPlayerCameraDirectorComponent::CancelFadeTransition()
 	bStopCameraFadeOnFinish = false;
 }
 
+void UMAPlayerCameraDirectorComponent::HandleFadeFinished()
+{
+	TFunction<void()> FinishedAction = MoveTemp(PendingFadeFinishedAction);
+	PendingFadeFinishedAction = nullptr;
+
+	const bool bShouldStopFade = bStopCameraFadeOnFinish;
+	bStopCameraFadeOnFinish = false;
+
+	if (bShouldStopFade)
+	{
+		if (APlayerController* PlayerController = GetOwnerPlayerController())
+		{
+			if (PlayerController->PlayerCameraManager)
+			{
+				PlayerController->PlayerCameraManager->StopCameraFade();
+			}
+		}
+	}
+
+	if (FinishedAction) FinishedAction();
+}
+
+/** Pawn Camera Rig **/
 void UMAPlayerCameraDirectorComponent::TransitionPawnCamera(const FMAPlayerCameraRigSettings& Settings)
 {
 	if (!CameraBoom) RefreshPawnCamera();
@@ -274,6 +355,34 @@ void UMAPlayerCameraDirectorComponent::FinishRigTransition()
 	CameraBoom->TargetOffset = RigTransitionTargetSettings.TargetOffset;
 
 	if (Camera) Camera->SetFieldOfView(RigTransitionBaseFOV);
+}
+
+/** External Camera **/
+void UMAPlayerCameraDirectorComponent::InterpExternalCameraView(
+	const FMACameraViewTarget& Target,
+	const FMACameraInterpMoveSettings& Settings)
+{
+	if (!SetExternalCameraTarget(Target)) return;
+
+	CancelCameraMovement();
+	ExternalCameraInterpSettings = Settings;
+
+	if (Settings.CameraInterpSpeed <= 0.f && Settings.FovInterpSpeed <= 0.f)
+	{
+		SnapExternalCameraToTarget();
+		return;
+	}
+
+	bExternalCameraTransitionActive = true;
+	UpdateComponentTickEnabled();
+}
+
+void UMAPlayerCameraDirectorComponent::TeleportExternalCameraView(const FMACameraViewTarget& Target)
+{
+	if (!SetExternalCameraTarget(Target)) return;
+
+	CancelCameraMovement();
+	SnapExternalCameraToTarget();
 }
 
 bool UMAPlayerCameraDirectorComponent::SetExternalCameraTarget(const FMACameraViewTarget& Target)
@@ -360,26 +469,18 @@ void UMAPlayerCameraDirectorComponent::UpdateExternalCameraTransition(float Delt
 	}
 }
 
-void UMAPlayerCameraDirectorComponent::HandleFadeFinished()
+/** Internal **/
+void UMAPlayerCameraDirectorComponent::CancelCameraTransition()
 {
-	TFunction<void()> FinishedAction = MoveTemp(PendingFadeFinishedAction);
-	PendingFadeFinishedAction = nullptr;
+	CancelCameraMovement();
+	CancelFadeTransition();
+}
 
-	const bool bShouldStopFade = bStopCameraFadeOnFinish;
-	bStopCameraFadeOnFinish = false;
-
-	if (bShouldStopFade)
-	{
-		if (APlayerController* PlayerController = GetOwnerPlayerController())
-		{
-			if (PlayerController->PlayerCameraManager)
-			{
-				PlayerController->PlayerCameraManager->StopCameraFade();
-			}
-		}
-	}
-
-	if (FinishedAction) FinishedAction();
+void UMAPlayerCameraDirectorComponent::CancelCameraMovement()
+{
+	bRigTransitionActive = false;
+	bExternalCameraTransitionActive = false;
+	UpdateComponentTickEnabled();
 }
 
 void UMAPlayerCameraDirectorComponent::UpdateComponentTickEnabled()

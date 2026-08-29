@@ -32,6 +32,7 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 - 전투 어빌리티, 미니맵 캡처, 상태 게이지와 AI Sight 자극원 등록은 Hub에서 비활성화된다.
 - 기존 로비 아바타 슬롯, 고정 카메라와 선택 화면용 배치는 `LobbyHubMap`에서 제거했다.
 - Loadout과 Party/Invite 기능 오브젝트를 배치하고 기존 Loadout UI 및 Steam Invite 흐름에 연결했다.
+- UI Presentation View가 로컬 카메라 전환, Fill Light와 Camera Occlusion Cutout을 함께 적용하며 Station 큐브에서 시험 중이다.
 - Magic Circle은 점유 공간을 검증할 원기둥 Placeholder만 배치했다. Ready와 전환 기능은 아직 연결하지 않았다.
 - Spawn/Arrival 기능은 아직 배치하거나 연결하지 않았다.
 
@@ -58,7 +59,7 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 ### `ALobbyHubLoadoutStation`
 
 - Loadout 상호작용부터 기존 UI의 생성·연결·종료, Pending 선택, 저장과 프리뷰 입력 잠금까지 닫는다.
-- Loadout용 `UCameraComponent`는 프리뷰 기준점만 소유하고, 실제 전환과 Pawn 카메라 복귀는 기존 `UMAPlayerCameraDirectorComponent`에 요청한다.
+- Loadout용 `UCameraComponent`는 프리뷰 기준점과 화면 구도만 소유하고, 로컬 Presentation View 진입과 복귀는 `UMAPlayerCameraDirectorComponent`에 요청한다.
 - 선택의 서버 전달은 owning Client RPC가 가능한 `ALobbyHubPlayerController::SetLoadoutSelection()` 진입점을 사용한다.
 
 ### `ALobbyHubInviteStation`
@@ -70,6 +71,21 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 
 - 플랫폼 Invite UI를 여는 프로젝트 공용 진입점을 소유한다.
 - 기존 Lobby와 새 Hub는 동일한 진입점을 사용한다.
+
+### `UMACameraOcclusionCutoutComponent`
+
+- 로컬 카메라와 현재 Reveal Target을 추적하고 공용 머티리얼 파라미터를 갱신한다.
+- 컷아웃 반경과 활성 수명을 닫는다.
+- Presentation View 내부에서 사용되며 외부 호출자는 머티리얼 파라미터 이름이나 계산 방식을 알지 않는다.
+- 컷아웃 Material Function을 명시적으로 적용한 환경 머티리얼만 영향을 받는다.
+
+### `UMAPlayerCameraDirectorComponent`
+
+- 일반 ViewTarget 전환과 별도로 로컬 UI를 위한 `EnterPresentationView()`와 `ExitPresentationView()`를 제공한다.
+- Presentation View는 카메라 전환, Reveal Target의 Cutout과 그림자 없는 카메라 Fill Light를 하나의 수명으로 닫는다.
+- Cutout은 로컬 플레이어에 유지하고, Fill Light는 Presentation View 동안 표시 대상에만 생성한 뒤 종료 시 제거한다.
+- Unreal의 Controller는 Hidden Actor이므로 렌더 컴포넌트인 Fill Light를 Controller 소유로 두지 않는다.
+- UI 생성, 입력 잠금, 회전 잠금과 저장 정책은 소유하지 않는다.
 
 ### `ALobbyHubCharacter`
 
@@ -107,24 +123,32 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 6. 파티원별 고정 PlayerStart를 새 Hub의 입장 방식으로 사용하지 않는다.
    현재 `HubPlayerStart`는 Pawn 동작 검증을 위한 단일 생성 기준점이다. 최종 등장 위치와 투입 과정은 Spawn/Arrival 기능이 소유한다.
 
+7. Camera Occlusion Cutout을 위해 장애물 액터 전체를 숨기거나 충돌 상태를 바꾸지 않는다.
+   렌더링 지원 여부는 환경 머티리얼이 명시적으로 선택하고, 런타임 기능은 카메라와 Reveal Target의 의미만 전달한다.
+
+8. Presentation View의 Fill Light와 Cutout은 owning Local Player의 화면에만 적용한다.
+   서버 상태, 복제 상태와 공간의 기본 조명을 변경하지 않는다.
+
 ## 단계 경계 목록
 
 | 현재 위치 | 현재 이유 | 최종 책임자 | 제거 조건 |
 |---|---|---|---|
 | `ALobbyHubPlayerController::BeginPlay()`의 `Music.Lobby` 요청 | 현재 로컬 Hub 진입을 확정할 활성 공간 객체가 없음 | 향후 Active Space | Active Space가 MusicTag와 활성화 수명을 소유하는 첫 구현에서 Controller 호출 제거 |
 | `LobbyHubMap`의 단일 `HubPlayerStart` | Spawn/Arrival 구현 전 Pawn 생성과 조작을 검증해야 함 | 향후 Spawn/Arrival 기능 | Spawn/Arrival 기능이 최초 생성 위치와 Ragdoll 투입 시작을 소유할 때 현재 배치 재검토 |
+| `Hub_LoadoutStation` 큐브의 Cutout 테스트 머티리얼 | 공용 렌더링 방식을 한 장애물에서 먼저 검증해야 함 | 환경 공용 마스터 머티리얼 | Loadout 시각 검증 후 승인된 환경 마스터에 Material Function을 연결할 때 테스트 전용 머티리얼 재검토 |
 
 단계 경계를 추가하거나 제거하면 이 표와 해당 코드 주석을 같은 변경에서 갱신한다. 최종 책임자를 아직 정의할 수 없다는 이유만으로 Manager, Registry 또는 범용 Context를 만들지 않는다.
 
 ## 다음 순서
 
-1. Loadout 프리뷰에서 카메라와 대상 사이의 방해물만 잘라 보이는 공용 Camera Occlusion Cutout을 별도 범위로 구현한다.
+1. Loadout 프리뷰의 Camera Occlusion Cutout을 시각 검증하고 반경과 마스크 형태를 확정한다.
 2. Magic Circle 진입과 이탈을 서버 권한 Ready 상태로 연결한다.
 3. Spawn Volume 기반 Ragdoll Arrival과 Get Up을 구현한다.
 4. 검증된 Hub를 기본 Lobby 경로로 전환하고 기존 `LobbyMap`은 레거시 자산으로 보존한다.
 5. Magic Circle 중심 Sphere Mask와 별도 Battle World 간 Seamless Travel을 구현한다.
 6. 기존 Battle 섹터와 WaveManager로 FieldReady 이전 전투 연결을 검증한다.
 7. 청크, PCG와 Runtime Field 생성은 Seamless Transition 검증 이후 별도 범위에서 연결한다.
+8. Battle 공간과 환경 마스터가 확정되면 검증된 Camera Occlusion Cutout을 일반 플레이 카메라에 연결한다.
 
 ## 현재 검증 항목
 
@@ -137,5 +161,7 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 - 저장 로드아웃 외형 반영
 - Loadout 기능 오브젝트 상호작용, 프리뷰 진입과 저장 종료
 - Party/Invite 기능 오브젝트에서 플랫폼 Invite UI 호출
+- Loadout 프리뷰 진입 중 캐릭터가 화면 왼쪽에 배치되고 로컬 Fill Light가 정면을 보완
+- Presentation View 진입 중 Station 큐브가 캐릭터 주위만 잘라 보이고 종료 시 완전히 복구
 - Magic Circle Placeholder의 위치와 점유 공간
 - 기존 LobbyMap 회귀 확인

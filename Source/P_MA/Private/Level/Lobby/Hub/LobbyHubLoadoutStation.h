@@ -50,13 +50,17 @@ private:
 	TObjectPtr<ULobbyWidgetRoot> ActiveLoadoutWidget;
 
 	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera", meta = (ClampMin = "0.0"))
-	float CameraDistance = 450.f;
+	float CameraDistance = 500.f;
 
 	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera")
-	float CameraHeight = 120.f;
+	float CameraHeight = 180.f;
 
 	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera")
-	float CameraTargetHeight = 85.f;
+	float CameraTargetHeight = 0.f;
+
+	/** Moves the optical target away from the UI so the character composes on the left. */
+	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera")
+	float CameraCompositionOffset = 100.f;
 
 	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera", meta = (ClampMin = "0.0"))
 	float CameraBlendTime = 0.35f;
