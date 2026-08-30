@@ -86,7 +86,7 @@ void UMAInteractableComponent::RequestInteract(AMAPlayerCharacter* Interactor)
 	if (InteractionHandler) InteractionHandler(Interactor);
 }
 
-bool UMAInteractableComponent::CanServerInteract(const AMAPlayerCharacter* Interactor) const
+bool UMAInteractableComponent::IsInteractorInRange(const AMAPlayerCharacter* Interactor) const
 {
 	return Interactor && IsOverlappingActor(Interactor);
 }

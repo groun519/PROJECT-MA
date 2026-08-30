@@ -117,7 +117,8 @@ void UMACheatManager::UseItem(const int32 EntryId)
 void UMACheatManager::EnchantModule(
 	const FString SlotTagName,
 	const int32 ModuleIndex,
-	const int32 RuneEntryId)
+	const int32 RuneEntryId,
+	const int32 EnchantmentSlotIndex)
 {
 	AMAPlayerCharacter* PlayerCharacter = GetMAPlayerCharacter();
 	if (!PlayerCharacter) return;
@@ -137,7 +138,11 @@ void UMACheatManager::EnchantModule(
 	AMAPlayerController* PlayerController = Cast<AMAPlayerController>(GetPlayerController());
 	if (ModuleInstance && EnchanterNPC && PlayerController)
 	{
-		PlayerController->RequestEnchantModule(EnchanterNPC, ModuleInstance, RuneEntryId);
+		PlayerController->RequestEnchantModule(
+			EnchanterNPC,
+			ModuleInstance,
+			RuneEntryId,
+			EnchantmentSlotIndex);
 		return;
 	}
 

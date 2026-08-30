@@ -197,26 +197,42 @@ void AMAPlayerController::ServerRequestShopPurchase_Implementation(AMAShopNPC* S
 void AMAPlayerController::RequestEnchantModule(
 	AMAEnchanterNPC* EnchanterNPC,
 	UMASkillModuleInstance* TargetModule,
-	const int32 RuneEntryId)
+	const int32 RuneEntryId,
+	const int32 EnchantmentSlotIndex)
 {
-	if (!EnchanterNPC || !TargetModule || RuneEntryId == INDEX_NONE) return;
-
-	if (HasAuthority())
+	if (!EnchanterNPC || !TargetModule || RuneEntryId == INDEX_NONE || EnchantmentSlotIndex == INDEX_NONE)
 	{
-		EnchanterNPC->EnchantModule(this, TargetModule, RuneEntryId);
+		OnEnchantCompleted.Broadcast(false);
 		return;
 	}
 
-	ServerRequestEnchantModule(EnchanterNPC, TargetModule, RuneEntryId);
+	if (HasAuthority())
+	{
+		OnEnchantCompleted.Broadcast(EnchanterNPC->EnchantModule(
+			this,
+			TargetModule,
+			RuneEntryId,
+			EnchantmentSlotIndex));
+		return;
+	}
+
+	ServerRequestEnchantModule(EnchanterNPC, TargetModule, RuneEntryId, EnchantmentSlotIndex);
 }
 
 void AMAPlayerController::ServerRequestEnchantModule_Implementation(
 	AMAEnchanterNPC* EnchanterNPC,
 	UMASkillModuleInstance* TargetModule,
-	const int32 RuneEntryId)
+	const int32 RuneEntryId,
+	const int32 EnchantmentSlotIndex)
 {
-	if (!EnchanterNPC || !TargetModule || RuneEntryId == INDEX_NONE) return;
-	EnchanterNPC->EnchantModule(this, TargetModule, RuneEntryId);
+	const bool bSucceeded = EnchanterNPC
+		&& EnchanterNPC->EnchantModule(this, TargetModule, RuneEntryId, EnchantmentSlotIndex);
+	ClientCompleteEnchant(bSucceeded);
+}
+
+void AMAPlayerController::ClientCompleteEnchant_Implementation(const bool bSucceeded)
+{
+	OnEnchantCompleted.Broadcast(bSucceeded);
 }
 
 void AMAPlayerController::ToggleSkillSlots()

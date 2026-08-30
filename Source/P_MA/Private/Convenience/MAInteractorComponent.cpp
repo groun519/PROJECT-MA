@@ -44,7 +44,7 @@ void UMAInteractorComponent::Interact(AMAPlayerCharacter* Interactor)
 		{
 			if (Interactor->HasAuthority())
 			{
-				if (Comp->CanServerInteract(Interactor))
+				if (Comp->IsInteractorInRange(Interactor))
 				{
 					Comp->RequestInteract(Interactor);
 				}
@@ -83,7 +83,7 @@ void UMAInteractorComponent::Server_RequestInteract_Implementation(UMAInteractab
 	AMAPlayerCharacter* Interactor = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!Interactor || !InteractableComponent) return;
 	if (InteractableComponent->ExecutionMode != EMAInteractionExecutionMode::Server) return;
-	if (!InteractableComponent->CanServerInteract(Interactor)) return;
+	if (!InteractableComponent->IsInteractorInRange(Interactor)) return;
 
 	InteractableComponent->RequestInteract(Interactor);
 }

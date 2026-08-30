@@ -81,7 +81,7 @@ public:
 	void RequestInteract(AMAPlayerCharacter* Interactor);
 	void SetInteractFocused(AMAPlayerCharacter* Interactor, bool bNewFocused);
 	void SetCursorHovered(bool bNewHovered);
-	bool CanServerInteract(const AMAPlayerCharacter* Interactor) const;
+	bool IsInteractorInRange(const AMAPlayerCharacter* Interactor) const;
 
 	TWeakObjectPtr<UMAHighlightComponent> HighlightComponent;
 

@@ -27,6 +27,7 @@ enum class EChatType : uint8
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChatMessageReceived, const FString&, SenderName, const FString&, Message, EChatType, ChatType);
 // 바인딩 변경 델리게이트
 DECLARE_MULTICAST_DELEGATE(FMAInputBindingsChangedSignature);
+DECLARE_MULTICAST_DELEGATE_OneParam(FMAEnchantCompletedSignature, bool);
 
 UCLASS()
 class AMAPlayerController : public AMAPlayerControllerBase, public IGenericTeamAgentInterface
@@ -64,16 +65,23 @@ public:
 	void ServerRequestShopPurchase(AMAShopNPC* ShopNPC, int32 StockId);
 
 	/** Enchantment **/
+	FMAEnchantCompletedSignature OnEnchantCompleted;
+
 	void RequestEnchantModule(
 		AMAEnchanterNPC* EnchanterNPC,
 		UMASkillModuleInstance* TargetModule,
-		int32 RuneEntryId);
+		int32 RuneEntryId,
+		int32 EnchantmentSlotIndex);
+
+	UFUNCTION(Client, Reliable)
+	void ClientCompleteEnchant(bool bSucceeded);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestEnchantModule(
 		AMAEnchanterNPC* EnchanterNPC,
 		UMASkillModuleInstance* TargetModule,
-		int32 RuneEntryId);
+		int32 RuneEntryId,
+		int32 EnchantmentSlotIndex);
 
 	/** Loadout **/
 	UFUNCTION(Server, Reliable)

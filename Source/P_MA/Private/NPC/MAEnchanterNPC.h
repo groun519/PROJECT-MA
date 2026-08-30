@@ -5,7 +5,8 @@
 #include "MAEnchanterNPC.generated.h"
 
 class APlayerController;
-class UMASkillModule;
+class AMAPlayerCharacter;
+class UMAEnchanterWidget;
 class UMASkillModuleInstance;
 
 UCLASS()
@@ -14,17 +15,26 @@ class P_MA_API AMAEnchanterNPC : public AMANPC
 	GENERATED_BODY()
 
 public:
-	void EnchantModule(
+	AMAEnchanterNPC();
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	bool EnchantModule(
 		APlayerController* PlayerController,
 		UMASkillModuleInstance* TargetModule,
-		int32 RuneEntryId);
+		int32 RuneEntryId,
+		int32 EnchantmentSlotIndex);
+	int32 GetEnchantSlotCount() const;
+	void CloseEnchanter();
 
 private:
-	static bool HasExclusiveSubModuleConflict(
-		const UMASkillModuleInstance& TargetModule,
-		const UMASkillModule& SubModule);
-	void ReportEnchantFailure(
-		const UMASkillModuleInstance* TargetModule,
-		int32 RuneEntryId,
-		const TCHAR* Reason) const;
+	void HandleInteract(AMAPlayerCharacter* Interactor);
+
+	UPROPERTY(EditDefaultsOnly, Category="Enchantment")
+	TSubclassOf<UMAEnchanterWidget> EnchanterWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMAEnchanterWidget> ActiveEnchanterWidget = nullptr;
+
+	UPROPERTY(Transient)
+	TWeakObjectPtr<AMAPlayerCharacter> ActiveInteractor;
 };
