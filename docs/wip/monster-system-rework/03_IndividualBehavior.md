@@ -18,8 +18,8 @@ Trait Tree가 "이 몬스터가 무엇을 가지고 있는가"를 결정한다�
 
 고려 가능한 정보 예:
 
-- Player 현재 위치
-- Player 이동 방향/속도
+- Target 현재 위치
+- Target 이동 방향/속도
 - 공격 선딜
 - 투사체 진행 방향
 - 최근 관측 정보
@@ -96,7 +96,7 @@ Reaction은 단순 애니메이션 속도 배율이 아니라 AI Decision/Action
 - 투사체 궤적
 - 공격 범위
 - 공격 도달 시점
-- Player 위치
+- Target 위치
 - 장애물
 - NavMesh 접근 가능성
 - 회피 후 남는 이동 공간
@@ -108,29 +108,20 @@ Evasion이 높다고 무조건 모든 공격을 피하는 것은 아니다.
 
 ### Candidate: EQS 기반 회피 위치 평가
 
-의사결정:
-
 ```
 Threat detected
 → AI decides to evade
+→ EQS evaluates candidate positions
+→ select best available route/point
 ```
 
-공간 문제:
-
-```
-EQS
-→ candidate positions
-→ safety scoring
-→ best available route/point
-```
-
-즉 EQS는 "피할지"를 결정하지 않고 "어디로 피할지"를 해결한다.
+EQS는 "피할지"를 결정하지 않고 "어디로 피할지"를 해결한다.
 
 ### Decision: Caution
 
 **정의:** 공격을 시작할 때 그 공격이 실제로 Target에 닿을 가능성을 얼마나 엄격하게 확인하는가.
 
-이 값은 위험 회피 성향이 아니다.
+이 값은 위험 회피 성향도 아니고 Friendly Fire 성향도 아니다.
 
 `Caution = 0`
 
@@ -166,7 +157,9 @@ Skill Candidate
 Caution과 Prediction은 독립적이다.
 
 Prediction은 미래를 얼마나 잘 계산하는지,
-Caution은 그 정보로 공격을 얼마나 엄격하게 확정하는지 결정한다.
+Caution은 그 정보로 공격 성공 여부를 얼마나 엄격하게 확정하는지 결정한다.
+
+아군 피격 위험은 별도의 Attack Evaluation 비용으로 처리하며 Caution의 의미를 확장하지 않는다.
 
 ### Decision: Initiative
 
@@ -199,7 +192,7 @@ Initiative는 이미 시작된 전투의 주도성을 의미한다.
 - Target 추격
 - 선택한 공격 루트
 - 원하는 위치 확보
-- 특정 Player 압박
+- 특정 Target 압박
 - 마지막으로 본 위치 탐색
 
 낮음:
@@ -211,44 +204,62 @@ Initiative는 이미 시작된 전투의 주도성을 의미한다.
 - 현재 목적을 더 오래 유지
 - 실패한 접근/추격을 다시 시도
 
-주의:
-
 Persistence가 높다고 영원히 추격하면 안 된다.
 
 Level/Encounter가 강제하는 하드 리미트는 Personality보다 우선한다.
 
 ### Decision: Preemptiveness
 
-**정의:** 같은 Team이 아닌 대상을 상대로 얼마나 쉽게 먼저 교전을 시작하는가.
+**정의:** 자신과 다른 Team의 대상을 상대로 얼마나 쉽게 먼저 교전을 시작하는가.
 
-낮음:
-
-- 비아군을 보아도 먼저 공격하지 않을 수 있음
-- 공격받거나 특정 위협 조건이 필요
-
-높음:
-
-- 감지 가능한 비아군을 적극적으로 교전 대상으로 취급
-
-개념:
+Team 관계는 먼저 단순하게 판정한다.
 
 ```
-Perception
-→ relationship/team check
-→ non-team actor
-→ Preemptiveness + context
-→ engage / ignore / observe
+Same Team
+→ Ally
+→ Preemptiveness 평가 대상 아님
+
+Different Team
+→ Non-Team
+→ Preemptiveness 평가
 ```
 
-이 값은 개인성향이다.
+`Preemptiveness = 0`
 
-다른 몬스터가 없어도 독립적으로 의미가 있기 때문이다.
+- 다른 Team 대상을 발견해도 먼저 공격하지 않음
+- 경계/관찰/무시 상태를 유지할 수 있음
+- 직접 공격받으면 별도의 Retaliation 규칙으로 전투에 진입 가능
+
+`Preemptiveness = 1`
+
+- 감지 가능한 다른 Team 대상을 적극적으로 선제 교전 대상으로 취급
+
+중요:
+
+> Different Team은 "공격 가능한 관계"이지 "무조건 즉시 공격"을 뜻하지 않는다.
+
+따라서 종족별 Relationship Matrix가 없어도 다음 조합이 가능하다.
+
+```
+Goblin Team 2
+Preemptiveness 0.9
+→ Golem Team 3을 발견하면 높은 확률/낮은 판단 임계로 선제 교전
+
+Golem Team 3
+Preemptiveness 0.1
+→ Goblin을 발견해도 먼저 교전하지 않을 가능성이 높음
+→ Goblin에게 공격받은 뒤에는 반격 가능
+```
+
+Preemptiveness는 개인성향이다.
+
+다른 아군이 없어도 독립적으로 의미가 있으며 Group Behavior와 분리된다.
 
 ## 3. 값들의 책임 구분
 
 ```
 Preemptiveness
-= 싸움을 시작할 것인가
+= Non-Team과 싸움을 먼저 시작할 것인가
 
 Prediction
 = 앞으로 무엇이 일어날지 얼마나 잘 읽는가
@@ -271,21 +282,51 @@ Persistence
 
 서로 비슷한 감정 단어를 추가하기보다 실제 AI 알고리즘의 서로 다른 판단 지점에 대응하는 것을 우선한다.
 
-## 4. 조합 예
+## 4. Team과 Personality의 관계
+
+Team은 Personality가 아니다.
+
+Team은 사실 데이터다.
+
+```
+MyTeam == OtherTeam
+→ Ally
+
+MyTeam != OtherTeam
+→ Non-Team
+```
+
+Personality는 그 사실을 어떻게 행동으로 바꾸는지 결정한다.
+
+```
+Non-Team detected
+→ Preemptiveness
+→ engage / observe / ignore
+```
+
+직접적인 적대 행위는 별도 Combat Event다.
+
+```
+Non-Team attacks me
+→ retaliation condition
+→ combat entry
+```
+
+초기에는 "아군의 Friendly Fire를 맞았다고 같은 Team이 Enemy로 변하는" 규칙을 만들지 않는다.
+
+## 5. 조합 예
 
 ### Example A - 영리하지만 소극적인 몬스터
 
 ```
-Prediction     0.9
-Reaction       0.9
-Evasion        0.9
-Caution        0.8
-Initiative     0.2
-Persistence    0.3
-Preemptiveness 0.2
+Prediction      0.9
+Reaction        0.9
+Evasion         0.9
+Caution         0.8
+Initiative      0.2
+Persistence     0.3
+Preemptiveness  0.2
 ```
-
-특징:
 
 - 잘 읽고 잘 피한다.
 - 맞지 않을 공격을 잘 던지지 않는다.
@@ -294,18 +335,16 @@ Preemptiveness 0.2
 ### Example B - 난폭한 추격자
 
 ```
-Prediction     0.3
-Reaction       0.9
-Evasion        0.5
-Caution        0.1
-Initiative     1.0
-Persistence    1.0
-Preemptiveness 1.0
+Prediction      0.3
+Reaction        0.9
+Evasion         0.5
+Caution         0.1
+Initiative      1.0
+Persistence     1.0
+Preemptiveness  1.0
 ```
 
-특징:
-
-- 적을 보면 즉시 싸움을 시작한다.
+- 다른 Team을 보면 즉시 싸움을 시작하기 쉽다.
 - 전투 중 계속 압박한다.
 - 공격 성공 여부를 엄격하게 계산하지 않아 헛공격이 나올 수 있다.
 - 한번 정한 Target을 오래 추적한다.
@@ -313,22 +352,20 @@ Preemptiveness 1.0
 ### Example C - 정확하지만 느린 사수
 
 ```
-Prediction     0.9
-Reaction       0.3
-Evasion        0.2
-Caution        1.0
-Initiative     0.4
-Persistence    0.6
-Preemptiveness 0.5
+Prediction      0.9
+Reaction        0.3
+Evasion         0.2
+Caution         1.0
+Initiative      0.4
+Persistence     0.6
+Preemptiveness  0.5
 ```
-
-특징:
 
 - 조준/예측 정확도가 높다.
 - 확실한 공격만 사용한다.
-- 반응과 회피가 느려 Player가 선제 압박하면 약점을 만들 수 있다.
+- 반응과 회피가 느려 Target이 선제 압박하면 약점을 만들 수 있다.
 
-## 5. Trait와 Personality의 관계
+## 6. Trait와 Personality의 관계
 
 ### Experiment: Base Personality + Trait Modifier
 
@@ -352,7 +389,7 @@ Trait와 Personality가 지나치게 결합되면 각 축의 독립성이 깨진
 
 먼저 Base Personality만으로 AI 차이를 검증하고, 실제로 자연스러운 Modifier가 필요한 Trait에만 추가한다.
 
-## 6. Group Behavior
+## 7. Group Behavior
 
 ### Deferred
 
@@ -369,9 +406,21 @@ Trait와 Personality가 지나치게 결합되면 각 축의 독립성이 깨진
 
 Group Behavior는 다른 Actor와의 관계가 있어야 의미가 생기므로 Individual Behavior와 다른 계층으로 본다.
 
-개인성향 시스템이 실제 전투에서 충분히 작동한 이후 별도 문서/시스템으로 확장한다.
+TeamId는 Group Behavior 구현이 아니다.
 
-## 7. 구현 원칙
+TeamId는 Group Behavior가 나중에 사용할 수 있는 Ally 판정 기반일 뿐이다.
+
+## 8. Deferred: Friendly Fire Discipline Personality
+
+Team Damage Rate가 존재하면 AI가 같은 Team의 피격 위험을 평가할 수 있다.
+
+초기에는 모든 AI가 실제 피해 비용을 전투 판단에 반영하는 공통 규칙으로 시작한다.
+
+추후 "아군 피해를 얼마나 신경 쓰는가" 자체를 몬스터별 성향 차이로 만들 필요가 확인되면 별도 Personality를 검토한다.
+
+현재 7개 Personalities에는 추가하지 않는다.
+
+## 9. 구현 원칙
 
 1. Personality 값은 직접적인 성공/실패 확률보다 판단 기준과 품질을 변화시킨다.
 2. Prediction은 비공개 정보를 읽지 않는다.
@@ -379,4 +428,6 @@ Group Behavior는 다른 Actor와의 관계가 있어야 의미가 생기므로 
 4. Caution 1.0도 완벽한 미래 지식을 의미하지 않는다.
 5. Personality는 Game Rule의 하드 제한보다 우선하지 않는다.
 6. 값 하나가 다른 값의 책임을 대신하지 않게 한다.
-7. 초기에는 7개 이상 늘리지 않는다. 새 값은 기존 값으로 표현할 수 없는 실제 행동 요구가 생겼을 때만 추가한다.
+7. Preemptiveness는 Different Team 판정 이후에만 사용한다.
+8. Retaliation은 Preemptiveness와 별개의 Combat Entry 조건이다.
+9. 초기에는 7개 이상 늘리지 않는다. 새 값은 기존 값으로 표현할 수 없는 실제 행동 요구가 생겼을 때만 추가한다.

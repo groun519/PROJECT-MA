@@ -97,6 +97,19 @@ MA는 몬스터 전투 자체가 어느 정도 복잡해야 게임의 맛이 살
 
 Skill/Stat이 "가능한 행동"이라면 AI Personality는 "그 행동을 사용하는 방식"이어야 한다.
 
+### 문제 E - 현재 Target 개념이 Player 중심 교전에 가깝다
+
+향후 Goblin, Golem처럼 서로 다른 Team의 몬스터가 같은 필드에 존재할 수 있다.
+
+AI가 단순히 Player만 적으로 취급하거나 "다른 Team = 무조건 적대"로 고정되면 다음 플레이를 만들기 어렵다.
+
+- 서로 다른 몬스터 종족끼리 자연스럽게 싸우기
+- Player가 서로 다른 몬스터 집단의 충돌을 유도하기
+- 비아군이지만 선공하지 않는 몬스터 만들기
+- Team Damage Rate에 따라 같은 Team의 공격 위험을 다르게 평가하기
+
+따라서 Team 판정과 실제 공격 의지를 분리해야 한다.
+
 ## 3. 리워크 목표
 
 ### Decision: 복잡한 몬스터를 만들기 쉬워야 한다
@@ -130,6 +143,37 @@ Variation은 공용 Shared Trait Tree 조합으로 만든다.
 
 무기 변화는 Weapon Mesh, 속성 변화는 Material/VFX, 체형 변화는 크기/실루엣 등 가능한 한 Gameplay Telegraph를 가진다.
 
+### Decision: Team은 단순한 Ally / Non-Team 기반으로 사용한다
+
+Monster Set은 기본 Team을 가질 수 있다.
+
+예:
+
+```
+Goblin Set → Team 2
+Golem Set  → Team 3
+```
+
+같은 Team은 Ally다.
+
+다른 Team은 Non-Team이며, 즉시 Enemy로 고정하지 않는다.
+
+Non-Team에 대한 선제 공격 여부는 Individual Behavior의 `Preemptiveness`가 결정한다.
+
+### Decision: Monster끼리도 동일한 전투 규칙으로 싸울 수 있어야 한다
+
+다른 Team의 Monster가 서로 Target이 될 수 있어야 하며, Monster 전용 가짜 전투 연출이 아니라 실제 MA Skill/Damage 경로를 사용한다.
+
+이를 통해 Player가 서로 다른 Monster 집단을 충돌시키는 상황도 자연스럽게 만들어질 수 있다.
+
+### Decision: Team Damage Rate는 Match/Map Rule로 조절 가능하게 한다
+
+같은 Team에게 들어가는 Damage 배율을 0~100% 범위에서 설정할 수 있게 하는 방향을 채택한다.
+
+Player와 Monster 모두 같은 규칙을 적용받는 것을 목표로 한다.
+
+정확한 설정 소유 클래스와 기본값은 구현 전 현재 Match/Map Setting 구조를 확인한 뒤 정한다.
+
 ## 4. 비목표
 
 ### Deferred: 수백~수천 Actor를 위한 Mass 전환
@@ -162,3 +206,6 @@ Variation은 공용 Shared Trait Tree 조합으로 만든다.
 4. AI가 Skill의 내부 구현을 직접 알 필요 없이 Skill System을 실행한다.
 5. Trait를 추가하기 위해 기존 몬스터 C++ 클래스를 수정할 필요가 없다.
 6. 플레이어가 최소한 주요 Trait를 외형으로 구분할 수 있다.
+7. Goblin과 Golem처럼 다른 Team의 Monster가 별도 특수 코드 없이 서로를 정상적인 Combat Target으로 취급할 수 있다.
+8. 같은 Team과 다른 Team Damage가 하나의 중앙 규칙으로 일관되게 계산된다.
+9. `Preemptiveness` 값 차이만으로 Non-Team을 먼저 공격하는 몬스터와 먼저 공격하지 않는 몬스터를 구분할 수 있다.

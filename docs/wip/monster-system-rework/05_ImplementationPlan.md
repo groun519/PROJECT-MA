@@ -2,75 +2,200 @@
 
 ## 1. 구현 전략
 
-이 문서의 목표는 한 번에 전체 Monster Rework를 완성하는 것이 아니다.
+Monster Rework를 한 번에 완성하지 않는다.
 
-핵심 데이터 모델을 먼저 검증하고, 가장 재작업 비용이 큰 전용 Editor Tool은 데이터 모델이 살아남은 뒤 만든다.
+의존성이 낮고 다른 기능이 기대는 기반부터 검증한다.
 
-순서:
+구현 순서의 핵심은 다음과 같다.
 
 ```
-Current code audit
-→ Trait runtime model
-→ Resolver
-→ Skill/Stat/Visual integration
-→ Personality
-→ AI/StateTree/EQS integration
-→ Trait Graph Editor
-→ tuning/content expansion
+0. Current code audit
+1. Team foundation
+2. Team Damage rule
+3. Trait runtime model
+4. Monster Set + Resolver
+5. Skill Delta integration
+6. Stat / Visual integration
+7. Complexity selection
+8. Individual Personality data
+9. Target / Combat Entry
+10. AI Brain rework
+11. Caution / Prediction / Reaction
+12. Evasion + EQS
+13. Team Damage-aware Attack Evaluation
+14. Trait Graph Editor
+15. Group Behavior later
 ```
 
-Spawn은 현재 로컬에서 해결되었으므로 이 순서에 포함하지 않는다.
+이 순서는 "중요도 순서"가 아니라 **구현 의존성 순서**다.
 
-## 2. Phase 0 - 구현 시작 전 동기화
+Spawn은 현재 별도로 해결되었으므로 범위에 포함하지 않는다.
 
-### Requirement
-
-실제 구현 Branch의 최신 로컬 변경이 repository에 반영된 상태에서 다시 Current Monster/Skill 코드를 확인한다.
-
-특히 확인할 것:
-
-- 로컬 Spawn Rework와 Monster Lifecycle
-- `AMonster`
-- `AMAAIController`
-- Monster Skill Slot 데이터
-- `UMASkillManagerComponent`
-- Skill Module/Assembler 구조
-- Pattern StateTree 관련 코드
-- 기존 Monster Blueprint/Data authoring 경로
-
-### Rule
-
-현재 mockup 문서가 코드보다 우선한다고 가정하지 않는다.
-
-코드가 이미 더 좋은 구조로 변경되었다면 기존 기능을 재사용한다.
-
-## 3. Phase 1 - Trait Runtime Data Model
+## 2. Phase 0 - 최신 코드 감사
 
 ### 목표
 
-UI 없이도 Shared Trait Tree의 데이터 의미를 표현할 수 있어야 한다.
+목업을 코드에 억지로 맞추지 않고 현재 프로젝트가 이미 가진 책임을 확인한다.
 
-### 최소 필요 개념
+### 반드시 확인
+
+- `AMonster`
+- `AMACharacter`
+- `AMAAIController`
+- AI Perception affiliation/target filtering
+- 현재 Team 또는 Generic Team 관련 코드 존재 여부
+- Monster Skill Slot 데이터
+- `UMASkillManagerComponent`
+- Skill Module / Assembler
+- 실제 Damage가 Attribute에 반영되는 공통 경로
+- GameplayEffect / Damage Effect 적용 지점
+- Pattern StateTree 관련 코드
+- Map/Match/Session Setting 소유 구조
+- GameMode / GameState 중 서버 룰 저장 위치
+- 현재 Spawn Rework 결과와 Monster 초기화 시점
+- 기존 Monster Blueprint/Data authoring 경로
+
+### Output
+
+구현 전 짧은 Audit Note를 남긴다.
+
+```
+Existing owner
+Reusable type
+Missing responsibility
+Legacy responsibility to remove
+Exact 5.8 API constraints
+```
+
+### Rule
+
+기존에 같은 책임의 타입이 있으면 새 Manager를 만들지 않는다.
+
+## 3. Phase 1 - Team Foundation
+
+### 목표
+
+Combatant가 최소한의 Team 관계를 일관되게 판정할 수 있게 한다.
+
+### Step 1 - Runtime Team 표현 결정
+
+현재 코드에 Team 구현이 있으면 재사용한다.
+
+없다면 UE의 기존 Team 지원 구조를 사용할지 프로젝트 전용 최소 타입을 둘지 Audit 결과로 결정한다.
+
+### Step 2 - 관계 함수 하나로 통일
+
+필요한 의미는 초기에는 두 개다.
+
+```
+Same Team
+Different Team
+```
+
+여러 AI/Skill에서 각자 Team 비교 코드를 만들지 않는다.
+
+### Step 3 - Monster Set DefaultTeamId 설계 반영
+
+Monster Set이 생기기 전이라면 데이터 계약만 정의하고,
+실제 Set 구현 단계에서 연결한다.
+
+### Step 4 - Player도 동일 Team 경로 사용
+
+Monster 전용 Team 판정과 Player 전용 Team 판정을 따로 만들지 않는다.
+
+### Acceptance
+
+- Same Team 판정 테스트
+- Different Team 판정 테스트
+- Player/Monster 조합 테스트
+- Team 미설정 Actor fallback 명시
+
+## 4. Phase 2 - Team Damage Rule
+
+### 목표
+
+Same-Team Damage 배율을 한 중앙 경로에서 적용한다.
+
+### Step 1 - Setting owner 결정
+
+후보는 Map/Match/Session 설정 계층이다.
+
+조건:
+
+- Host가 0~100% 설정 가능
+- Server가 권위 값 소유
+- Client가 필요한 경우 읽을 수 있음
+- Skill Asset마다 값 복제 금지
+
+### Step 2 - 내부 값 정의
+
+UI:
+
+```
+0 ~ 100 %
+```
+
+Runtime 후보:
+
+```
+0.0 ~ 1.0
+```
+
+### Step 3 - 중앙 Damage pipeline에 연결
+
+```
+Damage event
+→ Source Team
+→ Target Team
+→ same?
+→ TeamDamageRate
+→ final damage
+```
+
+Skill마다 개별 처리하지 않는다.
+
+### Step 4 - 0 / 25 / 100% 테스트
+
+Base Damage 100 기준:
+
+```
+Rate 0.00 → Same Team 0
+Rate 0.25 → Same Team 25
+Rate 1.00 → Same Team 100
+Different Team → always 100
+```
+
+### Step 5 - CC/Status는 건드리지 않음
+
+Damage 외 Effect 정책은 먼저 감사하고 별도 결정한다.
+
+### Acceptance
+
+새 Skill Module이 Team Damage를 전혀 몰라도 동일 규칙이 적용되어야 한다.
+
+## 5. Phase 3 - Trait Runtime Data Model
+
+### 목표
+
+UI 없이 Shared Trait Tree의 의미를 표현한다.
+
+### 최소 데이터
 
 - Trait Tree Asset
 - Trait Node
-- Parent 관계
+- Parent
 - Complexity Cost
 - Skill Delta
 - Stat Delta
 - Visual Delta
 
-### Requirement
+### Validation
 
-한 Tree 안에서:
-
-- Root/child 관계 검증
-- Parent 최대 1개
+- Parent 최대 1
 - cycle 금지
 - invalid parent 금지
-- 안정적인 Node identity
-
-가 가능해야 한다.
+- stable Node identity
+- Root validation
 
 ### Important
 
@@ -81,11 +206,7 @@ TT_Weapon
 └ Nodes[]
 ```
 
-형태를 우선한다.
-
 ### Acceptance
-
-코드/간단한 Details 데이터만으로 다음 Tree를 만들 수 있어야 한다.
 
 ```
 Sword
@@ -94,411 +215,521 @@ Sword
 └ Strong Sword
 ```
 
-그리고 선택 경로 `Sword → Speed Sword → Extreme Speed Sword`를 resolve했을 때 세 Node의 Delta가 올바른 순서로 누적되어야 한다.
+에서 `Sword → Speed Sword → Extreme Speed Sword`를 resolve하면 세 Delta가 순서대로 누적된다.
 
-## 4. Phase 2 - Monster Set + Resolver
+## 6. Phase 4 - Monster Set + Resolver
 
 ### 목표
 
-Monster Set이 사용할 Shared Trait Tree를 직접 선택하고 여러 Tree 결과를 하나의 Resolved Monster로 합친다.
+Monster 종류의 기본 정체성을 하나의 데이터 계약으로 모은다.
 
-### 최소 흐름
+### 최소 계약 후보
 
 ```
 Monster Set
-→ Trait Tree references
-→ selected path per tree
-→ resolve parent chain
-→ merge deltas
-→ Resolved Monster configuration
+├ Base stats
+├ Base skills
+├ Trait Tree references
+├ Base Personality
+└ DefaultTeamId
 ```
 
-### Requirement
+실제 필드 배치는 기존 프로젝트 데이터 구조를 먼저 재사용한다.
 
-Monster Type Preset/Capability 시스템을 추가하지 않는다.
+### Resolver 흐름
 
-Slime이 Weapon Tree를 쓰지 않는다면 Slime Set에서 Weapon Tree를 참조하지 않으면 끝이다.
+```
+Monster Set
+→ Default Team
+→ Trait Tree references
+→ selected paths
+→ merge deltas
+→ Resolved Monster
+```
 
-### 샘플 검증
+### 샘플
 
-최소 3종:
+최소:
 
-- Goblin
-- Slime
-- Golem 또는 다른 Weapon 재사용 가능 Monster
+- Goblin Team 2
+- Slime Team 4
+- Golem Team 3
 
-최소 공용 Tree:
+공용 Tree:
 
 - Weapon
 - Body
 - Element
 
-검증 포인트:
+### Acceptance
 
-1. Goblin과 다른 Monster가 동일 Weapon Tree를 재사용할 수 있는가.
-2. Slime은 Weapon Tree 없이 정상 동작하는가.
-3. 여러 Tree의 결과가 충돌 없이 합쳐지는가.
+1. Goblin/Golem이 같은 Weapon Tree를 공유한다.
+2. Slime은 Weapon Tree 없이 정상이다.
+3. 각각 Default Team이 Runtime Actor에 반영된다.
+4. Team이 Trait 종류에 종속되지 않는다.
 
-## 5. Phase 3 - Skill Delta Integration
+## 7. Phase 5 - Skill Delta Integration
 
 ### 목표
 
-Trait 결과가 실제 MA Skill System을 변경한다.
+Trait가 실제 MA Skill System을 변경한다.
 
 ### Rule
 
-새 Monster 전용 Skill System을 만들지 않는다.
+Monster 전용 Skill System을 만들지 않는다.
 
-기존 Skill Slot / Skill Module / Assembler / GAS 경로를 사용한다.
+기존 Skill Slot / Skill Module / Assembler / GAS를 사용한다.
 
-### Open implementation detail
+### Implementation
 
-Skill Delta의 정확한 연산은 현재 Skill System을 다시 확인한 뒤 결정한다.
+현재 샘플 Trait에 필요한 연산만 구현한다.
 
 후보:
 
 - Add
 - Remove
 - Replace
-- Override parameter/module
+- parameter/module override
 
-하지만 이 네 연산을 모두 선제 구현하지 않는다.
-
-실제 샘플 Trait에 필요한 연산만 먼저 만든다.
-
-### 샘플
-
-Weapon:
-
-```
-Sword
-→ Sword 기본 공격 구성
-
-Speed Sword
-→ 빠른 연계 Module 추가
-
-Extreme Speed Sword
-→ 추가 빠른 연계/이동 공격
-```
-
-Element:
-
-```
-Fire
-→ 기존 공격에 Fire Module/Effect 추가
-```
+전부 선제 구현하지 않는다.
 
 ### Acceptance
 
-같은 Goblin Base가 Trait 선택에 따라 실제 SkillManager에 서로 다른 최종 Skill 구성을 가져야 한다.
+같은 Goblin Base가 Trait 경로에 따라 실제 SkillManager에서 다른 Skill 구성을 가진다.
 
-## 6. Phase 4 - Stat / Visual Integration
+## 8. Phase 6 - Stat / Visual Integration
 
 ### Stat
 
-기존 Attribute/GameplayEffect 적용 경로를 우선 재사용한다.
-
-Trait용 별도 Stat 프레임워크를 만들지 않는다.
+기존 Attribute/GameplayEffect 경로를 우선 사용한다.
 
 ### Visual
 
-최소 하나 이상의 Trait가 플레이어에게 외형으로 보이게 한다.
+최소 하나 이상의 주요 Trait가 외형으로 읽혀야 한다.
 
 예:
 
-- Sword → Sword Mesh
+- Sword → Weapon Mesh
 - Fire → Material/VFX
 - Large → Scale/Silhouette
 
 ### Acceptance
 
-플레이어가 Debug 정보 없이도 주요 Trait 하나 이상을 외형으로 구분할 수 있어야 한다.
+Debug UI 없이도 주요 Trait 차이를 시각적으로 구분할 수 있다.
 
-## 7. Phase 5 - Complexity Selection
+## 9. Phase 7 - Complexity Selection
 
 ### 목표
 
-Skill 직접 랜덤 지급 없이 Complexity Budget으로 Trait 변주를 만든다.
+Skill 직접 Random 지급 없이 Complexity Budget으로 Trait를 선택한다.
 
-### 초기 알고리즘 요구
+### Requirements
 
-- 유효한 Tree path만 선택
-- Budget 초과 금지
-- Parent 누적 Cost 정확히 계산
-- Seed를 사용할 경우 결과 재현 가능
+- valid path only
+- budget 초과 금지
+- parent 누적 Cost
+- Seed 사용 시 reproducible
+- 선택 결과 Debug dump
 
 ### Experiment
 
-깊은 단일 Tree와 여러 얕은 Tree 중 어느 쪽이 얼마나 자주 나오는지 통계를 확인한다.
+수백 회 생성하여 다음 분포를 확인한다.
 
-최소 수백 회 생성 Debug 결과를 출력해 분포를 본다.
+- 깊은 단일 Tree
+- 여러 얕은 Tree
+- 특정 Tree 편향
+- 사용되지 않는 Node
 
-### 보류
+Encounter Cost와 직접 환산 공식은 아직 만들지 않는다.
 
-Complexity와 Encounter Spawn Cost의 직접 환산 공식은 만들지 않는다.
-
-## 8. Phase 6 - Individual Personality
-
-### 목표
-
-현재 확정 후보 7개 값을 데이터로 표현하고 실제 AI 판단 중 최소 일부에 연결한다.
-
-값:
-
-- Prediction
-- Reaction
-- Evasion
-- Caution
-- Initiative
-- Persistence
-- Preemptiveness
-
-### 구현 순서 제안
-
-전부 한 번에 연결하지 않는다.
-
-첫 검증 우선순위:
-
-1. Caution
-2. Evasion
-3. Prediction
-4. Reaction
-5. Preemptiveness
-6. Persistence
-7. Initiative
-
-이 순서는 확정 Gameplay 우선순위가 아니라 구현 검증 난이도와 관찰 가능성을 기준으로 한 Candidate다.
-
-### First acceptance examples
-
-Caution:
-
-- 낮은 몬스터는 사거리 끝에서 헛공격 가능
-- 높은 몬스터는 더 접근/대기 후 공격
-
-Evasion:
-
-- 낮은 몬스터는 논타겟 공격을 거의 피하지 않음
-- 높은 몬스터는 실제 Movement로 안전 지점을 선택
-
-Prediction:
-
-- 높은 몬스터는 이동 Target에 더 적절한 선행 판단을 보임
-- hidden/unobserved 정보는 사용하지 않음
-
-## 9. Phase 7 - AI Brain Rework
+## 10. Phase 8 - Individual Personality Data
 
 ### 목표
 
-현재 BT → temporary StateTree → StateName → DataTable RowName 연결을 제거하거나 명시적 구조로 대체한다.
-
-### 반드시 해결할 것
-
-- State 이름과 Pattern Row 이름의 암묵적 결합 제거
-- AI Skill 실행이 Player Input simulation에 의존해야 하는지 검증
-- Trait로 변한 최종 Skill Set을 AI가 사용
-- Personality 값이 실제 판단에 연결
-- Perception/Target/Decision/Movement/Skill execution 책임 분리
-
-### Experiment A - StateTree Primary Brain
+7개 값을 독립 데이터로 표현한다.
 
 ```
-AIController
-└ StateTreeAIComponent
-  ├ Idle
-  ├ Patrol
-  ├ Alert
-  ├ Combat
-  ├ Reaction
-  └ Dead
+Prediction
+Reaction
+Evasion
+Caution
+Initiative
+Persistence
+Preemptiveness
 ```
 
-### Experiment B - BT + StateTree 분리
+### First requirement
+
+아직 AI 알고리즘을 모두 연결하지 않아도 Runtime 개체별 값 조회와 Debug 표시가 가능해야 한다.
+
+### Optional experiment
 
 ```
-Behavior Tree
-= 공통 AI flow
-
-StateTree
-= combat pattern/decision
+Base Personality
++ Trait Modifier
+= Resolved Personality
 ```
 
-샘플 Monster 1종에서 두 구조의 제작/디버깅 비용을 비교한다.
+은 실제 필요 Trait가 확인될 때만 추가한다.
 
-### 선택 기준
+## 11. Phase 9 - Target / Combat Entry
 
-- 몬스터별 Pattern 제작 편의
+### 목표
+
+Player-only Target 개념에서 벗어나 Team 기반 Candidate를 만든다.
+
+### Step 1 - Perception 결과를 Team 기준으로 분류
+
+```
+Perceived Actor
+→ Same Team = Ally
+→ Different Team = Non-Team candidate
+```
+
+### Step 2 - Preemptiveness 연결
+
+```
+Non-Team detected
+→ Preemptiveness
+→ preemptive combat entry or no combat
+```
+
+### Step 3 - Retaliation 연결
+
+```
+Non-Team damages me
+→ retaliation target
+→ combat entry
+```
+
+Preemptiveness가 낮아도 반격할 수 있어야 한다.
+
+### Step 4 - Current Target 유지
+
+Persistence를 Target 유지/포기 조건에 연결할 수 있다.
+
+Threat Table은 아직 만들지 않는다.
+
+### Acceptance Scenario
+
+```
+Goblin Team 2, Preemptiveness high
+Golem Team 3, Preemptiveness low
+Player Team 1
+```
+
+- Goblin이 Golem을 먼저 공격 가능
+- Golem은 발견만 했을 때는 무시 가능
+- 공격받으면 Goblin에 반격
+- Player도 둘 모두의 Non-Team 후보가 될 수 있음
+
+## 12. Phase 10 - AI Brain Rework
+
+### 목표
+
+현재:
+
+```
+BT
+→ temporary StateTree
+→ StateName
+→ DataTable RowName
+```
+
+암묵적 연결을 제거한다.
+
+### Experiment A
+
+StateTree primary brain.
+
+### Experiment B
+
+BT macro flow + StateTree combat decision.
+
+### 비교 기준
+
 - 기존 코드 재사용량
-- AI 상태 추적/디버깅 편의
-- Personality 연결 난이도
-- Skill Set 변주 대응
-- Boss/Elite 확장 가능성
-- 중복 로직 발생 여부
+- 상태 추적/디버깅
+- Trait Skill Set 대응
+- Personality 연결
+- Monster-vs-Monster Target 대응
+- Boss/Elite 확장
+- 중복 로직
 
-## 10. Phase 8 - EQS
+### Must solve
+
+AI가 Skill 내부 구현을 직접 소유하지 않는다.
+
+AI Skill 실행이 Player Input simulation에 의존해야 하는지도 이 단계에서 제거/검증한다.
+
+## 13. Phase 11 - Caution / Prediction / Reaction
+
+세 값은 서로 의존 관계가 있으므로 같은 샘플 전투에서 검증한다.
+
+### Prediction
+
+현재 관측 정보로 Target의 미래 위치/상태를 추정.
+
+### Caution
+
+예측 결과와 Skill 사거리/시간을 이용해 실제 적중 가능성을 평가.
+
+### Reaction
+
+위험/기회 인지 후 행동 시작 타이밍을 조절.
+
+### Acceptance
+
+- Prediction이 높아도 hidden info는 사용하지 않음
+- Caution 높은 AI가 사거리 끝 헛공격을 줄임
+- Reaction 차이가 행동 시작 지연으로 체감됨
+
+## 14. Phase 12 - Evasion + EQS
 
 ### 목표
 
-공간 문제에만 선택적으로 도입한다.
-
-첫 후보는 Evasion이다.
+회피를 확률이 아니라 실제 Movement 판단으로 만든다.
 
 ```
 Threat
 → Evade decision
 → EQS candidate positions
 → score
-→ move/dodge
+→ Evasion quality
+→ movement/dodge
 ```
 
-그 다음 필요 시:
+### Test
 
-- ranged position
-- line of sight
-- retreat
-- flank
-- high-ground observation
+- projectile
+- melee telegraph
+- AoE
+- 좁은 공간
+- 도망갈 곳 없음
 
-으로 확장한다.
+EQS는 모든 Tick에 실행하지 않는다.
 
-### Performance acceptance
-
-EQS가 모든 AI Tick/Move에 상시 실행되지 않아야 한다.
-
-Debug에서 Query 빈도를 확인할 수 있어야 한다.
-
-## 11. Phase 9 - Trait Graph Editor
+## 15. Phase 13 - Team Damage-aware Attack Evaluation
 
 ### 전제
 
-Phase 1~5의 데이터 구조가 실제 콘텐츠에서 유지될 때 진행한다.
+Phase 2 Team Damage와 Phase 9 Team/Target이 정상 작동해야 한다.
 
-### 목표 UX
+### 목표
 
-콘텐츠 브라우저:
+AI가 자신의 공격으로 Ally에게 발생할 실제 비용을 평가한다.
+
+### Step 1 - Skill 영향 영역/사선에서 Ally 예상 피격 계산
+
+정확한 계산 수준은 Skill metadata가 제공하는 범위 내에서 시작한다.
+
+### Step 2 - TeamDamageRate 반영
+
+```
+FriendlyDamageCost
+= expected ally damage × TeamDamageRate
+```
+
+### Step 3 - Enemy Hit Value와 비교
+
+```
+AttackValue
+= EnemyHitValue - FriendlyDamageCost
+```
+
+### Step 4 - 재배치 선택 연결
+
+필요하면 EQS로:
+
+- clear line of fire
+- side position
+- safer AoE angle
+
+을 찾는다.
+
+### Acceptance
+
+TeamDamageRate가 높아질수록 동일 상황에서 AI가 Ally를 맞히는 공격을 더 비싸게 평가해야 한다.
+
+### Deferred
+
+FriendlyFireDiscipline Personality는 아직 추가하지 않는다.
+
+## 16. Phase 14 - Trait Graph Editor
+
+### 전제
+
+Runtime Model/Resolver/실제 Trait 콘텐츠가 안정화된 뒤 진행한다.
+
+### UX
 
 ```
 TT_Weapon
-TT_Body
-TT_Element
-```
 
-`TT_Weapon`을 열면:
-
-```
 [Sword] → [Speed Sword] → [Extreme Speed Sword]
     └──→ [Strong Sword]
 ```
 
 Node Details:
 
-- Display name/id
+- ID / Display Name
 - Complexity Cost
 - Skill Delta
 - Stat Delta
 - Visual Delta
 
-### Candidate UE Editor 구조
+### Validation
 
-- `UEdGraph`
-- `UEdGraphNode`
-- `UEdGraphSchema`
-- custom asset editor
-
-### Required editor validation
-
-- multiple parent connection rejection
-- cycle rejection
-- invalid connection rejection
+- multiple parent reject
+- cycle reject
+- invalid connection
 - orphan/root visualization
-- duplicate/stale Node identity detection
-- compile/validation errors visible in editor
-
-### Runtime rule
+- duplicate/stale ID
+- compile/validation feedback
 
 Runtime module은 Editor Graph class에 의존하지 않는다.
 
-Editor 저장/compile 결과만 Runtime Asset 데이터로 제공한다.
-
-## 12. Phase 10 - Group Behavior
+## 17. Phase 15 - Group Behavior
 
 ### Deferred
 
-개인성향과 Trait 시스템이 안정화되기 전 구현하지 않는다.
+Team은 이미 구현되어 있어도 Group AI는 별도다.
 
-추후 별도 설계 후보:
+후보:
 
 - Rally
 - Assistance
+- Support preference
 - Formation
-- target sharing
-- surrounding
-- independent combat preference
+- Target sharing
+- Surround
+- Independent combat preference
 
-현재 문서는 이것을 확장 가능성으로만 기록한다.
+Individual Behavior와 Team 기반이 충분히 안정화된 뒤 별도 목업으로 확장한다.
 
-## 13. Debug/Testing 필수 항목
+## 18. Debug / Testing
+
+### Team
+
+```
+MyTeam
+TargetTeam
+Relation
+CombatEntryReason
+```
+
+### Team Damage
+
+```
+BaseDamage
+SameTeam?
+TeamDamageRate
+FinalDamage
+```
 
 ### Trait
 
-- resolved path dump
-- total Complexity dump
-- Skill Delta result
-- Stat Delta result
-- Visual Delta result
-- invalid tree validation
+- resolved path
+- Complexity
+- Skill Delta
+- Stat Delta
+- Visual Delta
 
 ### Personality
 
-AI Debug에서 개체의 7개 값을 볼 수 있어야 한다.
+7개 값과 현재 행동 이유.
 
-가능하면 현재 결정 이유도 표시한다.
-
-예:
+### AI
 
 ```
-Action: Reposition
-Reason: Caution threshold not met
-ExpectedHit: 0.42
-Caution: 0.85
+Target
+Target Team
+Current State
+Selected Skill
+ExpectedHit
+FriendlyDamageCost
+FinalAttackValue
 ```
 
 ### EQS
 
 - query reason
-- candidate point visualization
+- candidates
+- scores
 - selected point
-- score
 
-### StateTree/BT
+## 19. End-to-End 검증 시나리오
 
-현재 활성 상태와 선택 Skill/Action을 추적할 수 있어야 한다.
+### Scenario A - Trait 재사용
 
-## 14. 실패/재검토 기준
+Goblin과 Golem이 동일 Weapon Tree의 다른 경로를 사용.
 
-다음 중 하나가 반복되면 Shared Trait Tree 설계를 다시 검토한다.
+### Scenario B - 성향 차이
 
-1. 대부분의 Trait가 다른 Trait의 종류를 알아야만 동작한다.
-2. 실제 콘텐츠에서 Tree depth가 거의 사용되지 않는다.
-3. Variant 결과를 이해하려면 수십 개 조합 예외 Table이 필요하다.
-4. Skill System과 Trait Delta 연결을 위해 Monster 전용 우회 계층이 계속 늘어난다.
-5. Visual Telegraph가 불가능해 동일 외형이 전혀 다른 능력을 반복적으로 가진다.
+동일 Skill/Traits를 가진 두 Monster가 Caution/Evasion 차이로 다른 전투를 보임.
 
-Personality도 다음 경우 재검토한다.
+### Scenario C - 종족 간 교전
+
+```
+Goblin Team 2
+Golem Team 3
+```
+
+Goblin이 선공하고 Golem이 반격.
+
+### Scenario D - Team Damage 0%
+
+같은 Team 공격 피해 없음.
+
+AI는 Damage 관점에서 Ally overlap을 거의 비용으로 보지 않음.
+
+### Scenario E - Team Damage 100%
+
+같은 Team도 정상 Damage.
+
+AI는 아군 피격이 큰 공격을 더 비싸게 평가하고 다른 사선/Skill을 고려.
+
+### Scenario F - Player 유도
+
+Player가 Goblin과 Golem을 같은 공간으로 유도하여 Monster-vs-Monster 전투가 발생.
+
+별도 scripted event 없이 Team + Personality + Perception만으로 발생해야 한다.
+
+## 20. 실패/재검토 기준
+
+### Trait
+
+1. 대부분 Trait가 다른 Trait를 알아야 동작한다.
+2. Tree depth가 실제 콘텐츠에서 거의 사용되지 않는다.
+3. 조합 예외표가 계속 증가한다.
+4. Skill System 우회 계층이 늘어난다.
+
+### Personality
 
 1. 두 값이 항상 같은 알고리즘을 조절한다.
 2. 값 변화가 플레이에서 구분되지 않는다.
-3. 값이 실제 판단이 아니라 랜덤 성공률로만 사용된다.
+3. 실제 판단 대신 랜덤 확률로만 사용된다.
 
-## 15. Codex 구현 규칙
+### Team
 
-1. 구현 시작 전 최신 Monster/Skill 관련 코드를 다시 확인한다.
-2. 현재 코드에 동일 책임을 가진 타입이 있으면 재사용한다.
+1. 종족마다 별도 관계표가 필요해진다.
+2. Player/Monster Damage 경로가 갈라진다.
+3. Skill마다 Friendly Fire 처리를 반복한다.
+4. Same-Team hit만으로 AI가 무의미한 내전을 반복한다.
+5. TeamDamageRate가 실제 Damage 외 너무 많은 규칙(CC, 관계, 어그로)을 동시에 소유하게 된다.
+
+## 21. Codex 구현 규칙
+
+1. 구현 시작 전 최신 Monster/Skill/Team/Damage 코드를 감사한다.
+2. 기존 동일 책임 타입을 재사용한다.
 3. 기존 파일/클래스 이름을 불필요하게 바꾸지 않는다.
 4. Decision을 임의로 변경하지 않는다.
-5. 새 Manager/System을 추가하기 전에 기존 소유자를 확인한다.
-6. Trait Editor를 Runtime Model보다 먼저 만들지 않는다.
-7. StateTree 사용 자체를 목표로 삼지 않는다. AI 요구를 가장 잘 해결하는 구조를 선택한다.
-8. Spawn Rework를 건드리지 않는다.
-9. Mass/Smart Object/Group Behavior를 이번 첫 구현 범위에 넣지 않는다.
-10. 구현 중 문서와 충돌하는 실제 코드 제약을 발견하면 우회 구현보다 먼저 차이를 기록한다.
+5. 새 Manager/System 전에 현재 소유자를 확인한다.
+6. Team Damage는 중앙 Damage 경로에 둔다.
+7. Different Team = 즉시 Enemy로 하드코딩하지 않는다.
+8. Preemptiveness와 Retaliation을 같은 값으로 처리하지 않는다.
+9. Trait Editor를 Runtime Model보다 먼저 만들지 않는다.
+10. StateTree 사용 자체를 목표로 삼지 않는다.
+11. Spawn Rework를 건드리지 않는다.
+12. Mass/Smart Object/Relationship Matrix/Group Behavior를 첫 구현 범위에 넣지 않는다.
+13. 실제 코드 제약이 문서와 충돌하면 우회 구현보다 차이를 먼저 기록한다.
