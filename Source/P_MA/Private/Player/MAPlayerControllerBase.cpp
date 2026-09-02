@@ -5,6 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "Player/MAPlayerState.h"
 #include "Widget/Settings/SettingsWidget.h"
@@ -13,6 +14,8 @@
 AMAPlayerControllerBase::AMAPlayerControllerBase()
 {
 	CameraDirectorComponent = CreateDefaultSubobject<UMAPlayerCameraDirectorComponent>(TEXT("CameraDirectorComponent"));
+	CameraOcclusionCutoutComponent =
+		CreateDefaultSubobject<UMACameraOcclusionCutoutComponent>(TEXT("CameraOcclusionCutoutComponent"));
 }
 
 void AMAPlayerControllerBase::OnPossess(APawn* InPawn)

@@ -50,9 +50,7 @@ public:
 	
 private:
 	void BindGASChangeDelegates();
-	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	void RefreshMaxWalkSpeed();
 	void StopMovementForBlock();
 
 	void MoveSpeedUpdated(const FOnAttributeChangeData& Data);
@@ -86,25 +84,25 @@ private:
 	void ConfigureOverHeadStatusWidget();
 	class UMAOverHeadStatsGauge* EnsureOverHeadStatusWidgetConfigured();
 
-	void SetStatusGaugeEnabled(bool bIsEnabled);
 	bool bStatusGaugeEnabled = true;
 
 	/** Death and Respawn **/
 public:
 	bool IsMovementBlocked() const;
 	bool IsDead() const;
-	void RespawnImmediately();
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Death")
 	UAnimMontage* DeathMontage;
 
 	void StartDeathSequence();
-	void Respawn();
 
 protected:
+	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void RefreshMaxWalkSpeed();
+	void SetStatusGaugeEnabled(bool bIsEnabled);
+	void SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled);
 	virtual void OnDead();
-	virtual void OnRespawn();
 
 	/** Team **/
 public:
@@ -122,7 +120,6 @@ private:
 	
 	/** AI **/
 private:
-	void SetAIPerceptionStimuliSourceEnabled(bool bIsEnabled);
 	UPROPERTY()
 	class UAIPerceptionStimuliSourceComponent* PerceptionStimuliSourceComponent;
 

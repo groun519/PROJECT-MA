@@ -45,24 +45,32 @@ void UMAPlayerCameraDirectorComponent::RefreshPawnCamera()
 	CameraBoom = nullptr;
 	Camera = nullptr;
 
-	APlayerController* PlayerController = GetOwnerPlayerController();
+	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwnerPlayerController());
 	if (!PlayerController || !PlayerController->IsLocalController()) return;
+
+	UMACameraOcclusionCutoutComponent* OcclusionCutout = PlayerController->GetCameraOcclusionCutout();
+	if (OcclusionCutout) OcclusionCutout->ClearTarget();
 
 	AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(PlayerController->GetPawn());
 	if (!PlayerCharacter) return;
 
 	CameraBoom = PlayerCharacter->GetCameraBoom();
 	Camera = PlayerCharacter->GetPlayerCamera();
+	if (OcclusionCutout) OcclusionCutout->RevealTarget(*PlayerController, *PlayerCharacter);
 }
 
 void UMAPlayerCameraDirectorComponent::SwitchToViewTarget(AActor* ViewTarget, float BlendTime)
 {
-	APlayerController* PlayerController = GetOwnerPlayerController();
+	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwnerPlayerController());
 	if (!PlayerController || !PlayerController->IsLocalController() || !ViewTarget) return;
 
 	DeactivatePresentationEffects();
 	CancelCameraMovement();
 	PlayerController->SetViewTargetWithBlend(ViewTarget, BlendTime);
+	if (UMACameraOcclusionCutoutComponent* OcclusionCutout = PlayerController->GetCameraOcclusionCutout())
+	{
+		OcclusionCutout->RevealTarget(*PlayerController, *ViewTarget);
+	}
 }
 
 void UMAPlayerCameraDirectorComponent::SwitchToPawnCamera(float BlendTime)
@@ -99,15 +107,12 @@ void UMAPlayerCameraDirectorComponent::ExitPresentationView(const float BlendTim
 
 void UMAPlayerCameraDirectorComponent::ActivatePresentationEffects(AActor& ViewTarget, AActor& Subject)
 {
-	APlayerController* PlayerController = GetOwnerPlayerController();
+	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwnerPlayerController());
 	if (!PlayerController || !PlayerController->IsLocalController()) return;
 
-	EnsurePresentationCutoutComponent();
-
-	if (PresentationCutoutComponent)
+	if (UMACameraOcclusionCutoutComponent* OcclusionCutout = PlayerController->GetCameraOcclusionCutout())
 	{
-		PresentationCutoutComponent->SetCutoutRadius(PresentationSettings.CutoutRadius);
-		PresentationCutoutComponent->RevealTarget(*PlayerController, Subject);
+		OcclusionCutout->RevealTarget(*PlayerController, Subject);
 	}
 
 	UCameraComponent* ViewCamera = ViewTarget.FindComponentByClass<UCameraComponent>();
@@ -141,31 +146,11 @@ void UMAPlayerCameraDirectorComponent::ActivatePresentationEffects(AActor& ViewT
 
 void UMAPlayerCameraDirectorComponent::DeactivatePresentationEffects()
 {
-	if (PresentationCutoutComponent)
-	{
-		PresentationCutoutComponent->ClearTarget();
-	}
 	if (IsValid(PresentationFillLight))
 	{
 		PresentationFillLight->DestroyComponent();
 	}
 	PresentationFillLight = nullptr;
-}
-
-void UMAPlayerCameraDirectorComponent::EnsurePresentationCutoutComponent()
-{
-	APlayerController* PlayerController = GetOwnerPlayerController();
-	if (!PlayerController || !PlayerController->IsLocalController()) return;
-
-	if (!PresentationCutoutComponent)
-	{
-		PresentationCutoutComponent = NewObject<UMACameraOcclusionCutoutComponent>(
-			PlayerController,
-			TEXT("PresentationCutoutComponent"),
-			RF_Transient);
-		PlayerController->AddInstanceComponent(PresentationCutoutComponent);
-		PresentationCutoutComponent->RegisterComponent();
-	}
 }
 
 /** Fade **/

@@ -6,6 +6,7 @@
 
 class UInputAction;
 class UInputMappingContext;
+class UMACameraOcclusionCutoutComponent;
 class UMAPlayerCameraDirectorComponent;
 class USettingsWidget;
 class USystemMenuWidget;
@@ -29,6 +30,7 @@ public:
 	void ServerNotifyLoaded();
 
 	UMAPlayerCameraDirectorComponent* GetCameraDirector() const { return CameraDirectorComponent; }
+	UMACameraOcclusionCutoutComponent* GetCameraOcclusionCutout() const { return CameraOcclusionCutoutComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleSystemMenu();
@@ -58,6 +60,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UMAPlayerCameraDirectorComponent> CameraDirectorComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	TObjectPtr<UMACameraOcclusionCutoutComponent> CameraOcclusionCutoutComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<USystemMenuWidget> SystemMenuWidgetClass;

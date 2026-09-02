@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Convenience/MAInteractableComponent.h"
+#include "Convenience/MAInteractorComponent.h"
 #include "Framework/MAGameInstance.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Level/Lobby/Hub/LobbyHubPlayerController.h"
@@ -82,7 +83,7 @@ void ALobbyHubLoadoutStation::OpenLoadoutFor(AMAPlayerCharacter& Interactor)
 	}
 
 	UpdateLoadoutCamera(Interactor);
-	EnterLoadoutPresentation(*HubController);
+	EnterLoadoutPresentation(*HubController, Interactor);
 	HubController->ApplyWidgetFocusInputMode(ActiveLoadoutWidget);
 }
 
@@ -139,11 +140,14 @@ void ALobbyHubLoadoutStation::UpdateLoadoutCamera(const AMAPlayerCharacter& Inte
 	LoadoutCameraComponent->SetFieldOfView(CameraFov);
 }
 
-void ALobbyHubLoadoutStation::EnterLoadoutPresentation(ALobbyHubPlayerController& PlayerController)
+void ALobbyHubLoadoutStation::EnterLoadoutPresentation(
+	ALobbyHubPlayerController& PlayerController,
+	AMAPlayerCharacter& Interactor)
 {
 	PlayerController.SetIgnoreMoveInput(true);
 	PlayerController.SetIgnoreLookInput(true);
 	SetInteractorRotationLocked(true);
+	Interactor.GetInteractorComponent()->SetInteractionEnabled(false, &Interactor);
 
 	if (UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController.GetCameraDirector())
 	{
@@ -158,6 +162,10 @@ void ALobbyHubLoadoutStation::ExitLoadoutPresentation(ALobbyHubPlayerController&
 		CameraDirector->ExitPresentationView(CameraBlendTime);
 	}
 
+	if (AMAPlayerCharacter* Interactor = ActiveInteractor.Get())
+	{
+		Interactor->GetInteractorComponent()->SetInteractionEnabled(true, Interactor);
+	}
 	SetInteractorRotationLocked(false);
 	PlayerController.SetIgnoreMoveInput(false);
 	PlayerController.SetIgnoreLookInput(false);

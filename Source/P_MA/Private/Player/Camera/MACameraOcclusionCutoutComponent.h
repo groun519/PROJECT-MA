@@ -29,7 +29,6 @@ public:
 
 	void RevealTarget(APlayerController& Viewer, AActor& Target);
 	void ClearTarget();
-	void SetCutoutRadius(float Radius);
 
 private:
 	void UpdateMaterialParameters();
@@ -40,7 +39,7 @@ private:
 
 	/** Radius at the target plane. The material scales it toward the camera to preserve its screen size. */
 	UPROPERTY(EditAnywhere, Category = "Camera|Occlusion Cutout", meta = (ClampMin = "1.0"))
-	float CutoutRadius = 110.f;
+	float CutoutRadius = 125.f;
 
 	TWeakObjectPtr<APlayerController> ViewerController;
 	TWeakObjectPtr<AActor> RevealTargetActor;

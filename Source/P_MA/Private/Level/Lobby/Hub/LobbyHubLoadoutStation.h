@@ -27,7 +27,7 @@ private:
 	void OpenLoadoutFor(AMAPlayerCharacter& Interactor);
 	void BindLoadoutWidget(ULoadoutWidget& LoadoutWidget);
 	void UpdateLoadoutCamera(const AMAPlayerCharacter& Interactor);
-	void EnterLoadoutPresentation(ALobbyHubPlayerController& PlayerController);
+	void EnterLoadoutPresentation(ALobbyHubPlayerController& PlayerController, AMAPlayerCharacter& Interactor);
 	void ExitLoadoutPresentation(ALobbyHubPlayerController& PlayerController);
 	void SetInteractorRotationLocked(bool bLocked);
 	void ApplyPendingLoadout();

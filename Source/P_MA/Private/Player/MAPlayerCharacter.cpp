@@ -25,6 +25,8 @@
 #include "Engine/CanvasRenderTarget2D.h"
 #include "P_MA/P_MA.h"
 #include "Animation/MAAnimInstance.h"
+#include "Character/MAStatusEffectComponent.h"
+#include "GAS/MAAbilitySystemComponent.h"
 #include "Player/MAPlayerState.h"
 #include "Player/Components/MAPlayerCharacterMovementComponent.h"
 #include "Player/Cursor/MACursorSubsystem.h"
@@ -37,6 +39,7 @@
 #include "Engine/DataTable.h"
 #include "EngineUtils.h"
 #include "Shop/MAShopNPC.h"
+#include "TimerManager.h"
 
 AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UMAPlayerCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -660,6 +663,11 @@ bool AMAPlayerCharacter::GetLookDirectionToMouse(FVector& OutDirection) const
 
 void AMAPlayerCharacter::OnDead()
 {
+	if (UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		AnimInstance->CancelPoseRecovery();
+	}
+
 	SetInputEnabledFromPlayerController(false);
 	SpawnReviveActor();
 	if (HasAuthority())
@@ -675,9 +683,61 @@ void AMAPlayerCharacter::OnDead()
 	}
 }
 
-void AMAPlayerCharacter::OnRespawn()
+void AMAPlayerCharacter::DeathTagUpdated(const FGameplayTag Tag, const int32 NewCount)
 {
+	if (NewCount != 0)
+	{
+		Super::DeathTagUpdated(Tag, NewCount);
+		return;
+	}
+
+	GetWorldTimerManager().SetTimerForNextTick(this, &AMAPlayerCharacter::Respawn);
+}
+
+void AMAPlayerCharacter::Respawn()
+{
+	if (IsDead()) return;
+
 	ClearReviveActor();
+	GetStatusEffectComponent()->ResetTransientStatusEffectState();
+
+	SetAIPerceptionStimuliSourceEnabled(true);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	SetStatusGaugeEnabled(true);
+	CastChecked<UMAAbilitySystemComponent>(GetAbilitySystemComponent())->ApplyReviveStatEffect();
+
+	USkeletalMeshComponent* MeshComponent = GetMesh();
+	check(MeshComponent);
+	if (UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComponent->GetAnimInstance()))
+	{
+		AnimInstance->RecoverPose(
+			FSimpleDelegate::CreateUObject(this, &AMAPlayerCharacter::FinishRespawn));
+		return;
+	}
+
+	if (UAnimInstance* FallbackAnimInstance = MeshComponent->GetAnimInstance())
+	{
+		FallbackAnimInstance->StopAllMontages(0.f);
+	}
+
+	FinishRespawn();
+}
+
+void AMAPlayerCharacter::RespawnImmediately()
+{
+	if (!HasAuthority()) return;
+
+	GetAbilitySystemComponent()->RemoveActiveEffectsWithGrantedTags(
+		FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
+}
+
+void AMAPlayerCharacter::FinishRespawn()
+{
+	if (IsDead()) return;
+
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	RefreshMaxWalkSpeed();
 	SetInputEnabledFromPlayerController(true);
 
 	if (LoadoutComponent)
@@ -685,7 +745,7 @@ void AMAPlayerCharacter::OnRespawn()
 		LoadoutComponent->ApplyMaterialParam(LoadoutComponent->GetMaterialParamValue());
 	}
 
-	if (HasAuthority() && GetAbilitySystemComponent())
+	if (HasAuthority())
 	{
 		FGameplayCueParameters CueParams;
 		CueParams.Location = GetActorLocation();

@@ -93,7 +93,4 @@ struct FMACameraPresentationSettings
 
 	UPROPERTY(EditAnywhere, Category="Presentation")
 	FLinearColor FillLightColor = FLinearColor(1.f, 0.95f, 0.85f);
-
-	UPROPERTY(EditAnywhere, Category="Presentation", meta=(ClampMin="1.0"))
-	float CutoutRadius = 95.f;
 };

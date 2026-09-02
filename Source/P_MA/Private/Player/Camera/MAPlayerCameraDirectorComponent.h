@@ -6,7 +6,6 @@
 #include "MAPlayerCameraDirectorComponent.generated.h"
 
 class UCameraComponent;
-class UMACameraOcclusionCutoutComponent;
 class USpotLightComponent;
 class USpringArmComponent;
 class AMAPlayerControllerBase;
@@ -66,7 +65,6 @@ private:
 	/** Presentation **/
 	void ActivatePresentationEffects(AActor& ViewTarget, AActor& Subject);
 	void DeactivatePresentationEffects();
-	void EnsurePresentationCutoutComponent();
 
 	/** Internal **/
 	void CancelCameraTransition();
@@ -99,9 +97,6 @@ private:
 	bool bExternalCameraTransitionActive = false;
 
 	/** Presentation **/
-	UPROPERTY(Transient)
-	TObjectPtr<UMACameraOcclusionCutoutComponent> PresentationCutoutComponent = nullptr;
-
 	/** Owned by the visible subject while active because Controller-owned scene components never render. */
 	UPROPERTY(Transient)
 	TObjectPtr<USpotLightComponent> PresentationFillLight = nullptr;

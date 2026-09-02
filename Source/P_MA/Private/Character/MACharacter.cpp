@@ -131,7 +131,6 @@ void AMACharacter::BindGASChangeDelegates()
 void AMACharacter::DeathTagUpdated(const FGameplayTag /*Tag*/, int32 NewCount)
 {
 	if (NewCount != 0) StartDeathSequence();
-	else GetWorldTimerManager().SetTimerForNextTick(this, &AMACharacter::Respawn);
 }
 
 void AMACharacter::MoveBlockTagUpdated(const FGameplayTag Tag, int32 NewCount)
@@ -206,14 +205,6 @@ void AMACharacter::StopMovementForBlock()
 	}
 }
 
-void AMACharacter::RespawnImmediately()
-{
-	if (HasAuthority())
-	{
-		GetAbilitySystemComponent()->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(UMAAbilitySystemStatics::GetDeadStatTag()));
-	}
-}
-
 void AMACharacter::StartDeathSequence()
 {
 	OnDead();
@@ -228,40 +219,7 @@ void AMACharacter::StartDeathSequence()
 	SetAIPerceptionStimuliSourceEnabled(false);
 }
 
-void AMACharacter::Respawn()
-{
-	if (StatusEffectComponent) StatusEffectComponent->ResetTransientStatusEffectState();
-
-	SetAIPerceptionStimuliSourceEnabled(true);
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-	if (USkeletalMeshComponent* MeshComp = GetMesh())
-	{
-		if (UAnimInstance* AnimInst = MeshComp->GetAnimInstance())
-		{
-			AnimInst->StopAllMontages(0.f);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Respawn: AnimInstance is null. Char=%s"), *GetName());
-		}
-	}
-	SetStatusGaugeEnabled(true);
-
-	if (MAAbilitySystemComponent)
-	{
-		MAAbilitySystemComponent->ApplyReviveStatEffect();
-	}
-
-	RefreshMaxWalkSpeed();
-	OnRespawn();
-}
-
 void AMACharacter::OnDead()
-{
-}
-
-void AMACharacter::OnRespawn()
 {
 }
 

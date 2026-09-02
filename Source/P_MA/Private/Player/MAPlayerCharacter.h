@@ -178,9 +178,18 @@ public:
 	TObjectPtr<class UWeaponComponent> WeaponComponent = nullptr;
 
 	/** Death and Respawn **/
-	virtual void OnDead() override;
-	virtual void OnRespawn() override;
+public:
+	void RespawnImmediately();
 
+protected:
+	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount) override;
+	virtual void OnDead() override;
+
+private:
+	void Respawn();
+	void FinishRespawn();
+
+public:
 	UPROPERTY(EditDefaultsOnly, Category = "Death|Revive")
 	TSubclassOf<AMAReviveActor> ReviveActorClass;
 

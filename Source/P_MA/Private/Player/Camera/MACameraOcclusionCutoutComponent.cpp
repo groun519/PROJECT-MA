@@ -7,13 +7,10 @@
 #include "Materials/MaterialParameterCollectionInstance.h"
 #include "UObject/ConstructorHelpers.h"
 
-namespace MACameraOcclusionCutout
-{
-	const FName EnabledParameter(TEXT("CutoutEnabled"));
-	const FName RadiusParameter(TEXT("CutoutRadius"));
-	const FName CameraPositionParameter(TEXT("CameraPosition"));
-	const FName TargetPositionParameter(TEXT("TargetPosition"));
-}
+static const FName EnabledParameter(TEXT("CutoutEnabled"));
+static const FName RadiusParameter(TEXT("CutoutRadius"));
+static const FName CameraPositionParameter(TEXT("CameraPosition"));
+static const FName TargetPositionParameter(TEXT("TargetPosition"));
 
 UMACameraOcclusionCutoutComponent::UMACameraOcclusionCutoutComponent()
 {
@@ -66,12 +63,6 @@ void UMACameraOcclusionCutoutComponent::ClearTarget()
 	RevealTargetActor.Reset();
 }
 
-void UMACameraOcclusionCutoutComponent::SetCutoutRadius(const float Radius)
-{
-	CutoutRadius = FMath::Max(Radius, 1.f);
-	if (RevealTargetActor.IsValid()) UpdateMaterialParameters();
-}
-
 void UMACameraOcclusionCutoutComponent::UpdateMaterialParameters()
 {
 	APlayerController* Viewer = ViewerController.Get();
@@ -101,13 +92,13 @@ void UMACameraOcclusionCutoutComponent::UpdateMaterialParameters()
 
 	const FVector CameraPosition = Viewer->PlayerCameraManager->GetCameraLocation();
 	Parameters->SetVectorParameterValue(
-		MACameraOcclusionCutout::CameraPositionParameter,
+		CameraPositionParameter,
 		FLinearColor(CameraPosition.X, CameraPosition.Y, CameraPosition.Z, 1.f));
 	Parameters->SetVectorParameterValue(
-		MACameraOcclusionCutout::TargetPositionParameter,
+		TargetPositionParameter,
 		FLinearColor(TargetPosition.X, TargetPosition.Y, TargetPosition.Z, 1.f));
-	Parameters->SetScalarParameterValue(MACameraOcclusionCutout::RadiusParameter, CutoutRadius);
-	Parameters->SetScalarParameterValue(MACameraOcclusionCutout::EnabledParameter, 1.f);
+	Parameters->SetScalarParameterValue(RadiusParameter, CutoutRadius);
+	Parameters->SetScalarParameterValue(EnabledParameter, 1.f);
 }
 
 void UMACameraOcclusionCutoutComponent::SetCutoutEnabled(const bool bEnabled) const
@@ -119,7 +110,7 @@ void UMACameraOcclusionCutoutComponent::SetCutoutEnabled(const bool bEnabled) co
 		World->GetParameterCollectionInstance(ParameterCollection))
 	{
 		Parameters->SetScalarParameterValue(
-			MACameraOcclusionCutout::EnabledParameter,
+			EnabledParameter,
 			bEnabled ? 1.f : 0.f);
 	}
 }

@@ -19,6 +19,7 @@ void UMAInputKeyPromptWidget::SetInputContext(APlayerController* PlayerControlle
 
 	InputOwner = PlayerController;
 	InputMappingContext = MappingContext;
+	FMAInputStatics::RegisterInputMappingContextDefaults(PlayerController, MappingContext);
 
 	if (AMAPlayerController* Player = Cast<AMAPlayerController>(PlayerController))
 	{

@@ -1,5 +1,6 @@
 #include "Animation/MAAnimInstance.h"
 
+#include "Animation/PoseSnapshot.h"
 #include "GAS/Skill/MASkillAbility.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -17,6 +18,16 @@ void UMAAnimInstance::NativeInitializeAnimation()
 
 void UMAAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
+	if (RecoveryPoseAlpha > 0.f)
+	{
+		RecoveryPoseBlend.Update(DeltaSeconds);
+		RecoveryPoseAlpha = RecoveryPoseBlend.GetBlendedValue();
+		if (RecoveryPoseBlend.IsComplete())
+		{
+			ResetRecoveryPoseBlend();
+		}
+	}
+
 	if (OwnerCharacter)
 	{
 		if (const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(OwnerCharacter))
@@ -125,4 +136,93 @@ void UMAAnimInstance::UnregisterSkillAreaPreviewContext(const UAnimSequenceBase*
 
 	SkillAreaPreviewScales.Remove(Animation);
 	SkillAreaPreviewVisualTags.Remove(Animation);
+}
+
+void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
+{
+	static const FName RecoveryPoseSnapshotName(TEXT("MARecoveryPose"));
+	CancelPoseRecovery();
+
+	const float AnimationLength = RecoveryAnimation ? RecoveryAnimation->GetPlayLength() : 0.f;
+	if (!ensureMsgf(
+		RecoveryAnimation && AnimationLength > UE_KINDA_SMALL_NUMBER,
+		TEXT("Pose Recovery requires a valid Recovery Animation on %s."),
+		*GetClass()->GetName()))
+	{
+		StopAllMontages(0.f);
+		ResetRecoveryPoseBlend();
+		OnCompleted.ExecuteIfBound();
+		return;
+	}
+
+	SavePoseSnapshot(RecoveryPoseSnapshotName);
+	const FPoseSnapshot* RecoveryPose = GetPoseSnapshot(RecoveryPoseSnapshotName);
+	const bool bHasRecoveryPose = RecoveryPose && RecoveryPose->bIsValid;
+	ensureMsgf(bHasRecoveryPose, TEXT("Failed to capture Pose Recovery snapshot on %s."), *GetName());
+
+	StopAllMontages(0.f);
+	const float SafeRecoveryDuration = FMath::Max(RecoveryDuration, 0.1f);
+	static const FName FullBodySlotName(TEXT("Full"));
+	ActiveRecoveryMontage = PlaySlotAnimationAsDynamicMontage(
+		RecoveryAnimation,
+		FullBodySlotName,
+		0.f,
+		FMath::Max(RecoveryAnimationBlendOutDuration, 0.f),
+		AnimationLength / SafeRecoveryDuration);
+	if (!ActiveRecoveryMontage)
+	{
+		ensureMsgf(false, TEXT("Failed to play Pose Recovery animation on %s."), *GetName());
+		ResetRecoveryPoseBlend();
+		OnCompleted.ExecuteIfBound();
+		return;
+	}
+
+	RecoveryCompletedDelegate = MoveTemp(OnCompleted);
+	FOnMontageEnded RecoveryMontageEndedDelegate;
+	RecoveryMontageEndedDelegate.BindUObject(this, &UMAAnimInstance::HandleRecoveryMontageEnded);
+	Montage_SetEndDelegate(RecoveryMontageEndedDelegate, ActiveRecoveryMontage);
+
+	const float SafePoseBlendDuration = bHasRecoveryPose
+		? FMath::Clamp(RecoveryPoseBlendDuration, 0.f, SafeRecoveryDuration)
+		: 0.f;
+	if (SafePoseBlendDuration <= UE_KINDA_SMALL_NUMBER)
+	{
+		ResetRecoveryPoseBlend();
+		return;
+	}
+
+	RecoveryPoseBlend.SetBlendTime(SafePoseBlendDuration);
+	RecoveryPoseBlend.SetBlendOption(EAlphaBlendOption::HermiteCubic);
+	RecoveryPoseBlend.SetValueRange(1.f, 0.f);
+	RecoveryPoseBlend.Reset();
+	RecoveryPoseAlpha = 1.f;
+}
+
+void UMAAnimInstance::CancelPoseRecovery()
+{
+	UAnimMontage* RecoveryMontage = ActiveRecoveryMontage;
+	ActiveRecoveryMontage = nullptr;
+	RecoveryCompletedDelegate.Unbind();
+	ResetRecoveryPoseBlend();
+
+	if (RecoveryMontage && Montage_IsActive(RecoveryMontage))
+	{
+		Montage_Stop(0.f, RecoveryMontage);
+	}
+}
+
+void UMAAnimInstance::HandleRecoveryMontageEnded(UAnimMontage* Montage, bool /*bInterrupted*/)
+{
+	if (Montage != ActiveRecoveryMontage) return;
+
+	ActiveRecoveryMontage = nullptr;
+	ResetRecoveryPoseBlend();
+	FSimpleDelegate CompletedDelegate = MoveTemp(RecoveryCompletedDelegate);
+	RecoveryCompletedDelegate.Unbind();
+	CompletedDelegate.ExecuteIfBound();
+}
+
+void UMAAnimInstance::ResetRecoveryPoseBlend()
+{
+	RecoveryPoseAlpha = 0.f;
 }

@@ -3,12 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AlphaBlend.h"
 #include "Animation/AnimInstance.h"
 #include "GameplayTagContainer.h"
 #include "MAAnimInstance.generated.h"
 
 class UAnimSequence;
 class UAnimSequenceBase;
+class UAnimMontage;
 class UMASkillAbility;
 
 /**
@@ -55,6 +57,14 @@ public:
 	bool FindSkillAreaPreviewContext(const UAnimSequenceBase* Animation, float& OutAreaScale, FGameplayTag& OutVisualTag) const;
 	void UnregisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation);
 
+	/** Captures the current pose, plays recovery, and invokes completion once the active recovery montage ends. */
+	void RecoverPose(FSimpleDelegate OnCompleted);
+	/** Cancels the active recovery and discards its pending completion. */
+	void CancelPoseRecovery();
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	float GetRecoveryPoseAlpha() const { return RecoveryPoseAlpha; }
+
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	FORCEINLINE float GetVerticalInput() const
@@ -96,4 +106,27 @@ private:
 	TMap<TObjectPtr<const UAnimSequenceBase>, TWeakObjectPtr<UMASkillAbility>> AnimationOwners;
 	TMap<TObjectPtr<const UAnimSequenceBase>, float> SkillAreaPreviewScales;
 	TMap<TObjectPtr<const UAnimSequenceBase>, FGameplayTag> SkillAreaPreviewVisualTags;
+
+	/** Pose Recovery **/
+	void HandleRecoveryMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void ResetRecoveryPoseBlend();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery")
+	TObjectPtr<UAnimSequenceBase> RecoveryAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery", meta = (ClampMin = "0.1", Units = "s"))
+	float RecoveryDuration = 1.65f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery", meta = (ClampMin = "0.0", Units = "s"))
+	float RecoveryPoseBlendDuration = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Recovery", meta = (ClampMin = "0.0", Units = "s"))
+	float RecoveryAnimationBlendOutDuration = 0.1f;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveRecoveryMontage;
+
+	FSimpleDelegate RecoveryCompletedDelegate;
+	FAlphaBlend RecoveryPoseBlend;
+	float RecoveryPoseAlpha = 0.f;
 };
