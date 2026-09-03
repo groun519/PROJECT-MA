@@ -5,6 +5,9 @@
 .idea/
 *.DotSettings.user
 
+# LocalChangesReviewTool
+*LocalChangesReviewTool
+
 # Compiled Object files
 *.slo
 *.lo
