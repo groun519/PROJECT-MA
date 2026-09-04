@@ -57,10 +57,11 @@ public:
 	bool FindSkillAreaPreviewContext(const UAnimSequenceBase* Animation, float& OutAreaScale, FGameplayTag& OutVisualTag) const;
 	void UnregisterSkillAreaPreviewContext(const UAnimSequenceBase* Animation);
 
-	/** Captures the current pose, plays recovery, and invokes completion once the active recovery montage ends. */
-	void RecoverPose(FSimpleDelegate OnCompleted);
+	/** Captures the current pose and starts recovery. Completion is invoked only after a started recovery ends. */
+	bool RecoverPose(FSimpleDelegate OnCompleted);
 	/** Cancels the active recovery and discards its pending completion. */
 	void CancelPoseRecovery();
+	bool IsPoseRecoveryActive() const { return ActiveRecoveryMontage != nullptr; }
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	float GetRecoveryPoseAlpha() const { return RecoveryPoseAlpha; }

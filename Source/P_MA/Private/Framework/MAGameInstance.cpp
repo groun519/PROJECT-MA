@@ -174,6 +174,14 @@ void UMAGameInstance::DestroySession()
 	SessionInterface->DestroySession(NAME_GameSession);
 }
 
+void UMAGameInstance::ReturnToLobby()
+{
+	UWorld* World = GetWorld();
+	if (!World || World->GetNetMode() == NM_Client) return;
+
+	World->ServerTravel(GetLobbyMapName().ToString() + TEXT("?listen"));
+}
+
 void UMAGameInstance::ShowInviteUI()
 {
 	IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
@@ -379,8 +387,7 @@ void UMAGameInstance::TryHostLobbySession(UWorld* LoadedWorld)
 	if (SessionInterface->GetNamedSession(NAME_GameSession)) return;
 	if (bLobbyHostRequested) return;
 
-	const FString MapName = LoadedWorld->GetOutermost()->GetName();
-	if (!MapName.EndsWith(TEXT("/_Map/LobbyMap"))) return;
+	if (LoadedWorld->GetOutermost()->GetFName() != GetLobbyMapName()) return;
 
 	bLobbyHostRequested = true;
 	HostSession(LobbyMaxPlayers, bLobbyIsLAN);
@@ -580,8 +587,12 @@ void UMAGameInstance::HandleCreateSessionComplete(FName SessionName, bool bWasSu
 		return;
 	}
 
-	const FString LobbyMapPath = TEXT("/Game/_Map/LobbyMap");
-	UGameplayStatics::OpenLevel(this, FName(*LobbyMapPath), true, TEXT("listen"));
+	UGameplayStatics::OpenLevel(this, GetLobbyMapName(), true, TEXT("listen"));
+}
+
+FName UMAGameInstance::GetLobbyMapName()
+{
+	return TEXT("/Game/_Map/LobbyHubMap");
 }
 
 void UMAGameInstance::HandleStartSessionComplete(FName SessionName, bool bWasSuccessful)

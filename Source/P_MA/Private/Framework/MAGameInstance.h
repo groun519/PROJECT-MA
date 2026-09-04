@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Online")
 	void DestroySession();
 
+	/** Returns the active server and its connected players to the Lobby. */
+	void ReturnToLobby();
+
 	/** Opens the platform invite flow for the local player. */
 	UFUNCTION(BlueprintCallable, Category = "Online")
 	void ShowInviteUI();
@@ -100,6 +103,7 @@ private:
 	);
 	void JoinPendingInviteSession();
 	void HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	static FName GetLobbyMapName();
 
 	/** Online **/
 	IOnlineSessionPtr SessionInterface;

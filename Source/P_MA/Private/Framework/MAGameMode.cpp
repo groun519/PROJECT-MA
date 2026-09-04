@@ -1,12 +1,11 @@
 #include "Framework/MAGameMode.h"
 
-#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerState.h"
 #include "EngineUtils.h"
-#include "Player/MAPlayerState.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Framework/MAGameState.h"
+#include "Framework/MAGameInstance.h"
 #include "Framework/ReadyManagerComponent.h"
 
 AMAGameMode::AMAGameMode()
@@ -44,35 +43,11 @@ void AMAGameMode::BeginPlay()
 	ReadyManagerComponent->OnAllPlayersReadyChanged.AddUObject(this, &AMAGameMode::HandleAllPlayersReadyChanged);
 
 	RefreshPlayerCache();
-
-	const UWorld* World = GetWorld();
-	const FString MapName = World ? World->GetMapName() : FString();
-	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
-	if (bResetLoadingState && GameState)
-	{
-		for (APlayerState* PS : GameState->PlayerArray)
-		{
-			if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(PS))
-			{
-				MAPlayerState->SetLoadingComplete(false);
-			}
-		}
-	}
 }
 
 void AMAGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-	const UWorld* World = GetWorld();
-	const FString MapName = World ? World->GetMapName() : FString();
-	const bool bResetLoadingState = MapName.Contains(TEXT("LobbyMap"));
-	if (bResetLoadingState && NewPlayer)
-	{
-		if (AMAPlayerState* MAPlayerState = Cast<AMAPlayerState>(NewPlayer->PlayerState))
-		{
-			MAPlayerState->SetLoadingComplete(false);
-		}
-	}
 	RefreshPlayerCache();
 }
 
@@ -158,7 +133,10 @@ void AMAGameMode::RequestReturnToLobby(APlayerController* RequestingPlayer)
 	if (!GS || !GS->IsGameOver()) return;
 	if (!RequestingPlayer || !RequestingPlayer->IsLocalController()) return;
 
-	GetWorld()->ServerTravel(TEXT("/Game/_Map/LobbyMap?listen"));
+	if (UMAGameInstance* GameInstance = GetGameInstance<UMAGameInstance>())
+	{
+		GameInstance->ReturnToLobby();
+	}
 }
 
 void AMAGameMode::SetPlayerLoopReady(APlayerState* PlayerState, bool bReady)

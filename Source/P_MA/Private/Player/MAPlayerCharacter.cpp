@@ -54,6 +54,10 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritYaw = false;    
 	CameraBoom->bDoCollisionTest = false;
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->bUseCameraLagSubstepping = true;
+	CameraBoom->CameraLagSpeed = 10.f;
+	CameraBoom->CameraLagMaxDistance = 100.f;
 	// 2) Cam
 	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -186,7 +190,7 @@ void AMAPlayerCharacter::Tick(float DeltaTime)
 /** Player Rotate **/
 void AMAPlayerCharacter::UpdateRotationByReadyRide(float DeltaTime)
 {
-	if (IsInputBlocked()) return;
+	if (!InputEnabled() || IsInputBlocked()) return;
 	if (!IsRotationBlocked())
 	{
 		// Mouse-deproject/trace is only meaningful for the locally controlled pawn.
@@ -711,9 +715,11 @@ void AMAPlayerCharacter::Respawn()
 	check(MeshComponent);
 	if (UMAAnimInstance* AnimInstance = Cast<UMAAnimInstance>(MeshComponent->GetAnimInstance()))
 	{
-		AnimInstance->RecoverPose(
-			FSimpleDelegate::CreateUObject(this, &AMAPlayerCharacter::FinishRespawn));
-		return;
+		if (AnimInstance->RecoverPose(
+			FSimpleDelegate::CreateUObject(this, &AMAPlayerCharacter::FinishRespawn)))
+		{
+			return;
+		}
 	}
 
 	if (UAnimInstance* FallbackAnimInstance = MeshComponent->GetAnimInstance())

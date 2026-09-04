@@ -138,7 +138,7 @@ void UMAAnimInstance::UnregisterSkillAreaPreviewContext(const UAnimSequenceBase*
 	SkillAreaPreviewVisualTags.Remove(Animation);
 }
 
-void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
+bool UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
 {
 	static const FName RecoveryPoseSnapshotName(TEXT("MARecoveryPose"));
 	CancelPoseRecovery();
@@ -151,8 +151,7 @@ void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
 	{
 		StopAllMontages(0.f);
 		ResetRecoveryPoseBlend();
-		OnCompleted.ExecuteIfBound();
-		return;
+		return false;
 	}
 
 	SavePoseSnapshot(RecoveryPoseSnapshotName);
@@ -173,8 +172,7 @@ void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
 	{
 		ensureMsgf(false, TEXT("Failed to play Pose Recovery animation on %s."), *GetName());
 		ResetRecoveryPoseBlend();
-		OnCompleted.ExecuteIfBound();
-		return;
+		return false;
 	}
 
 	RecoveryCompletedDelegate = MoveTemp(OnCompleted);
@@ -188,7 +186,7 @@ void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
 	if (SafePoseBlendDuration <= UE_KINDA_SMALL_NUMBER)
 	{
 		ResetRecoveryPoseBlend();
-		return;
+		return true;
 	}
 
 	RecoveryPoseBlend.SetBlendTime(SafePoseBlendDuration);
@@ -196,6 +194,7 @@ void UMAAnimInstance::RecoverPose(FSimpleDelegate OnCompleted)
 	RecoveryPoseBlend.SetValueRange(1.f, 0.f);
 	RecoveryPoseBlend.Reset();
 	RecoveryPoseAlpha = 1.f;
+	return true;
 }
 
 void UMAAnimInstance::CancelPoseRecovery()
