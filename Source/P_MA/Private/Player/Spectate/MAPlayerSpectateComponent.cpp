@@ -7,7 +7,8 @@
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Input/MAInputStatics.h"
 #include "InputMappingContext.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/Camera/MACameraLibrary.h"
+#include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerControllerBase.h"
 #include "Widget/Spectate/MASpectateOverlayWidget.h"
@@ -49,13 +50,14 @@ void UMAPlayerSpectateComponent::BindToPawn(AMAPlayerCharacter* PlayerCharacter)
 
 void UMAPlayerSpectateComponent::RequestPawnCamera(float BlendTime)
 {
-	if (!GetLocalOwnerPlayerController()) return;
+	APlayerController* PlayerController = GetLocalOwnerPlayerController();
+	if (!PlayerController) return;
 
 	SetSpectating(false);
-	if (UMAPlayerCameraDirectorComponent* CameraDirector = GetCameraDirector())
+	if (APawn* Pawn = PlayerController->GetPawn())
 	{
 		const float CameraBlendTime = BlendTime >= 0.f ? BlendTime : DeathSpectateBlendTime;
-		CameraDirector->SwitchToPawnCamera(CameraBlendTime);
+		ApplyCameraTarget(*Pawn, CameraBlendTime);
 	}
 }
 
@@ -188,10 +190,7 @@ void UMAPlayerSpectateComponent::ApplySpectateIndex(int32 NewIndex)
 	BindSpectateTarget(SpectateTarget);
 	if (SpectateTarget)
 	{
-		if (UMAPlayerCameraDirectorComponent* CameraDirector = GetCameraDirector())
-		{
-			CameraDirector->SwitchToViewTarget(SpectateTarget, DeathSpectateBlendTime);
-		}
+		ApplyCameraTarget(*SpectateTarget, DeathSpectateBlendTime);
 	}
 
 	if (SpectateOverlayWidget)
@@ -200,10 +199,19 @@ void UMAPlayerSpectateComponent::ApplySpectateIndex(int32 NewIndex)
 	}
 }
 
-UMAPlayerCameraDirectorComponent* UMAPlayerSpectateComponent::GetCameraDirector() const
+void UMAPlayerSpectateComponent::ApplyCameraTarget(AActor& Target, const float BlendTime)
 {
-	const AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(GetOwner());
-	return PlayerController ? PlayerController->GetCameraDirector() : nullptr;
+	APlayerController* PlayerController = GetLocalOwnerPlayerController();
+	if (!PlayerController) return;
+
+	FMACameraLibrary::SwitchViewTarget(*PlayerController, Target, BlendTime);
+	if (AMAPlayerControllerBase* MAPlayerController = Cast<AMAPlayerControllerBase>(PlayerController))
+	{
+		if (UMACameraOcclusionCutoutComponent* OcclusionCutout = MAPlayerController->GetCameraOcclusionCutout())
+		{
+			OcclusionCutout->RevealTarget(*PlayerController, Target);
+		}
+	}
 }
 
 void UMAPlayerSpectateComponent::SetSpectateInputMappingEnabled(bool bEnabled)

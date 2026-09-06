@@ -7,8 +7,7 @@
 #include "P_MA/P_MA.h"
 #include "Framework/MAGameMode.h"
 #include "Net/UnrealNetwork.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
-#include "Player/MAPlayerControllerBase.h"
+#include "Player/Camera/MACameraComponent.h"
 #include "TimerManager.h"
 
 UReadyStateComponent::UReadyStateComponent()
@@ -168,14 +167,11 @@ void UReadyStateComponent::ApplyReadyCameraTransition()
 	const AMAPlayerCharacter* PlayerCharacter = Cast<AMAPlayerCharacter>(GetOwner());
 	if (!PlayerCharacter || !PlayerCharacter->IsLocallyControlled()) return;
 
-	AMAPlayerControllerBase* PlayerController = Cast<AMAPlayerControllerBase>(PlayerCharacter->GetController());
-	if (!PlayerController || !PlayerController->IsLocalController()) return;
+	UMACameraComponent* Camera = PlayerCharacter->GetPlayerCamera();
+	USpringArmComponent* CameraBoom = PlayerCharacter->GetCameraBoom();
+	if (!Camera || !CameraBoom) return;
 
-	UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController->GetCameraDirector();
-	if (!CameraDirector) return;
-
-	CameraDirector->RefreshPawnCamera();
-	CameraDirector->TransitionPawnCamera(IsReady() ? ReadyCameraSettings : NotReadyCameraSettings);
+	Camera->TransitionRig(*CameraBoom, IsReady() ? ReadyCameraSettings : NotReadyCameraSettings);
 }
 
 void UReadyStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

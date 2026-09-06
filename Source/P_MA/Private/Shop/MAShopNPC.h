@@ -13,6 +13,7 @@ class UMASkillModulePool;
 class UMASkillModule;
 class UMAShopWidget;
 class UCameraComponent;
+class USpotLightComponent;
 
 UCLASS()
 class P_MA_API AMAShopNPC : public AMANPC
@@ -63,9 +64,19 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="Shop|Camera")
 	FMACameraFadeSettings ShopCameraFadeSettings;
+
+	UPROPERTY(EditDefaultsOnly, Category="Shop|Camera")
+	FMACameraPresentationSettings PresentationSettings;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USpotLightComponent> PresentationFillLight;
 	
 	void HandleInteract(AMAPlayerCharacter* Interactor);
 	void OpenShopFor(AMAPlayerCharacter* Interactor);
+	void EnterShopPresentation(APlayerController& PlayerController);
+	void ExitShopPresentation(APlayerController& PlayerController);
+	void BeginPresentationTransition(APlayerController& PlayerController, bool bEntering);
+	void ApplyPresentationState(APlayerController& PlayerController, bool bEntering);
 	void HandleSectorStateChanged(EMASectorState NewState);
 	void SetTemporaryShopVisible(bool bVisible);
 	TArray<FMAShopProduct> GenerateStock() const;
@@ -88,4 +99,7 @@ private:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AMAPlayerCharacter> HiddenShopInteractor;
+
+	TWeakObjectPtr<APlayerController> FadingPlayerController;
+	FTimerHandle ShopCameraFadeTimerHandle;
 };

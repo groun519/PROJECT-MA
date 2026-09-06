@@ -66,6 +66,7 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby")
 	void SetReady(bool bNewReady);
@@ -110,6 +111,8 @@ private:
 	void ExitLoadoutView();
 	void UpdateCameraTarget();
 	void ApplyCameraTransition(const FLoadoutCameraViewSettings& PrevViewSettings, const FLoadoutCameraViewSettings& NextViewSettings);
+	void ApplyInstantCameraTarget();
+	void CompleteCameraFade(float FadeInSeconds);
 	void ApplyPreviewColor(const FMaterialParamDataPair& ColorData);
 	void ApplyPendingMountPreview();
 	void EnsurePendingLoadoutInitialized();
@@ -127,6 +130,7 @@ private:
 	void ClientStartLoadingScreen();
 
 	FTimerHandle LobbyUiTimerHandle;
+	FTimerHandle LobbyCameraFadeTimerHandle;
 	FTimerHandle WeaponPreviewTimerHandle;
 
 	/** Lobby Loadout Cam Views **/
@@ -155,6 +159,7 @@ private:
 	FTransform LobbyCameraTransform;
 	FTransform TargetCameraTransform;
 	float TargetFov = 0.0f;
+	bool bCameraTransitionActive = false;
 	bool bInLoadoutView = false;
 	ELoadoutView CurrentLoadoutView = ELoadoutView::Body;
 	FLoadoutCameraViewSettings ActiveViewSettings;

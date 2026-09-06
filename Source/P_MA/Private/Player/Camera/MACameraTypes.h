@@ -3,38 +3,6 @@
 #include "CoreMinimal.h"
 #include "MACameraTypes.generated.h"
 
-class UCameraComponent;
-
-USTRUCT(BlueprintType)
-struct FMACameraViewTarget
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	TObjectPtr<AActor> CameraActor = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<UCameraComponent> CameraComponent = nullptr;
-
-	UPROPERTY(EditAnywhere, Category="Camera")
-	FTransform Transform;
-
-	UPROPERTY(EditAnywhere, Category="Camera")
-	float Fov = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct FMACameraInterpMoveSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category="Camera")
-	float CameraInterpSpeed = 5.f;
-
-	UPROPERTY(EditAnywhere, Category="Camera")
-	float FovInterpSpeed = 5.f;
-};
-
 USTRUCT(BlueprintType)
 struct FMACameraFadeSettings
 {
@@ -48,7 +16,7 @@ struct FMACameraFadeSettings
 };
 
 USTRUCT(BlueprintType)
-struct FMAPlayerCameraRigSettings
+struct FMACameraRigSettings
 {
 	GENERATED_BODY()
 

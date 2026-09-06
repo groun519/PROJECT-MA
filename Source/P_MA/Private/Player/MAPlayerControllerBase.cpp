@@ -5,37 +5,36 @@
 #include "EnhancedInputSubsystems.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Player/Camera/MACameraLibrary.h"
 #include "Player/Camera/MACameraOcclusionCutoutComponent.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "Player/MAPlayerState.h"
+#include "TimerManager.h"
 #include "Widget/Settings/SettingsWidget.h"
 #include "Widget/System/SystemMenuWidget.h"
 
 AMAPlayerControllerBase::AMAPlayerControllerBase()
 {
-	CameraDirectorComponent = CreateDefaultSubobject<UMAPlayerCameraDirectorComponent>(TEXT("CameraDirectorComponent"));
 	CameraOcclusionCutoutComponent =
 		CreateDefaultSubobject<UMACameraOcclusionCutoutComponent>(TEXT("CameraOcclusionCutoutComponent"));
+}
+
+void AMAPlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(CameraFadeTimerHandle);
+	FMACameraLibrary::StopFade(*this);
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMAPlayerControllerBase::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
-	if (CameraDirectorComponent)
-	{
-		CameraDirectorComponent->RefreshPawnCamera();
-	}
+	RefreshCameraOcclusion(InPawn);
 }
 
 void AMAPlayerControllerBase::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
-
-	if (CameraDirectorComponent)
-	{
-		CameraDirectorComponent->RefreshPawnCamera();
-	}
+	RefreshCameraOcclusion(P);
 }
 
 void AMAPlayerControllerBase::SetupInputComponent()
@@ -73,6 +72,65 @@ void AMAPlayerControllerBase::ServerNotifyLoaded_Implementation()
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 	{
 		GI->UpdateLoadingStatus();
+	}
+}
+
+void AMAPlayerControllerBase::RequestCameraFade(const FMACameraFadeSettings& Settings)
+{
+	if (IsLocalController())
+	{
+		PlayCameraFade(Settings);
+	}
+	else if (HasAuthority())
+	{
+		ClientPlayCameraFade(Settings);
+	}
+}
+
+void AMAPlayerControllerBase::ClientPlayCameraFade_Implementation(const FMACameraFadeSettings& Settings)
+{
+	PlayCameraFade(Settings);
+}
+
+void AMAPlayerControllerBase::PlayCameraFade(const FMACameraFadeSettings& Settings)
+{
+	GetWorldTimerManager().ClearTimer(CameraFadeTimerHandle);
+	FMACameraLibrary::StopFade(*this);
+
+	const float FadeOutSeconds = FMath::Max(0.f, Settings.FadeOutSeconds);
+	const float FadeInSeconds = FMath::Max(0.f, Settings.FadeInSeconds);
+	if (FadeOutSeconds <= 0.f)
+	{
+		if (FadeInSeconds > 0.f) FMACameraLibrary::FadeIn(*this, FadeInSeconds);
+		return;
+	}
+
+	FMACameraLibrary::FadeOut(*this, FadeOutSeconds);
+	GetWorldTimerManager().SetTimer(
+		CameraFadeTimerHandle,
+		FTimerDelegate::CreateWeakLambda(this, [this, FadeInSeconds]()
+		{
+			if (FadeInSeconds > 0.f)
+			{
+				FMACameraLibrary::FadeIn(*this, FadeInSeconds);
+			}
+			else
+			{
+				FMACameraLibrary::StopFade(*this);
+			}
+		}),
+		FadeOutSeconds,
+		false);
+}
+
+void AMAPlayerControllerBase::RefreshCameraOcclusion(APawn* InPawn)
+{
+	if (!IsLocalController() || !CameraOcclusionCutoutComponent) return;
+
+	CameraOcclusionCutoutComponent->ClearTarget();
+	if (InPawn)
+	{
+		CameraOcclusionCutoutComponent->RevealTarget(*this, *InPawn);
 	}
 }
 

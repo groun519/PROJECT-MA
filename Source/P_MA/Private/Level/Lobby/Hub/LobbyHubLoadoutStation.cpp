@@ -10,7 +10,8 @@
 #include "Framework/MAGameInstance.h"
 #include "GAS/MAAbilitySystemStatics.h"
 #include "Level/Lobby/Hub/LobbyHubPlayerController.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/Camera/MACameraLibrary.h"
+#include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerState.h"
 #include "Widget/Lobby/LobbyReadyStartWidget.h"
@@ -27,6 +28,7 @@ ALobbyHubLoadoutStation::ALobbyHubLoadoutStation()
 	LoadoutCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("LoadoutCameraComponent"));
 	LoadoutCameraComponent->SetupAttachment(RootComponent);
 	LoadoutCameraComponent->SetFieldOfView(CameraFov);
+	PresentationSettings.FillLightIntensity = 10000.f;
 }
 
 void ALobbyHubLoadoutStation::HandleInteract(AMAPlayerCharacter* Interactor)
@@ -101,6 +103,8 @@ void ALobbyHubLoadoutStation::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	else
 	{
+		FMACameraLibrary::DestroyPresentationFillLight(PresentationFillLight);
+		PresentationFillLight = nullptr;
 		SetInteractorRotationLocked(false);
 	}
 	ActivePlayerController.Reset();
@@ -149,17 +153,31 @@ void ALobbyHubLoadoutStation::EnterLoadoutPresentation(
 	SetInteractorRotationLocked(true);
 	Interactor.GetInteractorComponent()->SetInteractionEnabled(false, &Interactor);
 
-	if (UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController.GetCameraDirector())
+	FMACameraLibrary::SwitchViewTarget(PlayerController, *this, CameraBlendTime);
+	if (UMACameraOcclusionCutoutComponent* OcclusionCutout = PlayerController.GetCameraOcclusionCutout())
 	{
-		CameraDirector->EnterPresentationView(this, ActiveInteractor.Get(), CameraBlendTime);
+		OcclusionCutout->RevealTarget(PlayerController, Interactor);
 	}
+
+	FMACameraLibrary::DestroyPresentationFillLight(PresentationFillLight);
+	PresentationFillLight = FMACameraLibrary::CreatePresentationFillLight(
+		*this,
+		*LoadoutCameraComponent,
+		PresentationSettings);
 }
 
 void ALobbyHubLoadoutStation::ExitLoadoutPresentation(ALobbyHubPlayerController& PlayerController)
 {
-	if (UMAPlayerCameraDirectorComponent* CameraDirector = PlayerController.GetCameraDirector())
+	FMACameraLibrary::DestroyPresentationFillLight(PresentationFillLight);
+	PresentationFillLight = nullptr;
+	FMACameraLibrary::SwitchToPawn(PlayerController, CameraBlendTime);
+
+	if (APawn* Pawn = PlayerController.GetPawn())
 	{
-		CameraDirector->ExitPresentationView(CameraBlendTime);
+		if (UMACameraOcclusionCutoutComponent* OcclusionCutout = PlayerController.GetCameraOcclusionCutout())
+		{
+			OcclusionCutout->RevealTarget(PlayerController, *Pawn);
+		}
 	}
 
 	if (AMAPlayerCharacter* Interactor = ActiveInteractor.Get())

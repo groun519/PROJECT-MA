@@ -9,7 +9,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerControllerBase.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
 #include "TimerManager.h"
 
 ASplineSectorManager::ASplineSectorManager()
@@ -168,10 +167,7 @@ void ASplineSectorManager::CompleteLoopReady()
 		AMAPlayerControllerBase* PC = Cast<AMAPlayerControllerBase>(It->Get());
 		if (!PC) continue;
 
-		if (UMAPlayerCameraDirectorComponent* CameraDirector = PC->GetCameraDirector())
-		{
-			CameraDirector->RequestFade(LoopReadyFadeSettings);
-		}
+		PC->RequestCameraFade(LoopReadyFadeSettings);
 	}
 
 	GetWorldTimerManager().SetTimer(

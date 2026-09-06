@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Player/Camera/MACameraTypes.h"
 #include "MAPlayerControllerBase.generated.h"
 
 class UInputAction;
 class UInputMappingContext;
 class UMACameraOcclusionCutoutComponent;
-class UMAPlayerCameraDirectorComponent;
 class USettingsWidget;
 class USystemMenuWidget;
 class UUserWidget;
@@ -22,6 +22,7 @@ class P_MA_API AMAPlayerControllerBase : public APlayerController
 public:
 	AMAPlayerControllerBase();
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void AcknowledgePossession(APawn* P) override;
 	virtual void SetupInputComponent() override;
@@ -29,7 +30,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
 
-	UMAPlayerCameraDirectorComponent* GetCameraDirector() const { return CameraDirectorComponent; }
+	/** Camera Network **/
+	void RequestCameraFade(const FMACameraFadeSettings& Settings);
 	UMACameraOcclusionCutoutComponent* GetCameraOcclusionCutout() const { return CameraOcclusionCutoutComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -59,9 +61,6 @@ protected:
 	UInputAction* SystemMenuToggleInputAction;
 
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
-	TObjectPtr<UMAPlayerCameraDirectorComponent> CameraDirectorComponent;
-
-	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UMACameraOcclusionCutoutComponent> CameraOcclusionCutoutComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -80,6 +79,13 @@ protected:
 	virtual void ApplySystemMenuClosedInputMode();
 
 private:
+	UFUNCTION(Client, Reliable)
+	void ClientPlayCameraFade(const FMACameraFadeSettings& Settings);
+
+	void PlayCameraFade(const FMACameraFadeSettings& Settings);
+	void RefreshCameraOcclusion(APawn* InPawn);
 	void HandleSystemMenuActionRequested(ESystemMenuAction Action);
 	void OpenSettingsWidget(ESettingsCategory InitialCategory);
+
+	FTimerHandle CameraFadeTimerHandle;
 };

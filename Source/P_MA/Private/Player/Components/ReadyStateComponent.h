@@ -46,10 +46,10 @@ private:
 	void ApplyReadyCameraTransition();
 
 	UPROPERTY(EditAnywhere, Category="Ready|Camera", meta=(DisplayName="Ready Camera Settings"))
-	FMAPlayerCameraRigSettings ReadyCameraSettings;
+	FMACameraRigSettings ReadyCameraSettings;
 
 	UPROPERTY(EditAnywhere, Category="Ready|Camera", meta=(DisplayName="Not Ready Camera Settings"))
-	FMAPlayerCameraRigSettings NotReadyCameraSettings;
+	FMACameraRigSettings NotReadyCameraSettings;
 
 	UPROPERTY(ReplicatedUsing=OnRep_IsReady)
 	bool bIsReady = false;

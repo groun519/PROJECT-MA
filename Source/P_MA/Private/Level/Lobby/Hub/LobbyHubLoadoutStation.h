@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Level/Lobby/Hub/LobbyHubInteractableActor.h"
+#include "Player/Camera/MACameraTypes.h"
 #include "Player/Loadout/LoadoutTypes.h"
 #include "LobbyHubLoadoutStation.generated.h"
 
@@ -11,6 +12,7 @@ class UCameraComponent;
 class ULobbyWidgetRoot;
 class ULoadoutWidget;
 class USkeletalMesh;
+class USpotLightComponent;
 
 /** World entry point for the Hub's loadout feature. */
 UCLASS()
@@ -67,6 +69,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera", meta = (ClampMin = "5.0", ClampMax = "170.0"))
 	float CameraFov = 45.f;
+
+	UPROPERTY(EditAnywhere, Category = "Hub|Loadout|Camera")
+	FMACameraPresentationSettings PresentationSettings;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USpotLightComponent> PresentationFillLight;
 
 	TWeakObjectPtr<ALobbyHubPlayerController> ActivePlayerController;
 	TWeakObjectPtr<AMAPlayerCharacter> ActiveInteractor;

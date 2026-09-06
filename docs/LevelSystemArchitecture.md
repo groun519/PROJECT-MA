@@ -4,16 +4,18 @@
 
 ## 목업 설계 계약
 
-Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 다음 문서다. 관련 작업 전 두 문서를 모두 읽는다.
+Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 다음 문서들이다. 관련 작업 전 모두 읽는다.
 
 - `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md`
 - `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md`
+- `b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md`
 
 현재 작업 트리에 원본 문서를 복제하지 않는다. 다음 명령으로 고정된 버전을 읽는다.
 
 ```text
 git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md
 git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md
+git show b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md
 ```
 
 ## 목표
@@ -41,6 +43,7 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 - Hub Character는 비행 시간 이후 자신의 Ragdoll 안정화 또는 최대 시간을 판정하고, 바닥 복구, Get Up과 입력 재활성화를 닫는다.
 - 공용 `UMAAnimInstance::RecoverPose()`가 마지막 Ragdoll Pose 저장, Get Up 재생과 실제 Montage 종료 통지를 닫는다.
 - Ragdoll 투입, Get Up과 멀티플레이 동기화가 Hub의 기본 생성 흐름으로 연결되어 있다.
+- 중앙 Camera Director를 제거하고 카메라 자체의 보간 상태, 공용 단발 기술, 네트워크 경계와 각 기능의 연출 순서를 실제 책임자에게 분리했다.
 
 ## 책임
 
@@ -68,7 +71,8 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 ### `ALobbyHubLoadoutStation`
 
 - Loadout 상호작용부터 기존 UI의 생성·연결·종료, Pending 선택, 저장과 프리뷰 입력 잠금까지 닫는다.
-- Loadout용 `UCameraComponent`는 프리뷰 기준점과 화면 구도만 소유하고, 로컬 Presentation View 진입과 복귀는 `UMAPlayerCameraDirectorComponent`에 요청한다.
+- Loadout용 `UCameraComponent`는 프리뷰 기준점과 화면 구도만 소유한다.
+- Station은 ViewTarget, Cutout 대상과 Fill Light 수명을 포함한 로컬 Presentation 진입·복귀 순서를 직접 닫고, 공용 단발 기술만 `FMACameraLibrary`로 호출한다.
 - 선택의 서버 전달은 owning Client RPC가 가능한 `ALobbyHubPlayerController::SetLoadoutSelection()` 진입점을 사용한다.
 
 ### `ALobbyHubInviteStation`
@@ -101,22 +105,32 @@ git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_Seaml
 
 ### `UMACameraOcclusionCutoutComponent`
 
-- `AMAPlayerControllerBase`가 기본 컴포넌트로 소유하며 Camera Director가 생성하거나 보관하지 않는다.
+- `AMAPlayerControllerBase`가 기본 컴포넌트로 소유한다.
 - 로컬 카메라와 현재 Reveal Target을 추적하고 공용 머티리얼 파라미터를 갱신한다.
 - 컷아웃 반경과 활성 수명을 닫는다.
 - 일반 Pawn 및 관전 카메라에서 활성화되며 Presentation View 동안에는 프리뷰 대상으로 전환된다.
 - 외부 호출자는 머티리얼 파라미터 이름이나 계산 방식을 알지 않는다.
 - 컷아웃 Material Function을 명시적으로 적용한 환경 머티리얼만 영향을 받는다.
 
-### `UMAPlayerCameraDirectorComponent`
+### `UMACameraComponent`
 
-- 일반 ViewTarget 전환과 별도로 로컬 UI를 위한 `EnterPresentationView()`와 `ExitPresentationView()`를 제공한다.
-- 일반 카메라의 Reveal Target을 선택하고 Pawn 교체, 관전과 Presentation 전환에 맞춰 Cutout 수명을 조정한다.
-- Cutout의 생성과 내부 정책을 소유하지 않고 카메라 전환 시 대상만 직접 전달한다.
-- Presentation View는 Cutout 대상을 일시적으로 프리뷰 Subject로 바꾸고 그림자 없는 카메라 Fill Light를 생성한다.
-- 종료 시 Fill Light를 제거하고 Cutout 대상을 소유 Pawn으로 복구한다.
-- Unreal의 Controller는 Hidden Actor이므로 렌더 컴포넌트인 Fill Light를 Controller 소유로 두지 않는다.
-- UI 생성, 입력 잠금, 회전 잠금과 저장 정책은 소유하지 않는다.
+- Player의 기본 `UCameraComponent`를 대체하며 기존 `Cam` subobject 이름을 유지한다.
+- `TransitionRig(SpringArm, Settings)`가 Arm Length, Pitch, Target Offset과 FOV 보간을 닫는다.
+- 보간 중 새 요청은 현재 Rig 값에서 이어지며 보간이 끝나면 자신의 Tick을 끈다.
+- PlayerController, Pawn 탐색, ViewTarget, Fade, Cutout과 기능별 연출 정책을 알지 않는다.
+
+### `FMACameraLibrary`
+
+- ViewTarget 전환, Fade 시작·정지와 Presentation Fill Light 생성·삭제라는 공용 단발 기술만 제공한다.
+- UObject가 아닌 stateless C++ API이며 Timer, Callback, 현재 대상과 Presentation 수명을 보관하지 않는다.
+- Cutout 대상은 ViewTarget과 다를 수 있으므로 자동으로 선택하지 않는다.
+- Shop, Spectate, Hub Loadout과 Legacy Lobby가 각자의 의미와 순서를 소유하고 필요한 기술만 호출한다.
+
+### `AMAPlayerControllerBase`의 카메라 경계
+
+- Possess와 AcknowledgePossession에서 로컬 Cutout 대상을 현재 Pawn으로 연결한다.
+- 서버가 owning Client 화면에 요청하는 전체 Fade의 RPC 경계와 그 요청 하나의 Timer만 소유한다.
+- ViewTarget, Presentation, Ready Rig와 Legacy Lobby 카메라 시퀀스를 중앙 관리하지 않는다.
 
 ### `ALobbyHubCharacter`
 

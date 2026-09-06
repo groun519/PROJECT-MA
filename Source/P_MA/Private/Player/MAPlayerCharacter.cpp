@@ -1,6 +1,6 @@
 ﻿#include "MAPlayerCharacter.h"
 #include "AbilitySystemComponent.h"
-#include "Camera/CameraComponent.h"
+#include "Player/Camera/MACameraComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -59,7 +59,7 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	CameraBoom->CameraLagSpeed = 10.f;
 	CameraBoom->CameraLagMaxDistance = 100.f;
 	// 2) Cam
-	Cam = CreateDefaultSubobject<UCameraComponent>("Cam");
+	Cam = CreateDefaultSubobject<UMACameraComponent>("Cam");
 	Cam->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 
 	/** Controller Set **/

@@ -6,7 +6,6 @@
 #include "GameplayTagContainer.h"
 #include "MAPlayerSpectateComponent.generated.h"
 
-class UMAPlayerCameraDirectorComponent;
 class AMAPlayerCharacter;
 class UEnhancedInputComponent;
 class UInputAction;
@@ -39,8 +38,8 @@ private:
 	void RefreshSpectateTargets(AActor* DeadActor = nullptr);
 	void SelectNextSpectateTarget(AActor* LostTarget);
 	void ApplySpectateIndex(int32 NewIndex);
+	void ApplyCameraTarget(AActor& Target, float BlendTime);
 	AMAPlayerCharacter* GetCurrentSpectateTarget() const;
-	UMAPlayerCameraDirectorComponent* GetCameraDirector() const;
 	FORCEINLINE APlayerController* GetLocalOwnerPlayerController() const
 	{
 		APlayerController* PlayerController = Cast<APlayerController>(GetOwner());

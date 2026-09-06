@@ -16,11 +16,13 @@
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
 #include "Player/MAPlayerControllerBase.h"
-#include "Player/Camera/MAPlayerCameraDirectorComponent.h"
+#include "Player/Camera/MACameraLibrary.h"
+#include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/Components/MACurrencyComponent.h"
 #include "GAS/Skill/Module/MASkillModulePool.h"
 #include "Widget/Shop/MAShopWidget.h"
 #include "Net/UnrealNetwork.h"
+#include "TimerManager.h"
 
 AMAShopNPC::AMAShopNPC()
 {
@@ -55,6 +57,15 @@ void AMAShopNPC::BeginPlay()
 
 void AMAShopNPC::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(ShopCameraFadeTimerHandle);
+	if (APlayerController* PlayerController = FadingPlayerController.Get())
+	{
+		FMACameraLibrary::StopFade(*PlayerController);
+	}
+	FadingPlayerController.Reset();
+	FMACameraLibrary::DestroyPresentationFillLight(PresentationFillLight);
+	PresentationFillLight = nullptr;
+
 	if (HasAuthority())
 	{
 		if (AMAGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AMAGameMode>() : nullptr)
@@ -189,23 +200,7 @@ void AMAShopNPC::CloseShop(APlayerController* PlayerController)
 		MAPlayerController->SetGameplayWidgetVisible(true);
 	}
 
-	if (AMAPlayerControllerBase* MAPlayerController = Cast<AMAPlayerControllerBase>(PlayerController))
-	{
-		if (UMAPlayerCameraDirectorComponent* CameraDirector = MAPlayerController->GetCameraDirector())
-		{
-			TWeakObjectPtr<UMAPlayerCameraDirectorComponent> WeakCameraDirector = CameraDirector;
-			const float FadeInSeconds = ShopCameraFadeSettings.FadeInSeconds;
-			CameraDirector->FadeOut(
-				ShopCameraFadeSettings.FadeOutSeconds,
-				[WeakCameraDirector, FadeInSeconds]()
-				{
-					if (!WeakCameraDirector.IsValid()) return;
-					WeakCameraDirector->ExitPresentationView();
-					WeakCameraDirector->FadeIn(FadeInSeconds);
-				}
-			);
-		}
-	}
+	ExitShopPresentation(*PlayerController);
 
 	FInputModeGameAndUI InputMode;
 	InputMode.SetHideCursorDuringCapture(false);
@@ -252,29 +247,97 @@ void AMAShopNPC::OpenShopFor(AMAPlayerCharacter* Interactor)
 	PlayerController->HiddenActors.AddUnique(Interactor);
 	HiddenShopInteractor = Interactor;
 
-	if (AMAPlayerControllerBase* MAPlayerController = Cast<AMAPlayerControllerBase>(PlayerController))
-	{
-		if (UMAPlayerCameraDirectorComponent* CameraDirector = MAPlayerController->GetCameraDirector())
-		{
-			TWeakObjectPtr<AMAShopNPC> WeakThis = this;
-			TWeakObjectPtr<UMAPlayerCameraDirectorComponent> WeakCameraDirector = CameraDirector;
-			const float FadeInSeconds = ShopCameraFadeSettings.FadeInSeconds;
-			CameraDirector->FadeOut(
-				ShopCameraFadeSettings.FadeOutSeconds,
-				[WeakThis, WeakCameraDirector, FadeInSeconds]()
-				{
-					if (!WeakThis.IsValid() || !WeakCameraDirector.IsValid()) return;
-					WeakCameraDirector->EnterPresentationView(WeakThis.Get(), WeakThis.Get());
-					WeakCameraDirector->FadeIn(FadeInSeconds);
-				}
-			);
-		}
-	}
+	EnterShopPresentation(*PlayerController);
 
 	FInputModeUIOnly InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
 	PlayerController->bShowMouseCursor = true;
+}
+
+void AMAShopNPC::EnterShopPresentation(APlayerController& PlayerController)
+{
+	BeginPresentationTransition(PlayerController, true);
+}
+
+void AMAShopNPC::ExitShopPresentation(APlayerController& PlayerController)
+{
+	BeginPresentationTransition(PlayerController, false);
+}
+
+void AMAShopNPC::BeginPresentationTransition(APlayerController& PlayerController, const bool bEntering)
+{
+	GetWorldTimerManager().ClearTimer(ShopCameraFadeTimerHandle);
+	FMACameraLibrary::StopFade(PlayerController);
+	FadingPlayerController = &PlayerController;
+
+	const float FadeOutSeconds = FMath::Max(0.f, ShopCameraFadeSettings.FadeOutSeconds);
+	if (FadeOutSeconds <= 0.f)
+	{
+		ApplyPresentationState(PlayerController, bEntering);
+		return;
+	}
+
+	FMACameraLibrary::FadeOut(PlayerController, FadeOutSeconds);
+	TWeakObjectPtr<APlayerController> WeakPlayerController = &PlayerController;
+	GetWorldTimerManager().SetTimer(
+		ShopCameraFadeTimerHandle,
+		FTimerDelegate::CreateWeakLambda(this, [this, WeakPlayerController, bEntering]()
+		{
+			if (APlayerController* LocalPlayerController = WeakPlayerController.Get())
+			{
+				ApplyPresentationState(*LocalPlayerController, bEntering);
+			}
+		}),
+		FadeOutSeconds,
+		false);
+}
+
+void AMAShopNPC::ApplyPresentationState(APlayerController& PlayerController, const bool bEntering)
+{
+	FMACameraLibrary::DestroyPresentationFillLight(PresentationFillLight);
+	PresentationFillLight = nullptr;
+
+	AMAPlayerControllerBase* MAPlayerController = Cast<AMAPlayerControllerBase>(&PlayerController);
+	UMACameraOcclusionCutoutComponent* OcclusionCutout = MAPlayerController
+		? MAPlayerController->GetCameraOcclusionCutout()
+		: nullptr;
+
+	if (bEntering)
+	{
+		FMACameraLibrary::SwitchViewTarget(PlayerController, *this);
+		if (OcclusionCutout) OcclusionCutout->RevealTarget(PlayerController, *this);
+		PresentationFillLight = FMACameraLibrary::CreatePresentationFillLight(
+			*this,
+			*ShopCameraComponent,
+			PresentationSettings);
+	}
+	else
+	{
+		FMACameraLibrary::SwitchToPawn(PlayerController);
+		if (OcclusionCutout)
+		{
+			if (APawn* Pawn = PlayerController.GetPawn())
+			{
+				OcclusionCutout->RevealTarget(PlayerController, *Pawn);
+			}
+			else
+			{
+				OcclusionCutout->ClearTarget();
+			}
+		}
+	}
+
+	const float FadeInSeconds = FMath::Max(0.f, ShopCameraFadeSettings.FadeInSeconds);
+	if (FadeInSeconds > 0.f)
+	{
+		FMACameraLibrary::FadeIn(PlayerController, FadeInSeconds);
+	}
+	else
+	{
+		FMACameraLibrary::StopFade(PlayerController);
+	}
+	FadingPlayerController.Reset();
 }
 
 TArray<FMAShopProduct> AMAShopNPC::GenerateStock() const

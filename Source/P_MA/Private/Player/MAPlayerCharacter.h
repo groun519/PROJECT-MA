@@ -10,7 +10,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UAnimMontage;
-class UCameraComponent;
+class UMACameraComponent;
 class UMAInventoryComponent;
 class UMAInteractorComponent;
 class UMACurrencyComponent;
@@ -59,7 +59,7 @@ public:
 
 	/** Cam **/
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	UCameraComponent* GetPlayerCamera() const { return Cam; }
+	UMACameraComponent* GetPlayerCamera() const { return Cam; }
 	bool GetLookDirectionToMouse(FVector& OutDirection) const;
 
 	/** Input **/
@@ -102,7 +102,7 @@ private:
 	USpringArmComponent* CameraBoom;
 	
 	UPROPERTY(VisibleDefaultsOnly, Category = "View")
-	UCameraComponent* Cam;
+	UMACameraComponent* Cam;
 	
 	FVector GetMoveForwardDir() const; 
 	FVector GetMoveRightDir() const;
