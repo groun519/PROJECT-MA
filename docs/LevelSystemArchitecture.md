@@ -9,6 +9,7 @@ Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 
 - `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md`
 - `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md`
 - `b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md`
+- `34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_StreamingLevelFoundationRefactorMockup.md`
 
 현재 작업 트리에 원본 문서를 복제하지 않는다. 다음 명령으로 고정된 버전을 읽는다.
 
@@ -16,6 +17,7 @@ Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 
 git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md
 git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md
 git show b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md
+git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_StreamingLevelFoundationRefactorMockup.md
 ```
 
 ## 목표
@@ -87,6 +89,23 @@ git show b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_Camer
 - 외부에는 Ready 여부와 인원 값만 제공하며 표시, Countdown과 공간 전환은 아직 소유하지 않는다.
 - 기존 이동 섹터용 `UReadyStateComponent`, `LoopReady`와 아바타 슬롯용 Lobby Ready를 사용하지 않는다.
 
+### `AMALevelRoot`
+
+- streamed `.umap`의 runtime Level 하나를 대표하며 각 Level map에 정확히 하나만 배치한다.
+- 자신의 `TransitionCircle` 참조만 제공한다.
+- 수명, Bounds, Identity, streaming 구현과 전환 순서를 소유하지 않는다.
+- 향후 Hub/Battle별 local reference가 실제로 필요해질 때만 해당 LevelRoot 타입에서 확장한다.
+- Battle procedural generation 순서와 결과물은 소유하지 않는다.
+
+### `UMAStreamingLevelLoader`
+
+- `AMALevelRoot`와 함께 `Level/Streaming` 경로에 위치한다.
+- `UMASpaceTransitionSubsystem` 내부의 단일 UObject이며 별도 Subsystem, Manager 또는 Factory가 아니다.
+- `LoadLevel(LevelMap, InstanceTransform, InstanceIdentity)`이 streaming instance를 만들고, 레벨이 표시되면 그 안의 유일한 `AMALevelRoot`를 결과로 반환한다.
+- `UnloadLevel(AMALevelRoot)`이 내부 대응표로 해당 streaming instance를 찾아 제거한다.
+- `RegisterInitialLevel()`은 World 시작 시 이미 표시된 streaming level을 한 번 조사해 초기 `AMALevelRoot`와 streaming instance의 대응만 채운다.
+- 로드 중 취소, `AMALevelRoot` 탐색과 streaming API 세부사항을 닫는다.
+- Current/Destination 의미, Player 이동, 화면 전환과 Ready 정책을 알지 않는다.
 ### `ALobbyHubArrivalVolume`
 
 - 하나의 Sphere Transform과 Radius로 바닥 포탈을 선택할 원형 XY 영역을 정의한다.
