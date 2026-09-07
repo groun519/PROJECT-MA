@@ -26,7 +26,15 @@ void UMAHighlightComponent::SetHighlight(
 		HighlightRequests.Add({&Requester, ConvertColorHueToStencilValue(Color), Priority});
 	}
 
-	if (bEnabled || RemovedCount > 0) ApplyHighlight();
+	if (bHighlightEnabled && (bEnabled || RemovedCount > 0)) ApplyHighlight();
+}
+
+void UMAHighlightComponent::SetHighlightEnabled(const bool bEnabled)
+{
+	if (bHighlightEnabled == bEnabled) return;
+
+	bHighlightEnabled = bEnabled;
+	ApplyHighlight();
 }
 
 int32 UMAHighlightComponent::ConvertColorHueToStencilValue(const FLinearColor& Color)
@@ -55,11 +63,14 @@ void UMAHighlightComponent::ApplyHighlight()
 		});
 
 	const FRequest* ActiveRequest = nullptr;
-	for (const FRequest& Request : HighlightRequests)
+	if (bHighlightEnabled)
 	{
-		if (!ActiveRequest || Request.Priority >= ActiveRequest->Priority)
+		for (const FRequest& Request : HighlightRequests)
 		{
-			ActiveRequest = &Request;
+			if (!ActiveRequest || Request.Priority >= ActiveRequest->Priority)
+			{
+				ActiveRequest = &Request;
+			}
 		}
 	}
 
