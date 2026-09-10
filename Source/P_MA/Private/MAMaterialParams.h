@@ -36,3 +36,7 @@ inline const FName PARAM_AreaDecal_EndAngle(TEXT("_EndAngle"));
 inline const FName PARAM_AreaDecal_Width(TEXT("_Width"));
 inline const FName PARAM_AreaDecal_Height(TEXT("_Height"));
 inline const FName PARAM_AreaDecal_InnerAlpha(TEXT("_InnerAlpha"));
+
+/** SpaceTransition **/
+inline const FName PARAM_SpaceTransition_Center(TEXT("TransitionCenter"));
+inline const FName PARAM_SpaceTransition_Radius(TEXT("TransitionRadius"));

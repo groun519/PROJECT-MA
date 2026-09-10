@@ -7,18 +7,30 @@
 Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 다음 문서들이다. 관련 작업 전 모두 읽는다.
 
 - `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md`
-- `6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md`
+- `3ef4ea06eb63585f2ac8e53f1759bbe488ab238f:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md`
+- `3ef4ea06eb63585f2ac8e53f1759bbe488ab238f:docs/wip/lobby-rework/03_RuntimeGenerationRebuildMockup.md`
+- `6dbca3f2248687ba90977569845a6d893deb1e69:docs/wip/lobby-rework/04_CurrentImplementationFeedbackMockup.md`
 - `b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md`
 - `34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_StreamingLevelFoundationRefactorMockup.md`
+- `5f9781a2bf9a3a261ccf46dce0b28c4ff526457d:docs/wip/lobby-rework/07_StencilOwnershipRefactorMockup.md`
+- `5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md`
+- `25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md`
 
 현재 작업 트리에 원본 문서를 복제하지 않는다. 다음 명령으로 고정된 버전을 읽는다.
 
 ```text
 git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/01_LobbyHubMockup.md
-git show 6bbef02cef6e4aa46fc72fef262bfdac43f24684:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md
+git show 3ef4ea06eb63585f2ac8e53f1759bbe488ab238f:docs/wip/lobby-rework/02_SeamlessTransitionMockup.md
+git show 3ef4ea06eb63585f2ac8e53f1759bbe488ab238f:docs/wip/lobby-rework/03_RuntimeGenerationRebuildMockup.md
+git show 6dbca3f2248687ba90977569845a6d893deb1e69:docs/wip/lobby-rework/04_CurrentImplementationFeedbackMockup.md
 git show b773415987d77118ae6b7ea8fcbea1db6db6d5ed:docs/wip/lobby-rework/05_CameraArchitectureRefactorMockup.md
 git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_StreamingLevelFoundationRefactorMockup.md
+git show 5f9781a2bf9a3a261ccf46dce0b28c4ff526457d:docs/wip/lobby-rework/07_StencilOwnershipRefactorMockup.md
+git show 5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md
+git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md
 ```
+
+마지막 04 문서의 Mask 소유권 계약은 앞선 시각 전환 목업의 해당 내용을 대체하며, 05 문서는 그 구조의 실행 흐름을 단순화한다.
 
 ## 목표
 
@@ -45,6 +57,20 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 - Hub Character는 비행 시간 이후 자신의 Ragdoll 안정화 또는 최대 시간을 판정하고, 바닥 복구, Get Up과 입력 재활성화를 닫는다.
 - 공용 `UMAAnimInstance::RecoverPose()`가 마지막 Ragdoll Pose 저장, Get Up 재생과 실제 Montage 종료 통지를 닫는다.
 - Ragdoll 투입, Get Up과 멀티플레이 동기화가 Hub의 기본 생성 흐름으로 연결되어 있다.
+- Subsystem이 소유한 단일 Mask가 출발 Magic Circle 중심에서 닫히고 목적지 Magic Circle 중심에서 열리는 균열 Sphere Mask 연출을 구현했다.
+- Closed에서는 Space 반경을 0까지 닫고, `UMASpaceTransitionVisibilityComponent`가 명시한 Player Mesh와 Magic Circle Mesh만 Custom Stencil 예외로 표시한다.
+- `/Game/_Map/WorldRoot`를 Persistent UWorld로 두고 `/Game/_Map/LobbyHubMap`을 초기 Current Space로 블로킹 스트리밍한다.
+- `LobbyHubMap`과 `/Game/_Map/MainMap1`은 독립 `.umap`으로 유지하며 각각 정확히 하나의 `AMALevelRoot`와 공용 `AMAMagicCircle`을 가진다.
+- `UMAStreamingLevelLoader`가 Destination map을 같은 UWorld의 별도 Slot에 비동기 스트리밍하고 정확히 하나의 `AMALevelRoot`를 결과로 반환한다.
+- `UMASpaceTransitionSubsystem`는 서버와 각 클라이언트가 Loader의 Destination 결과를 받은 뒤에만 화면 전환을 시작한다.
+- Player는 Source/Destination Magic Circle 기준 상대 Transform을 유지한 채 같은 UWorld 안에서 이동한다.
+- Destination Open 완료 뒤 Source streaming instance를 제거하고 Destination을 Current Space로 승격한다.
+- 정상 공간 전환 경로는 `ServerTravel`, `TransitionMap`, World 교체와 PlayerStart 도착 복구를 사용하지 않는다.
+- 현재 단계는 Hub에서 Battle 테스트 Space로의 Persistent Space Transition을 검증하며, Ready 출발 조건과 Battle 생성은 아직 연결하지 않았다.
+- Closed 도중 새로 생성된 대상을 자동 포함하는 기능은 실제 필요가 확인될 때까지 미룬다.
+- 전환 기능만 검증하는 `/Game/_Map/MainMap1`에 공용 `AMAMagicCircle`을 구성하고, 기존 `MainMap`은 전환 목업 이전 상태로 보존한다.
+- `UMASpaceTransitionSubsystem`는 Destination instance identity와 현재 단계로 요청을 구분하고, 각 단계의 미응답 Player만 모은다.
+- 현재 Space Transition은 각 플레이어의 기존 Pawn Camera ViewTarget을 유지하며 Mask만 닫고 연다.
 - 중앙 Camera Director를 제거하고 카메라 자체의 보간 상태, 공용 단발 기술, 네트워크 경계와 각 기능의 연출 순서를 실제 책임자에게 분리했다.
 
 ## 책임
@@ -55,7 +81,6 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 - Player 생성 시 배치된 Arrival Volume에 Spawn Transform을 요청하고 기존 생성 절차를 실행한다.
 - Pawn 생성이 끝나면 같은 Arrival Spawn 값으로 Arrival Volume의 `Launch()` 진입점을 호출한다.
 - Arrival Volume이 없거나 유일하지 않으면 검증 오류를 남기고 엔진 기본 생성 경로로 복귀한다.
-- 향후 Seamless Travel 사용 가능 상태를 유지한다.
 - Spawn 위치 계산, Pawn 내부 초기화, 로드아웃 정책이나 BGM 재생을 소유하지 않는다.
 
 ### `ALobbyHubPlayerController`
@@ -82,11 +107,15 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 - Invite 상호작용을 받아 `UMAGameInstance`의 플랫폼 Invite UI 진입점을 호출한다.
 - 공통 부모는 어느 기능이 실행되는지 알지 못한다.
 
-### `ALobbyHubMagicCircle`
+### `AMAMagicCircle`
 
+- Hub와 Battle Space가 공유하는 양방향 마법진이다. 공간 종류를 구분하는 하위 타입을 두지 않는다.
 - Ready 영역과 현재 점유 중인 PlayerState 목록을 소유한다.
 - 서버에서 진입과 이탈을 판정하고 목록을 복제한다.
-- 외부에는 Ready 여부와 인원 값만 제공하며 표시, Countdown과 공간 전환은 아직 소유하지 않는다.
+- 외부에는 Ready 여부와 인원 값만 제공하며 표시와 Countdown은 아직 소유하지 않는다.
+- 자신의 표시 Mesh를 `UMASpaceTransitionVisibilityComponent`에 명시적으로 등록한다.
+- `WorldToCircleTransform()`과 `CircleToWorldTransform()`으로 Scale 영향을 제거한 마법진 기준 상대 Transform 변환을 닫는다.
+- 목적지 Map, 전환 순서, Mask, 전환음과 전투 상태를 알지 않는다.
 - 기존 이동 섹터용 `UReadyStateComponent`, `LoopReady`와 아바타 슬롯용 Lobby Ready를 사용하지 않는다.
 
 ### `AMALevelRoot`
@@ -106,6 +135,46 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 - `RegisterInitialLevel()`은 World 시작 시 이미 표시된 streaming level을 한 번 조사해 초기 `AMALevelRoot`와 streaming instance의 대응만 채운다.
 - 로드 중 취소, `AMALevelRoot` 탐색과 streaming API 세부사항을 닫는다.
 - Current/Destination 의미, Player 이동, 화면 전환과 Ready 정책을 알지 않는다.
+
+### `UMASpaceTransitionMask`
+
+- `UMASpaceTransitionSubsystem`이 소유하는 단일 `UObject + FTickableGameObject`이며 별도 Actor, Manager 또는 DataAsset을 두지 않는다.
+- 호출자에게 중심 좌표를 받는 `Close()`, `Open()`과 비정상 종료용 `Reset()`만 제공한다.
+- Close와 Open 완료 콜백을 제공하되 Space 전환 순서와 Source/Destination 의미는 알지 않는다.
+- `UMAGameSettings::SpaceTransitionMaterial`로 균열 Sphere Mask의 반경 보간과 현재 World의 Post Process 표시 수명을 닫는다.
+- Closing과 Opening 애니메이션 중에만 Tick하고 Closed 대기 중에는 Tick하지 않는다.
+- `Close()`에서 현재 World의 `UMASpaceTransitionVisibilityComponent`를 한 번 수집하고 전환 중에만 약한 참조 작업 목록으로 유지한다.
+- `Open()` 완료 시 같은 작업 목록의 대상을 복구하고 목록을 제거한다.
+- Dedicated Server에서는 표시 객체를 생성하지 않는다.
+- World 교체 감시, Space streaming, 늦게 생성된 대상과 어느 공간으로 이동할지는 소유하지 않는다.
+
+### `UMASpaceTransitionSubsystem`
+
+- 현재 UWorld 수명의 Subsystem이며 한 번의 Persistent Space Transition 순서를 닫는다.
+- 서버의 `RequestTransition(DestinationMap, DestinationSlotTransform, GenerationSeed)` 요청으로 Destination instance identity를 발급한다.
+- 서버와 각 클라이언트에서 `UMAStreamingLevelLoader`에 동일한 map, transform과 instance identity를 전달하고 반환된 `AMALevelRoot`를 Destination으로 연결한다.
+- 모든 필수 클라이언트가 같은 identity의 Destination 준비를 완료한 뒤에만 각 로컬 화면의 Close를 요청한다.
+- 각 단계의 대기 Player 집합을 RPC 전송 전에 완성하고, 동기 재진입으로 단계가 바뀌면 남은 명령을 전송하지 않는다.
+- 모든 화면이 닫히면 Player를 Source/Destination Transition Circle 상대 Transform으로 이동한다.
+- 각 로컬 Subsystem의 단일 Mask를 Source Circle 중심에서 닫아 유지하고, Player 인계 뒤 같은 Mask를 Destination Circle 중심에서 연다.
+- Close와 Open이 실제 시작될 때 태그 기반 Gameplay Sound를 해당 Magic Circle 위치에서 한 번 요청한다.
+- Open 완료 뒤 Loader에 Source 제거를 요청하고 Destination을 Current Space로 승격한다.
+- 단계가 다른 응답과 이전 identity 응답은 무시한다. Commit 이전 실패는 Mask를 Reset하고 Destination을 제거한다.
+- `AMAPlayerControllerBase`의 RPC는 서버와 각 로컬 `UMASpaceTransitionSubsystem` 사이의 명령과 진행 통지만 전달하며 전환 정책을 소유하지 않는다.
+- Ready 판정, Countdown, Pawn 생성과 어느 전투 상태로 진입할지는 소유하지 않는다.
+
+### `UMASpaceTransitionVisibilityComponent`
+
+- 전환 Mask를 통과할 Primitive와 Custom Stencil 최상위 bit의 on/off 의미만 소유한다.
+- 자신을 상시 등록하지 않으며 `Close()` 시 현재 World의 `UMASpaceTransitionMask`에 의해 수집된다.
+- 전환 중에는 등록된 Primitive의 bit 7만 켜고, Open 완료 시 bit 7만 제거한다.
+- Player는 Body, Weapon과 Mount를 직접 등록한다.
+- Highlight는 하위 7bit를 독립적으로 사용하며 두 Component는 서로 참조하거나 비활성화하지 않는다.
+- 공용 `FMARenderStencil` 연산이 최종 Stencil 값에 맞춰 WriteMask와 CustomDepth 활성 상태를 함께 적용한다.
+- Magic Circle은 자신의 표시 Mesh만 직접 등록한다.
+- 이 컴포넌트가 없는 객체는 전환 예외 처리와 관련 비용을 갖지 않는다.
+- Closed 도중 새로 생성된 대상을 자동 적용하는 책임은 현재 시각 검증 범위에 포함하지 않는다.
+
 ### `ALobbyHubArrivalVolume`
 
 - 하나의 Sphere Transform과 Radius로 바닥 포탈을 선택할 원형 XY 영역을 정의한다.
@@ -209,22 +278,37 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 9. Hub Arrival을 공용 사망, Respawn 또는 `AMACharacter`의 Ragdoll 기능으로 확장하지 않는다.
    현재 투입 연출의 물리 상태와 단계 종료 판단은 `ALobbyHubCharacter` 안에서만 존재한다. `ALobbyHubArrivalVolume`은 위치와 초기 발사 조건만 결정한다.
 
+10. Space Transition의 Closed 상태에서 일반 Space Geometry를 남기기 위한 최소 반경을 사용하지 않는다.
+    반경은 0까지 닫고 `UMASpaceTransitionVisibilityComponent`가 명시한 Player와 Magic Circle Mesh만 Stencil 예외로 통과시킨다.
+
+11. Hub/Battle 정상 전환에서 `ServerTravel`, `TransitionMap` 또는 UWorld 교체를 사용하지 않는다.
+    독립 `.umap`은 같은 `WorldRoot`의 runtime Space Slot에 스트리밍한다.
+
+12. Transition Subsystem이 streaming level 내부를 검색하거나 `ULevelStreaming`을 직접 소유하지 않는다.
+    `UMAStreamingLevelLoader`만 로드 완료 시 해당 level 안의 유일한 `AMALevelRoot`를 찾고 내부 대응표로 unload를 닫는다.
+
+13. 한 번의 Closed 인계에서 Source와 Destination용 Mask를 따로 만들지 않는다.
+    Subsystem이 소유한 같은 Mask 하나가 Source 중심에서 닫힌 상태를 유지하고 Destination 중심에서 열린다.
+
 ## 단계 경계 목록
 
 | 현재 위치 | 현재 이유 | 최종 책임자 | 제거 조건 |
 |---|---|---|---|
 | `ALobbyHubPlayerController::BeginPlay()`의 `Music.Lobby` 요청 | 현재 로컬 Hub 진입을 확정할 활성 공간 객체가 없음 | 향후 Active Space | Active Space가 MusicTag와 활성화 수명을 소유하는 첫 구현에서 Controller 호출 제거 |
 | `Hub_LoadoutStation` 큐브의 Cutout 테스트 머티리얼 | 환경 공용 마스터가 확정되기 전에 검증된 렌더링 계약을 유지해야 함 | 환경 공용 마스터 머티리얼 | 승인된 환경 마스터에 Material Function을 연결할 때 테스트 전용 머티리얼 재검토 |
+| `UMACheatManager::TravelToTransitionTestMap()` | Ready와 Countdown 연결 전에 Persistent Space Transition을 독립 검증해야 함 | Hub Magic Circle 출발 흐름 | Hub 전원 Ready 출발이 `RequestTransition()`을 호출하면 제거 |
+| `DefaultEngine.ini`의 `AMASpace -> AMALevelRoot` Class/Property Redirect | 미커밋 Map이 이전 WIP 클래스명과 속성명을 직렬화하고 있어 에디터 재저장 전 Root 참조 유실을 막아야 함 | Level asset migration | `LobbyHubMap`과 `MainMap1`을 `AMALevelRoot.TransitionCircle`로 재저장하고 참조를 확인하면 제거 |
 
 단계 경계를 추가하거나 제거하면 이 표와 해당 코드 주석을 같은 변경에서 갱신한다. 최종 책임자를 아직 정의할 수 없다는 이유만으로 Manager, Registry 또는 범용 Context를 만들지 않는다.
 
 ## 다음 순서
 
-1. Magic Circle 중심 Sphere Mask의 Close와 Open 시각 기능을 구현한다.
-2. 별도 Battle World와 Seamless Travel을 연결한다.
-3. 기존 Battle 섹터와 WaveManager로 FieldReady 이전 전투 연결을 검증한다.
-4. 청크, PCG와 Runtime Field 생성은 Seamless Transition 검증 이후 별도 범위에서 연결한다.
-5. Battle 공간과 환경 마스터가 확정되면 검증된 Cutout Material Function을 환경 머티리얼에 연결한다.
+1. Standalone과 Listen Server/Client에서 Loader의 initial adopt, Destination 결과, Close, Circle Handoff, Open과 Source unload를 검증한다.
+2. ViewTarget을 고정 카메라로 교체하지 않고 각 플레이어의 기존 카메라에 적용할 전환 보정 범위와 책임을 확정한다.
+3. Magic Circle의 Party Ready/DepartureIntent를 `RequestTransition()`에 연결한다.
+4. 실제 Battle Space와 LevelManager의 생성/BattleReady를 Destination 준비 조건에 연결한다.
+5. 청크, PCG와 Runtime Field 재생성은 LevelManager와 각 Generation Feature Owner의 진입점으로 연결한다.
+6. Battle 공간과 환경 마스터가 확정되면 검증된 Cutout Material Function을 환경 머티리얼에 연결한다.
 
 ## 현재 검증 항목
 
@@ -241,6 +325,13 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 - Presentation View 진입 중 Station 큐브가 캐릭터 주위만 잘라 보이고 종료 시 완전히 복구
 - 일반 Pawn 및 관전 카메라에서 Cutout이 현재 대상을 추적하고 Presentation 종료 후 Pawn으로 복구
 - Magic Circle 진입과 이탈에 따른 서버 Ready 값과 클라이언트 복제
+- `TravelToTransitionTestMap` 실행 시 출발 Magic Circle 중심에서 World가 완전히 닫히고 Player와 Magic Circle만 남은 뒤 목적지 중심에서 열리는지 확인
+- Close/Open이 실제 시작될 때 출발지와 목적지에서 태그 기반 전환음이 각각 한 번 재생되는지 확인
+- `WorldRoot` 실행 시 초기 `LobbyHubMap`이 Player 생성 전에 로드되고 Loader가 유일한 `AMALevelRoot`를 Current Space로 채택하는지 확인
+- Host에서 `TravelToTransitionTestMap` 실행 시 `MainMap1`이 별도 Slot에 준비되고, 준비 중 Hub 플레이가 유지되는지 확인
+- Host와 Client가 출발 마법진에서 이루던 상대 위치와 방향을 목적지 Battle 마법진에서도 유지하며, PlayerStart 또는 Pawn 재생성을 사용하지 않는지 확인
+- Open 완료 뒤 `LobbyHubMap` streaming instance가 Unload되고 Persistent UWorld와 Controller/Pawn 수명이 유지되는지 확인
+- Mask Close/Open 동안 각 플레이어의 기존 Pawn Camera ViewTarget이 바뀌지 않는지 확인
 - 원형 Arrival Area 안의 무작위 WorldStatic 바닥 포탈 선택
 - 기존 플레이어 Hitbox 주변을 피한 Spawn Transform 선택
 - 수직 초기 속도 이후 완전한 Ragdoll 비행, 실제 바닥 충돌과 팔다리 물리

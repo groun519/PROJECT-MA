@@ -5,7 +5,6 @@
 #include "MASpaceTransitionVisibilityComponent.generated.h"
 
 class UPrimitiveComponent;
-class UMASpaceTransitionMaskComponent;
 
 /** Keeps explicitly selected meshes visible while the Space transition mask is closed. */
 UCLASS()

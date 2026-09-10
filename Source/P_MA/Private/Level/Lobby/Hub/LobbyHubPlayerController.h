@@ -11,6 +11,8 @@ class P_MA_API ALobbyHubPlayerController : public AMAPlayerControllerBase
 	GENERATED_BODY()
 
 public:
+	ALobbyHubPlayerController();
+
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* NewPawn) override;
 	virtual void AcknowledgePossession(APawn* NewPawn) override;

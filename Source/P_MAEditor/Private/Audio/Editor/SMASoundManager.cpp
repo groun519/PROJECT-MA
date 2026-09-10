@@ -793,7 +793,7 @@ FText SMASoundManager::GetActiveLibraryPath() const
 
 FString SMASoundManager::GetTagFilter() const
 {
-	return IsGameplayLibraryActive() ? TEXT("GameplayCue.Hit,Sound.Timing") : TEXT("Music");
+	return IsGameplayLibraryActive() ? TEXT("GameplayCue.Hit,Sound") : TEXT("Music");
 }
 
 bool SMASoundManager::IsGameplayLibraryActive() const

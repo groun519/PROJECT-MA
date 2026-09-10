@@ -69,6 +69,11 @@ UMaterialInterface* UMAGameSettings::GetOverlayMaterial() const
 	return OverlayMaterial.LoadSynchronous();
 }
 
+UMaterialInterface* UMAGameSettings::GetSpaceTransitionMaterial() const
+{
+	return SpaceTransitionMaterial.LoadSynchronous();
+}
+
 FMADamageTextStyle UMAGameSettings::GetDamageTextStyle(const FGameplayTag& DamageTypeTag, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit) const
 {
 	FMADamageTextStyle Style = DefaultDamageTextStyle;

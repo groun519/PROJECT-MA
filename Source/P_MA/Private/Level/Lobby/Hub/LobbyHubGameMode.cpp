@@ -13,7 +13,6 @@ ALobbyHubGameMode::ALobbyHubGameMode()
 	PlayerStateClass = AMAPlayerState::StaticClass();
 	PlayerControllerClass = ALobbyHubPlayerController::StaticClass();
 	DefaultPawnClass = ALobbyHubCharacter::StaticClass();
-	bUseSeamlessTravel = true;
 }
 
 void ALobbyHubGameMode::RestartPlayer(AController* NewPlayer)

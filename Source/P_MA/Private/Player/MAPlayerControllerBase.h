@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Level/Transition/MASpaceTransitionTypes.h"
 #include "Player/Camera/MACameraTypes.h"
 #include "MAPlayerControllerBase.generated.h"
 
@@ -30,8 +31,27 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerNotifyLoaded();
 
+	/** Space Transition Network **/
+	UFUNCTION(Client, Reliable)
+	void ClientPrepareSpaceTransition(const FMASpaceTransitionRequest& Request);
+
+	UFUNCTION(Client, Reliable)
+	void ClientCloseSpaceTransition();
+
+	UFUNCTION(Client, Reliable)
+	void ClientOpenSpaceTransition();
+
+	UFUNCTION(Client, Reliable)
+	void ClientAbortSpaceTransition();
+
+	UFUNCTION(Server, Reliable)
+	void ServerNotifySpaceTransitionProgress(
+		const FString& DestinationInstanceIdentity,
+		bool bSucceeded);
+
 	/** Camera Network **/
 	void RequestCameraFade(const FMACameraFadeSettings& Settings);
+
 	UMACameraOcclusionCutoutComponent* GetCameraOcclusionCutout() const { return CameraOcclusionCutoutComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "UI")

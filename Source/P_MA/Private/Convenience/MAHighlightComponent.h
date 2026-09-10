@@ -16,8 +16,6 @@ public:
 
 	void SetHighlight(UObject& Requester, bool bEnabled,
 		const FLinearColor& Color = FLinearColor::White, int32 Priority = 0);
-	void SetHighlightEnabled(bool bEnabled);
-	bool IsHighlightEnabled() const { return bHighlightEnabled; }
 
 private:
 	struct FRequest
@@ -32,5 +30,4 @@ private:
 
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> HighlightTargets;
 	TArray<FRequest> HighlightRequests;
-	bool bHighlightEnabled = true;
 };

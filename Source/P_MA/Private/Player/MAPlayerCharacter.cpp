@@ -36,6 +36,7 @@
 #include "Player/Loadout/Data/LoadoutWeaponData.h"
 #include "Player/Mount/Data/MountData.h"
 #include "Player/Revive/MAReviveActor.h"
+#include "Level/Transition/MASpaceTransitionVisibilityComponent.h"
 #include "Engine/DataTable.h"
 #include "EngineUtils.h"
 #include "Shop/MAShopNPC.h"
@@ -92,6 +93,12 @@ AMAPlayerCharacter::AMAPlayerCharacter(const FObjectInitializer& ObjectInitializ
 	MountMesh->SetGenerateOverlapEvents(false);
 	MountMesh->SetCanEverAffectNavigation(false);
 	MountMesh->SetHiddenInGame(true);
+
+	UMASpaceTransitionVisibilityComponent* SpaceTransitionVisibilityComponent =
+		CreateDefaultSubobject<UMASpaceTransitionVisibilityComponent>(TEXT("WorldTransitionVisibilityComponent"));
+	SpaceTransitionVisibilityComponent->AddTarget(GetMesh());
+	SpaceTransitionVisibilityComponent->AddTarget(WeaponComponent);
+	SpaceTransitionVisibilityComponent->AddTarget(MountMesh);
 
     /** Mini Map **/
     // 스프라이트부터 먼저 생성

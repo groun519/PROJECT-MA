@@ -1,5 +1,6 @@
 #include "Debug/MACheatManager.h"
 
+#include "Engine/GameInstance.h"
 #include "EngineUtils.h"
 #include "Framework/MAGameMode.h"
 #include "GAS/Skill/MASkillManagerComponent.h"
@@ -7,6 +8,7 @@
 #include "GAS/Skill/Module/MASkillModuleInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "Inventory/MAInventoryComponent.h"
+#include "Level/Transition/MASpaceTransitionSubsystem.h"
 #include "NPC/MAEnchanterNPC.h"
 #include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerController.h"
@@ -148,6 +150,20 @@ void UMACheatManager::EnchantModule(
 		*SlotTagName,
 		ModuleIndex,
 		RuneEntryId);
+}
+
+void UMACheatManager::TravelToTransitionTestMap(const float DestinationX)
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		World->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->RequestTransition(
+			TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/_Map/MainMap1.MainMap1"))),
+			FTransform(FVector(DestinationX, 0.f, 0.f)));
+	}
 }
 
 AMAPlayerCharacter* UMACheatManager::GetMAPlayerCharacter() const

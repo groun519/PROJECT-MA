@@ -45,6 +45,7 @@ public:
 	const UMAModuleQualityData* GetModuleQualityData() const;
 	const UMAElementalConfigData* GetElementalConfigData() const;
 	UMaterialInterface* GetOverlayMaterial() const;
+	UMaterialInterface* GetSpaceTransitionMaterial() const;
 	FMADamageTextStyle GetDamageTextStyle(const FGameplayTag& DamageTypeTag, EMADamageCriticalResult CriticalResult, bool bIsPlayerHit) const;
 
 	UPROPERTY(Config, EditAnywhere, Category="Interact")
@@ -123,4 +124,7 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category="Visual|Overlay")
 	TSoftObjectPtr<UMaterialInterface> OverlayMaterial;
+
+	UPROPERTY(Config, EditAnywhere, Category="Visual|Transition")
+	TSoftObjectPtr<UMaterialInterface> SpaceTransitionMaterial;
 };

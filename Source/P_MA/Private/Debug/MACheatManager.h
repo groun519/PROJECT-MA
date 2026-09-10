@@ -36,6 +36,9 @@ public:
 	UFUNCTION(Exec)
 	void EnchantModule(FString SlotTagName, int32 ModuleIndex, int32 RuneEntryId);
 
+	UFUNCTION(Exec)
+	void TravelToTransitionTestMap(float DestinationX = 100000.f);
+
 private:
 	AMAPlayerCharacter* GetMAPlayerCharacter() const;
 };

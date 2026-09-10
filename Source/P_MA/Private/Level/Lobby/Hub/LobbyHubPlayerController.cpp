@@ -1,9 +1,15 @@
 #include "LobbyHubPlayerController.h"
 
 #include "Audio/Music/MAMusicSubsystem.h"
+#include "Debug/MACheatManager.h"
 #include "Framework/MAGameInstance.h"
 #include "Level/Lobby/Hub/LobbyHubCharacter.h"
 #include "Player/MAPlayerState.h"
+
+ALobbyHubPlayerController::ALobbyHubPlayerController()
+{
+	CheatClass = UMACheatManager::StaticClass();
+}
 
 void ALobbyHubPlayerController::BeginPlay()
 {

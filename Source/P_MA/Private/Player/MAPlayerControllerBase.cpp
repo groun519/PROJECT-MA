@@ -5,6 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Framework/MAGameInstance.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Level/Transition/MASpaceTransitionSubsystem.h"
 #include "Player/Camera/MACameraLibrary.h"
 #include "Player/Camera/MACameraOcclusionCutoutComponent.h"
 #include "Player/MAPlayerState.h"
@@ -72,6 +73,54 @@ void AMAPlayerControllerBase::ServerNotifyLoaded_Implementation()
 	if (UMAGameInstance* GI = GetGameInstance<UMAGameInstance>())
 	{
 		GI->UpdateLoadingStatus();
+	}
+}
+
+void AMAPlayerControllerBase::ClientPrepareSpaceTransition_Implementation(
+	const FMASpaceTransitionRequest& Request)
+{
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->BeginClientPrepare(Request);
+	}
+}
+
+void AMAPlayerControllerBase::ClientCloseSpaceTransition_Implementation()
+{
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->BeginLocalClose();
+	}
+}
+
+void AMAPlayerControllerBase::ClientOpenSpaceTransition_Implementation()
+{
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->BeginLocalOpen();
+	}
+}
+
+void AMAPlayerControllerBase::ClientAbortSpaceTransition_Implementation()
+{
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->AbortLocalTransition();
+	}
+}
+
+void AMAPlayerControllerBase::ServerNotifySpaceTransitionProgress_Implementation(
+	const FString& DestinationInstanceIdentity,
+	const bool bSucceeded)
+{
+	if (UMASpaceTransitionSubsystem* SpaceTransition =
+		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
+	{
+		SpaceTransition->HandleClientProgress(*this, DestinationInstanceIdentity, bSucceeded);
 	}
 }
 

@@ -1,6 +1,7 @@
 #include "Convenience/MAHighlightComponent.h"
 
 #include "Components/PrimitiveComponent.h"
+#include "MARenderStencil.h"
 
 void UMAHighlightComponent::AddTarget(UPrimitiveComponent* Target)
 {
@@ -26,15 +27,7 @@ void UMAHighlightComponent::SetHighlight(
 		HighlightRequests.Add({&Requester, ConvertColorHueToStencilValue(Color), Priority});
 	}
 
-	if (bHighlightEnabled && (bEnabled || RemovedCount > 0)) ApplyHighlight();
-}
-
-void UMAHighlightComponent::SetHighlightEnabled(const bool bEnabled)
-{
-	if (bHighlightEnabled == bEnabled) return;
-
-	bHighlightEnabled = bEnabled;
-	ApplyHighlight();
+	if (bEnabled || RemovedCount > 0) ApplyHighlight();
 }
 
 int32 UMAHighlightComponent::ConvertColorHueToStencilValue(const FLinearColor& Color)
@@ -63,14 +56,11 @@ void UMAHighlightComponent::ApplyHighlight()
 		});
 
 	const FRequest* ActiveRequest = nullptr;
-	if (bHighlightEnabled)
+	for (const FRequest& Request : HighlightRequests)
 	{
-		for (const FRequest& Request : HighlightRequests)
+		if (!ActiveRequest || Request.Priority >= ActiveRequest->Priority)
 		{
-			if (!ActiveRequest || Request.Priority >= ActiveRequest->Priority)
-			{
-				ActiveRequest = &Request;
-			}
+			ActiveRequest = &Request;
 		}
 	}
 
@@ -78,8 +68,9 @@ void UMAHighlightComponent::ApplyHighlight()
 	{
 		if (UPrimitiveComponent* Primitive = Target.Get())
 		{
-			Primitive->SetRenderCustomDepth(ActiveRequest != nullptr);
-			if (ActiveRequest) Primitive->SetCustomDepthStencilValue(ActiveRequest->StencilValue);
+			FMARenderStencil::SetHighlightValue(
+				*Primitive,
+				ActiveRequest ? static_cast<uint8>(ActiveRequest->StencilValue) : 0);
 		}
 	}
 }
