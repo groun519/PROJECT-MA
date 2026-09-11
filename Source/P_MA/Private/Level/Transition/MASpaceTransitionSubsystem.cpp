@@ -4,11 +4,14 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "Level/Environment/MASpaceDirectionalLight.h"
 #include "Level/Streaming/MALevelRoot.h"
 #include "Level/Streaming/MAStreamingLevelLoader.h"
 #include "Level/Transition/MAMagicCircle.h"
 #include "Level/Transition/MASpaceTransitionMask.h"
 #include "Misc/Guid.h"
+#include "Player/Camera/MACameraComponent.h"
+#include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerControllerBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMASpaceTransition, Log, All);
@@ -42,9 +45,55 @@ void UMASpaceTransitionSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	Super::OnWorldBeginPlay(InWorld);
 	CurrentLevel = LevelLoader->RegisterInitialLevel();
 	if (!ensureMsgf(CurrentLevel.IsValid(), TEXT("Space Transition requires an initial LevelRoot."))) return;
-	ensureMsgf(
-		CurrentLevel->GetTransitionCircle(),
-		TEXT("The initial LevelRoot requires an assigned Transition Circle."));
+	if (!ensureMsgf(
+		CurrentLevel->GetTransitionCircle() && CurrentLevel->GetDirectionalLight(),
+		TEXT("The initial LevelRoot requires an assigned Transition Circle and Directional Light.")))
+	{
+		return;
+	}
+	if (TransitionMask) CurrentLevel->GetDirectionalLight()->ActivateLighting();
+}
+
+bool UMASpaceTransitionSubsystem::IsTickable() const
+{
+	return TransitionMask &&
+		((Phase == EPhase::Closing && TransitionAlpha > 0.f) ||
+		 (Phase == EPhase::Opening && TransitionAlpha < 1.f));
+}
+
+void UMASpaceTransitionSubsystem::Tick(const float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	const float Direction = Phase == EPhase::Closing ? -1.f : 1.f;
+	TransitionAlpha = FMath::Clamp(
+		TransitionAlpha + Direction * DeltaTime / TransitionDuration,
+		0.f,
+		1.f);
+	const float Progress = FMath::InterpEaseInOut(0.f, 1.f, TransitionAlpha, 2.f);
+	TransitionMask->SetProgress(Progress);
+
+	if (Phase == EPhase::Opening)
+	{
+		CurrentLevel->GetDirectionalLight()->TransitionTo(
+			Progress,
+			DestinationLevel->GetDirectionalLight());
+	}
+
+	if (TransitionAlpha > 0.f && TransitionAlpha < 1.f) return;
+	if (Phase == EPhase::Closing)
+	{
+		NotifyServer(true);
+	}
+	else
+	{
+		CompleteLocalOpen(true);
+	}
+}
+
+TStatId UMASpaceTransitionSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UMASpaceTransitionSubsystem, STATGROUP_Tickables);
 }
 
 bool UMASpaceTransitionSubsystem::RequestTransition(
@@ -55,8 +104,8 @@ bool UMASpaceTransitionSubsystem::RequestTransition(
 	UWorld* World = GetWorld();
 	if (World->GetNetMode() == NM_Client || Phase != EPhase::Idle) return false;
 	if (!ensureMsgf(
-		CurrentLevel.IsValid() && CurrentLevel->GetTransitionCircle(),
-		TEXT("Space Transition requires a Current LevelRoot with an assigned Transition Circle.")))
+		CurrentLevel.IsValid() && CurrentLevel->GetTransitionCircle() && CurrentLevel->GetDirectionalLight(),
+		TEXT("Space Transition requires a Current LevelRoot with an assigned Transition Circle and Directional Light.")))
 	{
 		return false;
 	}
@@ -113,7 +162,7 @@ void UMASpaceTransitionSubsystem::BeginClientPrepare(const FMASpaceTransitionReq
 	}
 }
 
-void UMASpaceTransitionSubsystem::BeginLocalClose()
+void UMASpaceTransitionSubsystem::BeginLocalClose(AMAPlayerCharacter* PlayerCharacter)
 {
 	const EPhase ExpectedPhase =
 		GetWorld()->GetNetMode() == NM_Client ? EPhase::Loading : EPhase::Closing;
@@ -124,15 +173,17 @@ void UMASpaceTransitionSubsystem::BeginLocalClose()
 		return;
 	}
 
-	Phase = EPhase::Closing;
 	AMAMagicCircle* SourceCircle = CurrentLevel->GetTransitionCircle();
-	if (!SourceCircle || !TransitionMask->Close(
-		SourceCircle->GetActorLocation(),
-		FSimpleDelegate::CreateUObject(this, &UMASpaceTransitionSubsystem::NotifyServer, true)))
+	if (!SourceCircle || !TransitionMask->Close(SourceCircle->GetActorLocation()))
 	{
+		TransitionAlpha = 0.f;
 		NotifyServer(false);
 		return;
 	}
+	Phase = EPhase::Closing;
+	TransitionAlpha = 1.f;
+	LocalPlayerCharacter = PlayerCharacter;
+	if (PlayerCharacter) PlayerCharacter->GetPlayerCamera()->SetLocationLagEnabled(false);
 
 	static const FGameplayTag CloseSoundTag =
 		FGameplayTag::RequestGameplayTag(TEXT("Sound.SpaceTransition.Close"));
@@ -151,20 +202,15 @@ void UMASpaceTransitionSubsystem::BeginLocalOpen()
 	}
 
 	AMAMagicCircle* DestinationCircle = DestinationLevel->GetTransitionCircle();
-	if (!DestinationCircle)
+	if (!DestinationCircle || !TransitionMask->Open(DestinationCircle->GetActorLocation()))
 	{
+		TransitionAlpha = 1.f;
 		CompleteLocalOpen(false);
 		return;
 	}
 
 	Phase = EPhase::Opening;
-	if (!TransitionMask->Open(
-		DestinationCircle->GetActorLocation(),
-		FSimpleDelegate::CreateUObject(this, &UMASpaceTransitionSubsystem::CompleteLocalOpen, true)))
-	{
-		CompleteLocalOpen(false);
-		return;
-	}
+	TransitionAlpha = 0.f;
 
 	static const FGameplayTag OpenSoundTag =
 		FGameplayTag::RequestGameplayTag(TEXT("Sound.SpaceTransition.Open"));
@@ -240,7 +286,8 @@ void UMASpaceTransitionSubsystem::HandleDestinationLoaded(AMALevelRoot* LoadedLe
 	if (Phase != EPhase::Loading) return;
 
 	DestinationLevel = LoadedLevel;
-	const bool bReady = LoadedLevel && LoadedLevel->GetTransitionCircle();
+	const bool bReady =
+		LoadedLevel && LoadedLevel->GetTransitionCircle() && LoadedLevel->GetDirectionalLight();
 	UE_LOG(
 		LogMASpaceTransition,
 		Log,
@@ -349,15 +396,21 @@ void UMASpaceTransitionSubsystem::DiscardDestination()
 
 void UMASpaceTransitionSubsystem::ResetTransitionState()
 {
+	if (AMAPlayerCharacter* PlayerCharacter = LocalPlayerCharacter.Get())
+		PlayerCharacter->GetPlayerCamera()->SetLocationLagEnabled(true);
 	Phase = EPhase::Idle;
+	TransitionAlpha = 1.f;
 	ActiveRequest = FMASpaceTransitionRequest();
 	DestinationLevel.Reset();
+	LocalPlayerCharacter.Reset();
 	PendingPlayers.Reset();
 }
 
 void UMASpaceTransitionSubsystem::CompleteLocalOpen(const bool bSucceeded)
 {
-	if (!bSucceeded) TransitionMask->Reset();
+	if (AMAPlayerCharacter* PlayerCharacter = LocalPlayerCharacter.Get())
+		PlayerCharacter->GetPlayerCamera()->SetLocationLagEnabled(true);
+	TransitionMask->Reset();
 
 	const bool bPureClient = GetWorld()->GetNetMode() == NM_Client;
 	if (bPureClient) PromoteDestination();

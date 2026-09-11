@@ -22,6 +22,7 @@ public:
 		FActorComponentTickFunction* ThisTickFunction) override;
 
 	void TransitionRig(USpringArmComponent& SpringArm, const FMACameraRigSettings& Settings);
+	void SetLocationLagEnabled(bool bEnabled);
 
 private:
 	void ApplyRigStep(float EaseAlpha, float Alpha);

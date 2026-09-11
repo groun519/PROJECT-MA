@@ -8,6 +8,7 @@
 #include "Level/Transition/MASpaceTransitionSubsystem.h"
 #include "Player/Camera/MACameraLibrary.h"
 #include "Player/Camera/MACameraOcclusionCutoutComponent.h"
+#include "Player/MAPlayerCharacter.h"
 #include "Player/MAPlayerState.h"
 #include "TimerManager.h"
 #include "Widget/Settings/SettingsWidget.h"
@@ -91,7 +92,7 @@ void AMAPlayerControllerBase::ClientCloseSpaceTransition_Implementation()
 	if (UMASpaceTransitionSubsystem* SpaceTransition =
 		GetWorld()->GetSubsystem<UMASpaceTransitionSubsystem>())
 	{
-		SpaceTransition->BeginLocalClose();
+		SpaceTransition->BeginLocalClose(GetPawn<AMAPlayerCharacter>());
 	}
 }
 

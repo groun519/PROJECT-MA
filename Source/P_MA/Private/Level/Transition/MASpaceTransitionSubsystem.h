@@ -7,6 +7,7 @@
 
 class AMALevelRoot;
 class AMAMagicCircle;
+class AMAPlayerCharacter;
 class AMAPlayerControllerBase;
 class UMASpaceTransitionMask;
 class UMAStreamingLevelLoader;
@@ -14,7 +15,7 @@ struct FGameplayTag;
 
 /** Owns the sequence of one same-World transition between two Spaces. */
 UCLASS()
-class P_MA_API UMASpaceTransitionSubsystem : public UWorldSubsystem
+class P_MA_API UMASpaceTransitionSubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -23,6 +24,9 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	virtual bool IsTickable() const override;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
 
 	bool RequestTransition(
 		TSoftObjectPtr<UWorld> DestinationMap,
@@ -30,7 +34,7 @@ public:
 		int32 GenerationSeed = 0);
 
 	void BeginClientPrepare(const FMASpaceTransitionRequest& Request);
-	void BeginLocalClose();
+	void BeginLocalClose(AMAPlayerCharacter* PlayerCharacter);
 	void BeginLocalOpen();
 	void AbortLocalTransition();
 
@@ -71,10 +75,14 @@ private:
 	TObjectPtr<UMASpaceTransitionMask> TransitionMask;
 
 	EPhase Phase = EPhase::Idle;
+	float TransitionAlpha = 1.f;
 	FMASpaceTransitionRequest ActiveRequest;
 
 	TWeakObjectPtr<AMALevelRoot> CurrentLevel;
 	TWeakObjectPtr<AMALevelRoot> DestinationLevel;
+	TWeakObjectPtr<AMAPlayerCharacter> LocalPlayerCharacter;
 
 	TSet<TWeakObjectPtr<AMAPlayerControllerBase>> PendingPlayers;
+
+	static constexpr float TransitionDuration = 2.25f;
 };

@@ -8,89 +8,39 @@
 #include "Setting/MAGameSettings.h"
 #include "UObject/UObjectIterator.h"
 
-UMASpaceTransitionMask::UMASpaceTransitionMask(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, FTickableGameObject(ETickableTickType::Never)
-{
-}
-
 UWorld* UMASpaceTransitionMask::GetWorld() const
 {
 	return GetTypedOuter<UWorld>();
 }
 
-void UMASpaceTransitionMask::BeginDestroy()
+bool UMASpaceTransitionMask::Close(const FVector& Center)
 {
-	SetTickableTickType(ETickableTickType::Never);
-	Super::BeginDestroy();
-}
+	if (!CreateMask()) return false;
 
-bool UMASpaceTransitionMask::Close(const FVector& Center, FSimpleDelegate OnClosed)
-{
-	if (Phase != EPhase::Open || !CreateMask()) return false;
-
-	Phase = EPhase::Closing;
-	TransitionFinishedDelegate = MoveTemp(OnClosed);
-	TransitionMaterialInstance->SetVectorParameterValue(
-		PARAM_SpaceTransition_Center,
-		FLinearColor(Center.X, Center.Y, Center.Z, 1.f));
-	UpdateRadius();
+	SetCenter(Center);
+	SetProgress(1.f);
 	CollectVisibleSubjects();
-	SetTickableTickType(ETickableTickType::Always);
 	return true;
 }
 
-bool UMASpaceTransitionMask::Open(const FVector& Center, FSimpleDelegate OnOpened)
+bool UMASpaceTransitionMask::Open(const FVector& Center)
 {
-	if (Phase != EPhase::Closed) return false;
+	if (!TransitionMaterialInstance) return false;
 
-	Phase = EPhase::Opening;
-	TransitionFinishedDelegate = MoveTemp(OnOpened);
-	TransitionMaterialInstance->SetVectorParameterValue(
-		PARAM_SpaceTransition_Center,
-		FLinearColor(Center.X, Center.Y, Center.Z, 1.f));
-	SetTickableTickType(ETickableTickType::Always);
+	SetCenter(Center);
 	return true;
+}
+
+void UMASpaceTransitionMask::SetProgress(const float Progress) const
+{
+	TransitionMaterialInstance->SetScalarParameterValue(
+		PARAM_SpaceTransition_Radius,
+		OpenRadius * Progress);
 }
 
 void UMASpaceTransitionMask::Reset()
 {
-	SetTickableTickType(ETickableTickType::Never);
-	TransitionFinishedDelegate.Unbind();
-	Phase = EPhase::Open;
-	TransitionAlpha = 1.f;
 	ReleaseMask();
-}
-
-void UMASpaceTransitionMask::Tick(const float DeltaTime)
-{
-	const float Direction = Phase == EPhase::Closing ? -1.f : 1.f;
-	TransitionAlpha = FMath::Clamp(
-		TransitionAlpha + Direction * DeltaTime / TransitionDuration,
-		0.f,
-		1.f);
-	UpdateRadius();
-
-	if (TransitionAlpha > 0.f && TransitionAlpha < 1.f) return;
-
-	SetTickableTickType(ETickableTickType::Never);
-	FSimpleDelegate FinishedDelegate = TransitionFinishedDelegate;
-	TransitionFinishedDelegate.Unbind();
-	if (Phase == EPhase::Closing)
-	{
-		Phase = EPhase::Closed;
-	}
-	else
-	{
-		Phase = EPhase::Open;
-		ReleaseMask();
-	}
-	FinishedDelegate.ExecuteIfBound();
-}
-
-TStatId UMASpaceTransitionMask::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(UMASpaceTransitionMask, STATGROUP_Tickables);
 }
 
 bool UMASpaceTransitionMask::CreateMask()
@@ -123,11 +73,11 @@ bool UMASpaceTransitionMask::CreateMask()
 	return true;
 }
 
-void UMASpaceTransitionMask::UpdateRadius() const
+void UMASpaceTransitionMask::SetCenter(const FVector& Center) const
 {
-	TransitionMaterialInstance->SetScalarParameterValue(
-		PARAM_SpaceTransition_Radius,
-		FMath::InterpEaseInOut(0.f, OpenRadius, TransitionAlpha, 2.f));
+	TransitionMaterialInstance->SetVectorParameterValue(
+		PARAM_SpaceTransition_Center,
+		FLinearColor(Center.X, Center.Y, Center.Z, 1.f));
 }
 
 void UMASpaceTransitionMask::CollectVisibleSubjects()

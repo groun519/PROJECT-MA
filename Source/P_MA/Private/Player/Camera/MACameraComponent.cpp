@@ -60,6 +60,13 @@ void UMACameraComponent::TransitionRig(
 	SetComponentTickEnabled(true);
 }
 
+void UMACameraComponent::SetLocationLagEnabled(const bool bEnabled)
+{
+	USpringArmComponent* SpringArm = Cast<USpringArmComponent>(GetAttachParent());
+	if (!SpringArm) return;
+	SpringArm->bEnableCameraLag = bEnabled;
+}
+
 void UMACameraComponent::ApplyRigStep(const float EaseAlpha, const float Alpha)
 {
 	USpringArmComponent* SpringArm = TransitionSpringArm.Get();

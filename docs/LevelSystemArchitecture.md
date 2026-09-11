@@ -15,6 +15,7 @@ Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 
 - `5f9781a2bf9a3a261ccf46dce0b28c4ff526457d:docs/wip/lobby-rework/07_StencilOwnershipRefactorMockup.md`
 - `5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md`
 - `25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md`
+- `be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_SpaceDirectionalLightTransitionMockup.md`
 
 현재 작업 트리에 원본 문서를 복제하지 않는다. 다음 명령으로 고정된 버전을 읽는다.
 
@@ -28,9 +29,11 @@ git show 34d6119ee7bf3b3c9683f46adf42cf7cbb8b044a:docs/wip/lobby-rework/06_Strea
 git show 5f9781a2bf9a3a261ccf46dce0b28c4ff526457d:docs/wip/lobby-rework/07_StencilOwnershipRefactorMockup.md
 git show 5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md
 git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md
+git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_SpaceDirectionalLightTransitionMockup.md
 ```
 
 마지막 04 문서의 Mask 소유권 계약은 앞선 시각 전환 목업의 해당 내용을 대체하며, 05 문서는 그 구조의 실행 흐름을 단순화한다.
+현재 구현에서는 06 문서 이후 확정한 책임 절개에 따라 공용 Close/Open 시간축을 `UMASpaceTransitionSubsystem`이 소유하고, Mask는 전달받은 진행도만 표현한다.
 
 ## 목표
 
@@ -71,7 +74,9 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 - 전환 기능만 검증하는 `/Game/_Map/MainMap1`에 공용 `AMAMagicCircle`을 구성하고, 기존 `MainMap`은 전환 목업 이전 상태로 보존한다.
 - `UMASpaceTransitionSubsystem`는 Destination instance identity와 현재 단계로 요청을 구분하고, 각 단계의 미응답 Player만 모은다.
 - 현재 Space Transition은 각 플레이어의 기존 Pawn Camera ViewTarget을 유지하며 Mask만 닫고 연다.
+- 각 로컬 화면은 Close 시작부터 Open 완료까지 기존 Pawn Camera의 위치 Lag을 일시 정지해 공간 인계 직후의 보간 이격을 남기지 않는다.
 - 중앙 Camera Director를 제거하고 카메라 자체의 보간 상태, 공용 단발 기술, 네트워크 경계와 각 기능의 연출 순서를 실제 책임자에게 분리했다.
+- 각 Space의 `AMASpaceDirectionalLight`만 런타임 조명에 참여하며, Open 진행도에 맞춰 Source 조명을 Destination authored state로 전환한 뒤 활성 주체를 넘긴다.
 
 ## 책임
 
@@ -121,7 +126,7 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 ### `AMALevelRoot`
 
 - streamed `.umap`의 runtime Level 하나를 대표하며 각 Level map에 정확히 하나만 배치한다.
-- 자신의 `TransitionCircle` 참조만 제공한다.
+- 자신의 `TransitionCircle`과 `DirectionalLight` 참조만 제공한다.
 - 수명, Bounds, Identity, streaming 구현과 전환 순서를 소유하지 않는다.
 - 향후 Hub/Battle별 local reference가 실제로 필요해질 때만 해당 LevelRoot 타입에서 확장한다.
 - Battle procedural generation 순서와 결과물은 소유하지 않는다.
@@ -138,15 +143,23 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 
 ### `UMASpaceTransitionMask`
 
-- `UMASpaceTransitionSubsystem`이 소유하는 단일 `UObject + FTickableGameObject`이며 별도 Actor, Manager 또는 DataAsset을 두지 않는다.
-- 호출자에게 중심 좌표를 받는 `Close()`, `Open()`과 비정상 종료용 `Reset()`만 제공한다.
-- Close와 Open 완료 콜백을 제공하되 Space 전환 순서와 Source/Destination 의미는 알지 않는다.
+- `UMASpaceTransitionSubsystem`이 소유하는 단일 `UObject`이며 별도 Actor, Manager 또는 DataAsset을 두지 않는다.
+- 호출자에게 중심 좌표를 받는 `Close()`, `Open()`, 정규화된 반경을 적용하는 `SetProgress()`와 종료용 `Reset()`만 제공한다.
+- Tick, Phase, Duration과 완료 콜백을 소유하지 않으며 Space 전환 순서와 Source/Destination 의미를 알지 않는다.
 - `UMAGameSettings::SpaceTransitionMaterial`로 균열 Sphere Mask의 반경 보간과 현재 World의 Post Process 표시 수명을 닫는다.
-- Closing과 Opening 애니메이션 중에만 Tick하고 Closed 대기 중에는 Tick하지 않는다.
 - `Close()`에서 현재 World의 `UMASpaceTransitionVisibilityComponent`를 한 번 수집하고 전환 중에만 약한 참조 작업 목록으로 유지한다.
-- `Open()` 완료 시 같은 작업 목록의 대상을 복구하고 목록을 제거한다.
+- `Reset()`에서 같은 작업 목록의 대상을 복구하고 목록을 제거한다.
 - Dedicated Server에서는 표시 객체를 생성하지 않는다.
 - World 교체 감시, Space streaming, 늦게 생성된 대상과 어느 공간으로 이동할지는 소유하지 않는다.
+
+### `AMASpaceDirectionalLight`
+
+- 하나의 Space가 에디터에서 직접 편집하는 실제 Directional Light이자 해당 Space의 authored lighting state를 소유한다.
+- Game World에 등록되기 전 자신의 런타임 기여를 끄므로 Destination Space가 미리 표시되어도 한 프레임도 조명에 개입하지 않는다.
+- `TransitionTo()` 안에서 회전, 유효 색상과 핵심 광량을 Source authored state에서 Destination authored state로 보간한다.
+- 전환 중에는 Source Actor 하나만 조명에 참여하며 Destination authored state는 변경하지 않는다.
+- Open 완료 시 Source를 끄고 Destination을 활성화해 다음 전환의 현재 조명 주체를 넘긴다.
+- 별도 Tick, Timer, Settings Data와 외부 속성별 보간을 두지 않는다.
 
 ### `UMASpaceTransitionSubsystem`
 
@@ -157,6 +170,9 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 - 각 단계의 대기 Player 집합을 RPC 전송 전에 완성하고, 동기 재진입으로 단계가 바뀌면 남은 명령을 전송하지 않는다.
 - 모든 화면이 닫히면 Player를 Source/Destination Transition Circle 상대 Transform으로 이동한다.
 - 각 로컬 Subsystem의 단일 Mask를 Source Circle 중심에서 닫아 유지하고, Player 인계 뒤 같은 Mask를 Destination Circle 중심에서 연다.
+- 공용 Close/Open Phase, Duration과 진행도를 소유하고 로컬 애니메이션 중에만 Tick한다.
+- 같은 진행도를 Mask에 전달하고 Open에서는 Source `AMASpaceDirectionalLight`의 전환 진입점에도 전달할 뿐 각 표현 객체의 속성과 적용 규칙은 알지 않는다.
+- 각 로컬 Subsystem은 Close/Open 단계에 맞춰 Player Camera에 위치 Lag 중지와 복구만 요청한다.
 - Close와 Open이 실제 시작될 때 태그 기반 Gameplay Sound를 해당 Magic Circle 위치에서 한 번 요청한다.
 - Open 완료 뒤 Loader에 Source 제거를 요청하고 Destination을 Current Space로 승격한다.
 - 단계가 다른 응답과 이전 identity 응답은 무시한다. Commit 이전 실패는 Mask를 Reset하고 Destination을 제거한다.
@@ -204,6 +220,7 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 
 - Player의 기본 `UCameraComponent`를 대체하며 기존 `Cam` subobject 이름을 유지한다.
 - `TransitionRig(SpringArm, Settings)`가 Arm Length, Pitch, Target Offset과 FOV 보간을 닫는다.
+- `SetLocationLagEnabled()`가 부착된 SpringArm의 위치 Lag 활성 상태 변경을 닫는다.
 - 보간 중 새 요청은 현재 Rig 값에서 이어지며 보간이 끝나면 자신의 Tick을 끈다.
 - PlayerController, Pawn 탐색, ViewTarget, Fade, Cutout과 기능별 연출 정책을 알지 않는다.
 
@@ -290,6 +307,12 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 13. 한 번의 Closed 인계에서 Source와 Destination용 Mask를 따로 만들지 않는다.
     Subsystem이 소유한 같은 Mask 하나가 Source 중심에서 닫힌 상태를 유지하고 Destination 중심에서 열린다.
 
+14. Streaming 중 Source와 Destination Directional Light를 동시에 활성화하지 않는다.
+    Destination `AMASpaceDirectionalLight`는 Game World 등록 전에 비활성화하고, Open 동안 Source 하나를 Destination authored state로 변화시킨 뒤 완료 시 활성 주체만 넘긴다.
+
+15. Mask와 조명은 별도 시간축을 만들지 않는다.
+    `UMASpaceTransitionSubsystem`의 같은 진행도를 소비하며 Mask와 조명 객체는 전달받은 값을 자기 표현에만 적용한다.
+
 ## 단계 경계 목록
 
 | 현재 위치 | 현재 이유 | 최종 책임자 | 제거 조건 |
@@ -304,11 +327,10 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 ## 다음 순서
 
 1. Standalone과 Listen Server/Client에서 Loader의 initial adopt, Destination 결과, Close, Circle Handoff, Open과 Source unload를 검증한다.
-2. ViewTarget을 고정 카메라로 교체하지 않고 각 플레이어의 기존 카메라에 적용할 전환 보정 범위와 책임을 확정한다.
-3. Magic Circle의 Party Ready/DepartureIntent를 `RequestTransition()`에 연결한다.
-4. 실제 Battle Space와 LevelManager의 생성/BattleReady를 Destination 준비 조건에 연결한다.
-5. 청크, PCG와 Runtime Field 재생성은 LevelManager와 각 Generation Feature Owner의 진입점으로 연결한다.
-6. Battle 공간과 환경 마스터가 확정되면 검증된 Cutout Material Function을 환경 머티리얼에 연결한다.
+2. Magic Circle의 Party Ready/DepartureIntent를 `RequestTransition()`에 연결한다.
+3. 실제 Battle Space와 LevelManager의 생성/BattleReady를 Destination 준비 조건에 연결한다.
+4. 청크, PCG와 Runtime Field 재생성은 LevelManager와 각 Generation Feature Owner의 진입점으로 연결한다.
+5. Battle 공간과 환경 마스터가 확정되면 검증된 Cutout Material Function을 환경 머티리얼에 연결한다.
 
 ## 현재 검증 항목
 
@@ -332,6 +354,9 @@ git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_Space
 - Host와 Client가 출발 마법진에서 이루던 상대 위치와 방향을 목적지 Battle 마법진에서도 유지하며, PlayerStart 또는 Pawn 재생성을 사용하지 않는지 확인
 - Open 완료 뒤 `LobbyHubMap` streaming instance가 Unload되고 Persistent UWorld와 Controller/Pawn 수명이 유지되는지 확인
 - Mask Close/Open 동안 각 플레이어의 기존 Pawn Camera ViewTarget이 바뀌지 않는지 확인
+- Close부터 Open 완료까지 Camera Lag이 중지되어 목적지 인계 시 카메라 이격이 없고, 완료·중단 뒤 다시 활성화되는지 확인
+- Destination Space가 Close 이전에 로드되어도 Source 화면의 밝기와 색이 변하지 않는지 확인
+- Mask Open과 함께 Source 조명이 Destination 조명으로 자연스럽게 변하고 완료 순간 별도 밝기 튐 없이 Destination이 활성 주체가 되는지 확인
 - 원형 Arrival Area 안의 무작위 WorldStatic 바닥 포탈 선택
 - 기존 플레이어 Hitbox 주변을 피한 Spawn Transform 선택
 - 수직 초기 속도 이후 완전한 Ragdoll 비행, 실제 바닥 충돌과 팔다리 물리
