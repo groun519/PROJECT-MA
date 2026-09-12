@@ -10,6 +10,7 @@ class AMAMagicCircle;
 class AMAPlayerCharacter;
 class AMAPlayerControllerBase;
 class UMASpaceTransitionMask;
+class UMASpaceLightCollector;
 class UMAStreamingLevelLoader;
 struct FGameplayTag;
 
@@ -28,9 +29,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Space Transition")
 	bool RequestTransition(
 		TSoftObjectPtr<UWorld> DestinationMap,
-		const FTransform& DestinationSlotTransform,
 		int32 GenerationSeed = 0);
 
 	void BeginClientPrepare(const FMASpaceTransitionRequest& Request);
@@ -73,6 +74,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMASpaceTransitionMask> TransitionMask;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASpaceLightCollector> SourceLightCollector;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMASpaceLightCollector> DestinationLightCollector;
 
 	EPhase Phase = EPhase::Idle;
 	float TransitionAlpha = 1.f;

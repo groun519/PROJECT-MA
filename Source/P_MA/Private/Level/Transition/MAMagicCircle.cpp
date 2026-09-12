@@ -5,9 +5,11 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "Level/Transition/MASpaceTransitionVisibilityComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "TimerManager.h"
 
 AMAMagicCircle::AMAMagicCircle()
 {
@@ -44,6 +46,57 @@ AMAMagicCircle::AMAMagicCircle()
 	UMASpaceTransitionVisibilityComponent* SpaceTransitionVisibilityComponent =
 		CreateDefaultSubobject<UMASpaceTransitionVisibilityComponent>(TEXT("WorldTransitionVisibilityComponent"));
 	SpaceTransitionVisibilityComponent->AddTarget(CircleMeshComponent);
+}
+
+/** Auto Travel **/
+
+void AMAMagicCircle::BeginPlay()
+{
+	Super::BeginPlay();
+	if (HasAuthority()) RefreshReadyTimer();
+}
+
+void AMAMagicCircle::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(ReadyTimer);
+	Super::EndPlay(EndPlayReason);
+}
+
+void AMAMagicCircle::SetAutoTravelEnabled(const bool bEnabled)
+{
+	if (!HasAuthority() || bAutoTravelEnabled == bEnabled) return;
+	bAutoTravelEnabled = bEnabled;
+	RefreshReadyTimer();
+}
+
+bool AMAMagicCircle::AreAllPlayersInCircle() const
+{
+	const AGameStateBase* GameState = GetWorld()->GetGameState();
+	if (!GameState || GameState->PlayerArray.IsEmpty()) return false;
+	for (const APlayerState* PlayerState : GameState->PlayerArray)
+	{
+		if (!IsPlayerInCircle(PlayerState)) return false;
+	}
+	return true;
+}
+
+void AMAMagicCircle::RefreshReadyTimer()
+{
+	if (!bAutoTravelEnabled || !AreAllPlayersInCircle())
+	{
+		GetWorldTimerManager().ClearTimer(ReadyTimer);
+		return;
+	}
+	if (!GetWorldTimerManager().IsTimerActive(ReadyTimer))
+	{
+		GetWorldTimerManager().SetTimer(ReadyTimer, this, &AMAMagicCircle::HandleAllPlayersReady, 3.f, false);
+	}
+}
+
+void AMAMagicCircle::HandleAllPlayersReady()
+{
+	if (!bAutoTravelEnabled || !AreAllPlayersInCircle()) return;
+	OnAllPlayersReady.Broadcast();
 }
 
 /** Player Detection **/
@@ -95,6 +148,7 @@ void AMAMagicCircle::AddPlayerInCircle(APlayerState& PlayerState)
 
 	PlayersInCircle.Add(&PlayerState);
 	PlayerState.OnDestroyed.AddDynamic(this, &AMAMagicCircle::HandlePlayerInCircleDestroyed);
+	RefreshReadyTimer();
 }
 
 void AMAMagicCircle::RemovePlayerInCircle(APlayerState& PlayerState)
@@ -102,6 +156,7 @@ void AMAMagicCircle::RemovePlayerInCircle(APlayerState& PlayerState)
 	if (PlayersInCircle.Remove(&PlayerState) == 0) return;
 
 	PlayerState.OnDestroyed.RemoveDynamic(this, &AMAMagicCircle::HandlePlayerInCircleDestroyed);
+	RefreshReadyTimer();
 }
 
 /** Transform **/

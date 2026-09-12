@@ -16,6 +16,7 @@ Lobby Hub와 Seamless Transition의 원본 설계 계약은 목업 브랜치의 
 - `5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md`
 - `25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md`
 - `be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_SpaceDirectionalLightTransitionMockup.md`
+- `519792202c53e500a1afbbcab4c7a1da5fd9117f:docs/wip/lobby-rework/07_MagicCircleAutomaticDepartureMockup.md`
 
 현재 작업 트리에 원본 문서를 복제하지 않는다. 다음 명령으로 고정된 버전을 읽는다.
 
@@ -30,6 +31,7 @@ git show 5f9781a2bf9a3a261ccf46dce0b28c4ff526457d:docs/wip/lobby-rework/07_Stenc
 git show 5909db2a12b40112833a44de4d825fb187a904c7:docs/wip/lobby-rework/04_SpaceTransitionMaskOwnershipRefactorMockup.md
 git show 25720efdc68b08a745051edd0e6161deb4625529:docs/wip/lobby-rework/05_SpaceTransitionSimplificationMockup.md
 git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_SpaceDirectionalLightTransitionMockup.md
+git show 519792202c53e500a1afbbcab4c7a1da5fd9117f:docs/wip/lobby-rework/07_MagicCircleAutomaticDepartureMockup.md
 ```
 
 마지막 04 문서의 Mask 소유권 계약은 앞선 시각 전환 목업의 해당 내용을 대체하며, 05 문서는 그 구조의 실행 흐름을 단순화한다.
@@ -54,7 +56,8 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - Camera Occlusion Cutout은 일반 Pawn 및 관전 카메라에서 현재 대상을 계속 추적하며, UI Presentation View에서는 프리뷰 대상으로 전환한다.
 - UI Presentation View의 로컬 카메라 전환과 Fill Light를 Station 큐브에서 검증했다.
 - Magic Circle은 서버에서 영역 진입과 이탈을 판정하고 Ready PlayerState 목록을 복제한다.
-- 전원 Ready 출발, Countdown과 공간 전환은 아직 연결하지 않았다.
+- Magic Circle의 출발 활성화, 전원 진입 3초 유지·이탈 취소와 서버 출발 알림을 구현하고 사용자 검수를 마쳤다.
+- Hub 레벨 BP가 출발 알림을 기존 `RequestTransition(MainMap1)`에 연결한다. 게임 상태에 따른 활성화와 출발 정책은 아직 연결하지 않았다.
 - Arrival Volume이 원형 영역 안의 무작위 XY 지점에서 WorldStatic 바닥을 찾고, Hitbox가 점유하지 않은 포탈 위치를 Hub GameMode 생성 경로에 연결한다.
 - Arrival Volume이 설정 범위 안에서 수직 투입 속도를 한 번 선택하고, Hub Character는 해당 속도를 적용한 뒤 Ragdoll 비행과 착지를 Chaos에 맡긴다.
 - Hub Character는 비행 시간 이후 자신의 Ragdoll 안정화 또는 최대 시간을 판정하고, 바닥 복구, Get Up과 입력 재활성화를 닫는다.
@@ -77,6 +80,7 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - 각 로컬 화면은 Close 시작부터 Open 완료까지 기존 Pawn Camera의 위치 Lag을 일시 정지해 공간 인계 직후의 보간 이격을 남기지 않는다.
 - 중앙 Camera Director를 제거하고 카메라 자체의 보간 상태, 공용 단발 기술, 네트워크 경계와 각 기능의 연출 순서를 실제 책임자에게 분리했다.
 - 각 Space의 `AMASpaceDirectionalLight`만 런타임 조명에 참여하며, Open 진행도에 맞춰 Source 조명을 Destination authored state로 전환한 뒤 활성 주체를 넘긴다.
+- 공간의 Point/Spot/Rect 조명은 Close 중 원래 광량에서 0으로, Destination Open 중 0에서 원래 광량으로 변화한다. NPC에 부착된 LightComponent도 같은 Level의 수집 대상이다.
 
 ## 책임
 
@@ -117,7 +121,7 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - Hub와 Battle Space가 공유하는 양방향 마법진이다. 공간 종류를 구분하는 하위 타입을 두지 않는다.
 - Ready 영역과 현재 점유 중인 PlayerState 목록을 소유한다.
 - 서버에서 진입과 이탈을 판정하고 목록을 복제한다.
-- 외부에는 Ready 여부와 인원 값만 제공하며 표시와 Countdown은 아직 소유하지 않는다.
+- Ready 여부와 인원 값, `SetAutoTravelEnabled()` 및 서버의 `OnAllPlayersReady` 알림을 제공한다. 활성화 중 전원이 3초 머물면 알림을 발행하고 이탈·비활성화 시 대기를 취소한다. 인원/Countdown UI는 없다.
 - 자신의 표시 Mesh를 `UMASpaceTransitionVisibilityComponent`에 명시적으로 등록한다.
 - `WorldToCircleTransform()`과 `CircleToWorldTransform()`으로 Scale 영향을 제거한 마법진 기준 상대 Transform 변환을 닫는다.
 - 목적지 Map, 전환 순서, Mask, 전환음과 전투 상태를 알지 않는다.
@@ -139,7 +143,9 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - `UnloadLevel(AMALevelRoot)`이 내부 대응표로 해당 streaming instance를 찾아 제거한다.
 - `RegisterInitialLevel()`은 World 시작 시 이미 표시된 streaming level을 한 번 조사해 초기 `AMALevelRoot`와 streaming instance의 대응만 채운다.
 - 로드 중 취소, `AMALevelRoot` 탐색과 streaming API 세부사항을 닫는다.
+- `OnPreparing`은 레벨 데이터 로드 직후, 컴포넌트 등록과 표시 전에 해당 `ULevel`을 전달한다. 준비 중 조명 차단은 이 경계를 소비하며 Loader는 조명 구현을 알지 않는다.
 - Current/Destination 의미, Player 이동, 화면 전환과 Ready 정책을 알지 않는다.
+- `GetSwapTransform(CurrentLevel)`은 기존 streaming instance의 배치 Transform에서 반대 슬롯을 계산한다. 초기 슬롯 0과 대기 슬롯 X=100000의 교대 수치는 이 함수 내부에만 두며 별도 토글/슬롯 상태를 저장하지 않는다. 맵 원본과 마법진의 authored 위치는 바꾸지 않는다.
 
 ### `UMASpaceTransitionMask`
 
@@ -161,10 +167,21 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - Open 완료 시 Source를 끄고 Destination을 활성화해 다음 전환의 현재 조명 주체를 넘긴다.
 - 별도 Tick, Timer, Settings Data와 외부 속성별 보간을 두지 않는다.
 
+### `UMASpaceLightCollector`
+
+- 한 runtime Level의 Point/Spot/Rect `ULocalLightComponent`를 수집하고 원래 광량과 컴포넌트 Soft 참조만 보관한다. BP Construction 재실행으로 교체된 컴포넌트는 같은 객체 경로로 재해석하며 에셋 로드를 요청하지 않는다.
+- `Collect(Level, IntensityScale)`로 수집과 최초 배율 적용을 닫는다. Subsystem이 같은 타입의 Source/Destination 작업 객체를 각각 소유한다.
+- `SetIntensityScale()`은 항상 저장된 원래 광량에 배율을 곱한다. 현재 광량에 다시 곱해 누적 감소시키지 않는다.
+- 색상, 반경, 온도와 Visibility를 변경하지 않으며 원래 꺼진 조명을 켜지 않는다. Static 조명은 제외한다.
+- 별도 Tick, Timer, Phase와 RPC를 소유하지 않는다. 수집 이후 파괴되어 교체 대상도 없는 컴포넌트는 건너뛴다.
+- `Reset()`은 작업 목록만 비운다. 정상 완료 때 Source 조명을 다시 켜지 않고, 중단 복구는 Subsystem이 Source 배율 1을 요청한 뒤 목록을 해제한다.
+- 이번 범위에서는 몬스터 생성 Level과 수명을 변경하지 않는다. 몬스터/프롭의 Close 중 제거 연출과 이미시브 처리는 후속 범위에서 검토한다.
+- 현재 계약은 수집된 조명의 고정 광량 페이드다. 전환 중 신규 조명 생성과 다른 기능의 동시 광량 변경, SkyLight/발광 머티리얼/베이크된 간접광의 전환은 별도 범위다.
+
 ### `UMASpaceTransitionSubsystem`
 
 - 현재 UWorld 수명의 Subsystem이며 한 번의 Persistent Space Transition 순서를 닫는다.
-- 서버의 `RequestTransition(DestinationMap, DestinationSlotTransform, GenerationSeed)` 요청으로 Destination instance identity를 발급한다.
+- 서버의 `RequestTransition(DestinationMap, GenerationSeed)` 요청으로 Destination instance identity를 발급한다. 배치 Transform은 Loader의 `GetSwapTransform()` 결과를 요청 데이터에 넣어 각 클라이언트에 전달한다. 호출자는 좌표를 지정하지 않고, 클라이언트는 서버가 확정한 배치를 그대로 사용한다.
 - 서버와 각 클라이언트에서 `UMAStreamingLevelLoader`에 동일한 map, transform과 instance identity를 전달하고 반환된 `AMALevelRoot`를 Destination으로 연결한다.
 - 모든 필수 클라이언트가 같은 identity의 Destination 준비를 완료한 뒤에만 각 로컬 화면의 Close를 요청한다.
 - 각 단계의 대기 Player 집합을 RPC 전송 전에 완성하고, 동기 재진입으로 단계가 바뀌면 남은 명령을 전송하지 않는다.
@@ -172,6 +189,8 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - 각 로컬 Subsystem의 단일 Mask를 Source Circle 중심에서 닫아 유지하고, Player 인계 뒤 같은 Mask를 Destination Circle 중심에서 연다.
 - 공용 Close/Open Phase, Duration과 진행도를 소유하고 로컬 애니메이션 중에만 Tick한다.
 - 같은 진행도를 Mask에 전달하고 Open에서는 Source `AMASpaceDirectionalLight`의 전환 진입점에도 전달할 뿐 각 표현 객체의 속성과 적용 규칙은 알지 않는다.
+- Destination 조명은 Loader의 표시 전 준비 콜백에서 수집해 0으로 둔다. Source 조명은 로컬 Close 시작에 수집하고, 공용 진행도를 Close에서는 Source, Open에서는 Destination LightCollector에 전달한다.
+- Source는 광량 0 상태로 Unload한다. Commit 이전 중단은 Source 광량을 복구하고 Destination은 꺼진 상태로 제거한다. 시각 객체는 Dedicated Server에 생성하지 않는다.
 - 각 로컬 Subsystem은 Close/Open 단계에 맞춰 Player Camera에 위치 Lag 중지와 복구만 요청한다.
 - Close와 Open이 실제 시작될 때 태그 기반 Gameplay Sound를 해당 Magic Circle 위치에서 한 번 요청한다.
 - Open 완료 뒤 Loader에 Source 제거를 요청하고 Destination을 Current Space로 승격한다.
@@ -313,13 +332,19 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 15. Mask와 조명은 별도 시간축을 만들지 않는다.
     `UMASpaceTransitionSubsystem`의 같은 진행도를 소비하며 Mask와 조명 객체는 전달받은 값을 자기 표현에만 적용한다.
 
+16. 주변 조명의 페이드는 공간 소속과 원래 광량을 기준으로 한다.
+    Destination은 표시 전 차단하고 Source는 0인 채 제거한다. 중단 시 Source만 복구하며 Level 제거 직전에 조명을 재활성화하지 않는다.
+
 ## 단계 경계 목록
+
+이름 변경 반영: `MAMagicCircle`은 `bAutoTravelEnabled`, `OnAllPlayersReady`, `SetAutoTravelEnabled`를 사용한다. `BP_MagicCircle`, `LobbyHubMap`, `MainMap1`을 새 이름으로 재저장하고 이번 이름 변경용 Property/Function Redirect 3개를 제거했다. Redirect 없는 새 프로세스에서 BP 컴파일과 두 맵 로드를 수행해 활성화 값 및 레벨 이벤트 바인딩이 유지됨을 확인했다.
 
 | 현재 위치 | 현재 이유 | 최종 책임자 | 제거 조건 |
 |---|---|---|---|
 | `ALobbyHubPlayerController::BeginPlay()`의 `Music.Lobby` 요청 | 현재 로컬 Hub 진입을 확정할 활성 공간 객체가 없음 | 향후 Active Space | Active Space가 MusicTag와 활성화 수명을 소유하는 첫 구현에서 Controller 호출 제거 |
 | `Hub_LoadoutStation` 큐브의 Cutout 테스트 머티리얼 | 환경 공용 마스터가 확정되기 전에 검증된 렌더링 계약을 유지해야 함 | 환경 공용 마스터 머티리얼 | 승인된 환경 마스터에 Material Function을 연결할 때 테스트 전용 머티리얼 재검토 |
-| `UMACheatManager::TravelToTransitionTestMap()` | Ready와 Countdown 연결 전에 Persistent Space Transition을 독립 검증해야 함 | Hub Magic Circle 출발 흐름 | Hub 전원 Ready 출발이 `RequestTransition()`을 호출하면 제거 |
+| `UMACheatManager::TravelToTransitionTestMap()` / `TravelToSpace()` | 자동 출발과 별개로 왕복 전환을 독립 점검하는 디버그 진입점 | CheatManager | 테스트용 이동 치트가 불필요해지면 제거 |
+| `LobbyHubMap` 레벨 BP의 `OnAllPlayersReady -> RequestTransition(MainMap1)` | 게임 진행 정책 연결 전 고정 참가 세션에서 자동 출발을 확인하는 최소 연결 | 향후 게임 진행 상태 책임자 | 게임 상태가 목적지 선택과 출발 알림 소비를 담당할 때 이 BP 연결을 제거 |
 | `DefaultEngine.ini`의 `AMASpace -> AMALevelRoot` Class/Property Redirect | 미커밋 Map이 이전 WIP 클래스명과 속성명을 직렬화하고 있어 에디터 재저장 전 Root 참조 유실을 막아야 함 | Level asset migration | `LobbyHubMap`과 `MainMap1`을 `AMALevelRoot.TransitionCircle`로 재저장하고 참조를 확인하면 제거 |
 
 단계 경계를 추가하거나 제거하면 이 표와 해당 코드 주석을 같은 변경에서 갱신한다. 최종 책임자를 아직 정의할 수 없다는 이유만으로 Manager, Registry 또는 범용 Context를 만들지 않는다.
@@ -327,10 +352,38 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 ## 다음 순서
 
 1. Standalone과 Listen Server/Client에서 Loader의 initial adopt, Destination 결과, Close, Circle Handoff, Open과 Source unload를 검증한다.
-2. Magic Circle의 Party Ready/DepartureIntent를 `RequestTransition()`에 연결한다.
+2. Hub 레벨 BP의 자동 전환 연결을 고정 참가 세션에서 검수한다. 이후 접속 경계와 게임 상태의 활성화·목적지 선택 정책을 연결한다.
 3. 실제 Battle Space와 LevelManager의 생성/BattleReady를 Destination 준비 조건에 연결한다.
 4. 청크, PCG와 Runtime Field 재생성은 LevelManager와 각 Generation Feature Owner의 진입점으로 연결한다.
 5. Battle 공간과 환경 마스터가 확정되면 검증된 Cutout Material Function을 환경 머티리얼에 연결한다.
+
+## 07 자동 출발 목업 보완 계약 — 조건 알림 검수 완료, 전환 연결 검수 대기
+
+이 절은 원본 07 목업 이후의 합의다. 조건 알림을 먼저 구현·검수했고, 이어서 Hub 레벨 BP에서 기존 전환 요청을 호출하도록 연결했다. 게임 상태와 신규 접속 정책은 이번 연결에서 구현하지 않는다.
+
+### 이번 구현
+
+- `AMAMagicCircle`에 `SetAutoTravelEnabled(bool)`와 서버의 `OnAllPlayersReady` 알림을 둔다. 활성화 정책은 호출자가 결정하며 출발지/도착지 구분이나 도착 시 자동 비활성화는 넣지 않는다.
+- 기존 `PlayersInCircle`을 재사용한다. 활성화 시 현재 조건을 즉시 평가하고, 현재 참가 PlayerState 각각이 모두 안에 있을 때 3초 단발 타이머를 시작한다. 인원수만 비교하지 않는다.
+- 한 명이라도 이탈하거나 비활성화되면 타이머를 취소한다. 다시 전원이 모이면 처음부터 3초를 센다. 타이머 진행 중 조건 재평가로 시간을 계속 초기화하지 않는다.
+- 완료 시 활성화 및 현재 전원 진입 조건을 다시 확인하고 알림을 한 번 발행한다. 계속 서 있는 동안 주기적으로 재발행하지 않는다. 출발 확정 상태, 자동 비활성화 및 실제 이동 정책은 추가하지 않는다.
+- 추가 상태는 활성화 값과 타이머 핸들을 기본으로 한다. 별도 Tick, Countdown UI, 관전 등 아직 없는 기능의 정책 가드는 추가하지 않는다. 서버 권한과 취소·수명 정리는 실제 기능 조건으로 처리한다.
+- 조건 알림은 사용자 PIE 검수를 마쳤다. 실제 전환은 참가 명단이 고정된 세션에서 다시 확인한다. 별도 출발 확인 로그는 제거하고 기존 전환 로그를 사용한다.
+- `RequestTransition()`은 BP에서 호출 가능하며, `LobbyHubMap` 레벨 BP가 배치된 Circle의 `OnAllPlayersReady`를 받아 `MainMap1`을 요청한다. 좌표 교대는 Loader 내부에서 계산하고, 마법진에는 목적지나 배치 정책을 넣지 않는다. MainMap1의 자동 복귀 바인딩이나 도착 시 활성화 변경은 추가하지 않는다.
+- 테스트 시 마법진 인스턴스의 `Auto Travel > Auto Travel Enabled`를 PIE 시작 전에 켠다(기본값 false). 실행 중 변경은 서버에서 `SetAutoTravelEnabled()`를 호출한다. 게임 상태의 활성화 정책, 입력 제한과 합류 시스템은 그대로 후속 범위다.
+
+### 정식 게임 진행 연결 전에 닫을 접속 경계
+
+- 3초 대기 중 참가 명단이 바뀌면 기존 대기를 취소하고 새 명단으로 재평가해야 한다. 접속·퇴장 책임자가 변경을 전달하고, 마법진은 자신의 대기만 갱신한다. 완료 시 재검사만으로 이 경계를 해결했다고 간주하지 않는다.
+- 전환 출발과 신규 접속이 동시에 발생하는 경우의 입장 확정은 서버 접속/게임 진행 정책이 담당한다. 마법진에 접속 거절이나 대기열 기능을 넣지 않는다.
+- 현재 세션은 진행 중 접속을 허용하고, 전환은 시작 시 준비 요청 대상과 후속 단계에서 순회하는 Controller 목록이 달라질 수 있다. 이번 BP 연결은 고정 참가 세션 검증용이며, 정식 게임 진행 연결 전 참가 확정과 신규 입장 정책을 함께 검수한다. 이번 자동 출발로 중도 접속까지 지원했다고 주장하지 않는다.
+
+### 중도 합류 방향 — 후속 목업
+
+- 진행 중인 판에 신규 사용자가 즉시 참여할 필요는 없다. 신규 사용자는 친구 서버에 미리 접속하지 않고 자신의 로컬 허브에서 준비하며 기다리는 방향으로 잡는다.
+- 친구 파티가 허브로 복귀하여 합류 가능한 때 실제 서버에 접속한다. 합류 가능 안내 방식과 직접/자동 합류 여부는 후속 설계에서 확정한다.
+- 이를 위해 친구 서버에서 허브와 전투 공간을 상주시키거나 참가자별로 서로 다른 Space를 관리하는 구조로 확장하지 않는다. 현재 파티 전체 이동 모델을 유지한다.
+- 접속 가능 상태 전달, 초대 대기, 재접속, UI 및 서버의 입장 확정 구현은 이번 범위가 아니다. 게임 진행/접속 책임자가 나중에 마법진 활성화와 출발 알림 소비를 연결한다.
 
 ## 현재 검증 항목
 
@@ -348,6 +401,7 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - 일반 Pawn 및 관전 카메라에서 Cutout이 현재 대상을 추적하고 Presentation 종료 후 Pawn으로 복구
 - Magic Circle 진입과 이탈에 따른 서버 Ready 값과 클라이언트 복제
 - `TravelToTransitionTestMap` 실행 시 출발 Magic Circle 중심에서 World가 완전히 닫히고 Player와 Magic Circle만 남은 뒤 목적지 중심에서 열리는지 확인
+- Host에서 `TravelToSpace /Game/_Map/LobbyHubMap.LobbyHubMap`으로 허브 복귀를 확인한다. 임의 목적지도 `TravelToSpace <맵 오브젝트 경로>`로 요청하며 목적지는 기존 LevelRoot/MagicCircle/DirectionalLight 계약을 충족해야 한다. `TravelToTransitionTestMap`을 포함한 치트의 좌표 인자는 제거했다. 반복 왕복 및 같은 맵 재요청도 Loader가 반대 슬롯을 계산하는지 확인한다.
 - Close/Open이 실제 시작될 때 출발지와 목적지에서 태그 기반 전환음이 각각 한 번 재생되는지 확인
 - `WorldRoot` 실행 시 초기 `LobbyHubMap`이 Player 생성 전에 로드되고 Loader가 유일한 `AMALevelRoot`를 Current Space로 채택하는지 확인
 - Host에서 `TravelToTransitionTestMap` 실행 시 `MainMap1`이 별도 Slot에 준비되고, 준비 중 Hub 플레이가 유지되는지 확인
@@ -357,6 +411,10 @@ git show be041a970c5f1ad6de70592b0dab11f44165260e:docs/wip/lobby-rework/06_Space
 - Close부터 Open 완료까지 Camera Lag이 중지되어 목적지 인계 시 카메라 이격이 없고, 완료·중단 뒤 다시 활성화되는지 확인
 - Destination Space가 Close 이전에 로드되어도 Source 화면의 밝기와 색이 변하지 않는지 확인
 - Mask Open과 함께 Source 조명이 Destination 조명으로 자연스럽게 변하고 완료 순간 별도 밝기 튐 없이 Destination이 활성 주체가 되는지 확인
+- 배치된 Point/Spot/Rect 및 NPC 부착 조명이 Close에서 함께 사라지고 Destination Open에서 원래 밝기로 복구되는지 확인
+- 반복 전환 시 광량이 누적 감소하지 않고 원래 꺼진 조명의 Visibility가 유지되는지 확인
+- Destination 조명이 표시 전부터 0이고, Source Unload 순간 다시 켜지는 프레임이 없는지 확인
+- Close 중단 시 Source 광량이 원래대로 복구되고, 파괴된 조명 참조가 남아도 정리되는지 확인
 - 원형 Arrival Area 안의 무작위 WorldStatic 바닥 포탈 선택
 - 기존 플레이어 Hitbox 주변을 피한 Spawn Transform 선택
 - 수직 초기 속도 이후 완전한 Ragdoll 비행, 실제 바닥 충돌과 팔다리 물리

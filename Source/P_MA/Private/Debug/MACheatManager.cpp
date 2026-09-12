@@ -152,7 +152,12 @@ void UMACheatManager::EnchantModule(
 		RuneEntryId);
 }
 
-void UMACheatManager::TravelToTransitionTestMap(const float DestinationX)
+void UMACheatManager::TravelToTransitionTestMap()
+{
+	TravelToSpace(TEXT("/Game/_Map/MainMap1.MainMap1"));
+}
+
+void UMACheatManager::TravelToSpace(FString MapPath)
 {
 	UWorld* World = GetWorld();
 	if (!World) return;
@@ -161,8 +166,7 @@ void UMACheatManager::TravelToTransitionTestMap(const float DestinationX)
 		World->GetSubsystem<UMASpaceTransitionSubsystem>())
 	{
 		SpaceTransition->RequestTransition(
-			TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/_Map/MainMap1.MainMap1"))),
-			FTransform(FVector(DestinationX, 0.f, 0.f)));
+			TSoftObjectPtr<UWorld>(FSoftObjectPath(MapPath)));
 	}
 }
 

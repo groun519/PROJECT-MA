@@ -44,11 +44,20 @@ AMALevelRoot* UMAStreamingLevelLoader::RegisterInitialLevel()
 	return FoundLevelRoot;
 }
 
+FTransform UMAStreamingLevelLoader::GetSwapTransform(AMALevelRoot& CurrentLevel) const
+{
+	const ULevelStreaming* StreamingLevel = LoadedLevels.FindChecked(&CurrentLevel).Get();
+	check(StreamingLevel);
+	const double CurrentX = StreamingLevel->LevelTransform.GetLocation().X;
+	return FTransform(FVector(FMath::IsNearlyZero(CurrentX) ? 100000.0 : 0.0, 0.0, 0.0));
+}
+
 bool UMAStreamingLevelLoader::LoadLevel(
 	TSoftObjectPtr<UWorld> LevelMap,
 	const FTransform& InstanceTransform,
 	const FString& InstanceIdentity,
-	FOnMALevelLoaded OnLoaded)
+	FOnMALevelLoaded OnLoaded,
+	FOnMALevelPreparing OnPreparing)
 {
 	if (LevelMap.IsNull()) return false;
 	if (!ensureMsgf(!PendingStreamingLevel.IsValid(), TEXT("Only one Level can load at a time."))) return false;
@@ -68,7 +77,10 @@ bool UMAStreamingLevelLoader::LoadLevel(
 
 	PendingStreamingLevel = StreamingLevel;
 	PendingLoadedDelegate = MoveTemp(OnLoaded);
+	PendingPreparingDelegate = MoveTemp(OnPreparing);
+	StreamingLevel->OnLevelLoaded.AddUniqueDynamic(this, &UMAStreamingLevelLoader::HandleLevelLoaded);
 	StreamingLevel->OnLevelShown.AddUniqueDynamic(this, &UMAStreamingLevelLoader::HandleLevelShown);
+	if (StreamingLevel->IsLevelLoaded()) HandleLevelLoaded();
 	if (StreamingLevel->IsLevelVisible()) HandleLevelShown();
 	return true;
 }
@@ -86,12 +98,25 @@ void UMAStreamingLevelLoader::CancelPendingLoad()
 {
 	if (ULevelStreaming* StreamingLevel = PendingStreamingLevel.Get())
 	{
+		StreamingLevel->OnLevelLoaded.RemoveDynamic(this, &UMAStreamingLevelLoader::HandleLevelLoaded);
 		StreamingLevel->OnLevelShown.RemoveDynamic(this, &UMAStreamingLevelLoader::HandleLevelShown);
 		ReleaseStreamingLevel(*StreamingLevel);
 	}
 
 	PendingStreamingLevel.Reset();
 	PendingLoadedDelegate.Unbind();
+	PendingPreparingDelegate.Unbind();
+}
+
+void UMAStreamingLevelLoader::HandleLevelLoaded()
+{
+	ULevelStreaming* StreamingLevel = PendingStreamingLevel.Get();
+	if (!StreamingLevel) return;
+
+	StreamingLevel->OnLevelLoaded.RemoveDynamic(this, &UMAStreamingLevelLoader::HandleLevelLoaded);
+	FOnMALevelPreparing PreparingDelegate = MoveTemp(PendingPreparingDelegate);
+	PendingPreparingDelegate.Unbind();
+	PreparingDelegate.ExecuteIfBound(*StreamingLevel->GetLoadedLevel());
 }
 
 void UMAStreamingLevelLoader::HandleLevelShown()

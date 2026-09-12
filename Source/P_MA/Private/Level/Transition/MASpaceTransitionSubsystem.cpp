@@ -5,6 +5,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Level/Environment/MASpaceDirectionalLight.h"
+#include "Level/Environment/MASpaceLightCollector.h"
 #include "Level/Streaming/MALevelRoot.h"
 #include "Level/Streaming/MAStreamingLevelLoader.h"
 #include "Level/Transition/MAMagicCircle.h"
@@ -28,12 +29,15 @@ void UMASpaceTransitionSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	if (GetWorld()->GetNetMode() != NM_DedicatedServer)
 	{
 		TransitionMask = NewObject<UMASpaceTransitionMask>(this);
+		SourceLightCollector = NewObject<UMASpaceLightCollector>(this);
+		DestinationLightCollector = NewObject<UMASpaceLightCollector>(this);
 	}
 }
 
 void UMASpaceTransitionSubsystem::Deinitialize()
 {
 	if (TransitionMask) TransitionMask->Reset();
+	if (SourceLightCollector) SourceLightCollector->SetIntensityScale(1.f);
 	TransitionMask = nullptr;
 	LevelLoader->CancelPendingLoad();
 	LevelLoader = nullptr;
@@ -75,9 +79,14 @@ void UMASpaceTransitionSubsystem::Tick(const float DeltaTime)
 
 	if (Phase == EPhase::Opening)
 	{
+		DestinationLightCollector->SetIntensityScale(Progress);
 		CurrentLevel->GetDirectionalLight()->TransitionTo(
 			Progress,
 			DestinationLevel->GetDirectionalLight());
+	}
+	else
+	{
+		SourceLightCollector->SetIntensityScale(Progress);
 	}
 
 	if (TransitionAlpha > 0.f && TransitionAlpha < 1.f) return;
@@ -98,7 +107,6 @@ TStatId UMASpaceTransitionSubsystem::GetStatId() const
 
 bool UMASpaceTransitionSubsystem::RequestTransition(
 	TSoftObjectPtr<UWorld> DestinationMap,
-	const FTransform& DestinationSlotTransform,
 	const int32 GenerationSeed)
 {
 	UWorld* World = GetWorld();
@@ -112,7 +120,7 @@ bool UMASpaceTransitionSubsystem::RequestTransition(
 	if (!ensureMsgf(!DestinationMap.IsNull(), TEXT("Space Transition requires a Destination map."))) return false;
 
 	ActiveRequest.DestinationMap = DestinationMap;
-	ActiveRequest.DestinationSlotTransform = DestinationSlotTransform;
+	ActiveRequest.DestinationSlotTransform = LevelLoader->GetSwapTransform(*CurrentLevel);
 	ActiveRequest.DestinationInstanceIdentity = FString::Printf(
 		TEXT("MA_Level_%s"),
 		*FGuid::NewGuid().ToString(EGuidFormats::Digits));
@@ -182,6 +190,7 @@ void UMASpaceTransitionSubsystem::BeginLocalClose(AMAPlayerCharacter* PlayerChar
 	}
 	Phase = EPhase::Closing;
 	TransitionAlpha = 1.f;
+	SourceLightCollector->Collect(*CurrentLevel->GetLevel(), 1.f);
 	LocalPlayerCharacter = PlayerCharacter;
 	if (PlayerCharacter) PlayerCharacter->GetPlayerCamera()->SetLocationLagEnabled(false);
 
@@ -226,6 +235,7 @@ void UMASpaceTransitionSubsystem::AbortLocalTransition()
 	}
 
 	TransitionMask->Reset();
+	SourceLightCollector->SetIntensityScale(1.f);
 	DiscardDestination();
 	ResetTransitionState();
 }
@@ -278,7 +288,10 @@ bool UMASpaceTransitionSubsystem::LoadDestination(const FMASpaceTransitionReques
 		Request.DestinationMap,
 		Request.DestinationSlotTransform,
 		Request.DestinationInstanceIdentity,
-		FOnMALevelLoaded::CreateUObject(this, &UMASpaceTransitionSubsystem::HandleDestinationLoaded));
+		FOnMALevelLoaded::CreateUObject(this, &UMASpaceTransitionSubsystem::HandleDestinationLoaded),
+		DestinationLightCollector
+			? FOnMALevelPreparing::CreateUObject(DestinationLightCollector, &UMASpaceLightCollector::Collect, 0.f)
+			: FOnMALevelPreparing());
 }
 
 void UMASpaceTransitionSubsystem::HandleDestinationLoaded(AMALevelRoot* LoadedLevel)
@@ -381,6 +394,7 @@ void UMASpaceTransitionSubsystem::AbortTransition()
 	}
 
 	if (TransitionMask) TransitionMask->Reset();
+	if (SourceLightCollector) SourceLightCollector->SetIntensityScale(1.f);
 	DiscardDestination();
 	ResetTransitionState();
 }
@@ -404,6 +418,8 @@ void UMASpaceTransitionSubsystem::ResetTransitionState()
 	DestinationLevel.Reset();
 	LocalPlayerCharacter.Reset();
 	PendingPlayers.Reset();
+	if (SourceLightCollector) SourceLightCollector->Reset();
+	if (DestinationLightCollector) DestinationLightCollector->Reset();
 }
 
 void UMASpaceTransitionSubsystem::CompleteLocalOpen(const bool bSucceeded)
@@ -411,6 +427,7 @@ void UMASpaceTransitionSubsystem::CompleteLocalOpen(const bool bSucceeded)
 	if (AMAPlayerCharacter* PlayerCharacter = LocalPlayerCharacter.Get())
 		PlayerCharacter->GetPlayerCamera()->SetLocationLagEnabled(true);
 	TransitionMask->Reset();
+	DestinationLightCollector->SetIntensityScale(1.f);
 
 	const bool bPureClient = GetWorld()->GetNetMode() == NM_Client;
 	if (bPureClient) PromoteDestination();
